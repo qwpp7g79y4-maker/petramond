@@ -27,6 +27,7 @@ pub fn pack(dir: &Path, wasm: Option<&Path>) -> Result<Vec<u8>, String> {
     if !files.iter().any(|(name, _)| name == MANIFEST) {
         return Err(format!("{} has no pack.json", dir.display()));
     }
+    let manifest = stamped_manifest(&dir.join(MANIFEST))?;
     if files.len() > MAX_ENTRIES {
         return Err(format!(
             "{} holds more than {MAX_ENTRIES} files",
@@ -39,8 +40,11 @@ pub fn pack(dir: &Path, wasm: Option<&Path>) -> Result<Vec<u8>, String> {
     let mut central = Vec::new();
     let mut total = 0u64;
     for (name, path) in &files {
-        let data =
-            std::fs::read(path).map_err(|e| format!("could not read {}: {e}", path.display()))?;
+        let data = match name.as_str() {
+            MANIFEST => manifest.clone(),
+            _ => std::fs::read(path)
+                .map_err(|e| format!("could not read {}: {e}", path.display()))?,
+        };
         total += data.len() as u64;
         if data.len() as u64 > MAX_ENTRY_BYTES || total > MAX_TOTAL_BYTES {
             return Err(format!(
@@ -93,6 +97,23 @@ pub fn pack(dir: &Path, wasm: Option<&Path>) -> Result<Vec<u8>, String> {
     put32(&mut out, central.len() as u32);
     put32(&mut out, offset);
     put16(&mut out, 0);
+    Ok(out)
+}
+
+/// Records the release this archive is packed against as `game_version`: the website files each
+/// upload under it and serves a build only to the releases that can load it.
+fn stamped_manifest(path: &Path) -> Result<Vec<u8>, String> {
+    let bytes =
+        std::fs::read(path).map_err(|e| format!("could not read {}: {e}", path.display()))?;
+    let mut manifest: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_slice(&bytes)
+            .map_err(|e| format!("{} is not a JSON object: {e}", path.display()))?;
+    manifest.insert(
+        "game_version".to_owned(),
+        crate::content::GAME_VERSION.into(),
+    );
+    let mut out = serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?;
+    out.push(b'\n');
     Ok(out)
 }
 

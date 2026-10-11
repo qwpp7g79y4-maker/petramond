@@ -563,6 +563,7 @@ fn a_packed_folder_is_the_same_bytes_whatever_its_history_and_passes_check() {
     let checked = archive::check(&packed, &BTreeSet::new()).unwrap();
     assert_eq!(checked.id, "sample_pack");
     assert_eq!(checked.version, "1.0.0");
+    assert_eq!(checked.game_version, crate::content::GAME_VERSION);
     let roundtrip = scratch("pack-roundtrip");
     let out = roundtrip.join("out");
     Archive::open(&packed)

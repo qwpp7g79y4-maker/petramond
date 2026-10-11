@@ -43,7 +43,7 @@ exclude = ["mods-src"]
 resolver = "2"
 
 [workspace.package]
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 # The toolchain rust-toolchain.toml pins; raise the two together.
 rust-version = "1.97"
@@ -97,7 +97,7 @@ serde_json = "1"
 # WASM runtime for mod logic. Deliberately minimal features: core modules only —
 # no wasi, no component model, no async, no gc, no wat parsing, no parallel
 # compilation — to keep compile time and binary size down.
-wasmtime = { version = "46", default-features = false, features = ["cranelift", "runtime", "parallel-compilation"] }
+wasmtime = { version = "49", default-features = false, features = ["cranelift", "runtime", "parallel-compilation"] }
 # The graphics stack moves as one: naga is the shader compiler wgpu embeds (the
 # same major version), and winit is the windowing version wgpu's surfaces take.
 wgpu = "27"

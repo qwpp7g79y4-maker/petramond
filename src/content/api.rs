@@ -165,14 +165,14 @@ pub fn retry_wait(header: Option<&str>, now_unix: i64) -> Duration {
 
 pub fn listing() -> Result<Vec<ListingRow>, ServiceError> {
     crate::account::session::spend(|token| {
-        let (status, body) = crate::service::http::get_json("/api/v1/content", Some(token))
-            .map_err(|e| {
-                ServiceError::Unreachable(if e.timed_out {
-                    "petramond.com did not respond".to_owned()
-                } else {
-                    format!("Could not reach petramond.com: {}", e.detail)
-                })
-            })?;
+        let path = format!("/api/v1/content?gameVersion={}", super::GAME_VERSION);
+        let (status, body) = crate::service::http::get_json(&path, Some(token)).map_err(|e| {
+            ServiceError::Unreachable(if e.timed_out {
+                "petramond.com did not respond".to_owned()
+            } else {
+                format!("Could not reach petramond.com: {}", e.detail)
+            })
+        })?;
         if (200..300).contains(&status) {
             Ok(parse_listing(&body))
         } else {

@@ -103,8 +103,13 @@ fn check_file(args: &Args) -> Result<(), String> {
     let path = args.path()?;
     let bytes = read(path)?;
     let checked = check(&bytes, &args.content_packs())?;
+    let built_for = if checked.game_version.is_empty() {
+        "no recorded Petramond release".to_owned()
+    } else {
+        format!("Petramond {}", checked.game_version)
+    };
     println!(
-        "{}: {} {} ({} bytes, sha256 {})",
+        "{}: {} {} for {built_for} ({} bytes, sha256 {})",
         path.display(),
         checked.id,
         checked.version,
@@ -187,21 +192,27 @@ fn read(path: &Path) -> Result<Vec<u8>, String> {
     std::fs::read(path).map_err(|e| format!("could not read {}: {e}", path.display()))
 }
 
+/// `<id>-<version>-petramond-<game version>.zip`, so builds for different releases sit side by side.
 fn zip_name(checked: &Checked) -> String {
-    let version: String = checked
-        .version
-        .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_') {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect();
-    if version.is_empty() {
-        format!("{}.zip", checked.id)
-    } else {
-        format!("{}-{version}.zip", checked.id)
+    let safe = |text: &str| -> String {
+        text.chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_') {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect()
+    };
+    let mut name = checked.id.clone();
+    for (label, part) in [
+        ("", &checked.version),
+        ("petramond-", &checked.game_version),
+    ] {
+        if !part.is_empty() {
+            name += &format!("-{label}{}", safe(part));
+        }
     }
+    name + ".zip"
 }

@@ -29,9 +29,13 @@ if ((${#crates[@]} == 0)); then
     exit 2
 fi
 
+# The engine's rust-toolchain.toml does not reach the sibling checkout, where
+# rustup would fall back to its default toolchain (possibly without wasm32).
+toolchain=$(cd "$repo_root" && rustup show active-toolchain | cut -d' ' -f1)
+
 (
     cd "$addons_dir"
-    "${cargo_cmd[@]}" build --locked --target-dir "$repo_root/target" \
+    RUSTUP_TOOLCHAIN=$toolchain "${cargo_cmd[@]}" build --target-dir "$repo_root/target" \
         --profile release --target wasm32-unknown-unknown "${packages[@]}"
 )
 

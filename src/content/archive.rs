@@ -333,6 +333,8 @@ pub struct Checked {
     pub id: String,
     pub name: String,
     pub version: String,
+    /// Empty for an archive packed before packing recorded it.
+    pub game_version: String,
 }
 
 pub fn check(bytes: &[u8], content_packs: &BTreeSet<String>) -> Result<Checked, String> {
@@ -354,6 +356,7 @@ pub fn check(bytes: &[u8], content_packs: &BTreeSet<String>) -> Result<Checked, 
         id: Option<String>,
         name: Option<String>,
         version: Option<String>,
+        game_version: Option<String>,
     }
     let fields: Fields = serde_json::from_slice(&manifest)
         .map_err(|_| "The pack.json in this archive is not readable JSON.".to_owned())?;
@@ -396,7 +399,12 @@ pub fn check(bytes: &[u8], content_packs: &BTreeSet<String>) -> Result<Checked, 
             "The version in pack.json must be {VERSION_MAX} characters or fewer."
         ));
     }
-    Ok(Checked { id, name, version })
+    Ok(Checked {
+        id,
+        name,
+        version,
+        game_version: text(fields.game_version),
+    })
 }
 
 fn inside(dest: &Path, path: &str) -> Result<PathBuf, String> {

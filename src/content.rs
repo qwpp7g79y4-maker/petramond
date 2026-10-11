@@ -17,6 +17,10 @@ pub use api::ListingRow;
 pub use install::{apply_pending, ApplyReport, ContentLock, Dirs, PendingChange};
 pub use records::InstallRecord;
 
+/// The release an archive is packed against, and the one a listing asks the website to serve
+/// builds for: a pack's wasm links this engine's crates.
+pub const GAME_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tier {
     ContentPack,

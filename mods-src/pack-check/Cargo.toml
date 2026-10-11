@@ -1,6 +1,9 @@
 [package]
 name = "pack-check"
-version.workspace = true
+# Pinned, not inherited: the sibling addon workspace resolves this crate's
+# inherited fields against the root workspace, so an inherited version follows
+# every game release into that workspace's lockfile.
+version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
