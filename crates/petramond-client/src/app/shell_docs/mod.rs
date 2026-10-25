@@ -328,7 +328,21 @@ impl App {
                 self.ui.state_mut(),
             );
         }
-        self.ui.frame(kind, screen, now, Some([0.0, 0.0, 0.0, 0.6]));
+        self.name_player_view(kind);
+        let contents = self
+            .session
+            .as_ref()
+            .map(|s| crate::app::ui_snapshot::build(Some(&s.game), self.screen, (0.0, 0.0), None));
+        self.ui.frame_filled(
+            kind,
+            screen,
+            now,
+            Some([0.0, 0.0, 0.0, 0.6]),
+            contents
+                .as_ref()
+                .map(|c| c as &dyn petramond_ui::runtime::SlotFill),
+        );
+        self.pose_player_view(kind);
         let modifier_shift = self.controls.modifiers.shift;
         let events = self.ui.take_events();
         if let Some(kind_key) = self.co_driven_menu() {

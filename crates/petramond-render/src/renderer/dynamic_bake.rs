@@ -297,37 +297,20 @@ impl Renderer {
         let bodies_first = self.actor.skin.batch.next_instance();
         for body in &self.actor.player_visible {
             let Some(rig) = body_rig else { break };
-            let (inst, held, off) = (&body.body, &body.held, &body.held_off);
-            let (hand, off_hand) = crate::player_model::place_player_body(
+            let pose = body.body.pose.of(&self.actor.body_poses);
+            let tip = bake_player_body(
                 rig,
-                inst,
-                inst.pose.of(&self.actor.body_poses),
+                body,
+                pose,
                 render_origin,
                 &mut self.actor.skin.batch,
+                &mut streams,
+                env,
             );
-            let hand = crate::player_model::posed_hand(hand, &held.pose.third_person, false);
-            let off_hand = crate::player_model::posed_hand(off_hand, &off.pose.third_person, true);
-
-            let light = crate::lighting::DynLight::new(inst.skylight, inst.blocklight);
-            for (view, hand_mat, off_side) in [(held, hand, false), (off, off_hand, true)] {
-                let grip = if off_side {
-                    crate::player_model::Grip::body_off(hand_mat)
-                } else {
-                    crate::player_model::Grip::body(hand_mat)
-                };
-                let Some(item) = (!inst.sleeping).then_some(view.item).flatten() else {
-                    continue;
-                };
-                streams.push(
-                    item,
-                    view.hold.third_person,
-                    view.variant,
-                    view.block_state,
-                    grip,
-                    off_side,
-                    light,
-                    env,
-                );
+            if let Some(tip) = tip {
+                if let Some(slot) = tips.iter_mut().find(|(key, _)| *key == body.key) {
+                    slot.1 = tip;
+                }
             }
         }
         self.actor.player_gpu.drawn = bodies_first..self.actor.skin.batch.next_instance();
@@ -491,14 +474,113 @@ impl Renderer {
     }
 }
 
-struct HeldStreams {
-    block_verts: Vec<petramond_mesh::Vertex>,
-    block_indices: Vec<u32>,
-    sprite_verts: Vec<ItemVertex>,
-    sprite_indices: Vec<u32>,
-    sprite_scratch: Vec<ItemVertex>,
-    model_verts: Vec<ItemVertex>,
-    model_indices: Vec<u32>,
+impl super::Renderer {
+    /// The first-person held item's tip in the world: the world point under the same screen
+    /// pixel, as far from the eye as the tip is in the hand pass.
+    fn viewmodel_tip_world(
+        &self,
+        render_origin: glam::IVec3,
+    ) -> Option<(glam::Vec3, crate::tether::NearEye)> {
+        let (ndc, dist) = self.hand.main_tip?;
+        let eye = self.view.cam_pos.relative_to(render_origin);
+        let on_ray = self
+            .view
+            .inv_view_proj
+            .project_point3(glam::Vec3::new(ndc.x, ndc.y, 0.5));
+        let dir = (on_ray - eye).try_normalize()?;
+        // The tip's own distance can reach past a block the player stands against, burying the
+        // line's start; inside the player's box no block can be.
+        let start = dist.min(inside_player_box(dir));
+        Some((
+            eye + dir * start,
+            crate::tether::NearEye { eye, full_at: dist },
+        ))
+    }
+}
+
+/// How far a ray from the eye runs before it leaves the player's collision box.
+fn inside_player_box(dir: glam::Vec3) -> f32 {
+    use petramond::player::{EYE, HALF_W, HEIGHT};
+    let exit = |d: f32, below: f32, above: f32| match d {
+        d if d > 0.0 => above / d,
+        d if d < 0.0 => below / -d,
+        _ => f32::INFINITY,
+    };
+    exit(dir.x, HALF_W, HALF_W)
+        .min(exit(dir.y, EYE, HEIGHT - EYE))
+        .min(exit(dir.z, HALF_W, HALF_W))
+}
+
+/// Skins one player body into `batch` and pushes what it wears and holds into `streams`,
+/// answering where a tethered line leaves its main hand: the held item's tip, or the empty fist.
+pub(super) fn bake_player_body(
+    rig: &petramond::player::rigs::Rig,
+    body: &PlayerBodyRender,
+    pose: &[glam::Mat4],
+    render_origin: glam::IVec3,
+    batch: &mut crate::skinned::SkinBatch,
+    streams: &mut HeldStreams,
+    env: crate::lighting::LightEnv,
+) -> Option<glam::Vec3> {
+    let (inst, held, off) = (&body.body, &body.held, &body.held_off);
+    let (hand, off_hand) =
+        crate::player_model::place_player_body(rig, inst, pose, render_origin, batch);
+    let hand = crate::player_model::posed_hand(hand, &held.pose.third_person, false);
+    let off_hand = crate::player_model::posed_hand(off_hand, &off.pose.third_person, true);
+
+    let light = crate::lighting::DynLight::at(inst.skylight, inst.blocklight, inst.pos);
+    for (item, at) in body.worn.iter().zip(rig.wear) {
+        let (Some(item), Some(at)) = (*item, at) else {
+            continue;
+        };
+        let frame = crate::player_model::worn_frame(inst, pose, render_origin, at);
+        streams.push_worn(item, frame, light, env);
+    }
+    let mut tip = None;
+    for (view, hand_mat, off_side) in [(held, hand, false), (off, off_hand, true)] {
+        let grip = if off_side {
+            crate::player_model::Grip::body_off(hand_mat)
+        } else {
+            crate::player_model::Grip::body(hand_mat)
+        };
+        let Some(item) = (!inst.sleeping).then_some(view.item).flatten() else {
+            if !off_side {
+                tip = Some(grip.frame.transform_point3(crate::player_model::FIST_PX));
+            }
+            continue;
+        };
+        if !off_side {
+            tip = Some(match item.held_render_kind() {
+                petramond_world::item::ItemRenderKind::Sprite(tile) => {
+                    crate::player_model::held_sprite_at(grip, view.hold.third_person)
+                        .transform_point3(crate::item_model::tip_point(tile, item.tool().is_some()))
+                }
+                _ => grip.frame.transform_point3(grip.point),
+            });
+        }
+        streams.push(
+            item,
+            view.hold.third_person,
+            view.variant,
+            view.block_state,
+            grip,
+            off_side,
+            light,
+            env,
+        );
+    }
+    tip
+}
+
+#[derive(Default)]
+pub(super) struct HeldStreams {
+    pub(super) block_verts: Vec<petramond_mesh::Vertex>,
+    pub(super) block_indices: Vec<u32>,
+    pub(super) sprite_verts: Vec<ItemVertex>,
+    pub(super) sprite_indices: Vec<u32>,
+    pub(super) sprite_scratch: Vec<ItemVertex>,
+    pub(super) model_verts: Vec<ItemVertex>,
+    pub(super) model_indices: Vec<u32>,
 }
 
 impl HeldStreams {

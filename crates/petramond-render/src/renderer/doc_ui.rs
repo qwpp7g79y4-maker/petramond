@@ -27,6 +27,8 @@ pub(super) struct DocUi {
     frame_images: Vec<petramond::gui::DocImageSource>,
     image_binds: HashMap<std::path::PathBuf, wgpu::BindGroup>,
     dynamic_binds: HashMap<String, DynamicBind>,
+    /// The renderer's own images this frame, by their reserved key.
+    rendered: Vec<(String, wgpu::BindGroup)>,
 }
 
 pub(super) struct ThemeBinds {
@@ -140,10 +142,13 @@ impl DocUi {
         theme: &mut Option<ThemeBinds>,
         document: Option<&super::super::DocumentUiFrame<'_>>,
         screen: (u32, u32),
+        rendered: &[(String, wgpu::BindGroup)],
     ) {
         self.batches.clear();
         self.overlay_start = 0;
         self.frame_images.clear();
+        self.rendered.clear();
+        self.rendered.extend_from_slice(rendered);
         let Some(document) = document else {
             self.dynamic_binds.clear();
             return;
@@ -305,6 +310,11 @@ impl DocUi {
                             petramond::gui::DocImageSource::Dynamic { key, .. } => {
                                 self.dynamic_binds.get(key).map(|entry| &entry.bind)
                             }
+                            petramond::gui::DocImageSource::Rendered { key } => self
+                                .rendered
+                                .iter()
+                                .find(|(k, _)| k == key)
+                                .map(|(_, bind)| bind),
                         }) {
                         Some(bind) => bind,
                         None => continue,

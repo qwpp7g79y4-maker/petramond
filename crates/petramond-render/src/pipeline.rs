@@ -58,6 +58,7 @@ use self::terrain::create_terrain_pipelines;
 use self::ui_icons::{create_model_icon_pipeline, create_ui_pipeline};
 
 pub(super) struct PipelineResources {
+    pub uniform_bgl: wgpu::BindGroupLayout,
     pub uniform_bind: wgpu::BindGroup,
     pub atlas_bind: wgpu::BindGroup,
     pub atlas_array_bind: wgpu::BindGroup,
@@ -376,6 +377,7 @@ pub(super) fn create_pipeline_resources(
 
     PipelineResources {
         atlas_array_bind: shared.atlas_array_bind,
+        uniform_bgl: shared.uniform_bgl,
         uniform_bind: shared.uniform_bind,
         atlas_bind: shared.atlas_bind,
         atlas_bgl: shared.atlas_bgl,

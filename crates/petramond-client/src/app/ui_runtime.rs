@@ -10,6 +10,7 @@ struct DocImageSet<'a> {
     doc: std::sync::Arc<Vec<documents::DocImageRef>>,
     extra: &'a [documents::DocImageRef],
     dynamic: &'a [petramond::modding::ClientImageData],
+    rendered: &'a [(String, (u32, u32))],
     scenes: &'a std::collections::BTreeMap<String, (u64, petramond_ui::SceneView)>,
 }
 
@@ -21,15 +22,20 @@ impl DocImages for DocImageSet<'_> {
         if let Some(idx) = self.extra.iter().position(|i| i.name == name) {
             return Some(((self.doc.len() + idx) as u16, self.extra[idx].size));
         }
-        self.dynamic.iter().position(|i| i.key == name).map(|idx| {
-            (
+        if let Some(idx) = self.dynamic.iter().position(|i| i.key == name) {
+            return Some((
                 (self.doc.len() + self.extra.len() + idx) as u16,
                 (
                     self.dynamic[idx].width as u32,
                     self.dynamic[idx].height as u32,
                 ),
-            )
-        })
+            ));
+        }
+        let base = self.doc.len() + self.extra.len() + self.dynamic.len();
+        self.rendered
+            .iter()
+            .position(|(key, _)| key == name)
+            .map(|idx| ((base + idx) as u16, self.rendered[idx].1))
     }
 
     fn scene(&self, name: &str) -> Option<&petramond_ui::SceneView> {
@@ -90,6 +96,7 @@ pub(super) struct AppUi {
     active: Option<GuiKind>,
     extra_images: Vec<documents::DocImageRef>,
     dynamic_images: Vec<petramond::modding::ClientImageData>,
+    rendered_images: Vec<(String, (u32, u32))>,
     overlaid_keys: Vec<String>,
     scenes: std::collections::BTreeMap<String, (u64, petramond_ui::SceneView)>,
     image_sources: Vec<petramond::gui::DocImageSource>,
@@ -140,6 +147,7 @@ impl AppUi {
             active: None,
             extra_images: Vec::new(),
             dynamic_images: Vec::new(),
+            rendered_images: Vec::new(),
             overlaid_keys: Vec::new(),
             scenes: Default::default(),
             image_sources: Vec::new(),
@@ -200,6 +208,12 @@ impl AppUi {
 
     pub fn set_dynamic_images(&mut self, images: Vec<petramond::modding::ClientImageData>) {
         self.dynamic_images = images;
+    }
+
+    /// The renderer's own images a document may name this frame, with their sizes.
+    pub fn set_rendered_images(&mut self, images: &[(String, (u32, u32))]) {
+        self.rendered_images.clear();
+        self.rendered_images.extend_from_slice(images);
     }
 
     pub fn set_scenes(&mut self, scenes: &[(String, petramond::modding::ClientCanvasSceneData)]) {
@@ -284,6 +298,7 @@ impl AppUi {
         self.overlaid_keys.clear();
         self.extra_images.clear();
         self.dynamic_images.clear();
+        self.rendered_images.clear();
         self.scenes.clear();
         self.frame_stamp = None;
         self.out.hover_slot = None;
@@ -361,10 +376,16 @@ impl AppUi {
                         rgba: i.rgba.clone(),
                     }),
             );
+        self.image_sources.extend(
+            self.rendered_images
+                .iter()
+                .map(|(key, _)| petramond::gui::DocImageSource::Rendered { key: key.clone() }),
+        );
         let images = DocImageSet {
             doc: doc.images,
             extra: &self.extra_images,
             dynamic: &self.dynamic_images,
+            rendered: &self.rendered_images,
             scenes: &self.scenes,
         };
         let input = std::mem::take(&mut self.input);

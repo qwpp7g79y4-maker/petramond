@@ -585,6 +585,96 @@
                         "w": "auto",
                         "h": "auto",
                         "pad": [
+                          1,
+                          1,
+                          1,
+                          1
+                        ],
+                        "margin": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "gap": 0,
+                        "dir": "column",
+                        "justify": "start"
+                      },
+                      "compact_layout": {
+                        "w": 0,
+                        "h": 0,
+                        "pad": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "margin": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "gap": 0,
+                        "dir": "column",
+                        "justify": "start"
+                      },
+                      "style": "panel.inset",
+                      "children": [
+                        {
+                          "id": "player_view",
+                          "type": "image",
+                          "image": "",
+                          "layout": {
+                            "w": 48,
+                            "h": 82,
+                            "pad": [
+                              0,
+                              0,
+                              0,
+                              0
+                            ],
+                            "margin": [
+                              0,
+                              0,
+                              0,
+                              0
+                            ],
+                            "gap": 0,
+                            "dir": "column",
+                            "justify": "start"
+                          },
+                          "compact_layout": {
+                            "w": 0,
+                            "h": 0,
+                            "pad": [
+                              0,
+                              0,
+                              0,
+                              0
+                            ],
+                            "margin": [
+                              0,
+                              0,
+                              0,
+                              0
+                            ],
+                            "gap": 0,
+                            "dir": "column",
+                            "justify": "start"
+                          },
+                          "bind": {
+                            "image": "player_view"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "layout": {
+                        "w": "auto",
+                        "h": "auto",
+                        "pad": [
                           0,
                           0,
                           0,
@@ -903,6 +993,9 @@
       },
       "no_craft_results": {
         "bool": true
+      },
+      "player_view": {
+        "str": "Sample text"
       },
       "show_item_tip": {
         "bool": true

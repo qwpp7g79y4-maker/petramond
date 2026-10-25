@@ -18,6 +18,19 @@ impl Game {
         self.replica.entities.alpha()
     }
 
+    /// What the local player wears, by slot.
+    pub fn worn_items(
+        &self,
+    ) -> [Option<petramond_world::item::ItemType>; petramond_world::inventory::WEAR_SLOTS] {
+        petramond_world::inventory::WearSlot::ALL.map(|slot| {
+            self.replica
+                .self_view
+                .inventory
+                .worn(slot)
+                .map(|stack| stack.item)
+        })
+    }
+
     pub(super) fn held_item_light(&self) -> (u8, petramond_world::light::BlockLight6) {
         let c = self.local.cam.pos.block();
         self.replica

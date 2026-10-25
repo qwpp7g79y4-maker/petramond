@@ -124,6 +124,7 @@ impl App {
                     images: &self.composed_hud_images,
                     slots: hud_slots,
                     hooks: hud_hooks,
+                    player_view: None,
                 }),
                 content: &scene,
                 client_overlays: &no_overlays,
@@ -138,6 +139,10 @@ impl App {
                     images: &self.composed_doc_images,
                     slots: doc_slots,
                     hooks: doc_hooks,
+                    player_view: self
+                        .player_view
+                        .as_ref()
+                        .filter(|_| kind == GuiKind::Inventory),
                 }),
                 content: &window,
                 client_overlays: &self.client_overlays,

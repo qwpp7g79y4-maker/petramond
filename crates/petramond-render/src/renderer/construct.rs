@@ -251,6 +251,8 @@ pub(super) fn new_renderer_inner(
         pipelines.emitter_particle_pipe,
     );
     let shadow = ShadowPass::new(&device, pipelines.entity_shadow_pipe);
+    let player_view =
+        super::player_view::PlayerViewPass::new(&device, &actor, &pipelines.uniform_bgl);
     let binds = SharedBinds {
         uniform_buf,
         shader_params_buf,
@@ -291,6 +293,7 @@ pub(super) fn new_renderer_inner(
         actor,
         shadow,
         block_entity,
+        player_view,
         last_stats: RenderStats::default(),
     })
 }

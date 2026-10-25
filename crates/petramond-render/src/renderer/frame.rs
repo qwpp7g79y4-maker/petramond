@@ -177,6 +177,7 @@ impl Renderer {
                 label: Some("frame"),
             });
         let mut stats = RenderStats::default();
+        self.encode_player_view(&mut enc);
         self.encode_passes(&mut enc, out.scene, &plan, route, &mut stats);
         self.frame_plan = plan;
         if let Some(scene) = out.scene_texture {

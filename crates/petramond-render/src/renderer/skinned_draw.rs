@@ -61,6 +61,11 @@ impl SkinFrame {
         }
     }
 
+    /// A frame of its own over the same pipeline, for bodies drawn by another camera.
+    pub(super) fn another(&self, device: &wgpu::Device) -> Self {
+        Self::new(device, self.pipeline.clone(), self.palette_bgl.clone())
+    }
+
     pub(super) fn upload(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
         if self.batch.instances.is_empty() {
             return;

@@ -7,19 +7,33 @@ impl Renderer {
         {
             return false;
         }
+        let samples = self.targets.anti_aliasing.sample_count();
+        let format = self.config.format;
         let Renderer {
-            device, queue, ui, ..
+            device,
+            queue,
+            ui,
+            player_view,
+            ..
         } = self;
         let gpu = super::doc_ui::UiGpu {
             device,
             queue,
             texture_bgl: &ui.texture_bgl,
         };
+        let view = [&frame.window, &frame.scene]
+            .into_iter()
+            .find_map(|f| f.document.as_ref().and_then(|d| d.player_view));
+        let rendered: Vec<(String, wgpu::BindGroup)> = player_view
+            .prepare(&gpu, format, samples, view)
+            .map(|bind| (petramond::gui::PLAYER_VIEW_IMAGE.to_owned(), bind))
+            .into_iter()
+            .collect();
         for (layer, frame) in [
             (&mut ui.scene, &frame.scene),
             (&mut ui.window, &frame.window),
         ] {
-            layer.prepare(&gpu, &mut ui.theme, &ui.icon_atlas, frame);
+            layer.prepare(&gpu, &mut ui.theme, &ui.icon_atlas, frame, &rendered);
         }
         true
     }
@@ -32,13 +46,14 @@ impl UiLayer {
         theme: &mut Option<super::doc_ui::ThemeBinds>,
         icon_atlas: &IconAtlas,
         frame: &UiFrame<'_>,
+        rendered: &[(String, wgpu::BindGroup)],
     ) {
         let screen = frame.viewport.size;
         let scale = frame.viewport.scale as f32;
         let slots = frame.document.as_ref().map(|document| document.slots);
         let hooks = frame.document.as_ref().map(|document| document.hooks);
         self.doc_ui
-            .prepare(gpu, theme, frame.document.as_ref(), screen);
+            .prepare(gpu, theme, frame.document.as_ref(), screen, rendered);
         self.client_overlays.prepare(
             gpu,
             theme,

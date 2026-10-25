@@ -386,6 +386,7 @@ mod tests {
                 images: &[],
                 slots: &[],
                 hooks: &[],
+                player_view: None,
             }),
             content,
             client_overlays: overlays,

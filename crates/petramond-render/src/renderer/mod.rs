@@ -40,6 +40,7 @@ mod lod;
 mod offscreen;
 mod passes;
 use passes::Node;
+mod player_view;
 mod post_process;
 mod readback;
 mod sized_frames;
@@ -77,7 +78,7 @@ use super::uniforms::Uniforms;
 use super::{
     BlockEntityInstance, BreakOverlayView, EntityShadow, HeldItemView, ItemEntityInstance,
     LocalFrame, MobRenderInstance, ParticleEmitterInstance, ParticleInstance, PlayerBodyRender,
-    SolidParticleInstance, UiFrame, UiLayers,
+    PlayerView, SolidParticleInstance, UiFrame, UiLayers,
 };
 use draw_plan::{QuadPass, SectionOcclusion, TerrainDraws};
 use petramond::gui::{UiSnapshot, UiViewport};
@@ -488,6 +489,7 @@ pub struct Renderer {
     actor: ActorPass,
     shadow: ShadowPass,
     block_entity: BlockEntityPass,
+    player_view: player_view::PlayerViewPass,
     last_stats: RenderStats,
 }
 

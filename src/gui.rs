@@ -22,6 +22,10 @@ pub enum DocImageSource {
         revision: u64,
         rgba: Arc<[u8]>,
     },
+    /// Pixels the renderer draws itself each frame, under one of its reserved keys.
+    Rendered {
+        key: String,
+    },
 }
 
 /// The image the renderer draws the local player into (the inventory's figure).

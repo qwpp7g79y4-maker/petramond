@@ -24,6 +24,7 @@ mod menu_lifecycle;
 mod music;
 mod options;
 mod options_state;
+mod player_view;
 mod pointer;
 mod presentation_events;
 mod render;
@@ -63,6 +64,8 @@ pub struct App {
     crafting_browser: crafting_browser::CraftingBrowser,
     composed_doc: petramond_ui::DrawList,
     composed_doc_images: Vec<petramond::gui::DocImageSource>,
+    /// The inventory's player figure this frame.
+    player_view: Option<petramond_render::PlayerView>,
     composed_hud: petramond_ui::DrawList,
     composed_hud_images: Vec<petramond::gui::DocImageSource>,
     client_canvas: Option<client_mod_ui::ClientCanvasState>,
@@ -119,6 +122,7 @@ impl App {
             crafting_browser: Default::default(),
             composed_doc: petramond_ui::DrawList::default(),
             composed_doc_images: Vec::new(),
+            player_view: None,
             composed_hud: petramond_ui::DrawList::default(),
             composed_hud_images: Vec::new(),
             client_canvas: None,

@@ -115,6 +115,17 @@ pub struct DocumentUiFrame<'a> {
     pub images: &'a [petramond::gui::DocImageSource],
     pub slots: &'a [petramond::gui::DocSlot],
     pub hooks: &'a [petramond::gui::DocHook],
+    /// What the document's `PLAYER_VIEW_IMAGE` shows this frame.
+    pub player_view: Option<&'a PlayerView>,
+}
+
+/// The local player as a GUI image shows it: the body posed for the view (`body.body.pose`
+/// indexes `poses`), drawn into an image of `size` pixels.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlayerView {
+    pub body: PlayerBodyRender,
+    pub poses: Vec<glam::Mat4>,
+    pub size: (u32, u32),
 }
 
 pub struct UiLayers<'a> {
@@ -163,6 +174,7 @@ mod ui_frame_coherence_tests {
                 images: &images,
                 slots: &slots,
                 hooks: &[],
+                player_view: None,
             }),
             content: &content,
             client_overlays: &overlays,
@@ -181,6 +193,7 @@ mod ui_frame_coherence_tests {
                 images: &images,
                 slots: &slots,
                 hooks: &[],
+                player_view: None,
             }),
             content: &content,
             client_overlays: &overlays,

@@ -265,6 +265,38 @@ impl PlayerAnimation {
         &self.rows
     }
 
+    /// The local player posed for a GUI figure: standing still at the origin, turned
+    /// `body_yaw` toward the viewer's right with the head a further `head_yaw` and pitched
+    /// `head_pitch`, holding what the hands hold and wearing `worn`, in full light. Answers the
+    /// body and the pose arena it indexes.
+    pub fn preview_body(
+        &self,
+        worn: [Option<petramond_world::item::ItemType>; petramond_world::inventory::WEAR_SLOTS],
+        body_yaw: f32,
+        head_yaw: f32,
+        head_pitch: f32,
+    ) -> Option<(PlayerBodyRender, Vec<Mat4>)> {
+        let (_, rig) = rigs::presented(Presenter::Body)?;
+        let body = BodyInput {
+            pos: WorldPos::ZERO,
+            emitter_tint: [1.0; 3],
+            emitter_self_lit: 0.0,
+            skylight: petramond_world::light::FULL6 as u8,
+            blocklight: BlockLight6::DARK,
+            state: BodyState {
+                body_yaw,
+                head_yaw,
+                head_pitch,
+                ..BodyState::default()
+            },
+            bones: ArenaRange::default(),
+            worn,
+        };
+        let mut poses = Vec::new();
+        let row = pose_row(rig, &body, self.local.held, &[], None, &mut poses);
+        Some((row, poses))
+    }
+
     pub fn poses(&self) -> &[Mat4] {
         &self.poses
     }
