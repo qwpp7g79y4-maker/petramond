@@ -1,4 +1,6 @@
 use crate::world::ServerWorld;
+use petramond_math::world_pos::WorldPos;
+use petramond_world::block::Block;
 use petramond_world::condition::BodyConditions;
 use petramond_world::exposure::{BodyExposure, ExposureDamage};
 use petramond_world::{fluid::FluidDef, fluid_math::fluid_height};
@@ -13,11 +15,19 @@ pub(crate) struct ExposureScratch {
     pub damage: Vec<ExposureDamage>,
 }
 
+/// Where a body breathes from this tick and how fast it spends breath away from its medium.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct BreathPoint {
+    pub eye: WorldPos,
+    pub drain: f32,
+}
+
 impl ExposureScratch {
     pub fn tick(
         &mut self,
         world: &ServerWorld,
         boxes: impl IntoIterator<Item = WorldBox>,
+        breath: Option<BreathPoint>,
         exposure: &mut BodyExposure,
     ) {
         self.damage.clear();
@@ -27,7 +37,22 @@ impl ExposureScratch {
             petramond_world::condition::defs(),
             &mut self.damage,
         );
+        if let Some(point) = breath.filter(|_| exposure.breath().is_some()) {
+            exposure.breathe(
+                breath_medium(world, point.eye),
+                point.drain,
+                &mut self.damage,
+            );
+        }
     }
+}
+
+/// The medium at a breath point, or `None` while its cells are not stream-final.
+fn breath_medium(world: &ServerWorld, eye: WorldPos) -> Option<Block> {
+    let c = eye.block();
+    world.block_if_stream_final(c.x, c.y, c.z)?;
+    world.block_if_stream_final(c.x, c.y + 1, c.z)?;
+    Some(world.data().eye_fluid(eye).unwrap_or(Block::Air))
 }
 
 fn gather_touched_fluids(

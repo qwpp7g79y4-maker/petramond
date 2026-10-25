@@ -1,4 +1,5 @@
 pub mod icon;
+mod vitals;
 
 use petramond::gui::{Role, SlotRect, UiSnapshot};
 
@@ -17,18 +18,14 @@ pub struct UiVertex {
 
 pub(super) const SOLID_UV: [f32; 2] = [-1.0, -1.0];
 
-const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+pub(super) const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
 pub(super) const SLOT_PX: f32 = 16.0;
-
-const HEART_PX: f32 = 9.0;
-const HEART_STEP: f32 = 8.0;
-const HEART_MARGIN: f32 = 8.0;
-const HEART_CELL_U: f32 = 1.0 / 3.0;
 
 #[derive(Default)]
 pub struct UiBuild {
     pub hearts: Vec<UiVertex>,
+    pub bubbles: Vec<UiVertex>,
     pub icon_quads: Vec<IconQuad>,
     pub hook_icon_quads: Vec<IconQuad>,
     pub counts: Vec<UiVertex>,
@@ -43,6 +40,7 @@ pub struct UiBuild {
 impl UiBuild {
     fn clear(&mut self) {
         self.hearts.clear();
+        self.bubbles.clear();
         self.effects.clear();
         self.icon_quads.clear();
         self.hook_icon_quads.clear();
@@ -147,10 +145,7 @@ fn push_doc_game_content(
     }
 
     if !ui.open && ui.kind == GuiKind::Hotbar {
-        if let Some(health) = ui.health {
-            push_hearts(&mut build.hearts, screen, health, ui.heart_wiggle, scale);
-        }
-        push_effects(&mut build.effects, screen, &ui.effects, scale);
+        vitals::push(ui, build, screen, scale);
     }
 
     if ui.open {
@@ -518,73 +513,6 @@ fn slot_item(ui: &UiSnapshot, role: Role, i: usize) -> Option<petramond_world::i
             .as_ref()
             .and_then(|c| c.slots.get(i).copied().flatten()),
         Role::Generic | Role::Other => None,
-    }
-}
-
-fn push_hearts(
-    out: &mut Vec<UiVertex>,
-    screen: (u32, u32),
-    health: petramond_world::gui_state::HealthView,
-    wiggle: Option<(i32, i32, f32)>,
-    scale: f32,
-) {
-    let hearts = (health.max / 2).max(0);
-    if hearts == 0 {
-        return;
-    }
-    let size = HEART_PX * scale;
-    let step = HEART_STEP * scale;
-    let margin = HEART_MARGIN * scale;
-    let y = screen.1 as f32 - margin - size;
-    let wiggle_offset = |i: i32| -> (f32, f32) {
-        let Some((lo, hi, t)) = wiggle else {
-            return (0.0, 0.0);
-        };
-        if 2 * i >= hi || 2 * i + 2 <= lo {
-            return (0.0, 0.0);
-        }
-        ((t * 183.0).sin() * 0.7 * scale, (t * 149.0).cos() * scale)
-    };
-    let cell_uv = |c: i32| -> ([f32; 2], [f32; 2]) {
-        let u0 = c as f32 * HEART_CELL_U;
-        ([u0, 0.0], [u0 + HEART_CELL_U, 1.0])
-    };
-    let current = health.current.clamp(0, health.max);
-    for i in 0..hearts {
-        let (dx, dy) = wiggle_offset(i);
-        let x = margin + i as f32 * step + dx;
-        let y = y + dy;
-        let (tl, br) = cell_uv(0);
-        push_quad_uv(out, screen, x, y, size, size, tl, br, WHITE);
-        let cell = match (current - i * 2).clamp(0, 2) {
-            2 => 2,
-            1 => 1,
-            _ => continue,
-        };
-        let (tl, br) = cell_uv(cell);
-        push_quad_uv(out, screen, x, y, size, size, tl, br, WHITE);
-    }
-}
-
-fn push_effects(
-    out: &mut Vec<UiVertex>,
-    screen: (u32, u32),
-    effects: &[petramond_world::effect::Effect],
-    scale: f32,
-) {
-    if effects.is_empty() {
-        return;
-    }
-    let cell = crate::effect_icons::CELL_PX as f32 * scale;
-    let gap = 2.0 * scale;
-    let margin = HEART_MARGIN * scale;
-    let y = screen.1 as f32 - margin - HEART_PX * scale - gap - cell;
-    let strip_cells = petramond_world::effect::defs().len() as f32;
-    for (i, effect) in effects.iter().enumerate() {
-        let x = margin + i as f32 * (cell + gap);
-        let u0 = effect.0 as f32 / strip_cells;
-        let u1 = (effect.0 as f32 + 1.0) / strip_cells;
-        push_quad_uv(out, screen, x, y, cell, cell, [u0, 0.0], [u1, 1.0], WHITE);
     }
 }
 

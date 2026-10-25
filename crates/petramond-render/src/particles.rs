@@ -213,6 +213,8 @@ fn append_emitter_particles(
         * density.clamp(0.0, 1.0))
     .round() as usize;
     let latest = ((time - schedule.phase) / schedule.base_gap).floor() as i64 + 2;
+    let [period, open_min, open_max] = e.pulse;
+    let pulse_phase = rand01(inst.seed ^ 0x5157_E0A1_9C3B_7D21) * period;
     let light = lighting::fold_self_lit(
         lighting::light_rgb(DynLight::new(inst.skylight, inst.blocklight), env),
         e.self_lit,
@@ -223,6 +225,13 @@ fn append_emitter_particles(
         let age = time - birth;
         if age < 0.0 {
             continue;
+        }
+        if period > 0.0 {
+            let lap = ((birth - pulse_phase) / period).floor();
+            let roll = rand01(inst.seed ^ (lap as i64 as u64).wrapping_mul(0xC2B2_AE3D_27D4_EB4F));
+            if (birth - pulse_phase).rem_euclid(period) >= lerp(open_min, open_max, roll) * period {
+                continue;
+            }
         }
         let seed = inst
             .seed

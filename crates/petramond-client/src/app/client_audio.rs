@@ -64,6 +64,10 @@ impl ClientAudio {
         }
     }
 
+    pub(super) fn play(&mut self, sound: Sound) {
+        self.audio.play(sound);
+    }
+
     pub(super) fn play_interface(&mut self, sound: Sound) {
         self.audio.play_interface(sound);
     }

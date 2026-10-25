@@ -32,6 +32,7 @@ pub(super) fn build(
         snapshot.active = inv.active_slot();
         snapshot.off_hand = inv.off_hand().copied();
         snapshot.health = view.health_view();
+        snapshot.breath = view.breath_view();
         snapshot.effects = view.effect_icons();
         for (i, slot) in snapshot.slots.iter_mut().enumerate() {
             *slot = inv.slot(i).copied();

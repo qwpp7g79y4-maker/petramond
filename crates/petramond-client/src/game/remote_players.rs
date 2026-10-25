@@ -325,6 +325,10 @@ impl RemotePlayers {
         self.map.iter_with_ids()
     }
 
+    pub fn get(&self, id: PlayerId) -> Option<&RemotePlayer> {
+        self.map.get(&id)
+    }
+
     pub fn len(&self) -> usize {
         self.map.len()
     }

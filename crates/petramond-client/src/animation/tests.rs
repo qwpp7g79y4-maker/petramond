@@ -1,4 +1,4 @@
-use glam::IVec3;
+use glam::{IVec3, Vec3};
 use petramond::player::AnimatorClaims;
 use petramond_math::view_volume::{Frustum, ViewVolume};
 use petramond_math::world_pos::WorldPos;
@@ -125,18 +125,29 @@ fn the_local_body_is_posed_first_and_carries_the_frames_hurt_flash() {
 }
 
 #[test]
-fn clearing_for_a_new_world_drops_every_posed_row() {
+fn the_rig_mouth_sits_on_the_front_of_the_turned_head() {
     let mut animation = PlayerAnimation::default();
     open_frame(&mut animation);
-    animation
-        .frame
-        .remotes
-        .push(remote(1, WorldPos::new(2.0, 0.0, 2.0)));
+    animation.frame.clear();
+    let feet = WorldPos::new(2.0, 64.0, 3.0);
+    let mut body = remote(4, feet);
+    body.body.state.body_yaw = 1.0;
+    body.body.state.head_yaw = 0.6;
+    animation.frame.remotes.push(body);
     animation.pose_bodies(&ViewVolume::unbounded());
-    assert!(!animation.bodies().is_empty());
 
-    animation.clear();
-    assert!(animation.bodies().is_empty());
-    assert!(animation.poses().is_empty());
-    assert!(animation.frame.remotes.is_empty());
+    let mouth = animation.mouth(4).expect("a posed body has a mouth");
+    assert!(animation.mouth(5).is_none(), "no row, no mouth");
+    let rel = Vec3::new(
+        (mouth.x - feet.x) as f32,
+        (mouth.y - feet.y) as f32,
+        (mouth.z - feet.z) as f32,
+    );
+    let look = 1.6f32;
+    let ahead = rel.x * look.sin() + rel.z * look.cos();
+    assert!(
+        (1.3..1.6).contains(&rel.y),
+        "the mouth sits low on the head ({rel})"
+    );
+    assert!(ahead > 0.15, "the mouth faces where the head looks ({rel})");
 }

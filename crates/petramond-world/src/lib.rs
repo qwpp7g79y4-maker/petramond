@@ -11,6 +11,7 @@ pub mod block_model;
 pub mod block_state;
 pub mod body;
 pub mod border;
+pub mod breath;
 pub mod chunk;
 pub mod cloth;
 pub mod collision;

@@ -348,6 +348,7 @@ impl Remap for SelfState {
         let SelfState {
             conditions,
             health: _,
+            breath: _,
             mode: _,
             effects,
             inventory_revision: _,

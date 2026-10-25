@@ -384,7 +384,11 @@ impl Mobs {
             if !mob.is_dead() {
                 let d = def(mob.kind);
                 let boxes = crate::mob::body_geometry::body_boxes(mob.pos, mob.yaw, d.size);
-                exposure.tick(world, boxes, mob.exposure_mut());
+                let breath = crate::exposure::BreathPoint {
+                    eye: mob.pos + Vec3::Y * d.eye_height,
+                    drain: 1.0,
+                };
+                exposure.tick(world, boxes, Some(breath), mob.exposure_mut());
                 let mob_id = mob.id();
                 out.exposure.extend(
                     exposure

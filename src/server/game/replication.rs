@@ -339,6 +339,7 @@ impl ServerGame {
         sess.replication.last_sent_inventory_revision = Some(revision);
         SelfState {
             health: player.health(),
+            breath: player.breath().filter(|b| b.current < b.max),
             conditions: condition_stages(player.conditions()),
             mode: player.mode().to_u8(),
             effects: player

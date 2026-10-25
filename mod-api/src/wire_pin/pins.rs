@@ -332,7 +332,7 @@ pub(super) const PINS: &[(&str, &str)] = &[
     ("AttachSide::*", "020001"),
     ("WorldgenStage::*", "050001020304"),
     ("EventKind::*", "21000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20"),
-    ("DamageSource::*", "0600010102036d3a6b03016d04030501"),
+    ("DamageSource::*", "0700010102036d3a6b03016d040305010604"),
     ("ContainerKind::*", "031370657472616d6f6e643a696e76656e746f72790f70657472616d6f6e643a6368657374036d3a67"),
     ("Facing::*", "0400010203"),
     ("MobDamageFeedbackComponent::*", "0600010000003f020000803f0000003f030004000000803f050a"),

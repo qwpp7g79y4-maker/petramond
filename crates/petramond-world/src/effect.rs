@@ -33,8 +33,17 @@ impl Effect {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum EffectBehavior {
     None,
-    Regen { interval: u32, amount: i32 },
-    Speed { scale: f32 },
+    Regen {
+        interval: u32,
+        amount: i32,
+    },
+    Speed {
+        scale: f32,
+    },
+    /// Scales the breath a body spends away from what it breathes (0 = holds it forever).
+    Breath {
+        scale: f32,
+    },
 }
 
 impl EffectBehavior {
@@ -42,6 +51,14 @@ impl EffectBehavior {
     pub fn speed_scale(self) -> f32 {
         match self {
             Self::Speed { scale } => scale,
+            _ => 1.0,
+        }
+    }
+
+    #[inline]
+    pub fn breath_scale(self) -> f32 {
+        match self {
+            Self::Breath { scale } => scale,
             _ => 1.0,
         }
     }
@@ -77,9 +94,12 @@ enum RawBehavior {
     None,
     Regen { interval: u32, amount: i32 },
     Speed { scale: f32 },
+    Breath { scale: f32 },
 }
 
 const SPEED_SCALE_MAX: f32 = 5.0;
+
+const BREATH_SCALE_MAX: f32 = 10.0;
 
 impl RawBehavior {
     fn resolve(&self, effect: &str) -> Result<EffectBehavior, String> {
@@ -100,6 +120,14 @@ impl RawBehavior {
                     ));
                 }
                 Ok(EffectBehavior::Speed { scale })
+            }
+            RawBehavior::Breath { scale } => {
+                if !scale.is_finite() || !(0.0..=BREATH_SCALE_MAX).contains(&scale) {
+                    return Err(format!(
+                        "effect '{effect}': breath scale must be in [0, {BREATH_SCALE_MAX}], got {scale}"
+                    ));
+                }
+                Ok(EffectBehavior::Breath { scale })
             }
         }
     }

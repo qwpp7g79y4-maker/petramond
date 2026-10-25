@@ -6,7 +6,8 @@ use crate::registry::ContentNames;
 use crate::tile::Tile;
 
 use super::definition::{
-    self, BlockDef, BlockFlags, BlockMaterial, ParticleEmitter, RootsFace, SupportDir,
+    self, BlockDef, BlockFlags, BlockMaterial, ParticleEmitter, ParticleEmitterAnchor, RootsFace,
+    SupportDir,
 };
 use super::shape_kind::{
     self, MeshEmitter, RawShape, RowFacts, ShapeKindDef, ShapeKindInterner, ShapeSim,
@@ -848,6 +849,12 @@ fn convert(
             Some(Box::leak(Box::new([**row])))
         }
     };
+    if particle_emitter.is_some_and(|rows| {
+        rows.iter()
+            .any(|e| e.anchor == ParticleEmitterAnchor::Mouth)
+    }) {
+        return Err("particle_emitter anchor 'mouth' belongs to a body; a block has none".into());
+    }
     let cloth = match &r.cloth {
         None => None,
         Some(key) => Some(
@@ -1053,8 +1060,17 @@ pub fn validate_particle_emitter(e: &ParticleEmitter) -> Result<(), String> {
         return Err("particle_emitter.self_lit must be in 0..=1".into());
     }
     finite("gravity", e.gravity)?;
-    if e.gravity < 0.0 {
-        return Err("particle_emitter.gravity must be >= 0 (it pulls down)".into());
+    let [period, open_min, open_max] = e.pulse;
+    for (i, value) in e.pulse.into_iter().enumerate() {
+        finite(&format!("pulse[{i}]"), value)?;
+    }
+    if e.pulse != [0.0; 3]
+        && (!(0.1..=60.0).contains(&period)
+            || !(open_min > 0.0 && open_min <= open_max && open_max <= 1.0))
+    {
+        return Err(
+            "particle_emitter.pulse must be [period 0.1..=60, open share min, max in 0..=1]".into(),
+        );
     }
     if e.lands && e.gravity <= 0.0 && e.velocity[1] >= 0.0 {
         return Err(

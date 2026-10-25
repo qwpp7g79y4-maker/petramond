@@ -240,10 +240,17 @@ pub enum PlayerAttribute {
     MoveSpeed,
     AttackCooldown,
     FlySpeed,
+    /// Breath spent per tick away from air (0 = never runs out).
+    BreathDrain,
 }
 
 impl PlayerAttribute {
-    pub const ALL: [PlayerAttribute; 3] = [Self::MoveSpeed, Self::AttackCooldown, Self::FlySpeed];
+    pub const ALL: [PlayerAttribute; 4] = [
+        Self::MoveSpeed,
+        Self::AttackCooldown,
+        Self::FlySpeed,
+        Self::BreathDrain,
+    ];
 
     pub const fn index(self) -> usize {
         self as usize

@@ -185,6 +185,7 @@ fn own_state(n: u64) -> SelfState {
     SelfState {
         conditions: Vec::new(),
         health: n as i32,
+        breath: None,
         mode: 0,
         denied_actions: Default::default(),
         effects: Vec::new(),

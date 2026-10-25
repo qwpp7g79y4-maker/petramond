@@ -74,6 +74,12 @@ pub(super) fn build_hud_layers(
             false,
         ),
         hud_layer(
+            "hud bubbles",
+            |b| &b.bubbles,
+            HudLayerTexture::Texture(load_gui_bind("textures/gui/bubbles.png")),
+            false,
+        ),
+        hud_layer(
             "hud effects",
             |b| &b.effects,
             HudLayerTexture::Texture(effects_bind),

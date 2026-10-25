@@ -74,7 +74,9 @@ pub use stream::split_generated_column;
 
 pub use cloth::PlacedCloth;
 pub use mirror::ReplicaMirror;
-pub use particle_emitters::{emitter_envelope, PlacedEmitter};
+pub use particle_emitters::{
+    emitter_ceiling_y, emitter_envelope, trail_origin, PlacedEmitter, TrailPoint, TrailSpan,
+};
 pub use petramond_world::world::ladder::Climb;
 pub use petramond_world::world::query::CollisionShapeClass;
 pub(crate) use remote::{detached_column_payload, detached_section_payload};

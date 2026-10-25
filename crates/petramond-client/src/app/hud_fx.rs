@@ -1,4 +1,5 @@
 use crate::game::GameEvents;
+use petramond_world::breath::BreathView;
 use petramond_world::gui_state::HealthView;
 
 const HURT_SHAKE_SECS: f32 = 0.25;
@@ -25,6 +26,7 @@ pub(super) struct HudFx {
     hurt_shake_t: f32,
     sleep_hand_t: f32,
     prev_heart_health: Option<i32>,
+    prev_bubbles: Option<u32>,
     heart_wiggle: Option<HeartWiggle>,
     hand_events: Vec<(petramond::player::RigId, u16)>,
 }
@@ -87,6 +89,14 @@ impl HudFx {
         self.hand_events.clear();
     }
 
+    /// True when a breath bubble vanished from the HUD since the last frame.
+    pub(super) fn bubble_popped(&mut self, breath: Option<BreathView>) -> bool {
+        let now = breath.map(BreathView::bubbles_left);
+        let popped = matches!((self.prev_bubbles, now), (Some(prev), Some(cur)) if cur < prev);
+        self.prev_bubbles = now;
+        popped
+    }
+
     pub(super) fn heart_wiggle(
         &mut self,
         health: Option<HealthView>,
@@ -146,13 +156,20 @@ mod tests {
     }
 
     #[test]
-    fn the_hurt_shake_decays_to_rest() {
+    fn a_bubble_pops_only_when_one_vanishes_from_a_shown_row() {
+        let breath = |current| Some(BreathView { current, max: 300 });
         let mut fx = HudFx::default();
-        assert_eq!(fx.shake(0.3).flash, 0.0);
-        fx.latch_hurt();
-        assert_eq!(fx.shake(0.3).flash, 1.0);
-        fx.advance(HURT_SHAKE_SECS);
-        let rest = fx.shake(0.3);
-        assert_eq!((rest.yaw, rest.pitch, rest.flash), (0.0, 0.0, 0.0));
+        assert!(!fx.bubble_popped(breath(299)), "first sight is not a pop");
+        assert!(
+            !fx.bubble_popped(breath(271)),
+            "the bubble is still showing"
+        );
+        assert!(fx.bubble_popped(breath(270)));
+        assert!(!fx.bubble_popped(breath(300)), "refilling never pops");
+        assert!(!fx.bubble_popped(None));
+        assert!(
+            !fx.bubble_popped(breath(30)),
+            "a row reappearing is not a pop"
+        );
     }
 }

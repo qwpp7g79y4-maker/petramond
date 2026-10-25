@@ -117,6 +117,8 @@ pub enum ParticleEmitterAnchor {
     BlockCenter,
     Local,
     TorchTop,
+    /// A body's mouth (body emitters only): `offset` is added there instead of at the feet.
+    Mouth,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -153,10 +155,16 @@ pub struct ParticleEmitter {
     pub spiral: [f32; 2],
     #[serde(default)]
     pub requires_open: Option<SupportDir>,
+    /// Pulls down; negative lifts.
     #[serde(default)]
     pub gravity: f32,
     #[serde(default)]
     pub lands: bool,
+    /// [period seconds, open share min, max]: births only in the first open share of each
+    /// period, rolled per period in that range, so the emitter puffs unevenly instead of
+    /// streaming. All zero streams.
+    #[serde(default)]
+    pub pulse: [f32; 3],
 }
 
 fn default_particle_anchor() -> ParticleEmitterAnchor {

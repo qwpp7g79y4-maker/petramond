@@ -106,6 +106,8 @@ struct RawMobDef {
     buoyancy: Buoyancy,
     #[serde(default)]
     tolerates: RawTolerance,
+    #[serde(default)]
+    breath: Option<petramond_world::breath::RawRespiration>,
     #[serde(default = "default_gravity_scale")]
     gravity_scale: f32,
     #[serde(default)]
@@ -476,6 +478,7 @@ fn convert(
         nav: r.nav,
         buoyancy: r.buoyancy,
         tolerates: convert_tolerance(r.tolerates)?,
+        breath: r.breath.map(|b| b.resolve()).transpose()?,
         gravity_scale: r.gravity_scale,
         air_control: r.air_control,
         collision: r.collision,

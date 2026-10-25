@@ -56,5 +56,5 @@ pub use rigs::{Presenter, RigId};
 pub use state::UseGesture;
 pub use state::{
     BedSpawn, Input, Player, PlayerInputSnapshot, PlayerMode, PlayerRosterSnapshot, DT_MAX, EYE,
-    HALF_W, HEIGHT, MAX_HEALTH, PITCH_LIMIT,
+    HALF_W, HEIGHT, MAX_HEALTH, PITCH_LIMIT, RESPIRATION,
 };

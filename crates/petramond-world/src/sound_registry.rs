@@ -44,6 +44,7 @@ impl Sound {
     pub const SnowBreak: Sound = Sound(36);
     pub const SnowPlace: Sound = Sound(37);
     pub const SnowStep: Sound = Sound(38);
+    pub const BubblePop: Sound = Sound(39);
 }
 
 const ENGINE_SOUND_NAMES: &[&str] = &[
@@ -86,6 +87,7 @@ const ENGINE_SOUND_NAMES: &[&str] = &[
     "petramond:snow_break",
     "petramond:snow_place",
     "petramond:snow_step",
+    "petramond:bubble_pop",
 ];
 
 impl std::fmt::Debug for Sound {

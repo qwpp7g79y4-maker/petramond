@@ -2,6 +2,7 @@ use crate::block::Block;
 use crate::mathh::Vec3;
 
 pub mod contact;
+mod eye;
 pub mod held;
 pub(crate) mod load;
 pub mod medium;
@@ -55,6 +56,13 @@ pub struct Quench {
     pub result: Block,
 }
 
+/// How it presents to a body whose breath point is under this fluid.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FluidSubmerged {
+    /// Looping body emitter worn while the body holds its breath here.
+    pub exhale: Option<u8>,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct FluidSplash {
     pub burst: u8,
@@ -76,6 +84,7 @@ pub struct FluidDef {
     pub motion: FluidMotion,
     pub current: CurrentProperties,
     pub splash: Option<FluidSplash>,
+    pub submerged: FluidSubmerged,
     pub contact: FluidContact,
     pub medium: FluidMedium,
 }

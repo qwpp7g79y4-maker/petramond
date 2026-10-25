@@ -1,5 +1,6 @@
 use super::{
-    contact::RawContact, CurrentProperties, FluidDef, FluidMedium, FluidMotion, FluidSplash, Quench,
+    contact::RawContact, CurrentProperties, FluidDef, FluidMedium, FluidMotion, FluidSplash,
+    FluidSubmerged, Quench,
 };
 use crate::{block::Block, registry::ContentNames};
 
@@ -19,6 +20,8 @@ pub(crate) struct RawFluid {
     current: CurrentProperties,
     #[serde(default)]
     splash: Option<RawSplash>,
+    #[serde(default)]
+    submerged: Option<RawSubmerged>,
     #[serde(default)]
     contact: Option<RawContact>,
     medium: FluidMedium,
@@ -52,6 +55,30 @@ impl RawSplash {
             burst: burst.id,
             sound_small: sound(&self.sound_small)?,
             sound_big: sound(&self.sound_big)?,
+        })
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct RawSubmerged {
+    #[serde(default)]
+    exhale: Option<String>,
+}
+
+impl RawSubmerged {
+    fn resolve(self) -> Result<FluidSubmerged, String> {
+        let exhale = self
+            .exhale
+            .map(|key| {
+                crate::particle_emitters::by_key(&key)
+                    .filter(|bundle| !bundle.rows.is_empty())
+                    .map(|bundle| bundle.id)
+                    .ok_or_else(|| format!("fluid exhale '{key}' is not a looping bundle"))
+            })
+            .transpose()?;
+        Ok(FluidSubmerged {
+            exhale,
         })
     }
 }
@@ -119,6 +146,11 @@ impl RawFluid {
             motion: m,
             current: self.current,
             splash: self.splash.map(RawSplash::resolve).transpose()?,
+            submerged: self
+                .submerged
+                .map(RawSubmerged::resolve)
+                .transpose()?
+                .unwrap_or_default(),
             contact,
             medium: self.medium,
         })

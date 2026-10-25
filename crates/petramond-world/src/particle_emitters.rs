@@ -43,6 +43,7 @@ const ENGINE_EMITTER_NAMES: &[&str] = &[
     "petramond:lava_embers",
     "petramond:block_dust",
     "petramond:block_break",
+    "petramond:breath_bubbles",
 ];
 
 const MAX_BUNDLE_ROWS: usize = 4;

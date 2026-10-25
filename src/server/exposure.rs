@@ -12,7 +12,18 @@ impl ServerGame {
             return;
         }
         let mut scratch = std::mem::take(&mut self.exposure_scratch);
-        scratch.tick(&self.world, [player.body().aabb()], player.exposure_mut());
+        let breath = crate::exposure::BreathPoint {
+            eye: player.eye(),
+            drain: player
+                .claims
+                .attribute(mod_api::PlayerAttribute::BreathDrain),
+        };
+        scratch.tick(
+            &self.world,
+            [player.body().aabb()],
+            Some(breath),
+            player.exposure_mut(),
+        );
         for hit in scratch.damage.drain(..) {
             self.damage_player_through_funnel(
                 s,
@@ -52,6 +63,7 @@ fn source(hit: ExposureDamage) -> DamageSource {
     match hit.source {
         ExposureSource::Fluid(block) => DamageSource::Fluid(block),
         ExposureSource::Condition(condition) => DamageSource::Condition(condition),
+        ExposureSource::Breath(medium) => DamageSource::Breath(medium),
     }
 }
 

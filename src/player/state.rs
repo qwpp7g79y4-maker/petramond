@@ -11,6 +11,8 @@ pub const EYE: f32 = 1.62;
 pub const DT_MAX: f32 = 0.05;
 pub const PITCH_LIMIT: f32 = 1.553_343;
 pub const MAX_HEALTH: i32 = 20;
+pub const RESPIRATION: petramond_world::breath::Respiration =
+    petramond_world::breath::Respiration::AIR_BREATHER;
 
 #[derive(Copy, Clone, Default)]
 pub struct Input {
@@ -78,7 +80,7 @@ impl Player {
             mode: PlayerMode::Survival,
             jumping: false,
             health: MAX_HEALTH,
-            exposure: Default::default(),
+            exposure: petramond_world::exposure::BodyExposure::default().breathing(RESPIRATION),
             damage_immunity: Default::default(),
             fall_peak_y: feet.y,
             fall_distance: 0.0,
@@ -153,6 +155,10 @@ impl Player {
         self.exposure.conditions()
     }
 
+    pub fn breath(&self) -> Option<petramond_world::breath::BreathView> {
+        self.exposure.breath().map(|b| b.view())
+    }
+
     pub fn exposure_mut(&mut self) -> &mut petramond_world::exposure::BodyExposure {
         &mut self.exposure
     }
@@ -194,18 +200,35 @@ impl Player {
         self.effects = effects;
     }
 
-    fn effect_speed_scale(&self) -> f32 {
+    fn effect_scale(&self, scale: fn(petramond_world::effect::EffectBehavior) -> f32) -> f32 {
         self.effects
             .iter()
-            .map(|e| e.effect.def().behavior.speed_scale())
+            .map(|e| scale(e.effect.def().behavior))
+            .product()
+    }
+
+    /// The product of every worn item's factor on `attribute`.
+    fn worn_scale(&self, attribute: mod_api::PlayerAttribute) -> f32 {
+        self.inventory
+            .worn_items()
+            .filter_map(|stack| stack.item.wear())
+            .map(|wear| wear.scale(attribute))
             .product()
     }
 
     pub fn refresh_engine_claims(&mut self, gameplay: bool) {
+        use mod_api::PlayerAttribute;
         self.claims.set_attribute(
             super::ENGINE_CLAIMANT,
-            mod_api::PlayerAttribute::MoveSpeed,
-            self.effect_speed_scale(),
+            PlayerAttribute::MoveSpeed,
+            self.effect_scale(petramond_world::effect::EffectBehavior::speed_scale)
+                * self.worn_scale(PlayerAttribute::MoveSpeed),
+        );
+        self.claims.set_attribute(
+            super::ENGINE_CLAIMANT,
+            PlayerAttribute::BreathDrain,
+            self.effect_scale(petramond_world::effect::EffectBehavior::breath_scale)
+                * self.worn_scale(PlayerAttribute::BreathDrain),
         );
         let idle = self.is_spectator() || !gameplay;
         let denied = if idle {
@@ -268,7 +291,8 @@ impl Player {
             let behavior = e.effect.def().behavior;
             match behavior {
                 petramond_world::effect::EffectBehavior::None
-                | petramond_world::effect::EffectBehavior::Speed { .. } => {}
+                | petramond_world::effect::EffectBehavior::Speed { .. }
+                | petramond_world::effect::EffectBehavior::Breath { .. } => {}
                 petramond_world::effect::EffectBehavior::Regen { interval, .. } => {
                     if e.remaining % interval == 0 {
                         fired.push(behavior);

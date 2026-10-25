@@ -74,6 +74,7 @@ fn attribute_max(attribute: PlayerAttribute) -> f32 {
         PlayerAttribute::MoveSpeed => MOVE_SCALE_MAX,
         PlayerAttribute::AttackCooldown => 10.0,
         PlayerAttribute::FlySpeed => FLY_SCALE_MAX,
+        PlayerAttribute::BreathDrain => 10.0,
     }
 }
 

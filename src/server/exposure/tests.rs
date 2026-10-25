@@ -228,3 +228,127 @@ fn replicated(server: &mut ServerGame, events: &TickEvents) -> crate::net::proto
     let shared = server.shared_tick_rows(events);
     server.build_tick_update(0, events, &shared)
 }
+
+fn still_fluid() -> Block {
+    Block::all()
+        .iter()
+        .filter_map(|b| b.fluid_def())
+        .find(|f| f.contact.damage.is_none() && f.contact.applies.is_none())
+        .expect("a shipped fluid holds a body without burning it")
+        .block
+}
+
+#[test]
+fn a_submerged_player_drowns_and_surfacing_refills_the_breath() {
+    let mut server = server();
+    let fluid = still_fluid();
+    for y in 65..=68 {
+        assert!(server.world.set_block_world(8, y, 8, fluid));
+    }
+    let hits = record_player_damage(&mut server);
+    let health = server.sessions[0].player.health();
+    let profile = crate::player::RESPIRATION;
+    for _ in 0..profile.capacity + profile.damage.interval {
+        server.tick_player_exposure(0, &mut TickEvents::default());
+    }
+    let player = &server.sessions[0].player;
+    assert_eq!(player.breath().map(|b| b.current), Some(0));
+    assert_eq!(player.health(), health - profile.damage.amount);
+    assert_eq!(*hits.lock().unwrap(), vec![DamageSource::Breath(fluid)]);
+
+    for y in 65..=68 {
+        server.world.set_block_world(8, y, 8, Block::Air);
+    }
+    server.tick_player_exposure(0, &mut TickEvents::default());
+    let breath = server.sessions[0].player.breath().unwrap();
+    assert!(breath.current > 0 && breath.current < breath.max);
+    assert_eq!(
+        hits.lock().unwrap().len(),
+        1,
+        "air never hurts a lunged body"
+    );
+}
+
+#[test]
+fn a_breath_drain_claim_stretches_a_dive() {
+    let mut server = server();
+    let fluid = still_fluid();
+    for y in 65..=68 {
+        assert!(server.world.set_block_world(8, y, 8, fluid));
+    }
+    server.sessions[0].player.claims.set_attribute(
+        "diver",
+        mod_api::PlayerAttribute::BreathDrain,
+        0.0,
+    );
+    let health = server.sessions[0].player.health();
+    let profile = crate::player::RESPIRATION;
+    for _ in 0..(profile.capacity + profile.damage.interval) * 3 {
+        server.tick_player_exposure(0, &mut TickEvents::default());
+    }
+    let player = &server.sessions[0].player;
+    assert_eq!(player.health(), health);
+    assert_eq!(player.breath().unwrap().current, profile.capacity);
+}
+
+#[test]
+fn bodies_drown_away_from_what_they_breathe() {
+    crate::entity::fluid_fixture::with_content("breath", bodies_drown_inner);
+}
+
+fn bodies_drown_inner() {
+    use crate::entity::fluid_fixture::{self, BREATH_PULSE, BREATH_TICKS, BRINE, FLOOR_Y};
+    let brine = fluid_fixture::block(BRINE);
+    let at = WorldPos::new(8.5, f64::from(FLOOR_Y), 8.5);
+    let hits_after = |world: &mut crate::world::ServerWorld, key: &str| {
+        let mob = crate::mob::by_key(key).unwrap();
+        let id = world
+            .mobs_mut()
+            .spawn_lit(mob, at, 0.0, 15, petramond_world::light::BlockLight6::DARK)
+            .unwrap();
+        let mut sources = Vec::new();
+        for _ in 0..BREATH_TICKS + BREATH_PULSE {
+            world
+                .mobs_mut()
+                .set_mob_kinematic(id, at, 0.0, petramond_math::math::Tilt::LEVEL)
+                .unwrap();
+            let events = world.tick_mobs(
+                crate::events::tick::TICK_DT,
+                &[PlayerAnchor {
+                    pos: WorldPos::new(12.0, f64::from(FLOOR_Y), 12.0),
+                    ..Default::default()
+                }],
+            );
+            sources.extend(
+                events
+                    .exposure
+                    .iter()
+                    .filter(|h| h.mob_id == id)
+                    .map(|h| h.damage.source),
+            );
+        }
+        world.mobs_mut().remove(id);
+        sources
+    };
+    let mut pool = fluid_fixture::pool(brine, FLOOR_Y + 3);
+    assert_eq!(
+        hits_after(&mut pool, "bodyfluid:lunged"),
+        vec![petramond_world::exposure::ExposureSource::Breath(brine)]
+    );
+    assert!(hits_after(&mut pool, "bodyfluid:gilled").is_empty());
+    let mut land = fluid_fixture::pool(brine, FLOOR_Y + 3);
+    for y in FLOOR_Y..=FLOOR_Y + 3 {
+        for z in 0..16 {
+            for x in 0..16 {
+                land.set_block_world(x, y, z, Block::Air);
+            }
+        }
+    }
+    assert_eq!(
+        hits_after(&mut land, "bodyfluid:gilled"),
+        vec![petramond_world::exposure::ExposureSource::Breath(
+            Block::Air
+        )]
+    );
+    assert!(hits_after(&mut land, "bodyfluid:swim").is_empty());
+}

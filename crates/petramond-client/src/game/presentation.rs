@@ -123,6 +123,13 @@ pub struct GamePresentationScratch {
     mobs: Vec<MobPresentation>,
     mob_arena: MobArena,
     local_emitters: BodyEmitters,
+    emitter_trails: entity_emitters::EmitterTrails,
+    /// Visible remote players whose emitters wait for their bodies to be posed.
+    remote_emitter_bodies: Vec<(
+        entity_emitters::EmitterBody,
+        petramond::player::PlayerId,
+        u32,
+    )>,
     overlay_boxes: Vec<petramond_world::block::ShapeBox>,
     pub animation: PlayerAnimation,
     shadows: Vec<EntityShadow>,
@@ -142,6 +149,8 @@ impl GamePresentationScratch {
         view: &ViewVolume,
     ) -> FramePresentation<'a> {
         let tick_alpha = game.tick_alpha();
+        self.emitter_trails.begin_frame();
+        self.remote_emitter_bodies.clear();
         self.collect_item_entities(game);
         self.collect_particles(game);
         self.collect_ambient(game, now);
@@ -153,21 +162,23 @@ impl GamePresentationScratch {
         self.collect_item_draws(game, tick_alpha, view);
         self.collect_mobs(game, tick_alpha);
         if game.fx.particles.count_scale() > 0.0 {
-            self.collect_mob_emitters(game, tick_alpha, view);
+            self.collect_mob_emitters(game, tick_alpha, view, now);
+            self.collect_item_emitters(game, tick_alpha, view, now);
         }
         self.animation.frame.clear();
-        self.collect_remote_players(game, tick_alpha, view);
+        self.collect_remote_players(game, tick_alpha);
         self.collect_footsteps(game, tick_alpha);
         self.collect_break_overlays(game);
         self.local_emitters
             .refresh(&[], &game.replica.self_view.conditions);
         let player = collect_player(game, &self.local_emitters, &mut self.animation.frame);
         self.animation.frame.local = player;
-        if game.fx.particles.count_scale() > 0.0 {
-            self.collect_local_player_emitters(game, player.as_ref(), view);
-        }
         self.collect_entity_shadows(game, view, tick_alpha);
         self.animation.pose_bodies(view);
+        if game.fx.particles.count_scale() > 0.0 {
+            self.collect_player_emitters(game, player.as_ref(), view, now);
+        }
+        self.emitter_trails.end_frame();
 
         FramePresentation {
             render: GamePresentation {
@@ -175,6 +186,7 @@ impl GamePresentationScratch {
                 item_entities: &self.item_entities,
                 particles: &self.particles,
                 particle_emitters: &self.particle_emitters,
+                emitter_trails: &self.emitter_trails.points,
                 block_entities: &self.block_entities,
                 block_draws: &self.block_draws,
                 cloths: &self.cloths,
@@ -577,7 +589,7 @@ impl GamePresentationScratch {
     /// `tick_alpha`, the shared body pose + per-remote held-item view read
     /// from the store (advanced once per frame in `Game::tick_receive`),
     /// light client-sampled from the replica at the interpolated body.
-    fn collect_remote_players(&mut self, game: &Game, tick_alpha: f32, view: &ViewVolume) {
+    fn collect_remote_players(&mut self, game: &Game, tick_alpha: f32) {
         let world = &game.replica.world;
         let hidden = game.hidden_remote_body();
         for (id, p) in game.replica.entities.players().iter_with_ids() {
@@ -645,14 +657,16 @@ impl GamePresentationScratch {
                 animator,
             });
             if game.fx.particles.count_scale() > 0.0 {
-                let body = entity_emitters::EmitterBody::player(
+                let emitter_body = entity_emitters::EmitterBody::player(
                     body.pos,
                     body.state.body_yaw,
+                    yaw,
                     body.skylight,
                     body.blocklight,
                     p.curr.id.0 as u64 + 1,
                 );
-                self.append_player_emitters(p.emitters(), &body, view);
+                self.remote_emitter_bodies
+                    .push((emitter_body, id, p.curr.id.0 as u32));
             }
         }
     }

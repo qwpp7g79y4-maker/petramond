@@ -388,6 +388,17 @@
       "pitch_variation": 0.1,
       "attenuation_distance": 22.0,
       "category": "block"
+    },
+    {
+      "sound": "petramond:bubble_pop",
+      "variants": [
+        "sounds/bubble_pop_1.ogg",
+        "sounds/bubble_pop_2.ogg",
+        "sounds/bubble_pop_3.ogg"
+      ],
+      "gain": 0.7,
+      "pitch_variation": 0.15,
+      "category": "ui"
     }
   ]
 }

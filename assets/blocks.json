@@ -294,6 +294,9 @@
           "sound_small": "petramond:water_splash_small",
           "sound_big": "petramond:water_splash_big"
         },
+        "submerged": {
+          "exhale": "petramond:breath_bubbles"
+        },
         "contact": {
           "clears": [
             "petramond:burning"

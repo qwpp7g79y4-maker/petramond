@@ -93,6 +93,7 @@
         "prefer": []
       },
       "avoid_fluids": true,
+      "breath": {"capacity": 300, "breathes": ["petramond:air"]},
       "damage_feedback": [],
       "sounds": [
         {
@@ -202,6 +203,7 @@
         "prefer": []
       },
       "avoid_fluids": true,
+      "breath": {"capacity": 300, "breathes": ["petramond:air"]},
       "damage_feedback": [],
       "sounds": [
         {

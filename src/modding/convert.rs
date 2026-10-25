@@ -179,6 +179,9 @@ fn damage_source(s: events::DamageSource) -> api::DamageSource {
         events::DamageSource::Condition(condition) => api::DamageSource::Condition {
             condition: api::ConditionId(condition.0),
         },
+        events::DamageSource::Breath(medium) => api::DamageSource::Breath {
+            medium: api::BlockId(medium.id()),
+        },
     }
 }
 

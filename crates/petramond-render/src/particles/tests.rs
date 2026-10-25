@@ -39,6 +39,7 @@ fn emitter_inst() -> ParticleEmitterInstance {
             requires_open: None,
             gravity: 0.0,
             lands: false,
+            pulse: [0.0; 3],
         },
         seed: 0x1234_5678_9ABC_DEF0,
         skylight: 0,
@@ -395,4 +396,28 @@ fn landing_particles_fall_and_vanish_at_their_floor() {
         }
     }
     assert!(fell, "gravity carried a particle down before it landed");
+}
+
+#[test]
+fn a_pulsing_emitter_only_births_in_its_open_window() {
+    let mut inst = still_stream();
+    inst.emitter.lifetime = [0.05, 0.05];
+    let lit_share = |inst: &ParticleEmitterInstance| {
+        let steps = 400;
+        let lit = (0..steps)
+            .filter(|i| !build_emitters(&[*inst], &[], 3.0 + *i as f32 * 0.025).is_empty())
+            .count();
+        lit as f32 / steps as f32
+    };
+    let streaming = lit_share(&inst);
+    inst.emitter.pulse = [1.0, 0.25, 0.25];
+    let pulsing = lit_share(&inst);
+    assert!(
+        streaming > 0.6,
+        "a stream is nearly always alive ({streaming})"
+    );
+    assert!(
+        (0.1..0.45).contains(&pulsing),
+        "a quarter-open pulse is dark most of each period ({pulsing})"
+    );
 }

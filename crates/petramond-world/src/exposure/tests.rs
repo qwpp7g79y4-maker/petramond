@@ -38,6 +38,7 @@ fn fluid(block: Block, contact: FluidContact) -> &'static FluidDef {
         },
         current: CurrentProperties::default(),
         splash: None,
+        submerged: Default::default(),
         contact,
         medium: serde_json::from_str(
             r#"{"fog_color": [0, 0, 0], "fog_start": 0, "fog_end": 1,

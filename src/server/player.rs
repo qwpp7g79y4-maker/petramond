@@ -340,7 +340,8 @@ impl ConnectedPlayer {
         for behavior in self.player.tick_effects() {
             match behavior {
                 petramond_world::effect::EffectBehavior::None
-                | petramond_world::effect::EffectBehavior::Speed { .. } => {}
+                | petramond_world::effect::EffectBehavior::Speed { .. }
+                | petramond_world::effect::EffectBehavior::Breath { .. } => {}
                 petramond_world::effect::EffectBehavior::Regen { amount, .. } => {
                     self.player.heal(amount);
                 }

@@ -290,6 +290,10 @@ impl App {
         let mut scene_ui = ui_snapshot::build(Some(&*game), scene_screen, cursor, None);
         scene_ui.hurt_flash = if hud_visible { shake.flash } else { 0.0 };
         scene_ui.heart_wiggle = hud_fx.heart_wiggle(scene_ui.health, now);
+        if hud_fx.bubble_popped(scene_ui.breath) {
+            self.sound
+                .play(petramond_world::sound_registry::Sound::BubblePop);
+        }
         if !self.prepare_ui_layers(renderer, scene_ui, window_ui, window_doc) {
             return false;
         }

@@ -85,10 +85,15 @@ pub struct PlayerDamagePre {
 pub enum DamageSource {
     Fall,
     PlayerAttack(crate::player::PlayerId),
-    MobAttack { kind: Mob, id: u64 },
+    MobAttack {
+        kind: Mob,
+        id: u64,
+    },
     Mod(&'static str),
     Fluid(petramond_world::block::Block),
     Condition(petramond_world::condition::ConditionId),
+    /// Ran out of breath in this medium (`Block::Air` for a water breather).
+    Breath(petramond_world::block::Block),
 }
 
 impl DamageSource {
@@ -102,7 +107,9 @@ impl DamageSource {
         match self {
             Self::PlayerAttack(pid) => Some(crate::mob::EntityRef::Player(pid)),
             Self::MobAttack { id, .. } => Some(crate::mob::EntityRef::Mob(id)),
-            Self::Fall | Self::Fluid(_) | Self::Condition(_) | Self::Mod(_) => None,
+            Self::Fall | Self::Fluid(_) | Self::Condition(_) | Self::Breath(_) | Self::Mod(_) => {
+                None
+            }
         }
     }
 }

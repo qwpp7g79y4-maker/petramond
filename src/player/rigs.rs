@@ -26,6 +26,17 @@ struct RawRig {
     twist: Vec<String>,
     #[serde(default)]
     holds: BTreeMap<String, String>,
+    /// Where the body's mouth emitters sit.
+    #[serde(default)]
+    mouth: Option<RawBonePoint>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawBonePoint {
+    bone: String,
+    /// Model pixels, in the model's rest space.
+    at: [f32; 3],
 }
 
 #[derive(Deserialize)]
@@ -73,6 +84,14 @@ pub struct Rig {
     pub camera: Option<usize>,
     pub twist: Vec<usize>,
     pub holds: Vec<(&'static str, ClipId)>,
+    pub mouth: Option<BonePoint>,
+}
+
+/// A point that rides on `bone`: `at` in the model's rest space, model pixels.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BonePoint {
+    pub bone: usize,
+    pub at: glam::Vec3,
 }
 
 impl Rig {
@@ -173,6 +192,16 @@ fn rig_from(
         .iter()
         .map(|v| bone(v, "twist"))
         .collect::<Result<_, _>>()?;
+    let mouth = row
+        .mouth
+        .as_ref()
+        .map(|m| {
+            Ok::<_, String>(BonePoint {
+                bone: bone(&m.bone, "mouth.bone")?,
+                at: glam::Vec3::from_array(m.at),
+            })
+        })
+        .transpose()?;
     let graph = load_graph(&row.animator, &model);
     let mut holds = Vec::new();
     for (kind, clip) in &row.holds {
@@ -204,6 +233,7 @@ fn rig_from(
         camera,
         twist,
         holds,
+        mouth,
     })
 }
 

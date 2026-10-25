@@ -7,7 +7,8 @@ fn player_attribute_all_is_the_declaration_order() {
         match attribute {
             PlayerAttribute::MoveSpeed
             | PlayerAttribute::AttackCooldown
-            | PlayerAttribute::FlySpeed => {}
+            | PlayerAttribute::FlySpeed
+            | PlayerAttribute::BreathDrain => {}
         }
     }
 }

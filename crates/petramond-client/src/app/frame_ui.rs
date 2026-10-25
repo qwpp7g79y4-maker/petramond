@@ -109,6 +109,7 @@ impl App {
             window.kind = kind;
         }
         window.health = None;
+        window.breath = None;
         window.effects.clear();
         window.hurt_flash = 0.0;
         window.heart_wiggle = None;

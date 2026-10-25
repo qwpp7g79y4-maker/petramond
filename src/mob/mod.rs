@@ -616,6 +616,8 @@ pub struct MobDef {
     pub nav: nav::NavTuning,
     pub buoyancy: Buoyancy,
     pub tolerates: Tolerance,
+    /// `None` = never needs to breathe (undead, constructs).
+    pub breath: Option<petramond_world::breath::Respiration>,
     pub gravity_scale: f32,
     pub air_control: bool,
     pub collision: MobCollision,

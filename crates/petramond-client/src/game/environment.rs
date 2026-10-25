@@ -137,7 +137,6 @@ fn fills_cell_at(world: &ReplicaWorld, wx: i32, wy: i32, wz: i32, fluid: Block) 
 
 #[cfg(test)]
 mod tests {
-    use super::eye_inside;
     use crate::game::Game;
     use petramond_math::math::IVec3;
     use petramond_math::world_pos::WorldPos;

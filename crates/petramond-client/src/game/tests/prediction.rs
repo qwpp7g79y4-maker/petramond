@@ -385,6 +385,7 @@ fn a_stale_authoritative_pair_does_not_stomp_a_newer_pending_click() {
         SelfState {
             conditions: Vec::new(),
             health: 20,
+            breath: None,
             mode: 0,
             effects: Vec::new(),
             inventory_revision: revision,

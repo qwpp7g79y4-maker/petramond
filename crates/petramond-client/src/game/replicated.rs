@@ -406,6 +406,7 @@ impl ReplicatedItems {
 pub struct SelfView {
     pub conditions: Vec<(u8, u8)>,
     pub health: i32,
+    pub breath: Option<petramond_world::breath::BreathView>,
     pub mode: PlayerMode,
     pub effects: Vec<(petramond_world::effect::Effect, u32)>,
     pub inventory: Inventory,
@@ -429,6 +430,7 @@ impl SelfView {
     pub fn seed_from(player: &Player) -> Self {
         Self {
             health: player.health(),
+            breath: None,
             conditions: player
                 .conditions()
                 .active()
@@ -481,6 +483,7 @@ impl SelfView {
         SelfState {
             conditions: self.conditions.clone(),
             health: self.health,
+            breath: self.breath,
             mode: self.mode.to_u8(),
             effects: self.effects.iter().map(|&(e, left)| (e.0, left)).collect(),
             inventory_revision: self.inventory_revision,
@@ -520,6 +523,10 @@ impl SelfView {
         })
     }
 
+    pub fn breath_view(&self) -> Option<petramond_world::breath::BreathView> {
+        self.breath.filter(|_| self.mode == PlayerMode::Survival)
+    }
+
     pub fn effect_icons(&self) -> Vec<petramond_world::effect::Effect> {
         if self.mode != PlayerMode::Survival {
             return Vec::new();
@@ -529,6 +536,7 @@ impl SelfView {
 
     pub fn apply(&mut self, state: &SelfState, adopt_inventory: bool) {
         self.health = state.health;
+        self.breath = state.breath;
         self.conditions.clone_from(&state.conditions);
         self.mode = PlayerMode::from_u8(state.mode);
         self.effects = state

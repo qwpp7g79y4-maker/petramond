@@ -154,22 +154,6 @@ impl PlayerAnimation {
         }
     }
 
-    pub fn clear(&mut self) {
-        if let Some(first_person) = &mut self.first_person {
-            first_person.reset();
-        }
-        self.bodies.clear();
-        let names = std::mem::take(&mut self.local.names);
-        self.local = LocalState {
-            names,
-            ..Default::default()
-        };
-        self.dt = 0.0;
-        self.frame.clear();
-        self.rows.clear();
-        self.poses.clear();
-    }
-
     pub fn begin_frame(&mut self, input: LocalInput<'_>, dt: f32) -> LocalFrame<'_> {
         let local = &mut self.local;
         for ((held, ease), frame) in local.held.iter_mut().zip(&mut local.ease).zip(&input.hands) {
@@ -282,6 +266,14 @@ impl PlayerAnimation {
 
     pub fn poses(&self) -> &[Mat4] {
         &self.poses
+    }
+
+    /// Where body `key` has its rig's mouth this frame, or `None` when it was not posed.
+    pub fn mouth(&self, key: u32) -> Option<WorldPos> {
+        let at = rigs::presented(Presenter::Body)?.1.mouth?;
+        let row = self.rows.iter().find(|r| r.key == key)?;
+        let pose = row.body.pose.of(&self.poses).get(at.bone)?;
+        Some(row.body.pos + (row.body.placement * *pose).transform_point3(at.at))
     }
 }
 

@@ -131,6 +131,12 @@
         "prefer": []
       },
       "avoid_fluids": false,
+      "breath": {
+        "capacity": 300,
+        "breathes": [
+          "petramond:air"
+        ]
+      },
       "sounds": [
         {
           "category": "idle",

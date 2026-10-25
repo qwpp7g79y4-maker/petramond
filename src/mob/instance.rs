@@ -94,7 +94,13 @@ impl Instance {
             presentation: Presentation::default(),
             tags: Arc::new(d.tags.clone()),
             tags_rev: 0,
-            exposure: petramond_world::exposure::BodyExposure::new(d.tolerates),
+            exposure: {
+                let exposure = petramond_world::exposure::BodyExposure::new(d.tolerates);
+                match d.breath {
+                    Some(profile) => exposure.breathing(profile),
+                    None => exposure,
+                }
+            },
             distance_despawned: false,
             rng: MobRng::new(seed),
             container: petramond_world::container::Container::with_len(d.container_slots),

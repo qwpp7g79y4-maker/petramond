@@ -1,4 +1,5 @@
 use crate::block::Block;
+use crate::breath::{BodyBreath, Respiration};
 use crate::condition::{BodyConditions, ConditionDef, ConditionId};
 use crate::fluid::FluidDef;
 
@@ -6,6 +7,8 @@ use crate::fluid::FluidDef;
 pub enum ExposureSource {
     Fluid(Block),
     Condition(ConditionId),
+    /// Ran out of breath in this medium (`Block::Air` for a water breather).
+    Breath(Block),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -26,6 +29,7 @@ pub struct BodyExposure {
     tolerance: Tolerance,
     contact_in: Vec<(Block, u32)>,
     doused: Vec<ConditionId>,
+    breath: Option<BodyBreath>,
 }
 
 impl BodyExposure {
@@ -33,6 +37,28 @@ impl BodyExposure {
         Self {
             tolerance,
             ..Self::default()
+        }
+    }
+
+    pub fn breathing(mut self, profile: Respiration) -> Self {
+        self.breath = Some(BodyBreath::new(profile));
+        self
+    }
+
+    pub fn breath(&self) -> Option<&BodyBreath> {
+        self.breath.as_ref()
+    }
+
+    /// One tick of breath at a breath point in `medium` (`None` = unreadable).
+    pub fn breathe(&mut self, medium: Option<Block>, drain: f32, out: &mut Vec<ExposureDamage>) {
+        let Some(breath) = &mut self.breath else {
+            return;
+        };
+        if let (Some(amount), Some(medium)) = (breath.tick(medium, drain), medium) {
+            out.push(ExposureDamage {
+                amount,
+                source: ExposureSource::Breath(medium),
+            });
         }
     }
 
@@ -127,7 +153,11 @@ impl BodyExposure {
     }
 
     pub fn clear(&mut self) {
-        *self = Self::new(self.tolerance);
+        let breath = self.breath.as_ref().map(|b| BodyBreath::new(*b.profile()));
+        *self = Self {
+            breath,
+            ..Self::new(self.tolerance)
+        };
     }
 }
 

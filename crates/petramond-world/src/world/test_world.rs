@@ -102,6 +102,17 @@ impl TestWorld {
         true
     }
 
+    pub fn set_fluid(&mut self, pos: IVec3, fluid: Block, meta: u8) -> bool {
+        if !self.ensure_section_at(pos) {
+            return false;
+        }
+        let Some((section, lx, ly, lz)) = self.data.chunk_at_world_mut(pos.x, pos.y, pos.z) else {
+            return false;
+        };
+        section.set_fluid(lx, ly, lz, fluid, meta);
+        true
+    }
+
     pub fn take_natural_breaks(&mut self) -> Vec<(IVec3, Block)> {
         std::mem::take(&mut self.data.sim.pending_breaks)
     }

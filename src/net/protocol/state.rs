@@ -134,6 +134,8 @@ pub struct SelfTransform {
 pub struct SelfState {
     pub conditions: Vec<(u8, u8)>,
     pub health: i32,
+    /// `None` while the breath is full (or the body never runs out).
+    pub breath: Option<petramond_world::breath::BreathView>,
     pub mode: u8,
     pub effects: Vec<(u8, u32)>,
     pub inventory_revision: u64,

@@ -89,11 +89,25 @@ pub enum ProjectileTarget {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum DamageSource {
     Fall,
-    PlayerAttack { id: PlayerId },
-    MobAttack { key: String },
-    Mod { mod_id: String },
-    FluidContact { block: BlockId },
-    Condition { condition: crate::ConditionId },
+    PlayerAttack {
+        id: PlayerId,
+    },
+    MobAttack {
+        key: String,
+    },
+    Mod {
+        mod_id: String,
+    },
+    FluidContact {
+        block: BlockId,
+    },
+    Condition {
+        condition: crate::ConditionId,
+    },
+    /// Ran out of breath in `medium` (`petramond:air` for a water breather).
+    Breath {
+        medium: BlockId,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

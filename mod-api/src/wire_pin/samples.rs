@@ -913,6 +913,7 @@ pub(super) fn samples() -> Samples {
         DamageSource::Mod { mod_id: "m".into() },
         DamageSource::FluidContact { block: BlockId(3) },
         DamageSource::Condition { condition: ConditionId(1) },
+        DamageSource::Breath { medium: BlockId(4) },
     ]);
     s.pin("ContainerKind::*", &vec![
         ContainerKind::new("petramond:inventory"), ContainerKind::new("petramond:chest"),

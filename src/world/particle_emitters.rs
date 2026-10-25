@@ -21,6 +21,52 @@ pub struct PlacedEmitter {
     pub skylight: u8,
     pub blocklight: BlockLight6,
     pub floor_y: f32,
+    /// Where a moving emitter has been, in the frame's trail arena. Empty for one that stays put.
+    pub trail: TrailSpan,
+}
+
+/// Where a moving emitter was at `time`. Its particles start from where it was at their birth,
+/// so they stay behind instead of riding along with it.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct TrailPoint {
+    pub time: f32,
+    pub origin: petramond_math::world_pos::WorldPos,
+}
+
+/// A run of [`TrailPoint`]s in the frame's arena, oldest first, ending at the current origin.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub struct TrailSpan {
+    pub start: u32,
+    pub len: u32,
+}
+
+impl TrailSpan {
+    pub fn of(self, arena: &[TrailPoint]) -> &[TrailPoint] {
+        let start = self.start as usize;
+        arena.get(start..start + self.len as usize).unwrap_or(&[])
+    }
+}
+
+/// The origin a particle born at `time` starts from: `now` for a still emitter, else the trail
+/// interpolated at `time`, clamped to its ends.
+pub fn trail_origin(
+    trail: &[TrailPoint],
+    now: petramond_math::world_pos::WorldPos,
+    time: f32,
+) -> petramond_math::world_pos::WorldPos {
+    let Some(last) = trail.last() else {
+        return now;
+    };
+    let after = trail.partition_point(|p| p.time <= time);
+    if after == 0 {
+        return trail[0].origin;
+    }
+    if after == trail.len() {
+        return last.origin;
+    }
+    let (a, b) = (trail[after - 1], trail[after]);
+    let t = ((time - a.time) / (b.time - a.time).max(f32::EPSILON)).clamp(0.0, 1.0);
+    a.origin.lerp(b.origin, t)
 }
 
 pub fn emitter_envelope(e: &ParticleEmitter) -> Vec3 {
@@ -33,7 +79,7 @@ pub fn emitter_envelope(e: &ParticleEmitter) -> Vec3 {
         velocity.y.abs() + jitter.y,
         velocity.z.abs() + jitter.z,
     ) * max_life
-        + Vec3::new(0.0, fall_reach(e), 0.0);
+        + Vec3::new(0.0, fall_reach(e).abs(), 0.0);
     let orbit = Vec3::new(e.spiral[0], 0.0, e.spiral[0]);
     Vec3::from_array(e.spawn_box) + travel + orbit + Vec3::splat(max_size + 0.05)
 }
@@ -180,6 +226,7 @@ impl<S: WorldSide> World<S> {
                         skylight: sky,
                         blocklight: block_light,
                         floor_y,
+                        trail: TrailSpan::default(),
                     });
                 }
             }
@@ -216,7 +263,9 @@ fn model_emitter_origin(
     let (fx, fy, fz) = (fp[0] as f32, fp[1] as f32, fp[2] as f32);
     let anchor = match emitter.anchor {
         ParticleEmitterAnchor::Local => Vec3::from_array(emitter.origin),
-        ParticleEmitterAnchor::BlockCenter => Vec3::new(fx * 0.5, fy * 0.5, fz * 0.5),
+        ParticleEmitterAnchor::BlockCenter | ParticleEmitterAnchor::Mouth => {
+            Vec3::new(fx * 0.5, fy * 0.5, fz * 0.5)
+        }
         ParticleEmitterAnchor::BlockTop | ParticleEmitterAnchor::TorchTop => {
             Vec3::new(fx * 0.5, fy, fz * 0.5)
         }
@@ -237,7 +286,7 @@ fn emitter_anchor_local(
 ) -> Vec3 {
     let base = match emitter.anchor {
         ParticleEmitterAnchor::BlockTop => Vec3::new(0.5, 1.0, 0.5),
-        ParticleEmitterAnchor::BlockCenter => Vec3::splat(0.5),
+        ParticleEmitterAnchor::BlockCenter | ParticleEmitterAnchor::Mouth => Vec3::splat(0.5),
         ParticleEmitterAnchor::Local => Vec3::from_array(emitter.origin),
         ParticleEmitterAnchor::TorchTop => {
             if TorchPlacement::owns(block) {

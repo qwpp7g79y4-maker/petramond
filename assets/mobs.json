@@ -52,6 +52,7 @@
         ]
       },
       "avoid_fluids": true,
+      "breath": {"capacity": 300, "breathes": ["petramond:air"]},
       "damage_feedback": [],
       "brain": [
         {
@@ -168,6 +169,7 @@
         ]
       },
       "avoid_fluids": true,
+      "breath": {"capacity": 300, "breathes": ["petramond:air"]},
       "shear": {
         "drop": "petramond:wool",
         "min": 1,
