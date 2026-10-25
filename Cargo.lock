@@ -3585,7 +3585,6 @@ name = "petramond-input"
 version = "0.8.0"
 dependencies = [
  "serde",
- "serde_json",
 ]
 
 [[package]]

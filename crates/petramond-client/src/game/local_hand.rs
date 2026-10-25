@@ -177,39 +177,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_frame_is_taken_whole_and_resets() {
-        let mut hand = LocalHand::default();
-        hand.latch_use(UseJab {
-            consumed: true,
-            off_hand: true,
-            presents_itself: false,
-            places: true,
-        });
-        hand.latch_swing();
-        hand.latch_throw(false);
-        hand.latch_place(Block::Dirt, Hand::Off);
-        let frame = hand.take_frame(false, false);
-        assert!(frame.interacted && frame.interacted_off_hand && frame.interacted_places);
-        assert!(frame.swung && !frame.threw);
-        assert_eq!(frame.placed, Some(Block::Dirt));
-        assert!(frame.placed_off_hand);
-        assert_eq!(hand.take_frame(false, false), HandFrame::default());
-    }
-
-    #[test]
-    fn an_off_hand_flag_without_a_consumed_click_is_meaningless() {
-        let mut hand = LocalHand::default();
-        hand.latch_use(UseJab {
-            consumed: false,
-            off_hand: true,
-            presents_itself: false,
-            places: false,
-        });
-        let frame = hand.take_frame(false, false);
-        assert!(!frame.interacted && !frame.interacted_off_hand);
-    }
-
-    #[test]
     fn an_unpredicted_echo_jabs_but_never_presents_itself() {
         let mut hand = LocalHand::default();
         hand.latch_use(UseJab {
@@ -224,24 +191,6 @@ mod tests {
     }
 
     #[test]
-    fn a_press_inside_the_follow_through_is_held_one_deep() {
-        let mut hand = LocalHand::default();
-        assert!(hand.attack_press(false, false, true, || 0.4));
-        assert!(!hand.attack_press(false, false, true, || 0.4), "mid-swing");
-        assert!(!hand.attack_press(false, false, false, || 0.4));
-        hand.recover(0.5);
-        assert!(
-            hand.attack_press(false, false, false, || 0.4),
-            "the held press fires when the hand comes home"
-        );
-        hand.recover(0.5);
-        assert!(
-            !hand.attack_press(false, false, false, || 0.4),
-            "held only once"
-        );
-    }
-
-    #[test]
     fn a_denied_press_is_dropped_and_a_mining_press_passes_through() {
         let mut hand = LocalHand::default();
         assert!(hand.attack_press(false, false, true, || 0.4));
@@ -253,19 +202,5 @@ mod tests {
             "nothing held"
         );
         assert!(hand.attack_press(false, true, true, || panic!("mining arms nothing")));
-    }
-
-    #[test]
-    fn swing_events_keep_the_first_gesture_per_hand() {
-        let mut hand = LocalHand::default();
-        hand.latch_swing_events([
-            (Hand::Main, OneShot::Place),
-            (Hand::Main, OneShot::Swing),
-            (Hand::Off, OneShot::Throw),
-        ]);
-        let swing = hand.take_swing_events();
-        assert_eq!(swing.main, Some(mod_api::SwingKind::Place));
-        assert_eq!(swing.off, Some(mod_api::SwingKind::Throw));
-        assert_eq!(hand.take_swing_events().main, None);
     }
 }

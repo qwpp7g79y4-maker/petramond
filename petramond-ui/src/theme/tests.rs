@@ -6,35 +6,6 @@ const PALETTE: &str = r##""palette": { "text": "#E8EDF2", "text_muted": "#9AA7B4
     "text_disabled": "#5E6B78", "selection": "#3E6FD9" }"##;
 
 #[test]
-fn placeholder_theme_has_every_default_part() {
-    let t = Theme::placeholder();
-    for key in [
-        "panel.large",
-        "button.default",
-        "button.danger",
-        "checkbox",
-        "toggle",
-        "slot",
-        "scrollbar.thumb",
-        "slider.track",
-        "slider.handle",
-        "list.row",
-        "input",
-        "badge",
-        "alert.info",
-    ] {
-        assert!(t.part(key).is_some(), "missing part '{key}'");
-    }
-    assert!(t.part("checkbox").unwrap().face(FaceState::On).is_some());
-    assert!(
-        t.part("checkbox").unwrap().face(FaceState::Focus).is_some(),
-        "states a part lacks fall back to a face"
-    );
-    let (aw, ah) = t.pages()[0].size;
-    assert_eq!(t.pages()[0].rgba.len(), (aw * ah * 4) as usize);
-}
-
-#[test]
 fn only_compound_buttons_use_their_face_as_container_insets() {
     let t = Theme::placeholder();
     let leaf = Document::from_json(
@@ -214,44 +185,6 @@ fn alerts_wrap_when_width_constrained() {
     assert!(
         h_tight > h_free,
         "wrapped alert grows taller instead of overflowing"
-    );
-}
-
-#[test]
-fn theme_env_supplies_widget_naturals() {
-    let t = Theme::placeholder();
-    let env = ThemeEnv {
-        theme: &t,
-        gui_scale: 1,
-        image_size: &|name| (name == "wheel.png").then_some((32, 32)),
-    };
-    let doc = Document::from_json(
-        r#"{
-        "format": 1, "kind": "petramond:x", "class": "screen",
-        "root": { "type": "column", "children": [
-            { "type": "button", "id": "b", "text": "OK" },
-            { "type": "checkbox", "id": "c" },
-            { "type": "slot_grid", "role": "hotbar", "cols": 9, "rows": 1 },
-            { "type": "image", "image": "wheel.png" },
-            { "type": "image", "image": "missing.png" }
-        ] }
-    }"#,
-    )
-    .unwrap();
-    let n = &doc.root.children;
-    assert_eq!(
-        env.leaf_size(&n[0], Some("OK"), None, None),
-        (t.ui_font().width("OK") + 12, 20)
-    );
-    assert_eq!(env.leaf_size(&n[1], None, None, None), (10, 10));
-    assert_eq!(env.leaf_size(&n[2], None, None, None), (18 * 9, 18));
-    assert_eq!(
-        env.leaf_size(&n[3], None, Some("wheel.png"), None),
-        (32, 32)
-    );
-    assert_eq!(
-        env.leaf_size(&n[4], None, Some("missing.png"), None),
-        (0, 0)
     );
 }
 

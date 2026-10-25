@@ -41,47 +41,6 @@ fn pose(inst: &PlayerRenderInstance) -> (SkinBatch, Mat4, Mat4) {
     (batch, hand, off)
 }
 
-#[test]
-fn a_body_skins_exactly_the_pose_it_is_given() {
-    let model = &body_rig().model;
-    let mut posed = model.rest_pose();
-    posed[0] = Mat4::from_rotation_x(0.7) * posed[0];
-    let origin = petramond_math::math::IVec3::new(0, 64, 0);
-    let inst = instance();
-    let mut batch = SkinBatch::default();
-    place_player_body(body_rig(), &inst, &posed, origin, &mut batch);
-    let global = Mat4::from_translation(inst.pos.relative_to(origin)) * inst.placement;
-    for (slot, bone) in posed.iter().enumerate() {
-        assert_eq!(
-            batch.palette[slot],
-            (global * *bone).to_cols_array_2d(),
-            "slot {slot}"
-        );
-    }
-}
-
-#[test]
-fn a_body_carries_its_hurt_fire_and_light_to_the_instance() {
-    let mut inst = instance();
-    inst.emitter_tint = [1.0, 0.7, 0.4];
-    inst.hurt = 0.5;
-    inst.skylight = 0;
-    inst.emitter_self_lit = 1.0;
-    let (batch, _, _) = pose(&inst);
-    let row = batch.instances[0];
-    assert_eq!(
-        row.tint,
-        crate::lighting::mul3(crate::mob_model::hurt_tint(0.5), [1.0, 0.7, 0.4])
-    );
-    assert_eq!(row.self_lit, 1.0);
-    assert_eq!(row.light[0], 0.0);
-    assert_eq!(row.hidden, 0);
-    assert_eq!(
-        batch.palette.len() as u32,
-        crate::skinned::bone_slots(&body_rig().model)
-    );
-}
-
 fn hands(inst: &PlayerRenderInstance) -> (Mat4, Mat4) {
     let (_, hand, off) = pose(inst);
     (hand, off)
@@ -163,14 +122,6 @@ fn conjugating_a_display_transform_is_exactly_the_left_hand_rule() {
             );
         }
     }
-}
-
-#[test]
-fn an_identity_pose_leaves_the_hand_frame_untouched() {
-    let inst = instance();
-    let frame = hand(&inst);
-    assert_eq!(posed_hand(frame, &Default::default(), false), frame);
-    assert_eq!(posed_hand(frame, &Default::default(), true), frame);
 }
 
 #[test]

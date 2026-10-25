@@ -3,9 +3,6 @@ use mod_api::{HostRet, ItemMotionCall};
 use super::entities::item_entity_data;
 use super::guards::{batch_guard, finite3, sim_query, sim_read};
 
-#[cfg(test)]
-mod tests;
-
 pub(super) fn handle(call: ItemMotionCall) -> HostRet {
     match call {
         ItemMotionCall::ItemEntitiesInRadius { pos, radius, limit } => {

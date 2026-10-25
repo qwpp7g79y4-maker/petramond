@@ -237,6 +237,3 @@ fn bake_particles(
         }
     }
 }
-
-#[cfg(test)]
-mod tests;

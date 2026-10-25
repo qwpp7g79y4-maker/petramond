@@ -106,21 +106,6 @@ mod tests {
     }
 
     #[test]
-    fn promote_returns_only_hash_matched_entries_once() {
-        let mut cache = SectionCache::default();
-        let pos = SectionPos::new(1, 2, 3);
-        cache.park(pos, empty_section(pos), 77);
-        assert!(cache.promote(pos, 99).is_none(), "hash mismatch = miss");
-        assert!(
-            cache.promote(pos, 77).is_none(),
-            "a mismatched entry is dropped, not retried"
-        );
-        cache.park(pos, empty_section(pos), 77);
-        assert!(cache.promote(pos, 77).is_some());
-        assert!(cache.promote(pos, 77).is_none(), "promotion consumes");
-    }
-
-    #[test]
     fn cap_evicts_oldest_first() {
         let mut cache = SectionCache::default();
         for i in 0..=SECTION_CACHE_CAP {

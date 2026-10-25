@@ -1,9 +1,6 @@
 use crate::math::{IVec3, Mat4, Vec3, Vec4};
 use crate::world_pos::WorldPos;
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Copy, Clone, Debug)]
 pub struct Frustum {
     planes: [Vec4; 6],

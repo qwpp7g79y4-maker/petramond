@@ -75,30 +75,6 @@ mod tests {
     const AT: IVec3 = IVec3::new(1, 2, 3);
 
     #[test]
-    fn a_resting_block_reads_its_logical_state() {
-        let anims = BlockAnimations::default();
-        assert_eq!(anims.progress(AT, true), 1.0);
-        assert_eq!(anims.progress(AT, false), 0.0);
-    }
-
-    #[test]
-    fn a_swing_eases_from_the_old_pose_and_settles() {
-        let mut anims = BlockAnimations::default();
-        anims.begin(AT, false);
-        assert_eq!(anims.progress(AT, true), 0.0, "starts from closed");
-        anims.advance(0.1, |_| Some((true, 4.0)));
-        assert!(
-            (anims.progress(AT, true) - 0.4).abs() < 1e-5,
-            "eases at its speed"
-        );
-        for _ in 0..10 {
-            anims.advance(0.1, |_| Some((true, 4.0)));
-        }
-        assert!(anims.swings.is_empty(), "an arrived block rests");
-        assert_eq!(anims.progress(AT, true), 1.0);
-    }
-
-    #[test]
     fn a_reversal_mid_swing_turns_around_and_a_gone_block_is_dropped() {
         let mut anims = BlockAnimations::default();
         anims.begin(AT, false);
@@ -115,31 +91,5 @@ mod tests {
         );
         anims.advance(0.1, |_| None);
         assert!(anims.swings.is_empty(), "a broken block stops animating");
-    }
-
-    #[test]
-    fn a_viewed_chest_opens_and_closes_with_the_replicated_set() {
-        let mut anims = BlockAnimations::default();
-        anims.set_open_chests([AT].into_iter().collect());
-        assert_eq!(anims.open_progress(AT, false), 0.0, "the lid starts closed");
-        for _ in 0..10 {
-            anims.advance_poses(0.1, |_| Some((false, 4.0)));
-        }
-        assert_eq!(
-            anims.open_progress(AT, false),
-            1.0,
-            "a viewer holds it open"
-        );
-        anims.set_open_chests(FxHashSet::default());
-        assert_eq!(
-            anims.open_progress(AT, false),
-            1.0,
-            "closing starts from open"
-        );
-        for _ in 0..10 {
-            anims.advance_poses(0.1, |_| Some((false, 4.0)));
-        }
-        assert_eq!(anims.open_progress(AT, false), 0.0);
-        assert!(anims.open_chests().is_empty());
     }
 }

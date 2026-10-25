@@ -87,7 +87,6 @@ impl Mod for Minimap {
             KEY_WAYPOINT,
         );
         self.load_waypoints();
-        log("client minimap initialized");
     }
 
     fn client_frame(&mut self, frame: &ClientFrameData) {

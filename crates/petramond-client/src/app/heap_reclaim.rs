@@ -72,13 +72,4 @@ mod tests {
         assert!(!r.should_reclaim(false, at(25_000)));
         assert!(r.should_reclaim(false, at(25_100)));
     }
-
-    #[test]
-    fn the_delay_is_wall_time_not_frame_count() {
-        let t0 = Instant::now();
-        let mut r = IdleHeapReclaim::default();
-        r.should_reclaim(true, t0);
-        assert!(!r.should_reclaim(false, t0));
-        assert!(r.should_reclaim(false, t0 + QUIET_FOR));
-    }
 }

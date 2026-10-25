@@ -2,7 +2,7 @@ use super::*;
 use crate::builder::{build_section_mesh_with, WorldReads};
 use petramond_world::block::ShapeState;
 use petramond_world::block_state::SlabSplit;
-use petramond_world::chunk::CHUNK_SY;
+use petramond_world::chunk::{Chunk, CHUNK_SX, CHUNK_SY, CHUNK_SZ};
 use petramond_world::light::LightRgb;
 use std::collections::HashMap;
 use std::rc::Rc;

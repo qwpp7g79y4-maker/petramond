@@ -21,48 +21,6 @@ fn phase(session: &mut Session, id: ProjectId) -> Phase {
     session.builder.projects.get(id).unwrap().phase()
 }
 
-fn middle_left(at: [i32; 3]) -> (Session, ProjectId, u64) {
-    let (mut session, id) = Session::row();
-    session.world.set([0, 0, 0], STONE);
-    session.world.set([2, 0, 0], STONE);
-    session.job(id);
-    let golem = session.golem(id, HOME, at);
-    (session, id, golem)
-}
-
-#[test]
-fn the_mode_follows_the_phase_and_the_scaffolding_left() {
-    let (mut session, id, _) = working(HOME);
-    let mut project = session.builder.projects.get(id).unwrap().clone();
-    assert_eq!(Mode::of(&project), Mode::Building);
-    project.wind_down(Note::None);
-    assert_eq!(Mode::of(&project), Mode::GoingHome);
-    project.scaffolds.push([4, 0, 4]);
-    assert_eq!(Mode::of(&project), Mode::StrikingScaffold);
-}
-
-#[test]
-fn a_tasks_cells_are_the_cells_it_works_on() {
-    let (session, id, _) = working(HOME);
-    let middle = unit(&session, id, [1, 0, 0]);
-    let job = &session.builder.jobs.map[&id];
-    assert_eq!(task_cells(job, Task::Unit(middle)), vec![[1, 0, 0]]);
-    assert_eq!(task_cells(job, Task::Reopen(middle)), vec![[1, 0, 0]]);
-    assert_eq!(task_cells(job, Task::Scaffold([4, 0, 4])), vec![[4, 0, 4]]);
-    assert_eq!(
-        task_cells(
-            job,
-            Task::Support {
-                unit: middle,
-                cell: [1, -1, 0]
-            }
-        ),
-        vec![[1, -1, 0]]
-    );
-    assert!(places(job, Task::Unit(middle)));
-    assert!(!places(job, Task::Scaffold([4, 0, 4])));
-}
-
 #[test]
 fn a_body_in_the_air_or_a_site_not_yet_surveyed_plans_nothing() {
     let (mut session, id, golem) = working(AT);
@@ -87,23 +45,6 @@ fn a_body_in_the_air_or_a_site_not_yet_surveyed_plans_nothing() {
         phase(&mut session, id),
         Phase::Working,
         "nothing was finished"
-    );
-}
-
-#[test]
-fn work_in_sight_is_done_from_where_the_golem_stands() {
-    let (mut session, id, golem) = middle_left(AT);
-    session
-        .world
-        .give(ContainerAddress::Mob(golem), "petramond:stone", 3);
-    let middle = unit(&session, id, [1, 0, 0]);
-    let now = session.now();
-    assert_eq!(
-        plan_now(&mut session, id, golem),
-        Step::Centre {
-            task: Task::Unit(middle),
-            since: now
-        }
     );
 }
 

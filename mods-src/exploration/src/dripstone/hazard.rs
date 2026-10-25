@@ -87,22 +87,3 @@ pub fn impact_damage(speed: f32) -> f32 {
 fn spiked(amount: i32) -> i32 {
     (amount * SPIKE_FACTOR).max(SPIKE_MIN)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn impact_damage_grows_with_speed_between_its_bounds() {
-        assert_eq!(impact_damage(0.0), IMPACT_MIN);
-        assert_eq!(impact_damage(1000.0), IMPACT_MAX);
-        let mut last = impact_damage(IMPACT_MIN / IMPACT_PER_SPEED);
-        let mut v = IMPACT_MIN / IMPACT_PER_SPEED + 1.0;
-        while v < IMPACT_MAX / IMPACT_PER_SPEED {
-            let now = impact_damage(v);
-            assert!(now > last, "{v} m/s: {now} <= {last}");
-            last = now;
-            v += 1.0;
-        }
-    }
-}

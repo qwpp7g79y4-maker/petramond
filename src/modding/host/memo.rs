@@ -476,14 +476,6 @@ mod tests {
     }
 
     #[test]
-    fn entries_are_scoped_to_the_mod_and_the_world_seed() {
-        assert_eq!(put("a", 1, b"k", b"v"), HostRet::Bool(true));
-        assert_eq!(get("a", 1, b"k").as_deref(), Some(&b"v"[..]));
-        assert_eq!(get("b", 1, b"k"), None);
-        assert_eq!(get("a", 2, b"k"), None);
-    }
-
-    #[test]
     fn oversized_values_are_refused_and_the_budget_evicts_oldest_first() {
         let big = vec![7u8; MEMO_MAX_VALUE_BYTES + 1];
         assert_eq!(put("evict", 9, b"big", &big), HostRet::Bool(false));

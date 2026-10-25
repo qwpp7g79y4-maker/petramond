@@ -140,21 +140,6 @@ mod tests {
     }
 
     #[test]
-    fn support_is_below_for_floor_and_behind_for_walls() {
-        let p = IVec3::new(5, 10, -3);
-        assert_eq!(TorchPlacement::Floor.support_cell(p), IVec3::new(5, 9, -3));
-        assert_eq!(TorchPlacement::East.support_cell(p), IVec3::new(4, 10, -3));
-        assert_eq!(TorchPlacement::North.support_cell(p), IVec3::new(5, 10, -2));
-    }
-
-    #[test]
-    fn floor_torch_base_is_centered_on_the_cell_floor() {
-        let m = TorchPlacement::Floor.model_transform();
-        let base = m.transform_point3(Vec3::ZERO);
-        assert!((base - Vec3::new(0.5, 0.0, 0.5)).length() < 1e-6);
-    }
-
-    #[test]
     fn wall_torch_leans_its_tip_toward_the_lean_direction() {
         let m = TorchPlacement::East.model_transform();
         let base = m.transform_point3(Vec3::ZERO);

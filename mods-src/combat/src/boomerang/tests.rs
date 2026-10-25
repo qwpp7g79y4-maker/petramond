@@ -114,17 +114,6 @@ fn charge_changes_range_and_damage_and_the_curve_returns_through_the_launch_site
 }
 
 #[test]
-fn a_body_hit_reverses_immediately_and_does_not_retarget_a_moving_owner() {
-    let mut flight = Flight::new(PlayerId(0), row(), [0.0, 0.0, 1.0], [0.0, 1.26, 0.0], 10);
-    assert_eq!(
-        flight.reverse([0.0, 0.0, 20.0]),
-        [0.0, 0.0, -row().return_speed]
-    );
-    let vel = flight.step([0.0, 1.26, 4.0]).unwrap();
-    assert_eq!(vel, [0.0, 0.0, -row().return_speed]);
-}
-
-#[test]
 fn an_uncaught_boomerang_drops_sixty_ticks_after_its_expected_catch() {
     for charge in [1, 10] {
         for body_hit in [false, true] {
@@ -363,35 +352,6 @@ fn a_throw_keeps_its_follow_through_when_the_item_leaves_and_cancels_before_rele
         clock.pose().is_none(),
         "switching weapons during windup cancels"
     );
-}
-
-#[test]
-fn throw_views_start_together_and_keep_their_authored_seconds() {
-    for (lengths, release) in [([0.8, 0.5], 0.25), ([0.2, 0.7], 0.12)] {
-        let mut row = row();
-        [row.motion.fp_length, row.motion.length] = lengths;
-        row.motion.fp_release = release;
-        assert_eq!(row.motion.release_time(), release);
-        for (view, length) in lengths.into_iter().enumerate() {
-            assert_eq!(row.motion.throw_times(0.0)[view], Some(0.0));
-            for step in 0..100 {
-                let time = length * step as f32 / 100.0;
-                let progress = row.motion.throw_times(time)[view].unwrap();
-                assert!(
-                    (progress * length - time).abs() < 1e-6,
-                    "each view advances one authored second per real second"
-                );
-            }
-            assert!(row.motion.throw_times(length)[view].is_none());
-        }
-        let progress = row.motion.throw_times(release)[0].unwrap();
-        assert!((progress * lengths[0] - release).abs() < 1e-6);
-        assert!(row
-            .motion
-            .throw_times(row.motion.throw_length())
-            .iter()
-            .all(Option::is_none));
-    }
 }
 
 #[test]

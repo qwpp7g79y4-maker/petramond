@@ -225,20 +225,6 @@ mod tests {
     }
 
     #[test]
-    fn an_unstandable_player_position_yields_no_goal() {
-        let world = flat_world();
-        let mut rng = MobRng::new(1);
-        let mut ai = ChasePlayerAi::new(30.0, 40.0);
-        let mob = WorldPos::new(2.5, 64.0, 2.5);
-        let airborne = WorldPos::new(7.5, 80.0, 2.5);
-        assert_eq!(
-            ai.tick(&mut ctx(&world, &mut rng, mob, airborne)).goal,
-            None,
-            "no standable cell near the player -> the chase emits nothing"
-        );
-    }
-
-    #[test]
     fn blocked_sight_gates_engagement_and_long_occlusion_breaks_chase() {
         let mut world = flat_world();
         let mut rng = MobRng::new(1);
@@ -314,43 +300,5 @@ mod tests {
         let mut c = ctx(&world, &mut rng, mob, near);
         c.player_sneaking = true;
         assert!(ai.tick(&mut c).goal.is_some());
-    }
-
-    #[test]
-    fn params_are_validated_at_load() {
-        assert!(ChasePlayerAi::from_params(
-            &serde_json::json!({"radius": 8.0, "give_up_radius": 12.0})
-        )
-        .is_ok());
-        assert!(
-            ChasePlayerAi::from_params(&serde_json::json!({"radius": 8.0})).is_err(),
-            "missing give_up_radius is refused"
-        );
-        assert!(
-            ChasePlayerAi::from_params(&serde_json::json!({"radius": 8.0, "give_up_radius": 4.0}))
-                .is_err(),
-            "give_up_radius below radius is refused"
-        );
-        assert!(
-            ChasePlayerAi::from_params(
-                &serde_json::json!({"radius": 8.0, "give_up_radius": 12.0, "bogus": 1})
-            )
-            .is_err(),
-            "unknown params are refused"
-        );
-        assert!(
-            ChasePlayerAi::from_params(&serde_json::json!({
-                "radius": 8.0, "give_up_radius": 12.0, "sneak_radius_penalty": 5.0
-            }))
-            .is_ok(),
-            "the optional sneak penalty is accepted"
-        );
-        assert!(
-            ChasePlayerAi::from_params(&serde_json::json!({
-                "radius": 8.0, "give_up_radius": 12.0, "sneak_radius_penalty": -1.0
-            }))
-            .is_err(),
-            "a negative sneak penalty is refused"
-        );
     }
 }

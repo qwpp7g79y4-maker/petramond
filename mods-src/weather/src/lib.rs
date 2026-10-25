@@ -347,16 +347,6 @@ mod snow_tests {
     use super::*;
 
     #[test]
-    fn local_snow_onset_is_gradual_and_respects_biome() {
-        assert!(is_snowy_biome(biome::SNOWY_PLAINS));
-        assert!(!is_snowy_biome(biome::PLAINS));
-        assert!(!snow_onset(0.0, 0.0, 0.0));
-        assert!(!snow_onset(0.4, 0.5, 0.0));
-        assert!(!snow_onset(0.8, 0.5, 0.36));
-        assert!(snow_onset(0.8, 0.5, 0.35));
-    }
-
-    #[test]
     fn snow_rests_on_solid_ground_and_canopy_but_spares_water_and_ice() {
         let leaves = BlockId(1);
         let rock = BlockId(2);

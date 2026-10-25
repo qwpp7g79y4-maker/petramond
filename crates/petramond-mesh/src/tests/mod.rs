@@ -1,7 +1,7 @@
 use super::*;
 use petramond_world::block::Block;
 use petramond_world::block_state::SlabState;
-use petramond_world::chunk::{Chunk, SectionPos, CHUNK_SX, CHUNK_SZ, SECTION_SIZE, SKY_FULL};
+use petramond_world::chunk::{SectionPos, SECTION_SIZE, SKY_FULL};
 use petramond_world::facing::Facing;
 use petramond_world::mathh::IVec3;
 use petramond_world::section::Section;
@@ -245,65 +245,6 @@ fn mesh_stairs(
     mesh(&section)
 }
 
-struct TestSky {
-    band: Box<[u8]>,
-    ylo: i32,
-    yhi: i32,
-}
-
-impl TestSky {
-    fn at(&self, x: i32, y: i32, z: i32) -> u8 {
-        if y > self.yhi {
-            return SKY_FULL;
-        }
-        if y < self.ylo {
-            return 0;
-        }
-        let ay = y - self.ylo;
-        self.band[((ay * CHUNK_SZ as i32 + z) * CHUNK_SX as i32 + x) as usize]
-    }
-}
-
-fn solo_skylight(c: &Chunk) -> TestSky {
-    let (band, ylo, yhi) = compute_chunk_skylight(c);
-    TestSky { band, ylo, yhi }
-}
-
-fn fill_chunk_layers(c: &mut Chunk, ys: std::ops::RangeInclusive<usize>, block: Block) {
-    for y in ys {
-        for z in 0..CHUNK_SZ {
-            for x in 0..CHUNK_SX {
-                c.set_block(x, y, z, block);
-            }
-        }
-    }
-}
-
-fn floored_chunk() -> Chunk {
-    let mut c = Chunk::new(0, 0);
-    fill_chunk_layers(&mut c, 0..=4, Block::Stone);
-    c
-}
-
-fn walled_shaft(fill: Block) -> Chunk {
-    let mut c = Chunk::new(0, 0);
-    fill_chunk_layers(&mut c, 0..=0, Block::Stone);
-    for y in 1..=8 {
-        c.set_block(8, y, 8, fill);
-        for (x, z) in [(7, 8), (9, 8), (8, 7), (8, 9)] {
-            c.set_block(x, y, z, Block::Stone);
-        }
-    }
-    c
-}
-
-fn roof_with_open_shaft(roof: Block) -> Chunk {
-    let mut c = floored_chunk();
-    fill_chunk_layers(&mut c, 10..=10, roof);
-    c.set_block(8, 10, 8, Block::Air);
-    c
-}
-
 mod ao;
 mod block_light_color;
 mod boxes;
@@ -319,7 +260,6 @@ mod mesh_space;
 mod oriented_blocks;
 mod quad_streams;
 mod seams;
-mod skylight;
 mod slabs;
 mod snow;
 mod stairs;

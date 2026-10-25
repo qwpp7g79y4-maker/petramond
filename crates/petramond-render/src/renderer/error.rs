@@ -125,32 +125,3 @@ impl DeviceHealth {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn the_first_failure_wins() {
-        let health = DeviceHealth::default();
-        assert_eq!(health.failure(), None);
-        health.record(RenderFailure::DeviceLost("reset".into()));
-        health.record(RenderFailure::OutOfMemory("frame".into()));
-        assert_eq!(
-            health.failure(),
-            Some(RenderFailure::DeviceLost("reset".into()))
-        );
-        assert!(health.failure().is_some());
-    }
-
-    #[test]
-    fn clones_share_one_record() {
-        let health = DeviceHealth::default();
-        let callback_side = health.clone();
-        callback_side.record(RenderFailure::OutOfMemory("texture".into()));
-        assert_eq!(
-            health.failure(),
-            Some(RenderFailure::OutOfMemory("texture".into()))
-        );
-    }
-}

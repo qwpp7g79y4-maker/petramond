@@ -142,27 +142,6 @@ mod tests {
     }
 
     #[test]
-    fn placing_fills_both_cells_with_paired_state() {
-        let (mut w, base) = world_with_floor();
-        assert!(w.data.door_footprint_clear(base));
-        assert!(w.place_door(base, DOOR, Facing::South));
-        let upper = base + UP;
-        assert_eq!(
-            Block::from_id(w.data.chunk_block(base.x, base.y, base.z)),
-            DOOR
-        );
-        assert_eq!(
-            Block::from_id(w.data.chunk_block(upper.x, upper.y, upper.z)),
-            DOOR
-        );
-        let lo = w.door_state_at(base.x, base.y, base.z).unwrap();
-        let hi = w.door_state_at(upper.x, upper.y, upper.z).unwrap();
-        assert_eq!(lo.facing, Facing::South);
-        assert!(!lo.top && hi.top, "lower is bottom half, upper is top half");
-        assert!(!lo.open && !hi.open, "a placed door starts closed");
-    }
-
-    #[test]
     fn placement_needs_a_floor_and_two_clear_cells() {
         let mut w = ServerWorld::new(1, 4);
         w.clear_world();

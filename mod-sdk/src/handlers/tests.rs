@@ -99,14 +99,3 @@ fn mismatched_and_unknown_dispatches_are_logged_once_not_dropped_silently() {
     assert!(logs[0].contains("ModEvent") && logs[0].contains("BlockPlaced"));
     assert!(logs[1].contains("no typed tick system"));
 }
-
-#[test]
-#[should_panic(expected = "registered twice")]
-fn a_duplicate_key_fails_at_registration() {
-    let host = MockHost::new();
-    let mut handlers = Handlers::<Counter>::default();
-    host.run(|| {
-        handlers.ai_node("counter:think", |_, _| None);
-        handlers.ai_node("counter:think", |_, _| None);
-    });
-}

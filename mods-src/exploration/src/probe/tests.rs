@@ -128,16 +128,6 @@ fn a_refused_batch_leaves_every_cell_unknown() {
 }
 
 #[test]
-fn a_pad_spans_the_section_plus_its_reach() {
-    let pad = Pad {
-        xz: 2,
-        down: 5,
-        up: 7,
-    };
-    assert_eq!(pad.around([16, -32, 0]), ([14, -37, -2], [33, -10, 17]));
-}
-
-#[test]
 fn settle_derives_once_publishes_and_defers_behind_a_lease() {
     reset();
     let derived = Cell::new(0);

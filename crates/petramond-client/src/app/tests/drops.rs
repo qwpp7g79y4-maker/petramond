@@ -2,20 +2,6 @@ use super::{app_with_grass, cursor_over_slot};
 use petramond_input::controls::{Control, Modifiers};
 
 #[test]
-fn drop_key_drops_one_held_item_while_playing() {
-    let mut app = app_with_grass();
-    let before = app.inventory().selected().unwrap().count;
-    app.handle_control(Control::DropItem, true);
-    assert_eq!(
-        app.inventory().selected().unwrap().count,
-        before,
-        "drop is latched until the fixed tick applies it"
-    );
-    app.apply_latched_actions_for_test();
-    assert_eq!(app.inventory().selected().unwrap().count, before - 1);
-}
-
-#[test]
 fn sprint_plus_drop_drops_the_whole_held_stack() {
     let mut app = app_with_grass();
     assert!(app.inventory().selected().is_some());

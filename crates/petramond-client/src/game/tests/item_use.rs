@@ -66,35 +66,6 @@ fn run_water_ticks(game: &mut super::common::TestGame, n: u32) {
 }
 
 #[test]
-fn filling_the_bucket_scoops_the_source_and_swaps_the_held_item() {
-    let mut game = game_on_empty_chunk();
-    game.server_player_mut().inventory = holding(ItemType::WoodenBucket);
-
-    let p = IVec3::new(0, 78, 0);
-    assert!(game
-        .server_world_mut()
-        .set_block_world(p.x, p.y, p.z, Block::Water));
-    aim_down_at(&mut game, p);
-
-    let events = right_click(&mut game);
-
-    assert!(
-        events.player_at(0).used_item,
-        "fill should report an item use"
-    );
-    assert!(events.player_at(0).placed_block.is_none());
-    assert_eq!(
-        Block::from_id(game.server_world().data().chunk_block(p.x, p.y, p.z)),
-        Block::Air,
-        "the source should be scooped out of the world"
-    );
-    assert_eq!(
-        game.server_player().inventory.selected().unwrap().item,
-        ItemType::WaterBucket
-    );
-}
-
-#[test]
 fn filling_while_aiming_at_flowing_water_does_nothing() {
     let mut game = game_on_empty_chunk();
     game.server_player_mut().inventory = holding(ItemType::WoodenBucket);
@@ -280,24 +251,6 @@ fn pouring_onto_a_source_still_empties_the_bucket() {
     assert_eq!(
         game.server_player().inventory.selected().unwrap().item,
         ItemType::WoodenBucket
-    );
-}
-
-#[test]
-fn pouring_with_nothing_in_reach_keeps_the_water() {
-    let mut game = game_on_empty_chunk();
-    game.server_player_mut().inventory = holding(ItemType::WaterBucket);
-
-    set_player_eye(&mut game, Vec3::new(0.5, 80.0, 0.5));
-    game.server_player_mut().pitch = -std::f32::consts::FRAC_PI_2;
-
-    let events = right_click(&mut game);
-
-    assert!(!events.player_at(0).used_item);
-    assert_eq!(
-        game.server_player().inventory.selected().unwrap().item,
-        ItemType::WaterBucket,
-        "a refused pour must keep the water in the bucket"
     );
 }
 

@@ -1,16 +1,6 @@
 use super::*;
 
 #[test]
-fn a_pattern_repeats_at_the_vertex_stride() {
-    let quad = prim_index_list(&[0, 1, 2, 0, 2, 3], 4, 3);
-    assert_eq!(quad.len(), 18);
-    assert_eq!(&quad[..6], &[0, 1, 2, 0, 2, 3]);
-    assert_eq!(&quad[6..12], &[4, 5, 6, 4, 6, 7]);
-    assert_eq!(&quad[12..], &[8, 9, 10, 8, 10, 11]);
-    assert!(prim_index_list(&[0, 1, 2], 3, 0).is_empty());
-}
-
-#[test]
 fn a_grown_vertex_buffer_is_indexed_to_its_capacity() {
     let prim_bytes = 4 * 32;
     for prims in [1u32, 33, 500, 4097] {

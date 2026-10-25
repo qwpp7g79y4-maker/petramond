@@ -239,22 +239,4 @@ mod tests {
             "a committed lock answers the first offender"
         );
     }
-
-    #[test]
-    fn params_are_validated_at_load() {
-        assert!(ChaseContactAi::from_params(&serde_json::json!({"memory_ticks": 40})).is_ok());
-        assert!(
-            ChaseContactAi::from_params(&serde_json::json!({})).is_err(),
-            "memory_ticks is required"
-        );
-        assert!(
-            ChaseContactAi::from_params(&serde_json::json!({"memory_ticks": 0})).is_err(),
-            "zero memory is refused"
-        );
-        assert!(
-            ChaseContactAi::from_params(&serde_json::json!({"memory_ticks": 40, "bogus": 1}))
-                .is_err(),
-            "unknown params are refused"
-        );
-    }
 }

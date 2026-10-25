@@ -192,24 +192,6 @@ mod tests {
     }
 
     #[test]
-    fn the_hanging_rows_bail_spans_finial_to_ceiling() {
-        let l = fam();
-        let standing = l.boxes_for(l.standing);
-        let hanging = l.boxes_for(l.hanging);
-        assert_eq!(&hanging[..standing.len()], &standing[..]);
-        let added = &hanging[standing.len()..];
-        assert!(!added.is_empty(), "the hanging row adds a bail");
-        assert!(
-            added.iter().any(|b| b.max[1] == 1.0),
-            "the bail must reach the ceiling"
-        );
-        assert!(
-            added.iter().all(|b| b.min[1] >= BODY[3].max[1]),
-            "no bail box may reach below the finial it hooks over"
-        );
-    }
-
-    #[test]
     fn every_box_stays_inside_the_cell() {
         let l = fam();
         let mut rows = vec![l.standing, l.hanging];

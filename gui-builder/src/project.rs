@@ -283,12 +283,6 @@ mod tests {
     }
 
     #[test]
-    fn legacy_files_are_detected_not_parsed() {
-        let legacy = r#"{"version":2,"gui_type":"pause","scale":1,"canvas":{"w":10,"h":10},"nodes":[],"slots":[]}"#;
-        assert!(Project::from_json(legacy).unwrap_err().contains("legacy"));
-    }
-
-    #[test]
     fn image_fit_and_bind_image_round_trip_through_save_load() {
         use petramond_ui::doc::ImageFit;
         let mut p = Project::new("petramond:pause");

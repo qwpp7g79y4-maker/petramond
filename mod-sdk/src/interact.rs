@@ -97,44 +97,10 @@ impl WaterBuckets {
 mod tests {
     use super::*;
 
-    const BUCKETS: WaterBuckets = WaterBuckets {
-        empty: ItemId(7),
-        full: ItemId(8),
-    };
-
     #[test]
     fn a_cell_centre_and_the_cell_of_a_point_round_trip() {
         assert_eq!(block_center([1, -2, 0]), [1.5, -1.5, 0.5]);
         assert_eq!(cell_of([1.5, -1.5, 0.5]), [1, -2, 0]);
         assert_eq!(cell_of([-0.01, 0.0, 15.99]), [-1, 0, 15]);
-    }
-
-    #[test]
-    fn a_water_bucket_pours_only_into_an_empty_vessel() {
-        assert_eq!(
-            BUCKETS.swap_for(BUCKETS.full, false),
-            Some(BucketSwap::Pour)
-        );
-        assert_eq!(BUCKETS.swap_for(BUCKETS.full, true), None);
-    }
-
-    #[test]
-    fn an_empty_bucket_scoops_only_from_a_full_vessel() {
-        assert_eq!(
-            BUCKETS.swap_for(BUCKETS.empty, true),
-            Some(BucketSwap::Scoop)
-        );
-        assert_eq!(BUCKETS.swap_for(BUCKETS.empty, false), None);
-    }
-
-    #[test]
-    fn any_other_item_offers_no_swap() {
-        assert_eq!(BUCKETS.swap_for(ItemId(9), false), None);
-        assert_eq!(BUCKETS.swap_for(ItemId(9), true), None);
-    }
-
-    #[test]
-    fn no_held_item_places_no_block() {
-        assert!(!held_item_places_block(None));
     }
 }

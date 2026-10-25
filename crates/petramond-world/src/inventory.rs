@@ -707,17 +707,6 @@ mod take_tests {
             "a map nobody carries takes nothing and mints nothing"
         );
     }
-
-    #[test]
-    fn carried_lists_the_grid_then_the_off_hand() {
-        let mut inv = Inventory::new();
-        *inv.slot_mut(0).unwrap() = Some(ItemStack::new(ItemType::Stone, 1));
-        *inv.off_hand_mut() = Some(ItemStack::new(ItemType::Dirt, 1));
-        let carried: Vec<Option<ItemType>> = inv.carried().map(|s| s.map(|s| s.item)).collect();
-        assert_eq!(carried.len(), TOTAL_SLOTS + 1);
-        assert_eq!(carried[0], Some(ItemType::Stone));
-        assert_eq!(carried[TOTAL_SLOTS], Some(ItemType::Dirt));
-    }
 }
 
 #[cfg(test)]

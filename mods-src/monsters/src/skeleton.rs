@@ -112,18 +112,7 @@ impl Skeletons {
             Handler::PlayerDamaged.id(),
         );
         register_ai_node(keys::POST_NODE, AiNode::SkeletonPost.id());
-        let names: Vec<&str> = kits.loadouts.iter().map(|l| l.name.as_str()).collect();
         let standards = Standards::init();
-        log(&format!(
-            "skeletons: {} loadouts ({}){}",
-            names.len(),
-            names.join(", "),
-            if standards.is_some() {
-                ", camps hold while their skull flag stands"
-            } else {
-                ""
-            }
-        ));
         Some(Skeletons {
             kind,
             kits,

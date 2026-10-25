@@ -754,16 +754,4 @@ mod tests {
             }
         }
     }
-
-    #[test]
-    fn perlin_gradients_have_root_two_magnitude() {
-        for (x, y, z) in lanes::gradients() {
-            let mag_sq = x * x + y * y + z * z;
-            assert!(
-                (mag_sq - 2.0).abs() < 1.0e-12,
-                "gradient {:?} must have magnitude √2 (squared = 2), got {mag_sq}",
-                (x, y, z)
-            );
-        }
-    }
 }

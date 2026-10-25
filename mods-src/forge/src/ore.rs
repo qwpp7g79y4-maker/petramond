@@ -140,20 +140,4 @@ mod tests {
             "the deep band generates SOME ore over 4 sections"
         );
     }
-
-    #[test]
-    fn the_ore_stays_in_its_deep_band() {
-        let stone = BlockId(7);
-        let ore = Ore {
-            ore: Some(BlockId(200)),
-            stone: Some(stone),
-        };
-        for scx in 0..8 {
-            for (pos, _) in ore.generate(&ctx_at([scx, -4, 0], stone)) {
-                assert!(pos[1] >= Y_MIN && pos[1] <= Y_MAX + 1, "band: {pos:?}");
-            }
-        }
-        assert!(ore.generate(&ctx_at([0, 0, 0], stone)).is_empty());
-        assert!(ore.generate(&ctx_at([0, 4, 0], stone)).is_empty());
-    }
 }

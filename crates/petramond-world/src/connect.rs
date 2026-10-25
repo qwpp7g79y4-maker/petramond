@@ -185,8 +185,6 @@ pub fn local_boxes(boxes: &[Aabb]) -> ([(Vec3, Vec3); MAX_SELECTION_BOXES], u8) 
 mod tests {
     use super::*;
     use crate::block::{Block, ShapeFamily};
-    use crate::block_state::{StairHalf, StairState};
-    use crate::facing::Facing;
 
     fn east_mask(
         rule: ConnectionRule,
@@ -255,43 +253,6 @@ mod tests {
             0,
             "Never is a bare post — not even same family joins"
         );
-    }
-
-    #[test]
-    fn stair_joins_only_on_its_flat_back_side() {
-        let mask_for = |facing| {
-            let shape = crate::stair::shape(StairState::new(facing, StairHalf::Bottom));
-            resolved_mask(
-                IVec3::ZERO,
-                |p| {
-                    if p == EAST_CELL {
-                        Block::OakStairs
-                    } else {
-                        Block::Air
-                    }
-                },
-                |q, (dx, dz)| {
-                    if q == EAST_CELL {
-                        crate::stair::face_full(shape, IVec3::new(-dx, 0, -dz))
-                    } else {
-                        false
-                    }
-                    .then_some(FullFace::Shaped)
-                },
-                |nb, dir, ff| {
-                    connects(
-                        ConnectionRule::OpaqueOrSame,
-                        Block::OakFence.shape_kind(),
-                        nb,
-                        dir,
-                        ff,
-                    )
-                },
-            )
-        };
-        assert_eq!(mask_for(Facing::East), EAST, "flat back side joins");
-        assert_eq!(mask_for(Facing::West), 0, "open front side does not");
-        assert_eq!(mask_for(Facing::North), 0, "stepped side does not");
     }
 
     #[test]

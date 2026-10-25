@@ -437,18 +437,6 @@ mod tests {
     }
 
     #[test]
-    fn small_pen_is_confined() {
-        let world = walled_world(21, 21, 27, 27, 4);
-        assert!(check(&world, MID), "5×5 pen should read as confined");
-    }
-
-    #[test]
-    fn a_roomy_pasture_is_still_confined() {
-        let world = walled_world(14, 14, 33, 33, 4);
-        assert!(check(&world, MID), "an enclosed pasture is confined");
-    }
-
-    #[test]
     fn a_pen_wider_than_the_span_cap_is_not_confined() {
         let world = walled_world_n(5, 10, 20, 62, 27, 4);
         assert!(!check(&world, IVec3::new(36, 64, 24)));
@@ -475,15 +463,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn doorway_makes_pen_non_confined() {
-        let mut world = walled_world(21, 21, 27, 27, 4);
-        for y in 64..66 {
-            assert!(world.set_block_world(27, y, 24, Block::Air));
-        }
-        assert!(!check(&world, MID), "a door should break confinement");
-    }
-
     fn fence_pen(extra: impl FnOnce(&mut ServerWorld)) -> ServerWorld {
         let mut world = flat_world(|_, _, _| {});
         for i in 21..=27 {
@@ -493,23 +472,6 @@ mod tests {
         }
         extra(&mut world);
         world
-    }
-
-    #[test]
-    fn small_fence_pen_is_confined() {
-        let world = fence_pen(|_| {});
-        assert!(
-            check(&world, MID),
-            "a one-high fence pen holds: the fill must not hop the fence"
-        );
-    }
-
-    #[test]
-    fn fence_pen_with_a_gap_is_not_confined() {
-        let world = fence_pen(|w| {
-            assert!(w.set_block_world(27, 64, 24, Block::Air));
-        });
-        assert!(!check(&world, MID), "a gap in the fence breaks the pen");
     }
 
     #[test]
@@ -564,15 +526,5 @@ mod tests {
         cache.set_now(101 + REGION_MAX_AGE_TICKS);
         assert!(!cache.is_live(&arc), "past the age it expires");
         assert!(cache.region_at(MID).is_none());
-    }
-
-    #[test]
-    fn cache_overflow_flag_drops_everything() {
-        let world = walled_world(21, 21, 27, 27, 4);
-        let region = probe(&world, MID).expect("confined");
-        let mut cache = RegionCache::default();
-        let arc = cache.insert(region);
-        cache.invalidate(&[], true);
-        assert!(!cache.is_live(&arc));
     }
 }

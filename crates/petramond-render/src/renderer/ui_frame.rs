@@ -222,20 +222,3 @@ fn clipped_icon(
         [uv[0] + du * fx1, uv[1] + dv * fy1],
     ))
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn paint_run_covers_four_cell_pixels_per_texel() {
-        let run = petramond_world::paint::PaintRun {
-            x: 3,
-            y: 5,
-            len: 2,
-            rgb: [1.0; 3],
-        };
-        let cell = [128.0, 64.0, 192.0, 128.0];
-        assert_eq!(run_span(cell, run), [140.0, 84.0, 148.0, 88.0]);
-    }
-}

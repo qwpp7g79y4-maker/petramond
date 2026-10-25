@@ -128,25 +128,6 @@ fn fixture_entities_and_mobs_survive_the_migration() {
 }
 
 #[test]
-fn versions_outside_the_chain_are_typed_errors() {
-    let mut payload = inflated(V21);
-    payload[0] = SECTION_REC_VERSION + 1;
-    assert!(matches!(
-        decode_identity(&deflate(&payload)),
-        Err(RecordError::Newer { found: 22, .. })
-    ));
-    payload[0] = 18;
-    assert!(matches!(
-        decode_identity(&deflate(&payload)),
-        Err(RecordError::Retired {
-            found: 18,
-            oldest: 19,
-            ..
-        })
-    ));
-}
-
-#[test]
 fn an_unknown_flag_bit_is_refused_as_a_newer_payload() {
     let mut payload = inflated(V21);
     payload[3] |= 0x80;

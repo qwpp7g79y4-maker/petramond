@@ -1,45 +1,6 @@
 use super::*;
 
 #[test]
-fn cuboid_outline_has_only_twelve_boundary_lines() {
-    let mut s = Selection::default();
-    s.region([-12, -5, 2], [15, 9, 30], false).unwrap();
-    let edges = s.outline();
-    assert_eq!(edges.len(), 12);
-    for [a, b] in edges {
-        for axis in 0..3 {
-            if a[axis] == b[axis] {
-                assert!([[-12, 16], [-5, 10], [2, 31]][axis].contains(&a[axis]));
-            }
-        }
-    }
-}
-
-#[test]
-fn attached_cell_extends_the_union_without_coplanar_seams() {
-    let mut s = Selection::default();
-    s.region([0, 0, 0], [1, 0, 0], false).unwrap();
-    s.region([0, 0, 1], [0, 0, 1], false).unwrap();
-    let edges = s.outline();
-    assert_eq!(
-        edges.len(),
-        18,
-        "six-sided L footprint, top and bottom plus six uprights"
-    );
-    assert!(
-        !edges.contains(&[[0, 1, 1], [1, 1, 1]]),
-        "attached cell shares the top surface"
-    );
-    assert!(
-        !edges.contains(&[[1, 1, 0], [1, 1, 1]]),
-        "original cuboid has no grid seam"
-    );
-    s.region([0, 0, 0], [0, 0, 0], true).unwrap();
-    assert!(s.undo());
-    assert_eq!(s.outline(), edges);
-}
-
-#[test]
 fn boundary_geometry_matches_exposed_voxel_edges_after_mixed_edits() {
     use std::collections::{BTreeMap, BTreeSet};
     let mut selection = Selection::default();

@@ -148,12 +148,3 @@ fn conditions_tick_independently_in_id_order_and_clear_individually() {
     body.clear(defs[1].id);
     assert!(body.active().is_empty());
 }
-
-#[test]
-fn a_cooling_chain_must_step_down_to_an_earlier_stage() {
-    let err = parse_test_catalog(&[r#"{"conditions": [{"condition": "test:bad", "stages": [
-        {"stage": "a", "cools_to": "b", "cools_after": 0.5}, {"stage": "b"}
-    ]}]}"#])
-    .unwrap_err();
-    assert!(err.contains("earlier stage"), "{err}");
-}

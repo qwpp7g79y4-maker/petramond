@@ -33,10 +33,6 @@ impl Mod for Monsters {
         self.spawner = spawning::Spawner::init();
         self.sunburn = sunburn::Sunburn::init(self.spawner.zombie());
         self.skeletons = skeleton::Skeletons::init();
-        log(&format!(
-            "initialized: hostile spawner (zombie + hushjaw) + sunburn, {} spawn-proof surfaces",
-            self.spawner.spawn_proof_surfaces()
-        ));
     }
 
     fn gen_feature(&mut self, feature_id: u32, ctx: &GenCtx) -> GenOutput {

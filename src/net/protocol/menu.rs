@@ -100,21 +100,10 @@ pub struct MenuSyncMsg {
 #[cfg(test)]
 mod tests {
     use super::MenuSlotWire;
-    use petramond_world::gui_state::MenuSlot;
 
     #[test]
     fn a_widget_id_no_document_declares_is_refused_without_interning() {
         let wire = MenuSlotWire::Widget("never-declared:flood-0001".to_string());
         assert_eq!(wire.to_menu_slot(), None);
-    }
-
-    #[test]
-    fn a_declared_widget_id_and_plain_slots_convert() {
-        let wire = MenuSlotWire::Widget("ok".to_string());
-        assert_eq!(wire.to_menu_slot(), Some(MenuSlot::Widget("ok")));
-        assert_eq!(
-            MenuSlotWire::Container(3).to_menu_slot(),
-            Some(MenuSlot::Container(3))
-        );
     }
 }

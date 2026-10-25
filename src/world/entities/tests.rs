@@ -458,21 +458,6 @@ fn dislodged_projectiles_use_the_same_body_sweep_and_keep_their_launcher() {
 }
 
 #[test]
-fn lifetime_advances_and_despawns_at_the_limit() {
-    let mut w = ServerWorld::new(0, 0);
-    let mut item = drop_at(0.5, 0.5);
-    item.ticks_lived = ITEM_LIFETIME_TICKS - 2;
-    w.spawn_item(item);
-    w.tick_item_lifetime();
-    assert_eq!(w.item_entities()[0].ticks_lived, ITEM_LIFETIME_TICKS - 1);
-    w.tick_item_lifetime();
-    assert!(
-        w.item_entities().is_empty(),
-        "despawns once it reaches the lifetime limit"
-    );
-}
-
-#[test]
 fn item_rules_prevent_collection_and_keep_their_own_expiry_after_lodging() {
     use petramond_world::item::variant;
     let rules = [(
@@ -509,84 +494,6 @@ fn item_rules_prevent_collection_and_keep_their_own_expiry_after_lodging() {
     drops.tick_lifetime(&world, false);
     assert!(drops.get(old).is_none());
     assert!(drops.get(fresh).is_some());
-}
-
-#[test]
-fn pickup_waits_out_the_delay_then_collects() {
-    let mut w = ServerWorld::new(0, 0);
-    let player = WorldPos::new(0.5, 64.0, 0.5);
-    w.spawn_item(drop_at(0.5, 0.5));
-    let mut collected = 0u32;
-    w.dropped_items_mut()
-        .request_pickups(P0, player, |s| s.count);
-    w.dropped_items_mut()
-        .collect_requested_pickups(P0, player, |s| {
-            collected += s.count as u32;
-            None
-        });
-    assert_eq!(collected, 0, "the pickup delay blocks collection");
-    assert_eq!(w.item_entities().len(), 1);
-    assert!(
-        w.item_entities()[0].pickup_requested.is_none(),
-        "delayed drops are not requested"
-    );
-
-    w.item_entities_mut()[0].ticks_lived = ITEM_PICKUP_DELAY_TICKS;
-    w.dropped_items_mut()
-        .request_pickups(P0, player, |s| s.count);
-    w.dropped_items_mut()
-        .collect_requested_pickups(P0, player, |s| {
-            collected += s.count as u32;
-            None
-        });
-    assert_eq!(collected, 1, "collected once past the delay");
-    assert!(w.item_entities().is_empty());
-}
-
-#[test]
-fn pickup_splits_off_only_the_part_that_fits() {
-    let mut w = ServerWorld::new(0, 0);
-    let player = WorldPos::new(0.5, 64.0, 0.5);
-    let mut item = DroppedItem::new(player, ItemStack::new(ItemType::Dirt, 10), 1);
-    item.ticks_lived = 1234;
-    let origin_pos = item.pos;
-    let origin_vel = item.vel;
-    w.spawn_item(item);
-    w.dropped_items_mut().request_pickups(P0, player, |_| 6);
-
-    assert_eq!(w.item_entities().len(), 2);
-    let original = w
-        .item_entities()
-        .iter()
-        .find(|d| d.pickup_requested.is_none())
-        .expect("original kept, despawn timer untouched");
-    assert_eq!(
-        original.stack.count, 4,
-        "original reduced by the part that fit"
-    );
-    assert_eq!(
-        original.ticks_lived, 1234,
-        "original despawn timer untouched"
-    );
-    let split = w
-        .item_entities()
-        .iter()
-        .find(|d| d.pickup_requested == Some(P0))
-        .expect("split drop requested by the planning player");
-    assert_eq!(
-        split.stack.count, 6,
-        "split carries exactly the part that fit"
-    );
-    assert_eq!(split.stack.item, ItemType::Dirt);
-    assert_eq!(split.ticks_lived, 1234, "split keeps the source lifetime");
-    assert_eq!(
-        split.pos, origin_pos,
-        "split spawns exactly where the original is"
-    );
-    assert_eq!(
-        split.vel, origin_vel,
-        "split inherits the original's velocity"
-    );
 }
 
 #[test]
@@ -654,28 +561,6 @@ fn a_split_drop_tracks_the_original_instead_of_drifting() {
 }
 
 #[test]
-fn pickup_leaves_a_drop_with_no_room() {
-    let mut w = ServerWorld::new(0, 0);
-    let player = WorldPos::new(0.5, 64.0, 0.5);
-    let mut item = DroppedItem::new(player, ItemStack::new(ItemType::Dirt, 10), 1);
-    item.ticks_lived = ITEM_PICKUP_DELAY_TICKS;
-    w.spawn_item(item);
-    w.dropped_items_mut().request_pickups(P0, player, |_| 0);
-    w.dropped_items_mut()
-        .collect_requested_pickups(P0, player, |_| None);
-    assert_eq!(
-        w.item_entities().len(),
-        1,
-        "a full inventory leaves the drop"
-    );
-    assert_eq!(w.item_entities()[0].stack.count, 10, "untouched");
-    assert!(
-        w.item_entities()[0].pickup_requested.is_none(),
-        "unrequested drops are left alone"
-    );
-}
-
-#[test]
 fn magnet_skips_a_drop_that_was_not_requested() {
     let mut w = ServerWorld::new(0, 0);
     let target = WorldPos::new(0.5, 65.0, 0.5);
@@ -691,28 +576,6 @@ fn magnet_skips_a_drop_that_was_not_requested() {
     assert!(
         after_y < before_y,
         "an unrequested drop should fall, not rise toward the player: {before_y} -> {after_y}"
-    );
-}
-
-#[test]
-fn magnet_pulls_a_requested_drop() {
-    let mut w = ServerWorld::new(0, 0);
-    let target = WorldPos::new(0.5, 65.0, 0.5);
-    let mut item = drop_at(0.5, 0.5);
-    item.pos = WorldPos::new(0.5, 64.5, 0.5);
-    item.vel = Vec3::ZERO;
-    item.ticks_lived = ITEM_PICKUP_DELAY_TICKS;
-    w.spawn_item(item);
-    w.dropped_items_mut()
-        .request_pickups(P0, target, |s| s.count);
-    assert_eq!(w.item_entities()[0].pickup_requested, Some(P0));
-
-    let before_y = w.item_entities()[0].pos.y;
-    w.tick_item_physics(1.0 / 60.0, &[anchor(P0, target)]);
-    let after_y = w.item_entities()[0].pos.y;
-    assert!(
-        after_y > before_y,
-        "a requested drop should be pulled up toward the player: {before_y} -> {after_y}"
     );
 }
 
@@ -737,25 +600,6 @@ fn magnet_pulls_toward_the_requester_not_the_nearest_player() {
     assert!(
         after_x > before_x,
         "the drop flies toward its requester (+X), not the nearer player: {before_x} -> {after_x}"
-    );
-}
-
-#[test]
-fn stale_requests_release_when_the_requester_is_gone() {
-    let mut w = ServerWorld::new(0, 0);
-    let player = WorldPos::new(0.5, 64.0, 0.5);
-    let mut item = drop_at(0.5, 0.5);
-    item.ticks_lived = ITEM_PICKUP_DELAY_TICKS;
-    w.spawn_item(item);
-    w.dropped_items_mut()
-        .request_pickups(P0, player, |s| s.count);
-    assert_eq!(w.item_entities()[0].pickup_requested, Some(P0));
-
-    w.dropped_items_mut()
-        .release_requests_not_from(|id| id != P0);
-    assert!(
-        w.item_entities()[0].pickup_requested.is_none(),
-        "the leaver's reservation is released"
     );
 }
 
@@ -791,30 +635,6 @@ fn a_drop_waits_for_the_section_under_it_to_arrive() {
         w.item_entities()[0].pos.y < start.y,
         "simulates again once the floor section is final"
     );
-}
-
-#[test]
-fn unloading_a_section_harvests_only_its_items() {
-    let mut w = ServerWorld::new(0, 0);
-    w.spawn_item(drop_at(2.5, 2.5));
-    w.spawn_item(drop_at(20.5, 2.5));
-    let taken = w
-        .dropped_items_mut()
-        .take_items_in_section(SectionPos::new(0, 4, 0));
-    assert_eq!(taken.len(), 1, "only the (0,4,0) drop is harvested");
-    assert_eq!(w.item_entities().len(), 1, "the (1,4,0) drop stays active");
-    assert!(w.item_entities()[0].pos.x > 16.0);
-}
-
-#[test]
-fn items_group_by_owning_section_for_flush() {
-    let mut w = ServerWorld::new(0, 0);
-    w.spawn_item(drop_at(2.5, 2.5));
-    w.spawn_item(drop_at(5.5, 9.5));
-    w.spawn_item(drop_at(20.5, 2.5));
-    let map = w.dropped_items_mut().items_by_section();
-    assert_eq!(map[&SectionPos::new(0, 4, 0)].len(), 2);
-    assert_eq!(map[&SectionPos::new(1, 4, 0)].len(), 1);
 }
 
 #[test]

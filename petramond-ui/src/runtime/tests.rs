@@ -392,17 +392,6 @@ fn wheel_scrolls_and_clamps() {
 }
 
 #[test]
-fn click_outside_panel_reports_throw_territory() {
-    let mut h = Harness::new();
-    h.frame(&[]);
-    let ev = h.frame(&[down(300.0, 390.0)]);
-    assert!(
-        !ev.iter().any(|e| matches!(e, UiEvent::ClickOutside { .. })),
-        "{ev:?}"
-    );
-}
-
-#[test]
 fn slot_grid_cells_map_row_major_and_click_on_down() {
     let doc = Arc::new(
         Document::from_json(

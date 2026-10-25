@@ -120,16 +120,6 @@ impl Node {
 }
 
 impl ScalarGraph {
-    #[cfg(test)]
-    pub fn has_channel(&self, channel: impl AsRef<str>) -> bool {
-        self.outputs.contains_key(channel.as_ref())
-    }
-
-    #[cfg(test)]
-    pub fn channel_names(&self) -> impl Iterator<Item = &str> {
-        self.outputs.keys().map(String::as_str)
-    }
-
     pub fn channel_node(&self, channel: impl AsRef<str>) -> Option<NodeId> {
         self.outputs.get(channel.as_ref()).copied()
     }
@@ -137,12 +127,6 @@ impl ScalarGraph {
     pub fn node_depends_on_y(&self, node: NodeId) -> bool {
         self.assert_existing_node(node, "Y-dependency query root");
         self.y_dependencies[node.index]
-    }
-
-    #[cfg(test)]
-    pub fn channel_depends_on_y(&self, channel: impl AsRef<str>) -> Option<bool> {
-        self.channel_node(channel)
-            .map(|node| self.node_depends_on_y(node))
     }
 
     pub fn evaluate_channel(&self, channel: impl AsRef<str>, point: SamplePoint) -> Option<f64> {

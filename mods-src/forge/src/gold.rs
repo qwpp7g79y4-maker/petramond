@@ -49,11 +49,6 @@ impl Gold {
                 extra: tag_blocks(&gentle.blocks),
             });
         }
-        log(&format!(
-            "forge: {} nondestructive tools, {} gentle-granting augments",
-            tools.len(),
-            granted.len()
-        ));
         Gold { tools, granted }
     }
 

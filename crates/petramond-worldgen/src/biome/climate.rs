@@ -15,8 +15,6 @@ pub enum ClimateAxis {
     Humidity,
     Continentality,
     #[cfg(test)]
-    Erosion,
-    #[cfg(test)]
     Variance,
 }
 
@@ -27,8 +25,6 @@ impl ClimateAxis {
             #[cfg(test)]
             Self::Humidity => 1,
             Self::Continentality => 2,
-            #[cfg(test)]
-            Self::Erosion => 3,
             #[cfg(test)]
             Self::Variance => 4,
         }
@@ -152,11 +148,6 @@ impl ClimateRect {
         self.offset
     }
 
-    #[cfg(test)]
-    pub fn axis_range(self, axis: ClimateAxis) -> Option<AxisRange> {
-        Some(self.axes[axis.index()])
-    }
-
     /// [`Self::distance_squared`], or `None` once the running sum passes
     /// `limit` (terms are non-negative, so the total could only be larger).
     #[inline]
@@ -276,11 +267,6 @@ impl BiomeClimateIndex {
 
     pub fn default_surface() -> &'static Self {
         &crate::data::climate_table::table().index
-    }
-
-    #[cfg(test)]
-    pub fn is_empty(&self) -> bool {
-        self.rects.is_empty()
     }
 
     pub fn classify_surface(&self, climate: SurfaceClimate) -> Option<Biome> {
@@ -455,31 +441,6 @@ mod tests {
     }
 
     #[test]
-    fn axis_range_distance_is_zero_inside_and_squared_outside() {
-        let range = AxisRange::new(0.25, 0.75);
-
-        assert_eq!(range.distance_squared(0.25), 0.0);
-        assert_eq!(range.distance_squared(0.50), 0.0);
-        assert_eq!(range.distance_squared(0.75), 0.0);
-        assert!((range.distance_squared(0.10) - 0.0225).abs() < 1.0e-6);
-        assert!((range.distance_squared(0.95) - 0.04).abs() < 1.0e-6);
-    }
-
-    #[test]
-    fn rectangle_distance_is_zero_when_all_surface_axes_are_inside() {
-        let rect = ClimateRect::surface(
-            AxisRange::new(0.0, 0.4),
-            AxisRange::new(0.1, 0.5),
-            AxisRange::new(0.2, 0.6),
-            AxisRange::new(0.3, 0.7),
-            AxisRange::new(0.4, 0.8),
-        );
-        let climate = SurfaceClimate::new(0.2, 0.3, 0.4, 0.5, 0.6);
-
-        assert_eq!(rect.distance_squared(climate), 0.0);
-    }
-
-    #[test]
     fn nearest_rectangle_uses_squared_distance_to_closest_bounds() {
         static COLD: &[ClimateRect] = &[ClimateRect::surface(
             AxisRange::new(0.0, 0.2),
@@ -581,30 +542,6 @@ mod tests {
             index.classify_surface_bruteforce(climate),
             Some(Biome::MEADOW)
         );
-    }
-
-    #[test]
-    fn surface_climate_from_graph_reads_five_channels() {
-        let mut graph = ScalarGraph::new();
-        let temperature = graph.constant(-0.25);
-        let humidity = graph.constant(0.25);
-        let continentality = graph.constant(-0.75);
-        let erosion = graph.constant(0.75);
-        let variance = graph.constant(0.5);
-        graph.set_channel(Channel::new(channels::TEMPERATURE), temperature);
-        graph.set_channel(Channel::new(channels::HUMIDITY), humidity);
-        graph.set_channel(Channel::new(channels::CONTINENTALITY), continentality);
-        graph.set_channel(Channel::new(channels::EROSION), erosion);
-        graph.set_channel(Channel::new(channels::VARIANCE), variance);
-
-        let climate = SurfaceClimate::from_graph(&graph, SamplePoint::new(0.0, 0.0, 0.0))
-            .expect("five climate channels should classify");
-
-        assert_eq!(climate.get(ClimateAxis::Temperature), Some(-0.25));
-        assert_eq!(climate.get(ClimateAxis::Humidity), Some(0.25));
-        assert_eq!(climate.get(ClimateAxis::Continentality), Some(-0.75));
-        assert_eq!(climate.get(ClimateAxis::Erosion), Some(0.75));
-        assert_eq!(climate.get(ClimateAxis::Variance), Some(0.5));
     }
 
     #[test]

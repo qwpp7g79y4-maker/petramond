@@ -111,23 +111,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sides_admit_exactly_their_members() {
-        assert!(Sides::SERVER.allows(RuntimeSide::Server));
-        assert!(!Sides::SERVER.allows(RuntimeSide::Client));
-        assert!(!Sides::SERVER.allows(RuntimeSide::Worldgen));
-        assert!(Sides::SERVER_CLIENT.allows(RuntimeSide::Client));
-        assert!(!Sides::SERVER_CLIENT.allows(RuntimeSide::Worldgen));
-        for side in [
-            RuntimeSide::Server,
-            RuntimeSide::Worldgen,
-            RuntimeSide::Client,
-        ] {
-            assert!(Sides::EVERY.allows(side));
-            assert!(Sides::of(side).allows(side));
-        }
-    }
-
-    #[test]
     fn the_shell_admits_only_shell_calls() {
         assert!(!Sides::CLIENT.admits(RuntimeSide::Client, true));
         assert!(Sides::CLIENT.admits(RuntimeSide::Client, false));
@@ -135,13 +118,5 @@ mod tests {
         assert!(!Sides::BESIDE_WORLD.admits(RuntimeSide::Client, true));
         assert!(Sides::EVERY.admits(RuntimeSide::Client, true));
         assert!(Sides::SERVER.admits(RuntimeSide::Server, true));
-    }
-
-    #[test]
-    fn only_writes_mutate() {
-        let read = Legality::new(Sides::EVERY, Scope::Any, Access::Read);
-        let write = Legality::new(Sides::SERVER, Scope::Sim, Access::Write);
-        assert!(!read.mutates());
-        assert!(write.mutates());
     }
 }

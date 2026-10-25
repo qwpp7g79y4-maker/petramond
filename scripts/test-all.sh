@@ -28,7 +28,8 @@ test_fast() {
 
 # Worldgen runs only in its own group, which also runs its `#[ignore]`d slow
 # sweeps (a runtime flag, so nothing recompiles), so the workspace groups
-# leave it out.
+# leave it out. `zz_dip_census` asserts nothing and only prints statistics, so
+# it stays a manual run (`--ignored --nocapture`).
 client_packages=(-p petramond-client -p petramond-render -p petramond-audio)
 client_excludes=(--exclude petramond-client --exclude petramond-render --exclude petramond-audio)
 # Root workspace members with a group of their own: the builder (a desktop
@@ -47,7 +48,7 @@ run_group() {
             test_fast "${client_packages[@]}" --all-targets
             ;;
         worldgen)
-            test_fast -p petramond-worldgen --all-targets -- --include-ignored
+            test_fast -p petramond-worldgen --all-targets -- --include-ignored --skip zz_dip_census
             ;;
         mods)
             test_fast --manifest-path mods-src/Cargo.toml --target-dir target --workspace --all-targets

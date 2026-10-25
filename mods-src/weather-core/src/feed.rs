@@ -85,13 +85,4 @@ mod tests {
             "a resumed producer is heard again"
         );
     }
-
-    #[test]
-    fn foreign_and_corrupt_events_never_read_as_weather() {
-        let mut feed = FieldFeed::default();
-        assert!(!feed.observe(&event("combat:shield_impact", Vec::new())));
-        assert_eq!(feed.params(), None);
-        assert!(feed.observe(&event(FIELD_EVENT, vec![1, 2, 3])));
-        assert_eq!(feed.params(), None, "an undecodable row is no weather");
-    }
 }

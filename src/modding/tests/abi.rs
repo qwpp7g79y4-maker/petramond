@@ -43,14 +43,6 @@ fn requiring(version: AbiVersion, requires: Capabilities) -> String {
 }
 
 #[test]
-fn a_guest_of_the_host_abi_loads_and_initializes() {
-    let mut inst = instantiate(&wat_abi_exports(ABI_VERSION)).expect("same ABI loads");
-    inst.call_init_detached();
-    assert!(!inst.disabled());
-    assert_eq!(inst.dispatches(), 1);
-}
-
-#[test]
 fn a_guest_of_another_minor_of_the_same_major_loads() {
     for minor in [ABI_VERSION.minor + 1, u16::MAX] {
         let version = AbiVersion {

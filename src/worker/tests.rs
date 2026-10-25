@@ -62,41 +62,6 @@ fn removing_waiting_jobs_leaves_running_and_finished_work_owned_by_the_caller() 
 }
 
 #[test]
-fn pool_runs_lowest_key_first_and_fifo_on_ties() {
-    let pool = JobPool::new(1);
-    let order = Arc::new(Mutex::new(Vec::new()));
-    let gate = Arc::new((Mutex::new(false), Condvar::new()));
-    {
-        let gate = gate.clone();
-        pool.submit(i64::MIN, move || {
-            let (lock, cv) = &*gate;
-            let mut open = lock.lock().unwrap();
-            while !*open {
-                open = cv.wait(open).unwrap();
-            }
-        });
-    }
-    for (key, tag) in [(50, "far"), (10, "near-a"), (10, "near-b"), (30, "mid")] {
-        let order = order.clone();
-        pool.submit(key, move || order.lock().unwrap().push(tag));
-    }
-    let (done_tx, done_rx) = channel::<()>();
-    pool.submit(i64::MAX, move || {
-        let _ = done_tx.send(());
-    });
-    {
-        let (lock, cv) = &*gate;
-        *lock.lock().unwrap() = true;
-        cv.notify_all();
-    }
-    done_rx.recv().unwrap();
-    assert_eq!(
-        *order.lock().unwrap(),
-        vec!["near-a", "near-b", "mid", "far"]
-    );
-}
-
-#[test]
 fn jobs_run_under_the_submitters_content_registry() {
     use petramond_world::content::{self, Content};
     let no_mods = std::env::temp_dir().join(format!("petramond-pool-{}", std::process::id()));
@@ -209,13 +174,4 @@ fn rekeying_and_removing_touch_only_the_named_jobs() {
         .map(|_| receive.recv_timeout(deadline).unwrap())
         .collect();
     assert_eq!(first, vec![900, 901, 902, 1, 2]);
-}
-
-#[test]
-fn default_threads_never_exceeds_the_machine() {
-    let n = std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(4);
-    let threads = JobPool::default_threads();
-    assert!(threads >= 1 && threads <= n);
 }

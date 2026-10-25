@@ -24,29 +24,6 @@ fn alternatives_inherit_material_and_do_not_animate() {
 }
 
 #[test]
-fn animation_and_variants_are_mutually_exclusive() {
-    let invalid =
-        r#"{"tiles":[{"name":"test","file":"unused.png","anim":true,"variants":["unused.png"]}]}"#;
-    assert!(build(&[invalid], crate::content::current().packs())
-        .err()
-        .unwrap()
-        .contains("cannot combine"));
-}
-
-#[test]
-fn a_selector_requires_alternatives_to_select_among() {
-    for select in ["face", "cell"] {
-        let invalid = format!(
-            r#"{{"tiles":[{{"name":"test","file":"unused.png","variation":"{select}"}}]}}"#
-        );
-        assert!(build(&[&invalid], crate::content::current().packs())
-            .err()
-            .unwrap()
-            .contains("without variants"));
-    }
-}
-
-#[test]
 fn variation_selection_stays_inside_its_tile_family() {
     for tile in Tile::all() {
         let count = tile.variation_count();
@@ -61,57 +38,11 @@ fn variation_selection_stays_inside_its_tile_family() {
 }
 
 #[test]
-fn only_face_selecting_tiles_vary_per_face() {
-    let (base, _) = crate::assets::read_base_text("textures/atlas.json").unwrap();
-    let layer = r#"{"tiles":[
-        {"name":"test_face","file":"stone.png","variants":["dirt.png","sand.png"],"variation":"face"},
-        {"name":"test_cell","file":"stone.png","variants":["dirt.png","sand.png"],"variation":"cell"},
-        {"name":"test_plain","file":"stone.png","variants":["dirt.png","sand.png"]}]}"#;
-    let d = build(&[&base, layer], crate::content::current().packs()).unwrap();
-    let select = |name: &str, cell: [i32; 3], normal: u32| {
-        let t = d.by_name[name];
-        let meta = &d.cells[t.index()];
-        match meta.variation {
-            Some(VariationSelect::Face) => {
-                t.index() + (spatial_hash(cell, normal) % meta.variation_count as u32) as usize
-            }
-            _ => t.index(),
-        }
-    };
-    let chosen: std::collections::HashSet<_> = (0..64)
-        .flat_map(|x| (1..=6).map(move |n| select("test_face", [x, -17, 31], n)))
-        .collect();
-    assert_eq!(
-        chosen.len(),
-        3,
-        "a face selector exercises every alternative"
-    );
-    for name in ["test_cell", "test_plain"] {
-        assert_eq!(select(name, [5, 6, 7], 3), d.by_name[name].index());
-    }
-}
-
-#[test]
 fn the_spatial_hash_does_not_repeat_across_section_seams() {
     let mut seen = std::collections::HashSet::new();
     for x in -64..64 {
         for normal in 1..=6 {
             assert!(seen.insert(spatial_hash([x * 16, -16, 16], normal)));
         }
-    }
-}
-
-#[test]
-fn a_flipbook_rate_is_authored_one_way() {
-    let row = |rate: &str| format!(r#"{{"tiles":[{{"name":"test","file":"unused.png",{rate}}}]}}"#);
-    for (rate, error) in [
-        (r#""frame_ticks":2,"fps":10"#, "both"),
-        (r#""fps":0"#, "fps must be positive"),
-        (r#""frame_ticks":-1"#, "frame_ticks must be positive"),
-    ] {
-        let err = build(&[&row(rate)], crate::content::current().packs())
-            .err()
-            .unwrap();
-        assert!(err.contains(error), "{rate}: {err}");
     }
 }

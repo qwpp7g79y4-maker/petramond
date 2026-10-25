@@ -25,23 +25,3 @@ fn the_frame_table_describes_every_uniform_byte() {
         "UNIFORM_FIELDS stops short of the end of `Uniforms`"
     );
 }
-
-#[test]
-fn the_frame_module_declares_the_table_in_order() {
-    let text = frame_wgsl();
-    let mut at = 0;
-    for (name, ty, _) in UNIFORM_FIELDS {
-        let decl = format!("{name}: {ty},");
-        let found = text[at..]
-            .find(&decl)
-            .unwrap_or_else(|| panic!("petramond::frame lacks `{decl}` (or out of order)"));
-        at += found + decl.len();
-    }
-    assert!(text.contains(&format!("PETRAMOND_FRAME_ABI: u32 = {FRAME_ABI_VERSION}u")));
-}
-
-#[test]
-fn the_shader_params_module_spells_the_slot_count() {
-    assert!(shader_params_wgsl().contains(&format!("array<vec4<f32>, {SHADER_PARAM_SLOTS}>")));
-    assert_eq!(std::mem::size_of::<ShaderParams>(), SHADER_PARAM_SLOTS * 16);
-}

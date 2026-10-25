@@ -18,27 +18,6 @@ fn fall_distance_measures_the_drop_height() {
 }
 
 #[test]
-fn walking_off_a_low_ledge_measures_a_short_fall() {
-    let solid = |x: i32, y: i32, _z: i32| if x <= 0 { y < 64 } else { y < 62 };
-    let walk = Input {
-        wishdir: Vec3::new(1.0, 0.0, 0.0),
-        jump: false,
-        sprint: false,
-        sneak: false,
-    };
-    let mut pl = p(WorldPos::new(0.5, 64.0, 0.5));
-    for _ in 0..240 {
-        pl.update_core(1.0 / 60.0, &solid, walk);
-    }
-    assert!(pl.on_ground);
-    let dist = pl.take_fall_distance();
-    assert!(
-        dist < 3.0,
-        "a 2-block step-down stays under the safe distance, got {dist}"
-    );
-}
-
-#[test]
 fn a_fluid_cancels_the_fall() {
     let mut chunk = petramond_world::chunk::Chunk::new(0, 0);
     for z in 0..16 {

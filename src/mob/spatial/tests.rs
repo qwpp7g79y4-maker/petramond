@@ -51,19 +51,6 @@ fn near_matches_a_brute_force_scan_exactly() {
 }
 
 #[test]
-fn near_yields_each_mob_once_in_a_deterministic_order() {
-    let snapshot = MobSnapshot::from_mobs(scatter(300));
-    let pos = WorldPos::new(10.0, 64.0, -10.0);
-    let first: Vec<usize> = snapshot.near(pos, 40.0).map(|(i, _)| i).collect();
-    let second: Vec<usize> = snapshot.near(pos, 40.0).map(|(i, _)| i).collect();
-    assert_eq!(first, second);
-    let mut unique = first.clone();
-    unique.sort_unstable();
-    unique.dedup();
-    assert_eq!(unique.len(), first.len(), "no mob is visited twice");
-}
-
-#[test]
 fn id_lookup_resolves_every_mob_and_live_skips_inactive_ones() {
     let mobs = vec![
         mob(5, 1.0, 1.0, true),

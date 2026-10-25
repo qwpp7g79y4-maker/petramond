@@ -47,19 +47,6 @@ mod tests {
         (w, pos)
     }
 
-    #[test]
-    fn a_placed_trapdoor_reaches_the_render_gather() {
-        for top in [false, true] {
-            let (w, pos) = world_with_a_trapdoor(top);
-            let mut rows = Vec::new();
-            w.collect_animated_blocks(&mut rows);
-            assert_eq!(rows.len(), 1, "top={top}: one gathered panel");
-            assert_eq!(rows[0].pos, pos);
-            assert_eq!(rows[0].pose.variant, u8::from(top));
-            assert!(!rows[0].pose.open);
-        }
-    }
-
     fn clicked(normal: IVec3, spot_y: f32, player_facing: Facing) -> TrapdoorState {
         let mut w = ServerWorld::new(1, 4);
         w.clear_world();

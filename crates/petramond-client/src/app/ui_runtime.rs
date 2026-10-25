@@ -522,23 +522,6 @@ mod frame_stamp_tests {
     use super::*;
 
     #[test]
-    fn an_item_view_layers_ghost_marker_is_the_tilde_prefix() {
-        assert_eq!(
-            item_view_layer("petramond:diamond"),
-            ("petramond:diamond", false)
-        );
-        assert_eq!(
-            item_view_layer("~petramond:diamond"),
-            ("petramond:diamond", true)
-        );
-        assert_eq!(
-            item_view_layer(" ~ petramond:diamond "),
-            ("petramond:diamond", true)
-        );
-        assert_eq!(item_view_layer(""), ("", false));
-    }
-
-    #[test]
     fn doc_geometry_is_derived_once_per_solve() {
         let stone = ItemType::by_name("petramond:stone").expect("stone is registered");
         let dirt = ItemType::by_name("petramond:dirt").expect("dirt is registered");

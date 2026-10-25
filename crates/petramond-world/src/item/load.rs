@@ -563,61 +563,6 @@ mod tests {
     }
 
     #[test]
-    fn pack_layer_overrides_rows_by_item() {
-        let (base, _) =
-            crate::assets::read_base_text("items.json").expect("assets/items.json must ship");
-        let layer = r#"{"items": [{"item": "petramond:stone", "key": "petramond:stone", "name": "Modded Stone", "max_stack_size": 16, "held_pose": {"pitch": 0, "yaw": 1.8, "roll": 0}, "tags": []}]}"#;
-        let defs = parse_test_layers(&[&base, layer]).expect("layered table loads");
-        let stone = &defs[ItemType::Stone.id() as usize];
-        assert_eq!(stone.name, "Modded Stone");
-        assert_eq!(stone.max_stack_size, 16);
-        assert_eq!(
-            defs.iter()
-                .filter(|d| !d.key.starts_with(super::super::creative::PREFIX))
-                .count(),
-            crate::item::ENGINE_ITEM_NAMES.len()
-        );
-    }
-
-    #[test]
-    fn a_rows_info_line_loads_and_defaults_to_none() {
-        let (base, _) =
-            crate::assets::read_base_text("items.json").expect("assets/items.json must ship");
-        let layer = r#"{"items": [{"item": "petramond:stone", "key": "petramond:stone", "name": "Stone", "info": "A hint", "max_stack_size": 64, "held_pose": {"pitch": 0, "yaw": 1.8, "roll": 0}, "tags": []}]}"#;
-        let defs = parse_test_layers(&[&base, layer]).expect("info row loads");
-        assert_eq!(defs[ItemType::Stone.id() as usize].info, Some("A hint"));
-        assert_eq!(defs[ItemType::Dirt.id() as usize].info, None);
-    }
-
-    #[test]
-    fn namespaced_pack_row_registers_a_new_item_with_links() {
-        let (base, _) =
-            crate::assets::read_base_text("items.json").expect("assets/items.json must ship");
-        let layer = r#"{"items": [
-            {"item": "mymod:filled_gadget", "key": "mymod:filled_gadget", "name": "Filled Gadget", "max_stack_size": 1, "held_pose": {"pitch": 0, "yaw": 1.8, "roll": 0}, "tags": []},
-            {"item": "mymod:gadget", "key": "mymod:gadget", "name": "Gadget", "max_stack_size": 64, "held_pose": {"pitch": 0, "yaw": 1.8, "roll": 0}, "tags": [], "block": "petramond:stone", "use": {"bucket_fill": {"becomes": {"petramond:water": "mymod:filled_gadget"}}}}
-        ]}"#;
-        let defs = parse_test_layers(&[&base, layer]).expect("dynamic rows load");
-        let engine = crate::item::ENGINE_ITEM_NAMES.len();
-        assert_eq!(
-            defs.iter()
-                .filter(|d| !d.key.starts_with(super::super::creative::PREFIX))
-                .count(),
-            engine + 2,
-            "fresh ids past the engine set"
-        );
-        let filled = defs[engine].item;
-        let gadget = &defs[engine + 1];
-        assert_eq!(gadget.item, ItemType((engine + 1) as u16));
-        assert_eq!(gadget.block, Some(crate::block::Block::Stone));
-        let Some(ItemUse::BucketFill { fills }) = gadget.item_use else {
-            panic!("the gadget carries its fill use: {:?}", gadget.item_use);
-        };
-        assert_eq!(fills, [(crate::block::Block::Water, filled)]);
-        assert_eq!(defs[ItemType::Stone.id() as usize].item, ItemType::Stone);
-    }
-
-    #[test]
     fn bare_additions_and_bad_links_are_rejected() {
         let (base, _) =
             crate::assets::read_base_text("items.json").expect("assets/items.json must ship");

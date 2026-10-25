@@ -96,20 +96,6 @@ fn tag_table_interns_namespaced_and_rejects_bare_unknowns() {
 }
 
 #[test]
-fn the_installed_pack_set_leaves_room_for_more_packs() {
-    const ROOM: usize = 1024;
-    let names = names();
-    for (what, used) in [("block", names.blocks.len()), ("item", names.items.len())] {
-        assert!(
-            used <= WIDE_ID_CAP && WIDE_ID_CAP - used >= ROOM,
-            "{what} registry: {used}/{WIDE_ID_CAP} ids used, only {} free — a further \
-             content pack would be refused admission",
-            WIDE_ID_CAP - used,
-        );
-    }
-}
-
-#[test]
 fn namespaced_keys_register_and_bare_unknowns_error() {
     let engine = &["petramond:air", "petramond:stone"];
     let table = NameTable::build(

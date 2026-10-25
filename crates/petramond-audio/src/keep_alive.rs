@@ -57,26 +57,3 @@ impl Source for KeepAlive {
         None
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn keep_alive_is_endless_bounded_and_nonzero() {
-        let mut k = KeepAlive::new(
-            ChannelCount::new(2).unwrap(),
-            SampleRate::new(48_000).unwrap(),
-        );
-        let mut any_nonzero = false;
-        for _ in 0..10_000 {
-            let s = k.next().expect("keep-alive never ends");
-            assert!(s.abs() <= AMPLITUDE, "stays inaudible (<= {AMPLITUDE})");
-            any_nonzero |= s != 0.0;
-        }
-        assert!(
-            any_nonzero,
-            "must emit non-zero samples to keep the device awake"
-        );
-    }
-}

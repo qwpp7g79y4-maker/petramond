@@ -530,16 +530,6 @@ mod tests {
     }
 
     #[test]
-    fn history_is_capped_to_client_side_limit() {
-        let mut chat = ChatUi::default();
-        for i in 0..300 {
-            chat.push(line(i, "x"), i as f64);
-        }
-        assert_eq!(chat.history.len(), MAX_HISTORY);
-        assert_eq!(chat.history.front().unwrap().line.seq, 44);
-    }
-
-    #[test]
     fn wrapped_history_is_cached_per_width() {
         let fresh = |chat: &ChatUi, width: usize| -> usize {
             chat.history

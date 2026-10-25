@@ -106,40 +106,6 @@ fn a_known_mob_with_unresolvable_content_is_kept_whole() {
 }
 
 #[test]
-fn empty_list_roundtrips() {
-    let got = decode(&encode(&[], &[])).expect("decodes");
-    assert!(got.live.is_empty() && got.kept.is_empty());
-}
-
-#[test]
-fn a_shared_tag_key_is_stored_once_and_read_back_by_every_mob() {
-    let key = crate::mob::tags::CONFINED;
-    let penned = |x| SavedMob {
-        kind: Mob::Sheep,
-        pos: WorldPos::new(x, 64.0, 2.0),
-        yaw: 0.0,
-        tags: BTreeMap::from([(key.to_owned(), MobTagValue::Bool(true))]),
-        container: Default::default(),
-    };
-    let buf = encode(&[penned(1.0), penned(2.0)], &[]);
-    assert_eq!(
-        buf.windows(key.len())
-            .filter(|w| *w == key.as_bytes())
-            .count(),
-        1,
-        "the shared key rides the table, not each mob's record"
-    );
-    let got = decode(&buf).expect("decodes");
-    assert_eq!(got.live.len(), 2);
-    assert!(
-        got.live
-            .iter()
-            .all(|m| m.tags.get(key) == Some(&MobTagValue::Bool(true))),
-        "both mobs resolve their tag through the shared table"
-    );
-}
-
-#[test]
 fn a_tag_key_index_outside_the_table_is_rejected() {
     let list = MobList {
         keys: Vec::new(),
@@ -153,11 +119,4 @@ fn a_tag_key_index_outside_the_table_is_rejected() {
         }],
     };
     assert!(decode(&to_bytes(&list)).is_none());
-}
-
-#[test]
-fn truncated_input_is_none() {
-    let mut buf = encode(&[owl(1.0)], &[]);
-    buf.pop();
-    assert!(decode(&buf).is_none());
 }

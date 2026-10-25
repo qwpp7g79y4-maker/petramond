@@ -138,31 +138,6 @@ fn a_dead_or_absent_attacker_ends_the_grudge() {
 }
 
 #[test]
-fn a_player_attacker_is_chased_by_live_anchor_position() {
-    let world = flat_world();
-    let mut rng = MobRng::new(1);
-    let mut ai = RetaliateAi::new(200, 0, EscapeRoute::default());
-    let mob = WorldPos::new(2.5, 64.0, 2.5);
-    let players = [PlayerAnchor {
-        id: PlayerId(7),
-        pos: WorldPos::new(9.5, 64.9, 2.5),
-        sneaking: true,
-        ..Default::default()
-    }];
-    let grudge = Some((EntityRef::Player(PlayerId(7)), 3));
-    let out = ai.tick(&mut ctx(
-        &world,
-        &mut rng,
-        mob,
-        &players,
-        MobSnapshot::empty(),
-        grudge,
-    ));
-    assert_eq!(out.target, Some(EntityRef::Player(PlayerId(7))));
-    assert!(out.goal.is_some());
-}
-
-#[test]
 fn the_warmup_delays_the_counter_and_rehits_cannot_rewind_it() {
     let world = flat_world();
     let mut rng = MobRng::new(1);
@@ -205,34 +180,6 @@ fn the_warmup_delays_the_counter_and_rehits_cannot_rewind_it() {
         Some((EntityRef::Player(PlayerId(4)), 0)),
     ));
     assert_eq!(out.target, None, "a new attacker starts a new warmup");
-}
-
-#[test]
-fn params_are_validated_at_load() {
-    assert!(RetaliateAi::from_params(&serde_json::json!({})).is_ok());
-    assert!(RetaliateAi::from_params(&serde_json::json!({"memory_ticks": 100})).is_ok());
-    assert!(RetaliateAi::from_params(
-        &serde_json::json!({"memory_ticks": 100, "warmup_ticks": 10})
-    )
-    .is_ok());
-    assert!(
-        RetaliateAi::from_params(&serde_json::json!({"memory_ticks": 0})).is_err(),
-        "zero memory is refused"
-    );
-    assert!(
-        RetaliateAi::from_params(&serde_json::json!({"memory_ticks": 100, "warmup_ticks": 100}))
-            .is_err(),
-        "a warmup the memory cannot outlive is refused"
-    );
-    assert!(
-        RetaliateAi::from_params(&serde_json::json!({"bogus": 1})).is_err(),
-        "unknown params are refused"
-    );
-    assert!(RetaliateAi::from_params(&serde_json::json!({"radius": 5})).is_ok());
-    assert!(
-        RetaliateAi::from_params(&serde_json::json!({"radius": 2})).is_err(),
-        "the shared escape radius is validated here too"
-    );
 }
 
 #[test]

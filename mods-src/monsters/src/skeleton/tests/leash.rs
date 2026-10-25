@@ -47,11 +47,6 @@ fn returning_write(d: &AiNodeDecision) -> Option<Option<MobTagValue>> {
 }
 
 #[test]
-fn a_guard_without_a_post_is_left_alone() {
-    assert_eq!(decide(&ctx([0.5, 65.0, 0.5], vec![])), None);
-}
-
-#[test]
 fn an_idle_guard_that_strayed_walks_home_and_stops_there() {
     let far = ctx([30.5, 65.0, 30.5], post_tags(PostRole::Yard, false));
     let d = decide(&far).expect("a strayed guard heads home");

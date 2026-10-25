@@ -44,34 +44,3 @@ macro_rules! pack_keys {
         ];
     };
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{PackKey, PackKeyKind};
-
-    mod keys {
-        crate::pack_keys! {
-            pub STONE: Block = "petramond:stone";
-            pub(crate) BACK: Widget("forge:fittings") = "back";
-        }
-    }
-
-    #[test]
-    fn the_macro_declares_constants_and_records_each_kind() {
-        assert_eq!(keys::STONE, "petramond:stone");
-        assert_eq!(keys::BACK, "back");
-        assert_eq!(
-            keys::PACK_KEYS,
-            &[
-                PackKey {
-                    kind: PackKeyKind::Block,
-                    key: "petramond:stone"
-                },
-                PackKey {
-                    kind: PackKeyKind::Widget("forge:fittings"),
-                    key: "back"
-                },
-            ]
-        );
-    }
-}

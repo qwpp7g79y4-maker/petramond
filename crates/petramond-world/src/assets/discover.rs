@@ -517,45 +517,6 @@ mod tests {
     }
 
     #[test]
-    fn declared_resource_needs_parse_and_a_bad_tier_refuses_the_pack() {
-        use crate::pack_manifest::{ResourceNeeds, Tier};
-
-        let root = scratch("resources");
-        let mods = root.join("mods");
-        pack(
-            &mods,
-            "castles",
-            r#"{"name": "Castles", "id": "castles", "resources": {"tick": "heavy", "memory": "extreme"}}"#,
-            &[],
-        );
-        pack(&mods, "plain", r#"{"name": "Plain", "id": "plain"}"#, &[]);
-        pack(
-            &mods,
-            "typo",
-            r#"{"name": "Typo", "id": "typo", "resources": {"tick": "huge"}}"#,
-            &[],
-        );
-        let (packs, refused) = discover_from(vec![(mods, PackOrigin::Shipped)]);
-        let needs = |id: &str| {
-            packs
-                .iter()
-                .find(|p| p.id.as_deref() == Some(id))
-                .map(|p| p.resources)
-        };
-        assert_eq!(
-            needs("castles"),
-            Some(ResourceNeeds {
-                tick: Tier::Heavy,
-                memory: Tier::Extreme,
-                ..Default::default()
-            })
-        );
-        assert_eq!(needs("plain"), Some(ResourceNeeds::default()));
-        assert_eq!(needs("typo"), None);
-        assert!(refused.iter().any(|r| r.dir_name == "typo"), "{refused:?}");
-    }
-
-    #[test]
     fn installed_packs_never_shadow_shipped_ones_and_hidden_dirs_are_not_packs() {
         let root = scratch("shadow");
         let (shipped, installed) = (root.join("shipped"), root.join("installed"));

@@ -131,10 +131,6 @@ impl BodyAnimators {
             listed: 0,
         }))
     }
-
-    pub fn clear(&mut self) {
-        self.bodies.clear();
-    }
 }
 
 #[cfg(test)]

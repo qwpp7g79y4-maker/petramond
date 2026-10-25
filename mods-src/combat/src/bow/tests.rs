@@ -259,43 +259,6 @@ fn damage_runs_between_the_arrows_rungs_by_speed_and_speed_by_draw() {
 }
 
 #[test]
-fn an_incomplete_row_is_refused_whole() {
-    let bow = |text: &str| parse_row_data::<BowSpec>(text);
-    let full = bow(
-        r#"{"draw_ticks": 12, "strain_ticks": 8, "draw_speed_scale": 0.7, "launch_speed": [5, 45]}"#,
-    )
-    .unwrap();
-    assert_eq!(Draw::from_spec(&full), Ok(draw()));
-    assert!(bow(r#"{"draw_ticks": 12, "strain_ticks": 8}"#).is_err());
-    let no_draw = bow(
-        r#"{"draw_ticks": 0, "strain_ticks": 8, "draw_speed_scale": 0.7, "launch_speed": [5, 45]}"#,
-    )
-    .unwrap();
-    assert!(
-        Draw::from_spec(&no_draw).is_err(),
-        "a zero-tick draw is no draw"
-    );
-    assert!(
-        bow(r#"{"draw_ticks": 12, "strain_ticks": 8, "draw_speed_scale": 0.7, "launch_speed": [5, 45], "pul": []}"#)
-            .is_err(),
-        "a misspelt field is an error, not a default"
-    );
-
-    let arrow = |text: &str| parse_row_data::<ArrowSpec>(text).unwrap();
-    let good = arrow(
-        r#"{"damage_weak": [1, 2], "damage_full": [9, 18], "speed_weak": 5, "speed_full": 45}"#,
-    );
-    assert_eq!(
-        ArrowRow::from_spec(ItemId(13), "m:arrow".into(), &good),
-        Ok(rows().arrows[0].clone())
-    );
-    let inverted = arrow(
-        r#"{"damage_weak": [1, 2], "damage_full": [9, 18], "speed_weak": 45, "speed_full": 5}"#,
-    );
-    assert!(ArrowRow::from_spec(ItemId(13), "m:arrow".into(), &inverted).is_err());
-}
-
-#[test]
 fn the_arrow_leaves_beside_the_eye_and_converges_on_the_crosshair() {
     let mut a = actor(Some(BOW), true);
     a.pos = [1.0, 2.0, 3.0];

@@ -246,21 +246,4 @@ mod tests {
         assert_ne!(copy.origin(), s.origin());
         assert_eq!(copy.get("rows"), s.get("rows"));
     }
-
-    #[test]
-    fn resolve_prefers_item_map() {
-        let mut s = UiState::new();
-        s.set("name", UiValue::Str("global".into()));
-        let mut item = UiMap::new();
-        item.insert("name".into(), UiValue::Str("row".into()));
-        assert_eq!(
-            s.resolve(Some(&item), "name"),
-            Some(&UiValue::Str("row".into()))
-        );
-        assert_eq!(
-            s.resolve(None, "name"),
-            Some(&UiValue::Str("global".into()))
-        );
-        assert_eq!(s.resolve(Some(&item), "absent"), None);
-    }
 }

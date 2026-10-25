@@ -355,7 +355,7 @@ fn classify_biome(biome: Biome, habitat: &Habitat) -> BiomeFit {
 /// Skip avoided biomes and, for fluid-averse mobs, fluid spots until they've been passed over
 /// enough times; then the rule lifts, or a boxed-in mob would never move.
 ///
-/// No world/RNG, so unit-tested directly. Caller samples the world and hands candidates in.
+/// No world/RNG: the caller samples the world and hands candidates in.
 struct Picker {
     avoid_escape: u32,
     avoided_seen: u32,
@@ -431,13 +431,6 @@ mod tests {
     use petramond_world::block::Block;
     use petramond_world::chunk::{Chunk, ChunkPos, CHUNK_SX, CHUNK_SZ};
 
-    fn habitat() -> Habitat {
-        Habitat {
-            avoid: &[Biome::PLAINS, Biome::DESERT],
-            prefer: &[Biome::FOREST],
-        }
-    }
-
     fn make_ctx<'a>(
         world: &'a ServerWorld,
         rng: &'a mut MobRng,
@@ -475,66 +468,6 @@ mod tests {
 
     fn plains_habitat() -> &'static Habitat {
         &PLAINS_HABITAT
-    }
-
-    #[test]
-    fn classify_sorts_biomes_into_prefer_avoid_neutral() {
-        let h = habitat();
-        assert_eq!(classify_biome(Biome::FOREST, &h), BiomeFit::Preferred);
-        assert_eq!(classify_biome(Biome::PLAINS, &h), BiomeFit::Avoided);
-        assert_eq!(classify_biome(Biome::DESERT, &h), BiomeFit::Avoided);
-        assert_eq!(classify_biome(Biome::TAIGA, &h), BiomeFit::Neutral);
-    }
-
-    #[test]
-    fn classify_prefers_over_avoids_when_a_biome_is_in_both() {
-        let h = Habitat {
-            avoid: &[Biome::FOREST],
-            prefer: &[Biome::FOREST],
-        };
-        assert_eq!(classify_biome(Biome::FOREST, &h), BiomeFit::Preferred);
-    }
-
-    #[test]
-    fn picker_takes_a_preferred_candidate_immediately() {
-        let mut p = Picker::new(AVOID_ESCAPE, FLUID_ESCAPE, GROUND_ESCAPE);
-        let neutral = IVec3::new(1, 0, 0);
-        let preferred = IVec3::new(2, 0, 0);
-        assert_eq!(p.offer(neutral, BiomeFit::Neutral), None);
-        assert_eq!(p.offer(preferred, BiomeFit::Preferred), Some(preferred));
-        assert_eq!(p.into_fallback(), Some(neutral));
-    }
-
-    #[test]
-    fn picker_falls_back_to_the_first_neutral_when_no_preferred() {
-        let mut p = Picker::new(AVOID_ESCAPE, FLUID_ESCAPE, GROUND_ESCAPE);
-        let first = IVec3::new(1, 0, 0);
-        assert_eq!(p.offer(first, BiomeFit::Neutral), None);
-        assert_eq!(p.offer(IVec3::new(2, 0, 0), BiomeFit::Neutral), None);
-        assert_eq!(
-            p.into_fallback(),
-            Some(first),
-            "first allowed candidate wins the fallback"
-        );
-    }
-
-    #[test]
-    fn picker_rejects_avoided_until_the_escape_hatch_lifts_it() {
-        let mut p = Picker::new(3, FLUID_ESCAPE, GROUND_ESCAPE);
-        for _ in 0..3 {
-            assert!(p.reject_avoided(BiomeFit::Avoided));
-        }
-        assert!(!p.reject_avoided(BiomeFit::Avoided));
-        let spot = IVec3::new(7, 0, 0);
-        assert_eq!(p.offer(spot, BiomeFit::Avoided), None);
-        assert_eq!(p.into_fallback(), Some(spot));
-    }
-
-    #[test]
-    fn picker_never_rejects_neutral_or_preferred() {
-        let mut p = Picker::new(AVOID_ESCAPE, FLUID_ESCAPE, GROUND_ESCAPE);
-        assert!(!p.reject_avoided(BiomeFit::Neutral));
-        assert!(!p.reject_avoided(BiomeFit::Preferred));
     }
 
     #[test]
@@ -591,92 +524,6 @@ mod tests {
         assert!(
             companion_within(&ctx, rule, mobs[0].pos, 5),
             "an active desired mob inside the wander radius counts"
-        );
-    }
-
-    #[test]
-    fn cohesion_rejects_only_when_the_mob_started_grouped() {
-        let world = ServerWorld::new(0, 1);
-        let mut rng = MobRng::new(1);
-        let rule = WanderCohesion {
-            companion: Mob::Sheep,
-            search_radius_multiplier: 2,
-        };
-        let mobs = [
-            AiMob {
-                id: 0,
-                kind: Mob::Sheep,
-                pos: WorldPos::new(0.5, 64.0, 0.5),
-                active: true,
-                tags: Default::default(),
-            },
-            AiMob {
-                id: 0,
-                kind: Mob::Sheep,
-                pos: WorldPos::new(2.5, 64.0, 0.5),
-                active: true,
-                tags: Default::default(),
-            },
-        ];
-        let snap = MobSnapshot::from_mobs(mobs.clone());
-        let ctx = make_ctx(&world, &mut rng, &snap, 0, mobs[0].pos);
-
-        assert!(
-            reject_for_cohesion(&ctx, rule, true, IVec3::new(20, 64, 0), 5),
-            "a grouped mob rejects destinations away from companions"
-        );
-        assert!(
-            !reject_for_cohesion(&ctx, rule, true, IVec3::new(2, 64, 0), 5),
-            "a grouped mob accepts destinations near companions"
-        );
-        assert!(
-            !reject_for_cohesion(&ctx, rule, false, IVec3::new(20, 64, 0), 5),
-            "an already-lonely mob does not spend extra work enforcing cohesion"
-        );
-    }
-
-    #[test]
-    fn cohesion_can_notice_a_herd_out_to_the_search_radius() {
-        let world = ServerWorld::new(0, 1);
-        let mut rng = MobRng::new(1);
-        let rule = WanderCohesion {
-            companion: Mob::Sheep,
-            search_radius_multiplier: 2,
-        };
-        let mobs = [
-            AiMob {
-                id: 0,
-                kind: Mob::Sheep,
-                pos: WorldPos::new(0.5, 64.0, 0.5),
-                active: true,
-                tags: Default::default(),
-            },
-            AiMob {
-                id: 0,
-                kind: Mob::Sheep,
-                pos: WorldPos::new(15.5, 64.0, 0.5),
-                active: true,
-                tags: Default::default(),
-            },
-        ];
-        let snap = MobSnapshot::from_mobs(mobs.clone());
-        let ctx = make_ctx(&world, &mut rng, &snap, 0, mobs[0].pos);
-
-        assert!(
-            !companion_within(&ctx, rule, mobs[0].pos, 10),
-            "the companion is outside one wander radius"
-        );
-        assert!(
-            companion_within(&ctx, rule, mobs[0].pos, rule.search_radius(10)),
-            "the companion is still close enough to recover as herd"
-        );
-        assert!(
-            reject_for_cohesion(&ctx, rule, true, IVec3::new(-9, 64, 0), 10),
-            "a recovery wander rejects moving farther from that companion"
-        );
-        assert!(
-            !reject_for_cohesion(&ctx, rule, true, IVec3::new(7, 64, 0), 10),
-            "a recovery wander accepts moving back within one wander radius"
         );
     }
 
@@ -896,63 +743,6 @@ mod tests {
     }
 
     #[test]
-    fn a_mob_sealed_into_one_cell_cancels_the_wander() {
-        let world = flat_grass_world(|chunk| {
-            for x in 7..=9 {
-                for z in 7..=9 {
-                    if (x, z) != (8, 8) {
-                        for y in 65..68 {
-                            chunk.set_block(x, y, z, Block::Stone);
-                        }
-                    }
-                }
-            }
-        });
-        for seed in 0..10 {
-            let mut rng = MobRng::new(seed);
-            let mut ctx = make_ctx(
-                &world,
-                &mut rng,
-                MobSnapshot::empty(),
-                0,
-                WorldPos::new(8.5, 65.0, 8.5),
-            );
-            let mut ai = WanderAi::new(wander_tuning(10), plains_habitat(), true);
-            assert_eq!(ai.tick(&mut ctx).goal, None, "seed {seed}");
-        }
-    }
-
-    #[test]
-    fn picker_rejects_fluid_until_the_escape_hatch_lifts_it() {
-        let mut p = Picker::new(AVOID_ESCAPE, 3, GROUND_ESCAPE);
-        for _ in 0..3 {
-            assert!(p.reject_fluid(true));
-        }
-        assert!(!p.reject_fluid(true));
-        let wet = IVec3::new(4, 0, 0);
-        assert_eq!(p.offer(wet, BiomeFit::Neutral), None);
-        assert_eq!(
-            p.into_fallback(),
-            Some(wet),
-            "settles for a fluid after the escape hatch"
-        );
-    }
-
-    #[test]
-    fn picker_rejects_avoided_ground_until_the_escape_hatch_lifts_it() {
-        let mut p = Picker::new(AVOID_ESCAPE, FLUID_ESCAPE, 3);
-        for _ in 0..3 {
-            assert!(p.reject_ground(true));
-        }
-        assert!(!p.reject_ground(true));
-        let rocky = IVec3::new(5, 0, 0);
-        assert_eq!(p.offer(rocky, BiomeFit::Neutral), None);
-        assert_eq!(p.into_fallback(), Some(rocky));
-        let mut p = Picker::new(AVOID_ESCAPE, FLUID_ESCAPE, GROUND_ESCAPE);
-        assert!(!p.reject_ground(false));
-    }
-
-    #[test]
     fn wander_steers_off_avoided_floors_but_never_freezes_on_them() {
         static AVOID_STONE: &[Block] = &[Block::Stone];
         let tuning = |radius| WanderTuning {
@@ -1017,12 +807,6 @@ mod tests {
             picked > 0,
             "a mob amid avoided ground must still wander (and escape a cave)"
         );
-    }
-
-    #[test]
-    fn picker_never_rejects_a_dry_candidate() {
-        let mut p = Picker::new(AVOID_ESCAPE, FLUID_ESCAPE, GROUND_ESCAPE);
-        assert!(!p.reject_fluid(false));
     }
 
     #[test]

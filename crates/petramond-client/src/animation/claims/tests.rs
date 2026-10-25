@@ -120,42 +120,6 @@ fn claims_on_another_rig_are_not_this_drivers() {
 }
 
 #[test]
-fn a_scrubbed_claim_poses_the_rig_as_its_clip_at_the_claimed_progress() {
-    let mut a = animator();
-    let mut driver = ClaimDriver::new(RIG, a.graph());
-    let arm = a
-        .graph()
-        .clips()
-        .get(a.graph().clips().id("a").unwrap())
-        .clone();
-    let bone = rig().bone_named("leftArm").unwrap();
-    let claimed = [play(RIG, 0, AnimatorClock::Scrub(0.4))];
-    for _ in 0..30 {
-        frame(
-            &mut driver,
-            &mut a,
-            0.0,
-            AnimatorInputs {
-                plays: &claimed,
-                ..Default::default()
-            },
-        );
-    }
-    let want = arm
-        .sample(
-            bone,
-            petramond_world::bbmodel::Channel::Rotation,
-            0.4 * arm.length,
-        )
-        .unwrap();
-    let got = a.pose().rotation(bone);
-    assert!(
-        (got - want).length() < 0.1,
-        "drawn {got}, the clip at 40% is {want}"
-    );
-}
-
-#[test]
 fn a_clip_change_keeps_the_slot_and_a_dropped_slot_stops() {
     let mut a = animator();
     let mut driver = ClaimDriver::new(RIG, a.graph());

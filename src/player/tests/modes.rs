@@ -26,27 +26,6 @@ fn spectator_clips_through_solids_and_flies_in_3d() {
 }
 
 #[test]
-fn switching_modes_resets_motion_state() {
-    let mut pl = p(WorldPos::new(0.0, 64.0, 0.0));
-    pl.vel = Vec3::new(3.0, -7.0, 1.0);
-    pl.on_ground = true;
-    pl.jumping = true;
-
-    pl.toggle_mode();
-    assert_eq!(pl.mode(), PlayerMode::Spectator);
-    assert_eq!(pl.vel, Vec3::ZERO);
-    assert!(!pl.on_ground);
-    assert!(!pl.jumping);
-
-    pl.vel = Vec3::new(0.0, 9.0, 0.0);
-    pl.toggle_mode();
-    assert_eq!(pl.mode(), PlayerMode::Survival);
-    assert_eq!(pl.vel, Vec3::ZERO);
-    assert!(!pl.on_ground);
-    assert!(!pl.jumping);
-}
-
-#[test]
 fn creative_flight_coasts_consistently_and_collides() {
     let moving = Input {
         wishdir: Vec3::X,

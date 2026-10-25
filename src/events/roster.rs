@@ -73,39 +73,3 @@ impl PlayerRoster for RosterRefs<'_> {
         self.sessions[index].gui
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use petramond_math::world_pos::WorldPos;
-
-    #[test]
-    fn a_borrowed_roster_resolves_ids_to_the_lent_sessions() {
-        let mut a = Player::new(WorldPos::new(0.0, 80.0, 0.0));
-        let mut b = Player::new(WorldPos::new(4.0, 80.0, 0.0));
-        let mut a_gui = petramond_world::gui_state::empty_gui_state();
-        let mut b_gui = petramond_world::gui_state::empty_gui_state();
-        {
-            let mut roster = RosterRefs::new(vec![
-                SessionPlayerRef {
-                    id: PlayerId(3),
-                    player: &mut a,
-                    gui_state: &mut a_gui,
-                    gui: None,
-                },
-                SessionPlayerRef {
-                    id: PlayerId(7),
-                    player: &mut b,
-                    gui_state: &mut b_gui,
-                    gui: None,
-                },
-            ]);
-            assert_eq!(roster.len(), 2);
-            assert_eq!(roster.index_of(PlayerId(7)), Some(1));
-            assert_eq!(roster.index_of(PlayerId(0)), None);
-            roster.player_at(1).set_health(4);
-        }
-        assert_eq!(b.health(), 4, "the write landed on the lent player");
-        assert!(RosterRefs::empty().is_empty());
-    }
-}

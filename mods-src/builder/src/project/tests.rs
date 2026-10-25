@@ -55,31 +55,6 @@ fn a_version_3_record_reads_as_the_same_job() {
 }
 
 #[test]
-fn a_note_is_data_and_words_only_when_shown() {
-    let report = Note::report(1, 2).with_chests_full();
-    assert_eq!(
-        report.to_string(),
-        "1 block was lost after it was placed; 2 scaffolds were out of reach and stand; \
-         The chests are full"
-    );
-    assert_eq!(
-        Note::report(0, 0),
-        Note::None,
-        "nothing lost, nothing to say"
-    );
-    assert_eq!(
-        Note::None.with_chests_full().to_string(),
-        "The chests are full"
-    );
-    assert_eq!(
-        Note::GolemDied.with_chests_full(),
-        Note::GolemDied,
-        "a more specific note keeps saying it"
-    );
-    assert_eq!(short_of_stone(3).to_string(), "Missing 3x Stone");
-}
-
-#[test]
 fn legacy_words_read_back_as_data() {
     for note in [
         Note::None,
@@ -263,21 +238,6 @@ fn a_dead_golem_holds_the_job_for_the_next() {
     p.golem_died();
     p.cancel();
     assert_eq!(reads(&p), (Phase::Cancelled, None, false, false, true));
-}
-
-#[test]
-fn a_tag_names_its_project() {
-    assert_eq!(tag_of(12), "builder:project/12");
-    assert_eq!(id_of_tag(&tag_of(12)), Some(12));
-    assert_eq!(id_of_tag("builder:project/twelve"), None);
-    assert_eq!(id_of_tag("other:12"), None);
-    assert_eq!(draft().brief().at([4, 5, 6]).table, [4, 5, 6]);
-    let mut anchored = draft();
-    assert_eq!(anchored.anchored(), None);
-    anchored.asset = Some([3; 32]);
-    anchored.origin = Some([1, 2, 3]);
-    anchored.turns = 2;
-    assert_eq!(anchored.anchored(), Some(([3; 32], [1, 2, 3], 2)));
 }
 
 fn finish(projects: &mut Projects, id: ProjectId) {

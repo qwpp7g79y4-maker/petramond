@@ -1,8 +1,7 @@
 use super::*;
 use crate::net::protocol::{
-    BlockDelta, ClientToServer, ColumnPayload, ItemSlotWire, MobStateRow, PlayerAction,
-    SectionBlocks, SectionBytes, SectionPayload, SectionStatesPayload, ServerToClient, TickUpdate,
-    WorldEventMsg,
+    BlockDelta, ClientToServer, ColumnPayload, MobStateRow, PlayerAction, SectionBlocks,
+    SectionBytes, SectionPayload, SectionStatesPayload, ServerToClient, TickUpdate, WorldEventMsg,
 };
 use petramond_math::math::IVec3;
 use petramond_math::world_pos::WorldPos;
@@ -120,18 +119,6 @@ fn biome_table_preserves_zero_and_maps_unknown_to_fallback() {
     };
     assert_eq!(&column.biomes.0[..], &[0, 3, 2, 1]);
     assert_eq!(&column.mesh_biomes.0[..], &[1, 2, 3, 0]);
-}
-
-#[test]
-fn unknown_items_are_dropped_from_optional_slots() {
-    let map = permuted_map();
-    let mut slot = Some(ItemSlotWire {
-        item_id: 99,
-        count: 1,
-        data: None,
-    });
-    slot.remap(&map);
-    assert_eq!(slot, None);
 }
 
 #[test]

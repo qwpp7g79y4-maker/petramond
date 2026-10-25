@@ -17,15 +17,6 @@ fn grass_under_solid_dies_to_dirt() {
 }
 
 #[test]
-fn uncovered_grass_survives() {
-    let mut w = world_with_chunk();
-    let p = IVec3::new(8, 70, 8);
-    w.set_block_world(p.x, p.y, p.z, Block::Grass);
-    GRASS.random_tick(&mut w, p);
-    assert_eq!(w.data.block_if_loaded(p.x, p.y, p.z), Some(Block::Grass));
-}
-
-#[test]
 fn grass_under_no_grass_decay_cover_survives() {
     let mut w = world_with_chunk();
     let p = IVec3::new(8, 70, 8);

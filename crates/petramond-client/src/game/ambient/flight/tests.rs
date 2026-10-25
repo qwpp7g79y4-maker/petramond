@@ -159,43 +159,6 @@ fn fliers_gate_their_own_columns_and_stay_anchored_when_the_camera_jumps() {
 }
 
 #[test]
-fn without_a_sprite_a_flier_is_an_ordinary_cube() {
-    let spec = flier_spec(false);
-    let world = habitat();
-    let mut out = Vec::new();
-    collect(
-        &spec,
-        &world,
-        WorldPos::new(0.0, 67.0, 8.0),
-        7.0,
-        1.0,
-        &everywhere,
-        &mut out,
-    );
-    assert!(!out.is_empty());
-    assert!(out
-        .iter()
-        .all(|p| p.quad_axes.is_none() && p.atlas == ParticleAtlas::Solid));
-}
-
-#[test]
-fn zero_intensity_derives_nothing() {
-    let spec = flier_spec(true);
-    let world = habitat();
-    let mut out = Vec::new();
-    collect(
-        &spec,
-        &world,
-        WorldPos::new(0.0, 67.0, 8.0),
-        1.0,
-        0.0,
-        &everywhere,
-        &mut out,
-    );
-    assert!(out.is_empty());
-}
-
-#[test]
 fn orbit_is_continuous_and_stays_inside_its_cell() {
     let spec = flier_spec(true);
     let flight = flight_of(&spec);

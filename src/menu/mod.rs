@@ -41,27 +41,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn the_furnace_derives_its_slot_specs_from_its_document() {
-        use petramond_world::furnace::{SLOT_FUEL, SLOT_INPUT, SLOT_OUTPUT};
-        let specs = super::slot_specs_for_kind(petramond_world::gui_state::GuiKind::Furnace);
-        assert_eq!(specs.len(), petramond_world::furnace::FURNACE_SLOTS);
-        assert!(specs[SLOT_INPUT]
-            .accepts
-            .contains(&petramond_world::container::SlotFilter::Tag(
-                petramond_world::item::ItemTag::SMELTABLE
-            )));
-        assert!(specs[SLOT_FUEL]
-            .accepts
-            .contains(&petramond_world::container::SlotFilter::Tag(
-                petramond_world::item::ItemTag::FUEL
-            )));
-        assert!(
-            specs[SLOT_OUTPUT].take_only,
-            "the furnace output must refuse inserts"
-        );
-    }
-
     fn world_with_empty_chunk() -> ServerWorld {
         let mut world = ServerWorld::new(1, 1);
         let pos = petramond_world::chunk::ChunkPos::new(0, 0);

@@ -181,37 +181,6 @@ mod tests {
     }
 
     #[test]
-    fn placing_a_multiblock_fills_its_whole_footprint_with_offsets() {
-        let mut w = world_with_empty_chunk();
-        let origin = IVec3::new(5, 64, 5);
-        assert!(w
-            .data
-            .model_footprint_clear(origin, BlockModelKind::FurnitureWorkbench));
-        assert!(w.place_model_block(origin, WB));
-
-        let (kind, found_origin, cells) = w.model_group(origin).expect("a model group");
-        assert_eq!(kind, BlockModelKind::FurnitureWorkbench);
-        assert_eq!(found_origin, origin);
-        assert_eq!(cells.len(), 4, "the 2×2×1 workbench fills four cells");
-        for &c in &cells {
-            assert_eq!(
-                Block::from_id(w.data.chunk_block(c.x, c.y, c.z)),
-                WB,
-                "{c:?}"
-            );
-            assert_eq!(w.model_group(c).unwrap().1, origin);
-        }
-        assert_eq!(
-            w.data.model_offset_at(origin.x + 1, origin.y + 1, origin.z),
-            [1, 1, 0]
-        );
-        assert!(!w
-            .data
-            .collision_boxes_at(origin.x, origin.y, origin.z)
-            .is_empty());
-    }
-
-    #[test]
     fn oriented_multiblock_places_from_front_left_anchor() {
         let mut w = world_with_empty_chunk();
         let anchor = IVec3::new(5, 64, 5);

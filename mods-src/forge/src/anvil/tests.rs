@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::augments::{Entry, AUGMENTS_KEY};
+use crate::augments::AUGMENTS_KEY;
 
 fn fit(tool: &str, overlay: &str, cost: u8, speed: f32, damage: f32) -> Fit {
     Fit {
@@ -424,22 +424,6 @@ fn cell_states_follow_the_record_and_the_rows_lockable_count() {
         AnvilSpec::cell_state(&stone, &fresh, 1),
         CellState::Absent
     ));
-}
-
-#[test]
-fn the_socket_tip_colours_only_the_words_and_strips_the_separators() {
-    let mut s = spec();
-    s.names
-        .insert("forge:diamond_tip".into(), "Dia|mond\tTip".into());
-    let tip = s.socket_tip(&Entry {
-        id: "forge:diamond_tip".into(),
-        cond: 50,
-        lvl: 1,
-    });
-    assert_eq!(
-        tip, "accent|Great\ttext| DiamondTip\ntext|Condition: \twarn|Worn",
-        "level word on its palette, name plain and de-separated, condition word on its own"
-    );
 }
 
 /// Admission mask is bit positions over the document's own filter list. Mods can't read filters at

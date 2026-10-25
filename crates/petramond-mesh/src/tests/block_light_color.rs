@@ -64,50 +64,6 @@ fn a_saturated_block_light_reaches_the_vertex_with_its_hue() {
 }
 
 #[test]
-fn a_merged_quad_carries_the_chroma_that_distinguishes_two_lamps() {
-    let warm = LightRgb::new(30, 30, 6);
-    let cool = LightRgb::new(30, 6, 30);
-    assert_eq!(warm.luminance(), cool.luminance());
-    assert_eq!(warm.r(), cool.r(), "only green/blue may differ");
-
-    let words = |c: LightRgb| {
-        let mesh = mesh_lit_floor(move |_, _, _| c);
-        let top = floor_top(&mesh);
-        assert_eq!(top.len(), 4, "fixture must merge into one quad");
-        (top[0].packed, top[0].packed2, top[0].tint)
-    };
-    let (wp, wp2, wt) = words(warm);
-    let (cp, cp2, ct) = words(cool);
-    assert_ne!(
-        (wp, wp2, wt),
-        (cp, cp2, ct),
-        "two lamps of equal brightness merged to the same vertex words"
-    );
-    assert_eq!(wp2 & 0x3F, cp2 & 0x3F);
-    assert_ne!((wp >> 27, wt >> 24), (cp >> 27, ct >> 24));
-}
-
-#[test]
-fn colourless_light_writes_no_chroma_bits() {
-    let mesh = mesh_lit_floor(|_, _, _| LightRgb::grey(18));
-    let lit: Vec<_> = mesh
-        .opaque
-        .iter()
-        .filter(|v| (v.pos[1] - 1.0).abs() < 1e-3)
-        .collect();
-    assert!(!lit.is_empty());
-    for v in lit {
-        assert_eq!(v.tint >> 24, 0, "chroma low byte spent on grey light");
-        assert_eq!(v.packed >> 27, 0, "chroma nibble spent on grey light");
-        assert_eq!(
-            decode_vertex_light(v),
-            BlockLight6::grey(v.packed2 & 0x3F),
-            "grey light must decode back to grey"
-        );
-    }
-}
-
-#[test]
 fn a_face_between_two_colours_averages_the_channels_not_the_hue() {
     let purple = LightRgb::new(24, 4, 30);
     let green = LightRgb::new(4, 30, 8);

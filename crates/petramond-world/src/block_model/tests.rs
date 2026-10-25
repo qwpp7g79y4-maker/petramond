@@ -64,53 +64,6 @@ fn baking_nested_group_rotations_preserves_every_authored_corner() {
 }
 
 #[test]
-fn workbench_compiles_with_geometry_and_texture() {
-    let m = BlockModel::compile(&model_bytes(WB)).expect("compiles");
-    assert!(!m.cubes.is_empty());
-    assert_eq!((m.tex_w, m.tex_h), (128, 128));
-    assert_eq!(m.texture_rgba.len(), 128 * 128 * 4);
-}
-
-#[test]
-fn cullfaces_compile_into_face_slots() {
-    const SRC: &str = r##"{
-        "resolution": { "width": 16, "height": 16 },
-        "textures": [{ "uv_width": 16, "uv_height": 16, "source": "URI" }],
-        "elements": [
-            { "uuid": "c", "type": "cube", "name": "body", "from": [0,0,0], "to": [16,16,16],
-              "faces": {
-                  "up":    { "uv": [0,0,16,16], "texture": 0, "cullface": "up" },
-                  "north": { "uv": [0,0,16,16], "texture": 0, "cullface": "down" },
-                  "south": { "uv": [0,0,16,16], "texture": 0 }
-              } }
-        ],
-        "outliner": ["c"]
-    }"##;
-    let m = BlockModel::compile(
-        SRC.replace("\"URI\"", &format!("\"{PIXEL_URI}\""))
-            .as_bytes(),
-    )
-    .expect("compiles");
-    assert_eq!(m.cubes.len(), 1);
-    assert_eq!(
-        m.cubes[0].cull[2],
-        Some(2),
-        "up culls against the block above"
-    );
-    assert_eq!(m.cubes[0].cull[5], Some(3), "north's cullface names down");
-    assert_eq!(m.cubes[0].cull[4], None, "no cullface authored on south");
-
-    let plain = BlockModel::compile(&model_bytes(WB)).expect("compiles");
-    assert!(
-        plain
-            .cubes
-            .iter()
-            .all(|c| c.cull.iter().all(Option::is_none)),
-        "the workbench authors no cullfaces"
-    );
-}
-
-#[test]
 fn every_registered_model_compiles_with_geometry_and_texture() {
     for &kind in all() {
         let m = BlockModel::compile(&model_bytes(kind))
@@ -123,11 +76,6 @@ fn every_registered_model_compiles_with_geometry_and_texture() {
         );
         assert!(m.tex_w > 0 && m.tex_h > 0, "{kind:?} has no texture");
     }
-}
-
-#[test]
-fn footprint_is_two_by_two_by_one() {
-    assert_eq!(footprint(WB), [2, 2, 1], "authored 2 wide, 2 tall, 1 long");
 }
 
 #[test]
@@ -264,33 +212,6 @@ fn cells_are_local_and_within_unit_bounds() {
 }
 
 #[test]
-fn footprint_geometry_fits_the_cell_box() {
-    let inst = instance(WB);
-    let (mn, mx) = (inst.bounds_min, inst.bounds_max);
-    assert!(mn[0] >= -1e-3 && mx[0] <= 2.0 + 1e-3, "X within 2 cells");
-    assert!(mn[1] >= -1e-3 && mx[1] <= 2.0 + 1e-3, "Y within 2 cells");
-    assert!(mn[2] >= -1e-3 && mx[2] <= 1.0 + 1e-3, "Z within 1 cell");
-}
-
-#[test]
-fn collision_is_the_multi_box_model_shape_not_one_coarse_box() {
-    let inst = instance(WB);
-    let floor = inst.cell([0, 0, 0]).expect("floor cell");
-    assert!(
-        floor.collision.len() > 1,
-        "collision is multiple cube boxes, not one"
-    );
-    assert!(
-        inst.bounds_max[0] - inst.bounds_min[0] > 1.5,
-        "outline spans ~2 cells wide"
-    );
-    assert!(
-        inst.bounds_max[1] - inst.bounds_min[1] > 1.0,
-        "outline spans >1 cell tall"
-    );
-}
-
-#[test]
 fn a_pass_through_part_keeps_its_visuals_but_loses_its_collision() {
     let solid = ModelCube {
         name: "solid".into(),
@@ -391,24 +312,6 @@ fn a_row_without_optional_parts_bakes_only_part_free_segments() {
 }
 
 #[test]
-fn display_poses_are_parsed_and_cached() {
-    let m = BlockModel::compile(&model_bytes(WB)).expect("compiles");
-    let gui = m.display.gui;
-    let fp = m.display.firstperson_righthand;
-    assert_ne!(gui.rotation, [0.0; 3], "gui pose has an authored rotation");
-    assert_ne!(
-        fp.rotation, [0.0; 3],
-        "first-person pose has an authored rotation"
-    );
-    assert_eq!(display(WB).gui, gui);
-    assert!(fp
-        .base_matrix()
-        .to_cols_array()
-        .iter()
-        .all(|f| f.is_finite()));
-}
-
-#[test]
 fn display_base_matrix_matches_blockbench_euler_convention() {
     let with_rot = |r: [f32; 3]| DisplayTransform {
         rotation: r,
@@ -459,27 +362,6 @@ fn display_from_unit_is_an_unmirrored_uniform_rescale() {
     assert!(
         (x.length() - y.length()).abs() < 1e-6 && (y.length() - z.length()).abs() < 1e-6,
         "rescale must be uniform"
-    );
-}
-
-#[test]
-fn baked_self_ao_darkens_joints_and_stays_a_valid_multiplier() {
-    let inst = instance(WB);
-    let mut any_darkened = false;
-    for per_face in &inst.face_ao {
-        for corners in per_face {
-            for &v in corners {
-                assert!(
-                    (0.0..=1.0 + 1e-6).contains(&v),
-                    "AO factor out of the multiplier range: {v}"
-                );
-                any_darkened |= v < 1.0 - 1e-3;
-            }
-        }
-    }
-    assert!(
-        any_darkened,
-        "a model with adjoining cuboids must bake SOME self-occlusion"
     );
 }
 

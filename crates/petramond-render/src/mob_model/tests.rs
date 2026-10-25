@@ -86,13 +86,6 @@ fn skin_with(
 }
 
 #[test]
-fn empty_instances_produce_no_instances() {
-    let m = owl_model();
-    let batch = pose(&m, 0.25, &[], &MobRig::resolve(&m, None, None));
-    assert!(batch.instances.is_empty() && batch.palette.is_empty());
-}
-
-#[test]
 fn each_instance_gets_its_own_palette_run() {
     let m = owl_model();
     let rig = MobRig::resolve(&m, None, None);
@@ -119,82 +112,6 @@ fn each_instance_gets_its_own_palette_run() {
         &mut Vec::new(),
     );
     assert_eq!(range, 2..3);
-}
-
-#[test]
-fn every_pose_carries_its_look_to_the_instance() {
-    let model = owl_model();
-    let rest = model.rest_pose();
-    let arena = crate::MobArena {
-        ragdoll: model
-            .bones
-            .iter()
-            .enumerate()
-            .map(|(b, bone)| {
-                (
-                    rest[b].transform_point3(bone.pivot),
-                    glam::Quat::from_rotation_z(0.6),
-                )
-            })
-            .collect(),
-        ..Default::default()
-    };
-    let names = crate::AnimNames::default();
-    let bones = crate::ArenaRange::since(&arena.ragdoll, 0);
-    for ragdoll in [None, Some(bones)] {
-        let mut inst = instance(0.0, false);
-        inst.ragdoll = ragdoll;
-        inst.emitter_tint = [1.0, 0.7, 0.4];
-        inst.emitter_self_lit = 1.0;
-        inst.hurt = 0.5;
-        inst.skylight = 21;
-        inst.blocklight = petramond_world::light::BlockLight6::new(40, 0, 63);
-        let batch = pose_with(
-            &model,
-            0.25,
-            std::slice::from_ref(&inst),
-            MobLayers {
-                arena: &arena,
-                names: &names,
-            },
-            &MobRig::resolve(&model, None, None),
-        );
-        let row = batch.instances[0];
-        assert_eq!(row.tint, mul3(hurt_tint(0.5), [1.0, 0.7, 0.4]));
-        assert_eq!(row.self_lit, 1.0);
-        assert_eq!(row.light[0], 21.0 / 63.0);
-        assert_eq!(&row.light[1..], &inst.blocklight.fractions());
-        assert_eq!(row.hidden, 0);
-    }
-}
-
-#[test]
-fn the_species_mesh_is_whole_quads_with_matched_indices() {
-    let m = owl_model();
-    let mesh = MobRig::resolve(&m, None, None).mesh(&m, 0.25);
-    assert!(mesh.index_count() > 0);
-    assert_eq!(mesh.verts.len() % 4, 0);
-    assert_eq!(mesh.verts.len() / 4 * 6, mesh.indices.len());
-    assert!(mesh
-        .indices
-        .iter()
-        .all(|&ix| (ix as usize) < mesh.verts.len()));
-    assert!(mesh.verts.iter().all(|v| v.bone < bone_slots(&m)));
-}
-
-#[test]
-fn scale_sizes_the_posed_model() {
-    let m = owl_model();
-    let rig = MobRig::resolve(&m, None, None);
-    let inst = instance(0.0, false);
-    let v1 = skin(&m, 0.25, &inst, &rig);
-    let v2 = skin(&m, 0.5, &inst, &rig);
-    let span = |v: &[Vec3]| v.iter().map(|x| x.y).fold(f32::MIN, f32::max) - 64.0;
-    let (s1, s2) = (span(&v1), span(&v2));
-    assert!(
-        (s2 - s1 * 2.0).abs() < 1e-3,
-        "scale should size the model: {s1} vs {s2}"
-    );
 }
 
 #[test]

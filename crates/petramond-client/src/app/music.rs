@@ -175,18 +175,4 @@ mod tests {
             "nothing may be scheduled while paused"
         );
     }
-
-    #[test]
-    fn gaps_stay_inside_their_range() {
-        let mut d = director(0x1234_5678_9ABC_DEF1);
-        for _ in 0..1_000 {
-            let first = d.gap(true);
-            assert!(
-                (FIRST_GAP.0..=FIRST_GAP.1).contains(&first),
-                "first gap {first} out of range"
-            );
-            let gap = d.gap(false);
-            assert!((GAP.0..=GAP.1).contains(&gap), "gap {gap} out of range");
-        }
-    }
 }

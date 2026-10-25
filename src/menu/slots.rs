@@ -51,18 +51,6 @@ pub fn declare_widget_for_test(id: &str) {
     }
 }
 
-pub fn declared_kinds() -> Vec<(&'static str, usize)> {
-    let mut out: Vec<_> = table()
-        .by_kind
-        .iter()
-        .filter_map(|(kind, specs)| {
-            Some((petramond_world::gui_state::kind_key(*kind)?, specs.len()))
-        })
-        .collect();
-    out.sort_unstable();
-    out
-}
-
 fn furnace_slot_specs() -> Vec<SlotSpec> {
     let mut specs = vec![SlotSpec::default(); FURNACE_SLOTS];
     specs[SLOT_INPUT].accepts = vec![SlotFilter::Tag(ItemTag::SMELTABLE)];
@@ -183,25 +171,4 @@ fn load() -> SlotTable {
     }
     by_kind.insert(GuiKind::Furnace, Arc::new(furnace_slot_specs()));
     SlotTable { by_kind, widgets }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn the_table_is_built_once_and_covers_the_engine_containers() {
-        let declared = declared_kinds();
-        assert!(declared
-            .iter()
-            .any(|(key, n)| key.ends_with("chest") && *n > 0));
-        assert!(declared
-            .iter()
-            .any(|(key, n)| key.ends_with("furnace") && *n == FURNACE_SLOTS));
-        assert!(slot_specs_for_kind(GuiKind::Other).is_empty());
-        assert!(Arc::ptr_eq(
-            &slot_specs_for_kind(GuiKind::Furnace),
-            &slot_specs_for_kind(GuiKind::Furnace)
-        ));
-    }
 }

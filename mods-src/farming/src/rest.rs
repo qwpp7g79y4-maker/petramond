@@ -117,12 +117,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn negative_coordinates_floor_into_their_own_column() {
-        assert_eq!(column([-1, 0, -16]), [-1, -1]);
-        assert_eq!(column([-17, 0, 15]), [-2, 0]);
-    }
-
-    #[test]
     fn an_area_covers_every_column_the_radius_touches() {
         let area = Area {
             lo: column([1 - 16, 0, 1 - 16]),

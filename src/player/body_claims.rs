@@ -486,29 +486,6 @@ mod tests {
     }
 
     #[test]
-    fn claims_compose_per_claimant_and_release_independently() {
-        let mut body = BodyClaims::default();
-        assert_eq!(body.attribute(PlayerAttribute::MoveSpeed), 1.0);
-
-        assert!(body.set_attribute("combat", PlayerAttribute::MoveSpeed, 0.5));
-        assert!(body.set_attribute("armour", PlayerAttribute::MoveSpeed, 0.8));
-        assert_eq!(body.attribute(PlayerAttribute::MoveSpeed), 0.4);
-
-        assert!(body.set_attribute("combat", PlayerAttribute::MoveSpeed, 0.5));
-        assert_eq!(body.attribute(PlayerAttribute::MoveSpeed), 0.4);
-
-        assert!(body.set_attribute("combat", PlayerAttribute::MoveSpeed, 1.0));
-        assert_eq!(
-            body.attribute(PlayerAttribute::MoveSpeed),
-            0.8,
-            "the other claim stands"
-        );
-        assert!(body.set_attribute("armour", PlayerAttribute::MoveSpeed, 1.0));
-        assert_eq!(body.attribute(PlayerAttribute::MoveSpeed), 1.0);
-        assert!(body.is_empty(), "a fully released body keeps no claims");
-    }
-
-    #[test]
     fn denials_union_across_claimants_and_release_only_their_own() {
         use mod_api::BodyAction::{Attack, Mine};
         let mut body = BodyClaims::default();

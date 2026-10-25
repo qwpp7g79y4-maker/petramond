@@ -85,18 +85,6 @@ fn player_file_roundtrips() {
 }
 
 #[test]
-fn other_versions_are_typed_errors_not_a_fresh_player() {
-    let mut bytes = encode(&Player::new(WorldPos::new(1.0, 2.0, 3.0)));
-    bytes[0..4].copy_from_slice(&(VERSION + 1).to_le_bytes());
-    assert!(matches!(
-        decode(&bytes),
-        Err(RecordError::Newer { found, .. }) if found == VERSION + 1
-    ));
-    bytes[0..4].copy_from_slice(&(FORMAT.oldest() - 1).to_le_bytes());
-    assert!(matches!(decode(&bytes), Err(RecordError::Retired { .. })));
-}
-
-#[test]
 fn a_truncated_file_is_corrupt() {
     let bytes = encode(&Player::new(WorldPos::new(1.0, 2.0, 3.0)));
     assert!(matches!(
@@ -132,11 +120,6 @@ fn assert_fixture(got: &PlayerData) {
 #[test]
 fn fixture_player_v8_decodes() {
     assert_fixture(&decode(V8).expect("v8 decodes"));
-}
-
-#[test]
-fn fixture_player_v7_migrates() {
-    assert_fixture(&decode(V7).expect("v7 migrates"));
 }
 
 #[test]

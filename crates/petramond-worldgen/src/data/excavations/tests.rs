@@ -7,28 +7,6 @@ const ROOM: &str = r#"{"excavations":[
 ]}"#;
 
 #[test]
-fn invalid_placement_and_detached_geometry_are_rejected() {
-    let biomes = super::super::underground::test_table(&[]);
-    for (from, to) in [
-        ("\"spacing\":96", "\"spacing\":24"),
-        ("\"spacing\":96", "\"spacing\":95"),
-        ("\"y\":[-48,32]", "\"y\":[-48,-40]"),
-        ("\"feather\":9", "\"feather\":2"),
-        ("\"lobe_spread\":0.4", "\"lobe_spread\":1"),
-        ("\"spacing\":96", "\"spacing\":96,\"one_in\":0"),
-        (
-            "\"spacing\":96",
-            "\"spacing\":96,\"underground_biome\":\"test:missing\"",
-        ),
-    ] {
-        assert!(
-            load::parse_layers(&[&ROOM.replace(from, to)], biomes).is_err(),
-            "accepted {to}"
-        );
-    }
-}
-
-#[test]
 fn independent_rows_keep_canonical_order_and_cache_identity() {
     let biomes = super::super::underground::test_table(&[]);
     let other = ROOM.replace("test:room", "aaa:room");

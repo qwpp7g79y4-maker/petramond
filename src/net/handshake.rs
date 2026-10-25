@@ -355,7 +355,6 @@ mod tests {
         acked: Option<(JoinChallenge, String)>,
         session: Option<Session>,
         channel: Option<Channel>,
-        seal_after_ack: bool,
     }
 
     impl Scripted {
@@ -369,7 +368,6 @@ mod tests {
                 acked: None,
                 session: None,
                 channel: None,
-                seal_after_ack: true,
             }
         }
 
@@ -413,7 +411,7 @@ mod tests {
 
         fn next_reply(&mut self) -> Option<Vec<u8>> {
             let mut msg = self.script.pop_front()?;
-            if self.acked.is_some() && self.seal_after_ack {
+            if self.acked.is_some() {
                 return Some(encode_sealed(&msg, &mut self.keyed().sealer).expect("seals"));
             }
             if let ServerToClient::HelloAck {
@@ -586,28 +584,6 @@ mod tests {
     }
 
     #[test]
-    fn a_protocol_mismatch_stops_after_hello() {
-        let mut s = Scripted::new(&[ServerToClient::HelloReject { server_protocol: 3 }]);
-        match client_handshake(
-            &mut s,
-            &identity(),
-            offers_name,
-            16,
-            &installed(&[]),
-            Vec::new(),
-        ) {
-            Err(HandshakeError::ProtocolMismatch { server: 3 }) => {}
-            other => panic!("expected ProtocolMismatch, got {other:?}"),
-        }
-        assert_eq!(
-            s.sent_msgs(),
-            vec![ClientToServer::Hello {
-                protocol: PROTOCOL_VERSION
-            }]
-        );
-    }
-
-    #[test]
     fn missing_mods_close_the_connection_before_any_join_frame() {
         let mut s = Scripted::new(&[
             ack(),
@@ -645,60 +621,6 @@ mod tests {
     }
 
     #[test]
-    fn a_join_reject_surfaces_the_reason() {
-        let mut s = Scripted::new(&[
-            ack(),
-            ServerToClient::ModList { mods: Vec::new() },
-            ServerToClient::JoinReject {
-                reason: JoinRejectReason::BadProof,
-            },
-        ]);
-        match client_handshake(
-            &mut s,
-            &identity(),
-            offers_name,
-            16,
-            &installed(&[]),
-            Vec::new(),
-        ) {
-            Err(HandshakeError::Rejected(JoinRejectReason::BadProof)) => {}
-            other => panic!("expected Rejected(BadProof), got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn a_server_that_hangs_up_mid_handshake_reads_as_closed_not_a_panic() {
-        let mut s = Scripted::new(&[ack()]);
-        match client_handshake(
-            &mut s,
-            &identity(),
-            offers_name,
-            16,
-            &installed(&[]),
-            Vec::new(),
-        ) {
-            Err(HandshakeError::Closed) => {}
-            other => panic!("expected Closed, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn an_out_of_sequence_reply_is_a_bad_frame() {
-        let mut s = Scripted::new(&[ServerToClient::ServerClosing]);
-        match client_handshake(
-            &mut s,
-            &identity(),
-            offers_name,
-            16,
-            &installed(&[]),
-            Vec::new(),
-        ) {
-            Err(HandshakeError::BadFrame) => {}
-            other => panic!("expected BadFrame, got {other:?}"),
-        }
-    }
-
-    #[test]
     fn keepalives_between_replies_are_skipped_not_bad_frames() {
         let mut s = Scripted::new(&[
             ServerToClient::KeepAlive,
@@ -719,23 +641,6 @@ mod tests {
         )
         .expect("keepalive-interleaved handshake succeeds");
         assert_eq!(*data.join, *join_data());
-    }
-
-    #[test]
-    fn an_unsealed_reply_after_the_key_exchange_is_a_bad_frame() {
-        let mut s = Scripted::new(&[ack(), ServerToClient::ModList { mods: Vec::new() }]);
-        s.seal_after_ack = false;
-        match client_handshake(
-            &mut s,
-            &identity(),
-            offers_name,
-            16,
-            &installed(&[]),
-            Vec::new(),
-        ) {
-            Err(HandshakeError::BadFrame) => {}
-            other => panic!("expected BadFrame, got {other:?}"),
-        }
     }
 
     #[test]

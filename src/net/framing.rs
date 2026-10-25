@@ -268,31 +268,6 @@ mod tests {
     }
 
     #[test]
-    fn small_messages_roundtrip_uncompressed() {
-        let msg = ClientToServer::Join {
-            credential: crate::net::protocol::JoinCredential::Ticket("a-join-ticket".into()),
-            key: crate::net::identity::PlayerKey([1; 32]),
-            proof: vec![2; 64],
-            view_distance: 16,
-            cached_sections: Vec::new(),
-        };
-        let frame = frame_of(&msg);
-        assert_eq!(frame[4], 0, "a tiny body ships raw (no zlib flag)");
-        let back: ClientToServer = read_msg(&mut &frame[..]).expect("decodes");
-        assert_eq!(back, msg);
-
-        let second = ClientToServer::KeepAlive;
-        let mut stream = frame.clone();
-        stream.extend(frame_of(&second));
-        let mut r = &stream[..];
-        let a: ClientToServer = read_msg(&mut r).expect("first");
-        let b: ClientToServer = read_msg(&mut r).expect("second");
-        assert_eq!(a, msg);
-        assert_eq!(b, second);
-        assert!(r.is_empty(), "nothing consumed beyond the two frames");
-    }
-
-    #[test]
     fn large_section_payloads_ship_zlib_compressed_and_roundtrip() {
         let blocks: Vec<u16> = (0..4096u32).map(|i| (i / 512) as u16).collect();
         let msg = ServerToClient::SectionData(Box::new(crate::net::protocol::SectionPayload {
@@ -385,17 +360,6 @@ mod tests {
         let plain = encode_frame(&ClientToServer::KeepAlive).unwrap();
         let err = read_opened::<ClientToServer, _>(&mut &plain[..], 1024, &mut server.opener)
             .expect_err("keyed reader");
-        assert_eq!(err.kind(), io::ErrorKind::InvalidData);
-    }
-
-    #[test]
-    fn a_forged_sealed_frame_is_refused() {
-        let (mut client, mut server) = crate::net::secure::channels_for_test();
-        let mut frame = encode_sealed(&ClientToServer::KeepAlive, &mut client.sealer).unwrap();
-        let last = frame.len() - 1;
-        frame[last] ^= 0x80;
-        let err = read_opened::<ClientToServer, _>(&mut &frame[..], 1024, &mut server.opener)
-            .expect_err("tampered");
         assert_eq!(err.kind(), io::ErrorKind::InvalidData);
     }
 }

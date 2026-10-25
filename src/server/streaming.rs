@@ -26,11 +26,6 @@ use std::collections::BTreeSet;
 
 use super::game::ServerGame;
 
-/// Sections considered per pump per connection. The message-batch allowance is
-/// normally the tighter bound.
-#[cfg(test)]
-const TERRAIN_SECTIONS_PER_PUMP: usize = 128;
-
 /// Remote batches stay small enough to apply inside one client frame even when
 /// section reconstruction is expensive. Several may be in flight to cover RTT.
 const MAX_BATCH_MSGS: usize = 96;
@@ -63,11 +58,6 @@ const STREAM_QUEUE_RESERVE: usize = crate::net::connection::SERVER_QUEUE_MSGS / 
 
 fn stream_allowance(queue_room: usize) -> usize {
     queue_room.saturating_sub(STREAM_QUEUE_RESERVE)
-}
-
-#[cfg(test)]
-fn terrain_budget(allowance: usize) -> usize {
-    TERRAIN_SECTIONS_PER_PUMP.min(allowance / 2)
 }
 
 type PosKey = (i32, i32, i32);

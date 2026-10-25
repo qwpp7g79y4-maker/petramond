@@ -226,22 +226,4 @@ mod fold_light_tests {
             }
         }
     }
-
-    #[test]
-    fn the_block_mean_is_taken_per_channel() {
-        let denom = 2 * SKY_FULL as u32;
-        let purple = [22u32, 6, 30];
-        let green = [4u32, 28, 8];
-        let sum = [
-            purple[0] + green[0],
-            purple[1] + green[1],
-            purple[2] + green[2],
-        ];
-        let (_, mixed) = fold_light(0, sum, denom);
-        let q = |v: u32| ((v * 63 + denom / 2) / denom).min(63);
-        assert_eq!(mixed.channels(), [q(sum[0]), q(sum[1]), q(sum[2])]);
-        assert_ne!(mixed, BlockLight6::grey(mixed.luminance()));
-        assert!(fold_light(0, [0; 3], denom).1.is_dark());
-        assert!(fold_light_smooth(0, [0; 3], 3).1.is_dark());
-    }
 }

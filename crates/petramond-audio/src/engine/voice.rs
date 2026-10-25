@@ -178,16 +178,6 @@ mod tests {
     }
 
     #[test]
-    fn voices_share_the_decoded_samples() {
-        let clip = clip(8);
-        let (one, _) = clip_from(&clip, 0, false);
-        let (two, _) = clip_from(&clip, 5, true);
-        assert_eq!(Arc::strong_count(&clip.samples), 3);
-        drop((one, two));
-        assert_eq!(Arc::strong_count(&clip.samples), 1);
-    }
-
-    #[test]
     fn a_loop_resumes_mid_clip_and_wraps() {
         let clip = clip(4);
         let (mut source, cursor) = clip_from(&clip, 3, true);

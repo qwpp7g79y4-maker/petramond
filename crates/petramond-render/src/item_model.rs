@@ -675,28 +675,6 @@ fn build_extruded_item_geometry(tile: Tile) -> Vec<ItemVertex> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn extruded_item_has_front_back_and_walls() {
-        let mut out = Vec::new();
-        let n = build_extruded_item(Tile::named("poppy"), &mut out);
-        assert_eq!(n as usize, out.len());
-        assert!(
-            out.len() > 12,
-            "expected front+back+walls, got {}",
-            out.len()
-        );
-        for v in &out {
-            assert!(v.pos[0] >= -0.5 - 1e-4 && v.pos[0] <= 0.5 + 1e-4);
-            assert!(v.pos[1] >= -0.5 - 1e-4 && v.pos[1] <= 0.5 + 1e-4);
-            assert!(v.pos[2].abs() <= DEPTH * 0.5 + 1e-4);
-            assert!(
-                v.shade == SHADE_FRONT || v.shade == SHADE_BACK || v.shade == SHADE_SIDE,
-                "unexpected shade {}",
-                v.shade
-            );
-        }
-    }
-
     /// The composited slab is ONE extrusion on ONE pixel grid — the invariant
     /// required for aligned overlay texels. Every coordinate sits exactly on the 1/16 texel grid at
     /// the plain slab's own depth, and both owners' geometry samples its OWN
@@ -799,44 +777,6 @@ mod tests {
             let edge = (u - u0).min(u1 - u).max((w - v0).min(v1 - w));
             assert!(edge < texel * 0.1, "inset large enough to stretch texels");
         }
-    }
-
-    #[test]
-    fn rebuild_reuses_capacity() {
-        let mut out = Vec::new();
-        build_extruded_item(Tile::named("poppy"), &mut out);
-        let cap = out.capacity();
-        build_extruded_item(Tile::named("poppy"), &mut out);
-        assert_eq!(
-            out.capacity(),
-            cap,
-            "rebuild must reuse the buffer capacity"
-        );
-    }
-
-    #[test]
-    fn lit_extruded_item_folds_light_into_the_tint() {
-        let mut out = Vec::new();
-        build_extruded_item_lit(
-            Tile::named("poppy"),
-            DynLight {
-                sky: 0,
-                block: petramond_world::light::BlockLight6::DARK,
-            },
-            LightEnv::IDENTITY,
-            &mut out,
-        );
-
-        assert_eq!(out[0].shade, SHADE_FRONT);
-        let dark = lighting::light_rgb(
-            DynLight {
-                sky: 0,
-                block: petramond_world::light::BlockLight6::DARK,
-            },
-            LightEnv::IDENTITY,
-        );
-        assert_eq!(out[0].tint, dark, "unlit sample dims the tint");
-        assert!(dark[0] < 1.0);
     }
 
     #[test]

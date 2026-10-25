@@ -218,10 +218,6 @@ impl Font {
         (top, (bottom - top).max(1))
     }
 
-    pub fn glyph_count(&self) -> usize {
-        self.glyphs.count()
-    }
-
     pub fn glyph(&self, ch: char) -> &Glyph {
         self.glyphs.glyph(ch)
     }

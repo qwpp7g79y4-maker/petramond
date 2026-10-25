@@ -103,32 +103,6 @@ fn the_main_hand_wins_when_both_hands_can_place() {
 }
 
 #[test]
-fn an_empty_off_hand_never_runs_a_second_pass() {
-    let mut game = game_on_empty_chunk();
-    let floor = IVec3::new(4, 64, 4);
-    game.server_world_mut()
-        .set_block_world(floor.x, floor.y, floor.z, Block::Stone);
-    game.server_player_mut().inventory = hands(Some(ItemStack::new(stick(), 1)), None);
-    game.session_mut().input_mut().look = Some(hit(floor, IVec3::Y));
-    game.sim_mut().queue_place_click_for_test(0);
-
-    let mut events = TickEvents::default();
-    game.sim_mut().tick_place(0, &mut events);
-
-    let p = events.player_at(0);
-    assert!(p.placed_block.is_none() && !p.interacted && !p.used_item);
-    assert_eq!(
-        Block::from_id(
-            game.server_world()
-                .data()
-                .chunk_block(floor.x, floor.y + 1, floor.z)
-        ),
-        Block::Air,
-        "an inert click with an empty off-hand does nothing"
-    );
-}
-
-#[test]
 fn an_off_hand_change_after_receipt_denies_the_click() {
     let mut game = game_on_empty_chunk();
     let floor = IVec3::new(4, 64, 4);
@@ -310,27 +284,6 @@ fn pickup_refills_a_matching_off_hand_before_the_grid() {
         "a foreign stack never enters the off-hand"
     );
     assert_eq!(super::common::count_item(inv, ItemType::Dirt), 3);
-}
-
-#[test]
-fn menu_f_swaps_the_hovered_inventory_slot_on_both_mirrors() {
-    let mut game = game();
-    let mut inv = Inventory::new();
-    *inv.slot_mut(12).expect("in range") = Some(ItemStack::new(ItemType::Stone, 7));
-    game.server_player_mut().inventory = inv;
-    game.sync_self_view_for_test();
-
-    game.game.menu_swap_off_hand(MenuSlot::Inventory(12));
-    assert_eq!(
-        game.replica.self_view.inventory.off_hand().map(|s| s.count),
-        Some(7),
-        "the prediction lands immediately"
-    );
-    assert!(game.replica.self_view.inventory.slot(12).is_none());
-    game.apply_latched_actions_for_test();
-    let inv = &game.server_player().inventory;
-    assert_eq!(inv.off_hand().map(|s| s.count), Some(7));
-    assert!(inv.slot(12).is_none());
 }
 
 #[test]

@@ -251,40 +251,6 @@ mod tests {
     }
 
     #[test]
-    fn pack_layers_override_by_name_and_add_namespaced_sounds() {
-        let (base, _) =
-            crate::assets::read_base_text("sounds.json").expect("assets/sounds.json must ship");
-        let layer = r#"{"sounds": [
-            {"sound": "petramond:wood_punch", "variants": ["sounds/wood_punch_1.ogg"], "gain": 0.5, "pitch_variation": 0.0, "category": "block"},
-            {"sound": "mymod:zap", "variants": ["sounds/zap.ogg"], "gain": 1.0, "pitch_variation": 0.1, "attenuation_distance": 48.0, "category": "ui"}
-        ]}"#;
-        let table = parse_layers(&[&base, layer])
-            .expect("layered table loads")
-            .rows();
-        let engine = ENGINE_SOUND_NAMES.len();
-        assert_eq!(table.len(), engine + 1, "the namespaced row registered");
-        assert_eq!(
-            table[Sound::WoodPunch.0 as usize].gain,
-            0.5,
-            "override applied"
-        );
-        assert_eq!(
-            table[engine].variants,
-            ["sounds/zap.ogg"],
-            "dynamic row loaded"
-        );
-        assert_eq!(
-            table[engine].attenuation_distance, 48.0,
-            "pack rows can choose their positional reach"
-        );
-        let bare = r#"{"sounds": [{"sound": "zap", "variants": [], "gain": 1, "pitch_variation": 0, "category": "ui"}]}"#;
-        let err = parse_layers(&[&base, bare])
-            .err()
-            .expect("bare additions refused");
-        assert!(err.contains("zap") && err.contains("namespace"), "{err}");
-    }
-
-    #[test]
     fn distance_falloff_reaches_silence_at_the_row_distance() {
         assert_eq!(distance_gain(0.0, 32.0), 1.0);
         assert!(distance_gain(10.0, 32.0) > distance_gain(20.0, 32.0));

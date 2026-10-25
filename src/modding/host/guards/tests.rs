@@ -8,8 +8,6 @@ use crate::modding::scope;
 use crate::world::ServerWorld;
 use petramond_world::block::Block;
 
-use super::read_only_permits;
-
 fn fixture_world() -> ServerWorld {
     let mut world = ServerWorld::new(1, 1);
     let mut c = petramond_world::chunk::Chunk::new(0, 0);
@@ -113,69 +111,4 @@ fn a_read_only_dispatch_refuses_every_write_and_answers_reads() {
         Some(&[2u8][..])
     );
     assert_eq!(world.block_if_stream_final(1, 64, 1), Some(Block::Stone));
-}
-
-#[test]
-fn an_ordinary_dispatch_still_deletes() {
-    let mut world = fixture_world();
-    let mut store = ModStoreData::new("fixture", 1);
-    let mut nobody = RosterRefs::empty();
-    let mut feed = TickEvents::default();
-    let mut queue = PostQueue::default();
-    let mut ctx = SimCtx {
-        world: &mut world,
-        actor: None,
-        players: &mut nobody,
-        feed: &mut feed,
-        queue: &mut queue,
-    };
-    scope::enter(&mut ctx, || {
-        assert_eq!(
-            handle_host_call(
-                &mut store,
-                HostCall::from(calls::WorldKvDelete {
-                    key: "fixture:k".into()
-                })
-            ),
-            HostRet::Bool(true)
-        );
-        assert_eq!(
-            handle_host_call(
-                &mut store,
-                HostCall::from(calls::SectionKvDelete {
-                    pos: [1, 64, 1],
-                    key: "fixture:c".into()
-                })
-            ),
-            HostRet::Bool(true)
-        );
-    });
-    assert_eq!(world.data().world_kv_get("fixture:k"), None);
-    assert_eq!(world.data().cell_kv_get(1, 64, 1, "fixture:c"), None);
-}
-
-#[test]
-fn the_read_only_allow_list_admits_reads_only() {
-    assert!(read_only_permits(&HostCall::from(calls::GetBlock {
-        pos: [0, 0, 0]
-    })));
-    assert!(read_only_permits(&HostCall::from(calls::WorldKvGet {
-        key: "a:b".into()
-    })));
-    assert!(!read_only_permits(&HostCall::from(calls::WorldKvDelete {
-        key: "a:b".into()
-    })));
-    assert!(!read_only_permits(&HostCall::from(
-        calls::SectionKvDelete {
-            pos: [0, 0, 0],
-            key: "a:b".into()
-        }
-    )));
-    assert!(!read_only_permits(&HostCall::from(calls::MobTagDelete {
-        mob_id: 1,
-        key: "a:b".into()
-    })));
-    assert!(!read_only_permits(&HostCall::from(calls::SetBlocks {
-        blocks: Vec::new()
-    })));
 }

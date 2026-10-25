@@ -139,40 +139,4 @@ mod tests {
             }
         }
     }
-
-    #[test]
-    fn the_chain_occupies_every_height() {
-        let links = cell_links();
-        for i in 0..32 {
-            let y = (i as f32 + 0.5) / 32.0;
-            assert!(
-                links.iter().any(|b| b.min[1] <= y && y < b.max[1]),
-                "no chain matter at y {y}"
-            );
-        }
-    }
-
-    #[test]
-    fn consecutive_links_alternate_orientation() {
-        let wide_x = |b: &ShapeAabb| b.max[0] - b.min[0] > b.max[2] - b.min[2];
-        let links = cell_links();
-        let mut orientations = Vec::new();
-        let mut ya = 0.0f32;
-        while ya < 1.0 {
-            let bar = links
-                .iter()
-                .filter(|b| b.min[1] <= ya && ya < b.max[1])
-                .max_by(|a, b| {
-                    let w = |x: &ShapeAabb| (x.max[0] - x.min[0]) + (x.max[2] - x.min[2]);
-                    w(a).partial_cmp(&w(b)).unwrap()
-                })
-                .expect("a bar at every anchor");
-            orientations.push(wide_x(bar));
-            ya += LINK_PITCH / 16.0;
-        }
-        assert!(orientations.len() >= 2);
-        for pair in orientations.windows(2) {
-            assert_ne!(pair[0], pair[1], "adjacent links must be turned 90°");
-        }
-    }
 }

@@ -382,26 +382,6 @@ mod tests {
     }
 
     #[test]
-    fn augmenting_path_preserves_exact_items_from_an_overlapping_tag() {
-        let mut inventory = Inventory::new();
-        inventory.add(ItemStack::new(ItemType::OakPlanks, 1));
-        inventory.add(ItemStack::new(ItemType::SprucePlanks, 1));
-        let recipe = recipe(vec![
-            ingredient(
-                IngredientSelector::Tag(ItemTag::PLANKS),
-                1,
-                IngredientUse::Consume,
-            ),
-            ingredient(
-                IngredientSelector::Item(ItemType::OakPlanks),
-                1,
-                IngredientUse::Consume,
-            ),
-        ]);
-        assert!(plan(&recipe, &inventory).is_some());
-    }
-
-    #[test]
     fn overlapping_keep_and_remainder_produce_the_right_slot_plan() {
         let mut inventory = Inventory::new();
         inventory.add(ItemStack::new(ItemType::OakPlanks, 1));

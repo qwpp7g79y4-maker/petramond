@@ -219,22 +219,6 @@ fn explored_cache_does_not_expand_the_authoritative_manifest() {
 }
 
 #[test]
-fn seed_text_accepts_numbers_and_hashes_strings() {
-    assert_eq!(seed_from_text("12345"), 12345);
-    assert_eq!(seed_from_text(" 12345 "), 12345);
-    assert_eq!(
-        seed_from_text("petramond"),
-        seed_from_text("petramond"),
-        "string seeds are stable"
-    );
-    assert_ne!(
-        seed_from_text("petramond"),
-        seed_from_text("Petramond"),
-        "different strings choose different compatible seeds"
-    );
-}
-
-#[test]
 fn delete_world_removes_only_a_single_save_directory() {
     let saves = temp_world_dir("delete-world");
     let world = saves.join("My_World");

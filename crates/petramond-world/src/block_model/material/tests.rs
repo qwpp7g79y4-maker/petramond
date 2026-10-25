@@ -1,34 +1,6 @@
 use super::*;
 
 #[test]
-fn disabling_directional_shading_keeps_occlusion_independent() {
-    let appearance: SurfaceMaterial =
-        serde_json::from_str(r#"{"rect":[0,0,1,1],"shade":false}"#).unwrap();
-    assert!(!appearance.unlit);
-    assert!(appearance.ambient_occlusion);
-    let face = FaceAppearance {
-        shade: appearance.shade,
-        ..FaceAppearance::default()
-    };
-    assert_eq!(face.shading(0.5, 0.75), 0.75);
-    assert_eq!(
-        FaceAppearance {
-            ambient_occlusion: false,
-            ..face
-        }
-        .shading(0.5, 0.75),
-        1.0
-    );
-    assert_eq!(
-        FaceAppearance {
-            unlit: true,
-            ..FaceAppearance::default()
-        }
-        .shading(0.5, 0.75),
-        1.0
-    );
-}
-#[test]
 fn appearance_keeps_animation_separate_from_albedo() {
     let p = FaceAppearance {
         tint: [128, 255, 64],

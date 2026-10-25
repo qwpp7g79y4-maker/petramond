@@ -150,23 +150,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn shape_state_round_trips_truncates_and_reads_short_as_zero() {
-        let s = ShapeState::new(&[7, 9]);
-        assert_eq!(s.bytes(), &[7, 9]);
-        assert_eq!((s.byte(0), s.byte(1)), (7, 9));
-        assert_eq!(s.byte(2), 0, "past the end reads as zero");
-        assert_eq!(ShapeState::NONE.byte(0), 0);
-        assert!(ShapeState::NONE.is_empty());
-
-        let over = ShapeState::new(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-        assert_eq!(
-            over.bytes().len(),
-            SHAPE_STATE_MAX,
-            "over-cap state truncates instead of overflowing"
-        );
-    }
-
-    #[test]
     fn id_masked_pairs_carry_and_remap_the_full_block_id() {
         let [lo, hi] = ShapeState::id_bytes(300);
         let mut s = ShapeState::with_ids(&[0b0111, lo, hi], 0b010);

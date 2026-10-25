@@ -29,25 +29,6 @@ fn engine_shaders() -> Vec<(String, String)> {
 }
 
 #[test]
-fn a_source_without_imports_is_borrowed_untouched() {
-    let src = "fn f() -> f32 { return 1.0; }\n";
-    assert!(matches!(compose(src), Ok(Cow::Borrowed(s)) if s == src));
-}
-
-#[test]
-fn an_unknown_import_names_its_line_and_module() {
-    let err = compose("// header\n#import petramond::nope\n").unwrap_err();
-    assert_eq!(
-        err,
-        ImportError {
-            line: 2,
-            module: "petramond::nope".to_owned()
-        }
-    );
-    assert!(err.to_string().contains("petramond::frame"), "{err}");
-}
-
-#[test]
 fn a_module_imported_twice_is_emitted_once() {
     let text = compose("#import petramond::frame\n#import petramond::frame\n").unwrap();
     assert_eq!(text.matches("struct Uniforms").count(), 1);

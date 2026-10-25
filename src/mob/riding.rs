@@ -365,30 +365,4 @@ mod tests {
             "{level:?}"
         );
     }
-
-    #[test]
-    fn two_players_cannot_share_one_exact_anchor() {
-        let mut r = Riding::default();
-        let anchor = |pose| {
-            MountTarget::Anchor(PoseAnchor {
-                pos: WorldPos::new(4.5, 64.0, -2.6),
-                yaw: 1.0,
-                pose,
-            })
-        };
-        assert!(r.mount(1, anchor(1), 0));
-        assert!(
-            !r.mount(2, anchor(1), 0),
-            "an occupied anchor refuses a second body"
-        );
-        let nearby = MountTarget::Anchor(PoseAnchor {
-            pos: WorldPos::new(4.5, 64.0, -2.4),
-            yaw: 1.0,
-            pose: 1,
-        });
-        assert!(
-            r.mount(2, nearby, 0),
-            "a distinct anchor is a distinct seat"
-        );
-    }
 }

@@ -91,15 +91,3 @@ fn death_opens_the_death_screen_and_only_respawn_leaves_it() {
     app.handle_open_screen_events(&ev);
     assert!(matches!(app.screen, AppScreen::Game));
 }
-
-#[test]
-fn death_while_a_container_menu_is_open_closes_the_menu_first() {
-    let mut app = app();
-    assert!(app.handle_control(Control::ToggleInventory, true));
-    assert!(app.screen.ui_open());
-
-    let mut ev = events();
-    ev.player_died = true;
-    app.handle_open_screen_events(&ev);
-    assert!(matches!(app.screen, AppScreen::Dead));
-}

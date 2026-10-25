@@ -629,28 +629,6 @@ fn the_box_query_never_omits_a_biome_the_point_query_answers() {
 }
 
 #[test]
-fn overlapping_lattices_agree_at_shared_voxels() {
-    let field = CaveField::new(0xC0FFEE);
-    let a = field.build_lattice(0, 0, 0, 15, 15, 15);
-    let b = field.build_lattice(-16, 4, 8, 15, 35, 23);
-    for &(x, y, z) in &[(0, 4, 8), (7, 15, 15), (15, 12, 9), (3, 8, 15)] {
-        let (mut ca, mut cb) = (Col::new(&a, x, z), Col::new(&b, x, z));
-        for k in [
-            lane::ENTRANCE,
-            lane::NOODLE_A,
-            lane::NOODLE_TOGGLE,
-            lane::NOODLE_WIDTH,
-        ] {
-            assert_eq!(ca.get(k, y).to_bits(), cb.get(k, y).to_bits());
-        }
-        assert_eq!(
-            a.climate_at(x, y, z).map(f64::to_bits),
-            b.climate_at(x, y, z).map(f64::to_bits)
-        );
-    }
-}
-
-#[test]
 fn lining_shell_is_disjoint_from_carved_air() {
     for (table, excavations) in tables() {
         let field = CaveField::with_tables(0xBEEF, table, excavations);

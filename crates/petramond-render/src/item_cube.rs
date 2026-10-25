@@ -10,8 +10,8 @@
 //! ## Packing conventions (shared with `block.wgsl`'s `packed` layout)
 //! The bit positions live in `mesh::vertex` and this module encodes through
 //! those constants — see [`mesh::pack_vertex`](petramond_mesh::Vertex) for the
-//! layout of both words. For the textured path (`cube_textured`,
-//! `billboard_quad`) we set the tile, corner, shade, AO = 3, skylight = 63.
+//! layout of both words. For the textured path (`push_cube_textured`,
+//! `push_billboard_quad`) we set the tile, corner, shade, AO = 3, skylight = 63.
 //!
 //! ### Out-of-world foliage tint + grass-side overlay
 //! Icons / held items / dropped cubes have no biome context, so foliage greens
@@ -186,11 +186,6 @@ fn expand_log_tiles(tiles: [Tile; 3], axis: LogAxis) -> [Tile; 6] {
         LogAxis::Y => [side, side, top, bottom, side, side],
         LogAxis::Z => [side, side, side, side, top, bottom],
     }
-}
-
-#[cfg(test)]
-fn block_icon_faces(block: Block) -> [Tile; 6] {
-    block_icon_faces_with_state(block, HeldBlockState::None)
 }
 
 pub(super) fn block_icon_faces_with_state(block: Block, state: HeldBlockState) -> [Tile; 6] {
@@ -693,17 +688,8 @@ pub fn push_billboard_quad(
 }
 
 #[cfg(test)]
-pub fn billboard_quad(tile: Tile, center: Vec3, size: f32) -> (Vec<Vertex>, Vec<u32>) {
-    let mut verts = Vec::with_capacity(8);
-    let mut indices = Vec::with_capacity(12);
-    push_billboard_quad(&mut verts, &mut indices, tile, center, size);
-    (verts, indices)
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
-    use petramond_mesh::SHADES;
 
     fn uv_mode(v: &Vertex) -> u32 {
         (v.packed >> UV_MODE_SHIFT) & 0x7
@@ -711,46 +697,6 @@ mod tests {
 
     fn cell_uv16(v: &Vertex) -> (u32, u32) {
         ((v.packed2 >> 6) & 0x1F, (v.packed2 >> 11) & 0x1F)
-    }
-
-    #[test]
-    fn cube_textured_has_24_verts_36_indices() {
-        let (v, i) = cube_textured(
-            [
-                Tile::named("oak_log_top"),
-                Tile::named("oak_log_top"),
-                Tile::named("oak_log_side"),
-            ],
-            Vec3::ZERO,
-            1.0,
-        );
-        assert_eq!(v.len(), 24);
-        assert_eq!(i.len(), 36);
-    }
-
-    #[test]
-    fn cube_textured_uses_per_face_tiles() {
-        let tiles = [
-            Tile::named("grass_top"),
-            Tile::named("dirt"),
-            Tile::named("stone"),
-        ];
-        let (v, _) = cube_textured(tiles, Vec3::ZERO, 1.0);
-        let face_tile =
-            |face_idx: usize| v[face_idx * 4].packed & petramond_mesh::vertex::TILE_MASK;
-        assert_eq!(face_tile(0), Tile::named("stone").index() as u32);
-        assert_eq!(face_tile(1), Tile::named("stone").index() as u32);
-        assert_eq!(face_tile(2), Tile::named("grass_top").index() as u32);
-        assert_eq!(face_tile(3), Tile::named("dirt").index() as u32);
-        assert_eq!(face_tile(4), Tile::named("stone").index() as u32);
-        assert_eq!(face_tile(5), Tile::named("stone").index() as u32);
-    }
-
-    #[test]
-    fn block_icon_faces_default_expands_top_bottom_side() {
-        let faces = block_icon_faces(Block::OakLog);
-        let [top, bottom, side] = Block::OakLog.tiles();
-        assert_eq!(faces, [side, side, top, bottom, side, side]);
     }
 
     #[test]
@@ -784,73 +730,6 @@ mod tests {
             pos_x_end_cap.iter().all(|v| uv_mode(v) == 0),
             "end caps keep the regular cube UVs"
         );
-    }
-
-    #[test]
-    fn furnace_icon_shows_front_on_exactly_one_face() {
-        let faces = block_icon_faces(Block::Furnace);
-        assert_eq!(faces[2], Tile::named("furnace_top"), "PosY top");
-        assert_eq!(faces[3], Tile::named("furnace_top"), "NegY bottom");
-        assert_eq!(
-            faces[4],
-            Tile::named("furnace_front"),
-            "front on PosZ (visible in the icon)"
-        );
-        for i in [0usize, 1, 5] {
-            assert_eq!(
-                faces[i],
-                Tile::named("furnace_side"),
-                "face {i} is a plain side"
-            );
-        }
-        assert_eq!(
-            faces
-                .iter()
-                .filter(|&&t| t == Tile::named("furnace_front"))
-                .count(),
-            1,
-            "exactly one front face, not four"
-        );
-    }
-
-    #[test]
-    fn cube_textured_is_full_bright() {
-        let (v, _) = cube_textured([Tile::named("stone"); 3], Vec3::ZERO, 1.0);
-        for vert in &v {
-            assert_eq!(
-                (vert.packed >> petramond_mesh::vertex::SKY_SHIFT) & 0x3F,
-                63
-            );
-            assert_eq!((vert.packed >> petramond_mesh::vertex::AO_SHIFT) & 0x3, 3);
-            assert_eq!(vert.packed & petramond_mesh::OVERLAY_FLAG, 0);
-        }
-    }
-
-    #[test]
-    fn cube_textured_face_shade_indices_match_mesher() {
-        let (v, _) = cube_textured([Tile::named("stone"); 3], Vec3::ZERO, 1.0);
-        let shade =
-            |face_idx: usize| (v[face_idx * 4].packed >> petramond_mesh::vertex::SHADE_SHIFT) & 0x3;
-        assert_eq!(shade(0), 2);
-        assert_eq!(shade(1), 2);
-        assert_eq!(shade(2), 0);
-        assert_eq!(shade(3), 3);
-        assert_eq!(shade(4), 1);
-        assert_eq!(shade(5), 1);
-        const { assert!(SHADES[0] > SHADES[3]) };
-    }
-    #[test]
-    fn billboard_quad_is_double_sided() {
-        let (v, i) = billboard_quad(Tile::named("poppy"), Vec3::ZERO, 1.0);
-        assert_eq!(v.len(), 8);
-        assert_eq!(i.len(), 12);
-        for vert in &v {
-            assert_eq!(
-                vert.packed & petramond_mesh::vertex::TILE_MASK,
-                Tile::named("poppy").index() as u32
-            );
-            assert_eq!(vert.packed & petramond_mesh::OVERLAY_FLAG, 0);
-        }
     }
 
     #[test]

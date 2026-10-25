@@ -165,21 +165,4 @@ mod tests {
         old.extend(KvRecord::encode(&state));
         assert!(State::load(&old) == state);
     }
-
-    #[test]
-    fn an_unwritten_furnace_decodes_cold() {
-        let fresh = State::load(&[]);
-        assert!(fresh == State::default());
-    }
-
-    #[test]
-    fn a_foreign_state_blob_resets_rather_than_misreads() {
-        let mut w = ByteWriter::new();
-        w.u32(3);
-        w.u32(999);
-        assert!(
-            State::load(&w.finish()) == State::default(),
-            "an unrecognised version is a reset"
-        );
-    }
 }

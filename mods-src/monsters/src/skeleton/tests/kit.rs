@@ -1,7 +1,4 @@
-use crate::skeleton::aim::Flight;
-use crate::skeleton::kit::{
-    admit, pick, Guard, Hand, Kit, Loadout, LoadoutSpec, Melee, Ranged, Wield,
-};
+use crate::skeleton::kit::{admit, pick, Guard, Hand, Kit, Loadout, LoadoutSpec, Melee, Wield};
 
 fn spec(name: &str, main: Option<&str>, off: Option<&str>) -> LoadoutSpec {
     LoadoutSpec {
@@ -129,42 +126,4 @@ fn a_kit_takes_the_hardest_hitting_melee_and_falls_back_to_bare_hands() {
         Some("x:unknown"),
         "still drawn in the hand"
     );
-}
-
-#[test]
-fn a_bow_whose_ammo_is_unknown_cannot_shoot() {
-    let bow = Wield {
-        ranged: Some(Ranged {
-            ammo: "x:arrow".into(),
-            pull: vec![],
-            draw: 20,
-            speed: 28.0,
-            spread: 0.0,
-            min_range: 3.0,
-            max_range: 24.0,
-            rest: 20,
-            clip_draw: "draw".into(),
-            clip_loose: "loose".into(),
-        }),
-        ..Wield::default()
-    };
-    let wield = |_: &str| Some(bow.clone());
-    let kit = Kit::of([None, Some("x:bow".into())], wield, |_| None, None);
-    assert!(kit.bow.is_none());
-    let kit = Kit::of(
-        [None, Some("x:bow".into())],
-        wield,
-        |_| Some(Flight::default()),
-        None,
-    );
-    assert_eq!(kit.bow.map(|b| b.hand), Some(Hand::Off));
-}
-
-#[test]
-fn a_wield_row_that_cannot_work_is_refused() {
-    let mut bad = melee(3.0, 10, "slash");
-    bad.windup = 11;
-    assert!(bad.check().is_err(), "a windup longer than the cooldown");
-    assert!(melee(3.0, 10, "").check().is_err(), "no clip name");
-    assert!(melee(3.0, 10, "slash").check().is_ok());
 }

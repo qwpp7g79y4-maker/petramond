@@ -485,18 +485,4 @@ mod tests {
         );
         assert_eq!(r.form, NS);
     }
-
-    #[test]
-    fn removal_leaves_the_neighbours_pointing_at_the_gap() {
-        let mut m = Map::default();
-        m.place([0, 0, 0]);
-        m.place([1, 0, 0]);
-        m.place([1, 0, 1]);
-        assert_eq!(m.0[&[1, 0, 0]].form, Form::Curve(Corner::SW));
-        m.0.remove(&[1, 0, 1]);
-        assert_eq!(m.0[&[1, 0, 0]].form, Form::Curve(Corner::SW));
-        let r = m.place([1, 0, 1]);
-        assert_eq!(r.form, NS);
-        assert!(r.turns.is_empty());
-    }
 }

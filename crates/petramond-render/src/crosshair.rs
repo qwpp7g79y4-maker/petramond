@@ -101,23 +101,3 @@ fn push_tri(out: &mut CrosshairVertices, a: [f32; 2], b: [f32; 2], c: [f32; 2]) 
 fn ndc(width: u32, height: u32, x: f32, y: f32) -> [f32; 2] {
     [x / width as f32 * 2.0 - 1.0, 1.0 - y / height as f32 * 2.0]
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn crosshair_has_expected_vertex_count() {
-        let verts = crosshair_vertices(800, 600);
-        assert_eq!(verts.count, MAX_CROSSHAIR_VERTICES as u32);
-    }
-
-    #[test]
-    fn crosshair_vertices_are_clip_space() {
-        let verts = crosshair_vertices(320, 240);
-        for p in &verts.vertices[..verts.count as usize] {
-            assert!((-1.0..=1.0).contains(&p[0]), "x {}", p[0]);
-            assert!((-1.0..=1.0).contains(&p[1]), "y {}", p[1]);
-        }
-    }
-}

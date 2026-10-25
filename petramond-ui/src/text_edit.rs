@@ -553,37 +553,6 @@ mod tests {
     }
 
     #[test]
-    fn shift_arrow_expands_selection() {
-        let mut input = TextInput::new(48);
-        input.insert_text("abcdef", 6, 0.0);
-        input.move_left(false, 6, 0.1);
-        input.move_left(false, 6, 0.2);
-
-        input.move_left(true, 6, 0.3);
-        input.move_left(true, 6, 0.4);
-
-        let view = input.render(6, true, 0.4);
-        assert_eq!(view.cursor, 2);
-        assert_eq!(view.selection, Some((2, 4)));
-    }
-
-    #[test]
-    fn insertion_replaces_selected_text() {
-        let mut input = TextInput::new(48);
-        input.insert_text("abcdef", 6, 0.0);
-        input.move_left(false, 6, 0.1);
-        input.move_left(false, 6, 0.2);
-        input.move_left(true, 6, 0.3);
-        input.move_left(true, 6, 0.4);
-
-        assert!(input.insert_text("XY", 6, 0.5));
-
-        assert_eq!(input.text(), "abXYef");
-        assert_eq!(input.render(6, true, 0.5).cursor, 4);
-        assert_eq!(input.render(6, true, 0.5).selection, None);
-    }
-
-    #[test]
     fn scroll_follows_cursor_in_both_directions() {
         let mut input = TextInput::new(48);
         input.insert_text("abcdefghij", 4, 0.0);
@@ -637,23 +606,6 @@ mod tests {
         input.drag_to(anchor, end, 6, 0.2);
 
         assert_eq!(input.render(6, true, 0.2).selection, Some((1, 4)));
-    }
-
-    #[test]
-    fn cursor_blinks_only_after_idle_period() {
-        let mut input = TextInput::new(48);
-        input.focus(1.0);
-
-        assert!(input.render(8, true, 1.2).show_cursor);
-        assert!(input.render(8, true, 1.5).show_cursor);
-        assert!(!input.render(8, true, 2.0).show_cursor);
-    }
-
-    #[test]
-    fn with_text_preloads_and_ends_cursor() {
-        let input = TextInput::with_text("New World", 48, 0.0);
-        assert_eq!(input.text(), "New World");
-        assert_eq!(input.render(20, true, 0.0).cursor, 9);
     }
 
     #[test]

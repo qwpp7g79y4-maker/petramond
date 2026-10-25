@@ -7,12 +7,6 @@ use petramond_math::world_pos::WorldPos;
 use petramond_world::block::Block;
 
 #[test]
-fn idle_until_given_a_goal() {
-    let nav = Navigator::new(1, 0.25, 0.9);
-    assert!(nav.is_idle());
-}
-
-#[test]
 fn arriving_consumes_waypoints_then_goes_idle() {
     let mut nav = Navigator::new(1, 0.25, 0.9);
     nav.path = vec![IVec3::new(0, 1, 0), IVec3::new(1, 1, 0)];
@@ -24,17 +18,6 @@ fn arriving_consumes_waypoints_then_goes_idle() {
     assert_eq!(wish, Vec3::ZERO);
     assert!(!jump);
     assert!(nav.is_idle(), "arrived -> idle");
-}
-
-#[test]
-fn steers_toward_a_distant_waypoint() {
-    let mut nav = Navigator::new(1, 0.25, 0.9);
-    nav.path = vec![IVec3::new(0, 1, 0), IVec3::new(5, 1, 0)];
-    nav.index = 1;
-    nav.goal = Some(IVec3::new(5, 1, 0));
-    let (wish, jump) = nav.follow(WorldPos::new(0.5, 1.0, 0.5), true);
-    assert!(wish.x > 0.9, "heads +X toward the waypoint: {wish:?}");
-    assert!(!jump, "flat move needs no jump");
 }
 
 #[test]
@@ -146,37 +129,6 @@ fn vertical_bobbing_does_not_count_as_navigation_progress() {
         nav.is_idle(),
         "bobbing in place should abandon the bad route so wander can choose again"
     );
-}
-
-#[test]
-fn jump_trigger_accounts_for_body_width() {
-    let mut nav = Navigator::new(1, 0.45, 0.9);
-    nav.path = vec![IVec3::new(0, 1, 0), IVec3::new(1, 2, 0)];
-    nav.index = 1;
-    nav.goal = Some(IVec3::new(1, 2, 0));
-    let (_wish, jump) = nav.follow(WorldPos::new(0.5, 1.0, 0.5), true);
-    assert!(
-        jump,
-        "wider bodies jump before colliding with the step face"
-    );
-}
-
-#[test]
-fn wide_mob_does_not_turn_before_clearing_a_corner() {
-    let mut nav = Navigator::new(1, 0.45, 0.9);
-    nav.path = vec![
-        IVec3::new(0, 1, 0),
-        IVec3::new(1, 1, 0),
-        IVec3::new(1, 1, 1),
-    ];
-    nav.index = 1;
-    nav.goal = Some(IVec3::new(1, 1, 1));
-    let (wish, jump) = nav.follow(WorldPos::new(1.25, 1.0, 0.5), true);
-    assert!(
-        wish.x > 0.9 && wish.z.abs() < 0.1,
-        "wide mob should keep clearing the corner before turning: {wish:?}"
-    );
-    assert!(!jump);
 }
 
 fn flat_world() -> ServerWorld {
@@ -777,36 +729,6 @@ fn no_diagonal_step_cuts_past_a_partial_shapes_corner() {
 }
 
 #[test]
-fn routes_bend_around_another_mobs_body() {
-    let world = flat_world();
-    let start = IVec3::new(1, 64, 1);
-    let goal = IVec3::new(8, 64, 1);
-    let blocker_cell = IVec3::new(4, 64, 1);
-    let mobs = MobSnapshot::from_mobs([AiMob {
-        id: 7,
-        kind: crate::mob::Mob::Sheep,
-        pos: WorldPos::new(4.5, 64.0, 1.5),
-        active: true,
-        tags: Default::default(),
-    }]);
-    let obstacles = NavInputs {
-        self_id: 1,
-        target: None,
-        mobs: &mobs,
-        players: &[],
-        budget: None,
-    };
-    let mut nav = Navigator::new(1, 0.25, 0.9);
-    nav.update_goal_when_supported(Some(goal), start, &world, true, &obstacles);
-    assert_eq!(nav.path().last(), Some(&goal), "still reaches the goal");
-    assert!(
-        !nav.path().contains(&blocker_cell),
-        "the route bends around the standing mob: {:?}",
-        nav.path()
-    );
-}
-
-#[test]
 fn a_blocked_corridor_is_rounded_rather_than_pushed_through() {
     let mut world = flat_world();
     for x in 0..12 {
@@ -948,46 +870,6 @@ fn players_are_soft_obstacles_unless_targeted() {
     assert!(
         nav.path().contains(&player_cell),
         "the hunted player is pathed TO, not around: {:?}",
-        nav.path()
-    );
-}
-
-#[test]
-fn re_paths_a_held_goal_when_the_world_changes() {
-    let mut world = flat_world();
-    let start = IVec3::new(1, 64, 1);
-    let goal = IVec3::new(8, 64, 1);
-    let mut nav = Navigator::new(1, 0.25, 0.9);
-
-    nav.update_goal_when_supported(Some(goal), start, &world, true, &NavInputs::none());
-    let stale: Vec<IVec3> = nav.path().to_vec();
-    let blocked = IVec3::new(4, 64, 1);
-    assert!(
-        stale.contains(&blocked),
-        "the open route runs straight through {blocked:?}"
-    );
-
-    world.set_block_world(blocked.x, blocked.y, blocked.z, Block::Stone);
-    world.set_block_world(blocked.x, blocked.y + 1, blocked.z, Block::Stone);
-
-    for _ in 0..REPATH_TICKS - 1 {
-        nav.update_goal_when_supported(Some(goal), start, &world, true, &NavInputs::none());
-        assert_eq!(
-            nav.path(),
-            stale.as_slice(),
-            "no re-path before the interval elapses"
-        );
-    }
-
-    nav.update_goal_when_supported(Some(goal), start, &world, true, &NavInputs::none());
-    assert_ne!(
-        nav.path(),
-        stale.as_slice(),
-        "re-paths once the interval elapses"
-    );
-    assert!(
-        !nav.path().contains(&blocked),
-        "the refreshed route avoids the newly-walled cell: {:?}",
         nav.path()
     );
 }

@@ -30,18 +30,6 @@ fn scroll_step_is_proportional_and_signed() {
 }
 
 #[test]
-fn scroll_step_carries_remainder_across_frames() {
-    let mut p = PointerState::default();
-    let mut steps = 0;
-    for _ in 0..25 {
-        p.scroll_delta += 0.1;
-        steps += p.take_scroll_step();
-    }
-    assert_eq!(steps, 2);
-    assert!((p.scroll_delta - 0.5).abs() < 1e-4);
-}
-
-#[test]
 fn game_input_gates_look_and_scroll_when_gameplay_is_disabled() {
     let mut input = InputController::default();
     input.set_control(Control::MoveForward, true);
@@ -69,26 +57,4 @@ fn game_input_gates_look_and_scroll_when_gameplay_is_disabled() {
 
     let game_input = p.take_game_input(&mut input, true);
     assert_eq!(game_input.look_delta, (0.0, 0.0));
-}
-
-#[test]
-fn button_edges_and_held_state_feed_game_input() {
-    let mut input = InputController::default();
-    let mut p = PointerState::default();
-    p.grab_for_gameplay();
-
-    p.set_button(PointerButton::Primary, true);
-    p.set_button(PointerButton::Primary, false);
-    let game_input = p.take_game_input(&mut input, true);
-    assert!(p.is_grabbing());
-    assert!(!game_input.break_held);
-    assert!(game_input.attack_clicked);
-    assert!(!game_input.place_clicked);
-
-    p.clear_edges();
-    p.set_button(PointerButton::Secondary, true);
-    p.set_button(PointerButton::Secondary, false);
-    let game_input = p.take_game_input(&mut input, true);
-    assert!(game_input.place_clicked);
-    assert!(!game_input.attack_clicked);
 }

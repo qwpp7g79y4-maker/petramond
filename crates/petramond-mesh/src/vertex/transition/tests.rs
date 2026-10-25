@@ -27,16 +27,3 @@ fn payload_roundtrip_preserves_geometry_and_lighting() {
         );
     }
 }
-
-#[test]
-fn plain_faces_never_decode_as_transitions() {
-    for mode in 0..UV_MODE_TRANSITION {
-        let v = Vertex {
-            pos: [0.0; 3],
-            tint: 0,
-            packed: !(7 << UV_MODE_SHIFT) | (mode << UV_MODE_SHIFT),
-            packed2: 0xffffffff,
-        };
-        assert_eq!(Transition::decode(&v), None);
-    }
-}

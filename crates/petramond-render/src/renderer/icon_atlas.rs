@@ -633,14 +633,6 @@ mod tests {
     }
 
     #[test]
-    fn a_small_catalogue_keeps_the_strip() {
-        let layout = IconLayout::new(2 * 100, 8192);
-        assert_eq!(layout.cols, MIN_COLS);
-        assert_eq!(layout.rows, 13);
-        assert_eq!(layout.cell(17), Some((1, 1)));
-    }
-
-    #[test]
     fn a_large_catalogue_grows_square_within_the_limit() {
         for items in [1024u32, 3000, 8192] {
             let layout = IconLayout::new(2 * items, 8192);

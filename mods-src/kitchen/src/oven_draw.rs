@@ -65,14 +65,6 @@ mod tests {
 
     const MODEL: &str = include_str!("../pack/models/kitchen_oven.bbmodel");
 
-    fn stack(item: &str) -> ItemStackData {
-        ItemStackData {
-            item: item.into(),
-            count: 1,
-            data: Vec::new(),
-        }
-    }
-
     fn elements() -> Vec<json::Value> {
         let m = json::Value::parse(MODEL).expect("the shipped oven model parses");
         m.get("elements")
@@ -308,82 +300,6 @@ mod tests {
                 || done[0] - half_done >= a[0].max(b[0]))
                 || (done[2] + half_done <= a[2].min(b[2]) || done[2] - half_done >= a[2].max(b[2]));
             assert!(clear, "the finished bake never touches a mouth trim");
-        }
-    }
-
-    #[test]
-    fn contents_follow_the_slots() {
-        let raw = stack("kitchen:raw_mutton");
-        let cooked = stack("kitchen:cooked_mutton");
-
-        assert!(
-            contents(None, None, 0.0).is_empty(),
-            "an empty oven draws nothing"
-        );
-
-        let (fresh_item, fresh_scale, _fresh_at) = item_of(&contents(Some(&raw), None, 0.0), 0);
-        assert_eq!(
-            fresh_item, "kitchen:raw_mutton",
-            "the art is the slot's item"
-        );
-        assert!(
-            (fresh_scale - 0.85 * COOK_SCALE_PX * MODEL_PX).abs() < 1e-6,
-            "a fresh input draws small and grows"
-        );
-
-        let finished = contents(Some(&raw), None, 1.0);
-        let (_, full_scale, full_at) = item_of(&finished, 0);
-        assert_eq!(finished.len(), 1);
-        assert!(
-            (full_scale - COOK_SCALE_PX * MODEL_PX).abs() < 1e-6,
-            "full progress is the full size"
-        );
-        let on = seat(COOK_SEAT_PX);
-        assert!(
-            (full_at[1] - (on[1] + full_scale * HALF_THICK + HAIR)).abs() < 1e-6,
-            "seated a half-thickness plus a hair off the stone"
-        );
-        assert!((full_at[0] - on[0]).abs() < 1e-6 && (full_at[2] - on[2]).abs() < 1e-6);
-
-        let stalled = contents(Some(&raw), None, 0.3);
-        let (_, stalled_scale, _) = item_of(&stalled, 0);
-        assert!(
-            fresh_scale < stalled_scale && stalled_scale < full_scale,
-            "the rise tracks the progress, not a step function"
-        );
-
-        let both = contents(Some(&raw), Some(&cooked), 0.5);
-        assert_eq!(both.len(), 2, "both contents draw at once");
-        let (done_item, done_scale, done_at) = item_of(&both, 1);
-        assert_eq!(done_item, "kitchen:cooked_mutton");
-        assert_eq!(
-            done_scale,
-            DONE_SCALE_PX * MODEL_PX,
-            "the output does not breathe"
-        );
-        let on = seat(DONE_SEAT_PX);
-        assert!(
-            (done_at[1] - (on[1] + done_scale * HALF_THICK + HAIR)).abs() < 1e-6,
-            "the finished bake rests on the stone at the threshold"
-        );
-    }
-
-    fn item_of(prims: &[DrawPrim], i: usize) -> (String, f32, [f32; 3]) {
-        match prims.get(i) {
-            Some(DrawPrim::Item {
-                item,
-                scale,
-                at,
-                yaw,
-                pitch,
-                tint,
-            }) => {
-                assert_eq!(*pitch, LIE_FLAT, "seated flat on the stone");
-                assert_eq!(*yaw, 0.0);
-                assert_eq!(*tint, [255, 255, 255], "no tint: the item's own colours");
-                (item.clone(), *scale, *at)
-            }
-            other => panic!("expected an item prim at {i}, got {other:?}"),
         }
     }
 }

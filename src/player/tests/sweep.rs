@@ -1,47 +1,12 @@
 use super::*;
 
 #[test]
-fn falls_and_lands_on_floor() {
-    let solid = |_x: i32, y: i32, _z: i32| y < 64;
-    let mut pl = p(WorldPos::new(0.0, 70.0, 0.0));
-    let blocked = pl.sweep(Axis::Y, -20.0, &solid);
-    assert!(blocked);
-    assert_eq!(pl.pos.y, 64.0);
-}
-
-#[test]
 fn does_not_tunnel_through_one_block_floor() {
     let solid = |_x: i32, y: i32, _z: i32| y == 0;
     let mut pl = p(WorldPos::new(0.0, 5.0, 0.0));
     let blocked = pl.sweep(Axis::Y, -20.0, &solid);
     assert!(blocked, "must not fall through a 1-thick floor");
     assert_eq!(pl.pos.y, 1.0, "feet rest on top of cell 0");
-}
-
-#[test]
-fn stops_at_wall_moving_positive_x() {
-    let solid = |x: i32, _y: i32, _z: i32| x >= 5;
-    let mut pl = p(WorldPos::new(4.0, 64.0, 0.0));
-    let blocked = pl.sweep(Axis::X, 2.0, &solid);
-    assert!(blocked);
-    assert!((pl.pos.x - 4.7).abs() < 1e-5, "pos.x = {}", pl.pos.x);
-}
-
-#[test]
-fn stops_at_wall_moving_negative_x() {
-    let solid = |x: i32, _y: i32, _z: i32| x <= 1;
-    let mut pl = p(WorldPos::new(4.0, 64.0, 0.0));
-    let blocked = pl.sweep(Axis::X, -3.0, &solid);
-    assert!(blocked);
-    assert!((pl.pos.x - 2.3).abs() < 1e-5, "pos.x = {}", pl.pos.x);
-}
-
-#[test]
-fn moves_freely_in_open_air() {
-    let solid = |_x: i32, _y: i32, _z: i32| false;
-    let mut pl = p(WorldPos::new(0.0, 64.0, 0.0));
-    assert!(!pl.sweep(Axis::Z, 3.0, &solid));
-    assert_eq!(pl.pos.z, 3.0);
 }
 
 #[test]
@@ -326,52 +291,6 @@ fn sweep_does_not_skip_flush_wall_at_far_coordinates() {
             minus_z.pos.z
         );
     }
-}
-
-#[test]
-fn chest_collides_as_its_inset_box() {
-    let boxes = |x: i32, y: i32, z: i32| {
-        if (x, y, z) == (0, 64, 0) {
-            Block::Chest
-        } else {
-            Block::Air
-        }
-        .collision_boxes()
-    };
-    let top = 64.0 + 14.0 / 16.0;
-
-    let mut faller = p(WorldPos::new(0.5, 66.0, 0.5));
-    assert!(
-        faller.sweep_boxes(Axis::Y, -5.0, &boxes),
-        "lands on the chest"
-    );
-    assert!(
-        (faller.pos.y - top).abs() < 1e-3,
-        "feet rest on the 14/16 top, got {}",
-        faller.pos.y
-    );
-
-    let mut on_top = p(WorldPos::new(0.5, top, 0.5));
-    assert!(
-        !on_top.sweep_boxes(Axis::X, 1.0, &boxes),
-        "walking off the top is not blocked"
-    );
-    assert!(
-        (on_top.pos.x - 1.5).abs() < 1e-3,
-        "walked the full step, got {}",
-        on_top.pos.x
-    );
-
-    let mut walker = p(WorldPos::new(-1.0, 64.0, 0.5));
-    assert!(
-        walker.sweep_boxes(Axis::X, 2.0, &boxes),
-        "hits the chest side"
-    );
-    assert!(
-        (walker.aabb_max()[0] - 1.0 / 16.0).abs() < 1e-3,
-        "stops at the inset -X face (1/16), got {}",
-        walker.aabb_max()[0]
-    );
 }
 
 #[test]

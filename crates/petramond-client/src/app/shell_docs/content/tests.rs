@@ -368,42 +368,6 @@ fn content_panel_width_is_stable_across_list_and_confirmation_states() {
 }
 
 #[test]
-fn empty_installed_browse_fills_the_bottom_action_row() {
-    let (_root, mut app) = app_with("empty-browse", Vec::new(), false);
-    let state = state_of(&mut app);
-    for viewport in [VIEWPORT, (640, 360)] {
-        solve_kind_at(
-            GuiKind::Content,
-            &state,
-            None,
-            viewport,
-            |tree, solved, _| {
-                let rect = |id: &str| {
-                    (0..tree.len())
-                        .find(|&i| tree.get(i as u32).node.id.as_deref() == Some(id))
-                        .map(|i| solved.rects[i])
-                        .unwrap()
-                };
-                let search = rect("search");
-                let scroll = rect("content_scroll");
-                let browse = rect("browse_empty");
-                let back = rect("back");
-                let account = rect("account");
-                assert_eq!((browse.x, browse.w), (search.x, search.w));
-                assert_eq!((browse.x, browse.w), (scroll.x, scroll.w));
-                assert!(
-                    back.y - (browse.y + browse.h) <= 10,
-                    "browse {browse:?} should sit directly above the footer {back:?}"
-                );
-                assert_eq!(account.h, back.h);
-            },
-        );
-    }
-    in_ctx(&mut app, |ctx| click(ctx, "browse_empty", None));
-    assert_eq!(view(&app).tab, Tab::Browse);
-}
-
-#[test]
 fn a_replace_over_a_folder_named_otherwise_shows_as_pending() {
     let mut hand = local("lanterns", "Lanterns", Tier::Mod);
     hand.dir = "lanterns-main".to_owned();

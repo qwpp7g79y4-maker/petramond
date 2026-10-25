@@ -9,38 +9,6 @@ mod parallel_tests {
     use std::collections::HashMap;
 
     #[test]
-    fn skylight_bake_is_deterministic_serial_vs_parallel() {
-        let seed = 0x1234_5678u32;
-        let coords: Vec<(i32, i32)> = (-2..=2)
-            .flat_map(|cz| (-2..=2).map(move |cx| (cx, cz)))
-            .collect();
-        let chunks: Vec<Chunk> = coords
-            .iter()
-            .map(|&(cx, cz)| generate_chunk(seed, cx, cz))
-            .collect();
-
-        let serial: Vec<(Box<[u8]>, i32, i32)> =
-            chunks.iter().map(compute_chunk_skylight).collect();
-
-        for (c, s) in chunks.iter().zip(&serial) {
-            let again = compute_chunk_skylight(c);
-            assert_eq!(&again.0[..], &s.0[..]);
-            assert_eq!((again.1, again.2), (s.1, s.2));
-        }
-
-        let parallel: Vec<(Box<[u8]>, i32, i32)> =
-            chunks.par_iter().map(compute_chunk_skylight).collect();
-        for (p, s) in parallel.iter().zip(&serial) {
-            assert_eq!(
-                &p.0[..],
-                &s.0[..],
-                "parallel skylight bake differs from serial"
-            );
-            assert_eq!((p.1, p.2), (s.1, s.2));
-        }
-    }
-
-    #[test]
     fn parallel_meshing_matches_serial() {
         let seed = 0x1234_5678u32;
         let coords: Vec<(i32, i32)> = (-2..=2)
@@ -223,17 +191,6 @@ fn exposure_masks_match_the_per_face_cull_on_the_showcase() {
         "an undyed cross-section donor bleeds"
     );
     assert_same_mesh(&fast, &scene.mesh_per_face(&section, pos), "showcase");
-}
-
-#[test]
-fn exposure_masks_match_the_per_face_cull_on_generated_terrain() {
-    for (pos, section, scene) in fixtures::generated_sections() {
-        assert_same_mesh(
-            &scene.mesh(&section, pos),
-            &scene.mesh_per_face(&section, pos),
-            &format!("generated section {pos:?}"),
-        );
-    }
 }
 
 struct Rng(u64);

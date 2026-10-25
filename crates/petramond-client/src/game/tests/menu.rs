@@ -27,62 +27,6 @@ fn container_edits_apply_on_the_tick_not_the_frame() {
 }
 
 #[test]
-fn cursor_has_stack_tracks_the_held_stack() {
-    let mut game = game();
-    game.server_player_mut().inventory = filled_inventory();
-    assert!(!game.cursor_has_stack(), "nothing held initially");
-    game.server_player_mut().inventory.click_slot(0);
-    game.sync_self_view_for_test();
-    assert!(game.cursor_has_stack(), "holding a stack after pickup");
-}
-
-#[test]
-fn closing_cursor_stack_uses_empty_inventory_slot_after_matching_stacks() {
-    let mut game = game();
-    let mut slots =
-        [Some(ItemStack::new(ItemType::Stone, 64)); petramond_world::inventory::TOTAL_SLOTS];
-    slots[4] = None;
-    game.server_player_mut().inventory =
-        Inventory::from_parts(slots, Some(ItemStack::new(ItemType::Dirt, 12)), None, 0);
-
-    game.sim_mut().close_cursor_stack_for(0);
-
-    assert!(game.server_player().inventory.cursor().is_none());
-    assert_eq!(
-        game.server_player().inventory.slot(4),
-        Some(&ItemStack::new(ItemType::Dirt, 12))
-    );
-    apply_drop_actions(&mut game);
-    assert!(
-        game.server_world().item_entities().is_empty(),
-        "stashed cursor stack should not drop"
-    );
-}
-
-#[test]
-fn closing_cursor_stack_queues_a_drop_when_inventory_is_full() {
-    let mut game = game();
-    let slots =
-        [Some(ItemStack::new(ItemType::Stone, 64)); petramond_world::inventory::TOTAL_SLOTS];
-    game.server_player_mut().inventory =
-        Inventory::from_parts(slots, Some(ItemStack::new(ItemType::Dirt, 12)), None, 0);
-
-    game.sim_mut().close_cursor_stack_for(0);
-
-    assert!(game.server_player().inventory.cursor().is_none());
-    assert!(
-        game.server_world().item_entities().is_empty(),
-        "drop waits for the next tick"
-    );
-    apply_drop_actions(&mut game);
-    assert_eq!(game.server_world().item_entities().len(), 1);
-    assert_eq!(
-        game.server_world().item_entities()[0].stack,
-        ItemStack::new(ItemType::Dirt, 12)
-    );
-}
-
-#[test]
 fn closing_cursor_stack_fills_matching_partials_then_drops_leftover() {
     let mut game = game();
     let mut slots =

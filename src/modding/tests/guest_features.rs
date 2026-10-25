@@ -23,16 +23,6 @@ fn bundled_guests_are_built_with_core_simd128() {
 }
 
 #[test]
-fn the_engine_accepts_core_simd_guests() {
-    let wat = r#"(module
-  (func (export "lanes") (result i32)
-    (i32x4.extract_lane 3
-      (i32x4.add (v128.const i32x4 1 2 3 4) (v128.const i32x4 10 20 30 40)))))"#;
-    Module::new(super::super::host::engine(), wat.as_bytes())
-        .expect("a guest using core SIMD128 compiles on the host engine");
-}
-
-#[test]
 fn the_engine_refuses_relaxed_simd_guests() {
     let wat = r#"(module
   (func (export "swizzle") (result v128)

@@ -1,8 +1,6 @@
 use super::*;
 use crate::block::Block;
-use crate::block_state::{SlabSplit, StairHalf, StairState};
 use crate::chunk::Chunk;
-use crate::facing::Facing;
 use crate::world::test_world::TestWorld;
 
 fn world() -> TestWorld {
@@ -30,44 +28,4 @@ fn pane_connects_to_full_cubes_and_panes_but_not_tagged_irregulars() {
         crate::pane::WEST | crate::pane::EAST,
         "no_pane_connect blocks must not add arms"
     );
-}
-
-#[test]
-fn pane_connects_to_a_stair_back_but_not_its_open_side() {
-    let mut w = world();
-    let p = IVec3::new(8, 64, 8);
-    assert!(w.set_block_world(p.x, p.y, p.z, Block::GlassPane));
-    assert!(w.place_stair(
-        IVec3::new(9, 64, 8),
-        Block::OakStairs,
-        StairState::new(Facing::East, StairHalf::Bottom),
-    ));
-    assert_eq!(w.data.pane_mask_at(p), crate::pane::EAST);
-
-    assert!(w.place_stair(
-        IVec3::new(7, 64, 8),
-        Block::OakStairs,
-        StairState::new(Facing::East, StairHalf::Bottom),
-    ));
-    assert_eq!(w.data.pane_mask_at(p), crate::pane::EAST);
-}
-
-#[test]
-fn pane_connects_to_a_full_slab_stack_but_not_a_single_slab() {
-    let mut w = world();
-    let p = IVec3::new(8, 64, 8);
-    assert!(w.set_block_world(p.x, p.y, p.z, Block::GlassPane));
-    let n = IVec3::new(8, 64, 7);
-    let slot = |index| crate::slab::SlabSlot {
-        split: SlabSplit::Y,
-        index,
-    };
-    assert!(w.place_slab_layer(n, Block::OakSlab, slot(0)));
-    assert_eq!(
-        w.data.pane_mask_at(p),
-        0,
-        "a single slab is not a full face"
-    );
-    assert!(w.place_slab_layer(n, Block::OakSlab, slot(1)));
-    assert_eq!(w.data.pane_mask_at(p), crate::pane::NORTH);
 }

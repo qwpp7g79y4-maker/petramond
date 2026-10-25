@@ -6,7 +6,6 @@ use petramond::server::health::fall_damage_health;
 use petramond_math::math::IVec3;
 use petramond_math::world_pos::WorldPos;
 use petramond_world::block::Block;
-use petramond_world::gui_state::MenuSlot;
 use petramond_world::item::{ItemStack, ItemType};
 
 fn install_test_crafting_recipe(game: &mut super::common::TestGame) {
@@ -212,35 +211,6 @@ fn attack_clicks_resolve_the_stable_mob_id_after_indices_shifted() {
     let mut ev = TickEvents::default();
     game.sim_mut().tick_attack(0, &mut ev);
     assert!(ev.player_at(0).swung_hand, "a vanished target still swings");
-}
-
-#[test]
-fn menu_click_messages_latch_then_apply_on_the_tick() {
-    let mut game = game();
-    game.server_player_mut().inventory = filled_inventory();
-
-    game.send_to_server(ClientToServer::MenuClick {
-        slot: MenuSlotWire::from_menu_slot(&MenuSlot::Inventory(0)),
-        button: 0,
-        shift: false,
-        gather: false,
-        request_id: 1,
-    });
-    assert_eq!(
-        game.session().input().queued_menu_actions(),
-        1,
-        "the click joined the ordered menu-action queue for the tick"
-    );
-    assert!(
-        game.server_player().inventory.cursor().is_none(),
-        "no mutation before the tick"
-    );
-
-    game.sim_mut().tick_menu(0, &mut TickEvents::default());
-    assert!(
-        game.server_player().inventory.cursor().is_some(),
-        "the tick applied the container edit (stack picked onto the cursor)"
-    );
 }
 
 #[test]

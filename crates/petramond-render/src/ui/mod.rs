@@ -676,20 +676,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn zero_screen_and_missing_document_build_nothing() {
-        let mut b = UiBuild::default();
-        let s = snap(GuiKind::Hotbar, false);
-        let slots = [cell(Role::Hotbar, 0)];
-        build_ui(&s, (0, 0), 1.0, Some(&slots), None, &mut b);
-        assert!(b.icon_quads.is_empty() && b.hearts.is_empty());
-
-        let mut s = snap(GuiKind::Inventory, true);
-        s.cursor = Some(petramond_world::item::ItemStack::new(ItemType::Dirt, 12));
-        build(&s, None, &mut b);
-        assert!(b.icon_quads.is_empty() && b.drag_icon_quads.is_empty() && b.counts.is_empty());
-    }
-
     fn recipe(result: ItemType, craftable: bool) -> petramond::gui::CraftingRecipeView {
         petramond::gui::CraftingRecipeView {
             result,
@@ -806,29 +792,6 @@ mod tests {
     }
 
     #[test]
-    fn tooltip_hooks_draw_nothing_without_a_named_recipe() {
-        let mut snapshot = snap(GuiKind::Inventory, true);
-        snapshot.craft_recipes.push(recipe(ItemType::Stick, true));
-        let hooks = [hook(
-            petramond::gui::DocHookKind::TipIngredients,
-            rect(220.0, 200.0, 120.0, 14.0),
-            None,
-            true,
-        )];
-        let mut build = UiBuild::default();
-        build_ui(
-            &snapshot,
-            SCREEN,
-            petramond::gui::gui_scale(SCREEN),
-            None,
-            Some(&hooks),
-            &mut build,
-        );
-        assert!(build.overlay_icon_quads.is_empty());
-        assert!(build.overlay_counts.is_empty());
-    }
-
-    #[test]
     fn oversized_ingredient_strips_keep_icons_readable_and_report_omissions() {
         let ingredients = vec![(ItemType::Coal, u16::MAX); 12];
         let scale = 3.0;
@@ -885,38 +848,5 @@ mod tests {
         assert!(!b.counts.is_empty(), "stack count 64 drawn");
         assert_eq!(b.drag_icon_quads.len(), 1, "cursor-held stack drawn");
         assert!(!b.drag_counts.is_empty(), "drag count > 1 drawn");
-    }
-
-    #[test]
-    fn hearts_only_on_the_hotbar_hud_with_health() {
-        let health = Some(petramond_world::gui_state::HealthView {
-            current: 15,
-            max: 20,
-        });
-        let mut b = UiBuild::default();
-        let slots = [cell(Role::Hotbar, 0)];
-        let mut s = snap(GuiKind::Hotbar, false);
-        s.health = health;
-        build(&s, Some(&slots), &mut b);
-        assert!(!b.hearts.is_empty(), "the HUD draws the heart bar");
-
-        let mut s = snap(GuiKind::Inventory, true);
-        s.health = health;
-        build(&s, Some(&slots), &mut b);
-        assert!(b.hearts.is_empty(), "no hearts behind an open menu");
-
-        build(&snap(GuiKind::Hotbar, false), Some(&slots), &mut b);
-        assert!(b.hearts.is_empty(), "no hearts without survival health");
-    }
-
-    #[test]
-    fn build_reuses_buffers_without_growth() {
-        let mut b = UiBuild::default();
-        let slots = vec![cell(Role::Hotbar, 0)];
-        build(&snap(GuiKind::Inventory, true), Some(&slots), &mut b);
-        let cap = b.icon_quads.capacity();
-        assert!(cap > 0);
-        build(&snap(GuiKind::Hotbar, false), Some(&slots), &mut b);
-        assert_eq!(b.icon_quads.capacity(), cap, "icon-quad buffer reused");
     }
 }

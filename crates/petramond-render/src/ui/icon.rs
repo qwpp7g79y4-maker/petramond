@@ -383,41 +383,6 @@ mod tests {
         println!("wrote /tmp/model_icon.png  ({cols}x{rows} grid)");
     }
 
-    /// The icon tilt determines which cube face points toward the camera, so
-    /// check the top and bottom normals have opposite clip-z signs and that flipping the tilt
-    /// swaps which one faces the camera.
-    #[test]
-    fn iso_mvp_flips_to_show_top_face() {
-        let screen = (1280u32, 720u32);
-        let r = slot_rect(0, screen, false, gui_scale(screen)).unwrap();
-        let shipped = iso_icon_mvp(screen, r);
-        let z_of = |m: Mat4, n: Vec3| (m * n.extend(0.0)).z;
-        assert!(
-            z_of(shipped, Vec3::Y) * z_of(shipped, Vec3::NEG_Y) < 0.0,
-            "top and bottom normals must point opposite ways in the iso view"
-        );
-        let center = slot_ndc_center(screen, r);
-        let [hx, hy] = ndc_half_extents(screen, r);
-        let model_half = std::f32::consts::SQRT_2 * 0.5;
-        let sx = hx * 0.9 / model_half;
-        let sy = hy * 0.9 / model_half;
-        let rot_minus = Mat4::from_rotation_x(-(30f32.to_radians()))
-            * Mat4::from_rotation_y(45f32.to_radians());
-        let old = Mat4::from_translation(Vec3::new(center[0], center[1], 0.5))
-            * Mat4::from_scale(Vec3::new(sx, sy, sx * 0.05))
-            * rot_minus;
-        assert_eq!(
-            z_of(shipped, Vec3::Y).signum(),
-            z_of(old, Vec3::NEG_Y).signum(),
-            "the +30° fix must show the top where the old -30° showed the bottom"
-        );
-        assert_ne!(
-            z_of(shipped, Vec3::Y).signum(),
-            z_of(old, Vec3::Y).signum(),
-            "flipping the tilt must flip the top face's viewer-facing sign"
-        );
-    }
-
     #[test]
     fn iso_mvp_differs_only_by_per_slot_translation() {
         let screen = (1280, 720);

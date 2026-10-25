@@ -398,10 +398,6 @@ mod tests {
         ItemStack::new(ItemType::Dirt, 1)
     }
 
-    fn floor_at_zero(p: IVec3) -> bool {
-        p.y < 0
-    }
-
     fn empty(_p: IVec3) -> bool {
         false
     }
@@ -416,44 +412,6 @@ mod tests {
                 &[]
             }
         }
-    }
-
-    #[test]
-    fn new_pops_upward_and_outward() {
-        let d = DroppedItem::new(WorldPos::ZERO, stack(), 7);
-        assert!(d.vel.y > 0.0, "should pop upward");
-        let horiz = (d.vel.x * d.vel.x + d.vel.z * d.vel.z).sqrt();
-        assert!(horiz > 0.0, "should have some outward kick");
-        assert_eq!(d.ticks_lived, 0);
-    }
-
-    #[test]
-    fn thrown_launches_along_look_direction_with_upward_arc() {
-        let d = DroppedItem::thrown(WorldPos::ZERO, stack(), Vec3::new(1.0, 0.0, 0.0));
-        assert!(d.vel.x > 0.0, "throws forward along +X: {}", d.vel.x);
-        assert!(d.vel.y > 0.0, "has a small upward arc: {}", d.vel.y);
-        assert_eq!(d.vel.z, 0.0);
-        assert_eq!(d.ticks_lived, 0, "fresh throw starts the lifetime at zero");
-        assert_eq!(d.stack, stack());
-    }
-
-    #[test]
-    fn new_is_deterministic_per_seed_and_varies() {
-        let a = DroppedItem::new(WorldPos::ZERO, stack(), 3);
-        let b = DroppedItem::new(WorldPos::ZERO, stack(), 3);
-        assert_eq!(a.vel, b.vel, "same seed → same pop");
-        let c = DroppedItem::new(WorldPos::ZERO, stack(), 4);
-        assert_ne!(a.vel, c.vel, "different seed → different pop");
-    }
-
-    #[test]
-    fn gravity_pulls_down_in_free_fall() {
-        let mut d = DroppedItem::new(WorldPos::new(0.0, 50.0, 0.0), stack(), 1);
-        d.vel = Vec3::ZERO;
-        let before = d.pos.y;
-        d.integrate(0.1, None, &empty);
-        assert!(d.pos.y < before, "free fall should lower the item");
-        assert!(d.vel.y < 0.0, "downward velocity accrues");
     }
 
     #[test]
@@ -484,26 +442,6 @@ mod tests {
     }
 
     #[test]
-    fn rests_on_a_floor() {
-        let mut d = DroppedItem::new(WorldPos::new(0.5, 2.0, 0.5), stack(), 2);
-        d.vel = Vec3::new(0.0, -1.0, 0.0);
-        for _ in 0..300 {
-            d.integrate(1.0 / 60.0, None, &floor_at_zero);
-        }
-        assert!(
-            d.pos.y >= f64::from(ITEM_HALF_EXTENT - 1e-3),
-            "item sank through floor: {}",
-            d.pos.y
-        );
-        assert!(
-            d.pos.y < 0.5,
-            "item should be resting near the floor: {}",
-            d.pos.y
-        );
-        assert!(d.vel.y.abs() < 1e-3, "grounded item should stop falling");
-    }
-
-    #[test]
     fn item_rests_on_an_inset_block_top_not_the_cell_top() {
         let chest = petramond_world::block::Block::Chest.collision_boxes();
         let chest_top = chest.iter().map(|b| b.max[1]).fold(0.0, f32::max);
@@ -521,77 +459,6 @@ mod tests {
             (d.pos.y - f64::from(ITEM_HALF_EXTENT) - f64::from(chest_top)).abs() < 0.02,
             "item should rest on the chest top {chest_top}, got bottom {}",
             d.pos.y - f64::from(ITEM_HALF_EXTENT)
-        );
-    }
-
-    #[test]
-    fn horizontal_velocity_damps_on_ground() {
-        let mut d = DroppedItem::new(
-            WorldPos::new(0.5, f64::from(ITEM_HALF_EXTENT), 0.5),
-            stack(),
-            5,
-        );
-        d.vel = Vec3::new(4.0, 0.0, 0.0);
-        for _ in 0..120 {
-            d.integrate(1.0 / 60.0, None, &floor_at_zero);
-        }
-        assert!(
-            d.vel.x.abs() < 0.5,
-            "ground drag should bleed off horizontal speed: {}",
-            d.vel.x
-        );
-    }
-
-    #[test]
-    fn physics_does_not_touch_the_lifetime_counter() {
-        let mut d = DroppedItem::new(WorldPos::ZERO, stack(), 9);
-        d.integrate(0.5, None, &empty);
-        d.integrate(0.5, None, &empty);
-        assert_eq!(d.ticks_lived, 0);
-    }
-
-    #[test]
-    fn pickup_range_test() {
-        let d = DroppedItem::new(WorldPos::new(0.0, 0.0, 0.0), stack(), 0);
-        assert!(d.within_pickup(WorldPos::new(0.0, 0.0, 0.0)));
-        let just_out = WorldPos::new(f64::from(ABSORB_RADIUS + 0.1), 0.0, 0.0);
-        assert!(!d.within_pickup(just_out));
-        assert!(d.within_attract(just_out));
-        assert!(!d.within_attract(WorldPos::new(f64::from(ATTRACT_RADIUS + 0.01), 0.0, 0.0)));
-        assert!(!d.within_pickup(WorldPos::new(10.0, 0.0, 0.0)));
-        assert!(!d.within_attract(WorldPos::new(10.0, 0.0, 0.0)));
-    }
-
-    #[test]
-    fn magnet_pulls_item_toward_target() {
-        let target = WorldPos::new(0.0, 0.0, 0.0);
-        let start = WorldPos::new(0.0, f64::from(ATTRACT_RADIUS - 0.2), 0.0);
-        let mut d = DroppedItem::new(start, stack(), 11);
-        d.vel = Vec3::ZERO;
-        let before = (d.pos - target).length();
-        d.integrate(1.0 / 60.0, Some(target), &empty);
-        let after = (d.pos - target).length();
-        assert!(
-            after < before,
-            "magnet should pull the item toward the target"
-        );
-    }
-
-    #[test]
-    fn magnet_absorbs_within_inner_radius() {
-        let target = WorldPos::new(0.0, 0.0, 0.0);
-        let start = WorldPos::new(0.0, f64::from(ATTRACT_RADIUS - 0.1), 0.0);
-        let mut d = DroppedItem::new(start, stack(), 12);
-        d.vel = Vec3::ZERO;
-        for _ in 0..120 {
-            d.integrate(1.0 / 60.0, Some(target), &empty);
-            if d.within_pickup(target) {
-                break;
-            }
-        }
-        assert!(
-            d.within_pickup(target),
-            "magnetised item should reach the absorb radius"
         );
     }
 

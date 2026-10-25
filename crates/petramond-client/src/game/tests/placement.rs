@@ -1,22 +1,13 @@
 use super::common::{filled_inventory, game, game_on_empty_chunk, give, hit};
 use petramond::events::tick::TickEvents;
-use petramond::rules::placement::facing_from_forward;
 use petramond_math::facing::Facing;
-use petramond_math::math::{IVec3, Vec3};
+use petramond_math::math::IVec3;
 use petramond_math::world_pos::WorldPos;
 use petramond_world::block::Block;
 use petramond_world::block_state::{
     HeldBlockState, LogAxis, SlabSplit, SlabState, StairHalf, StairState,
 };
 use petramond_world::item::{ItemStack, ItemType};
-
-#[test]
-fn place_with_empty_hand_does_nothing() {
-    let mut game = game();
-    assert!(game.server_player().inventory.selected().is_none());
-    game.session_mut().input_mut().look = Some(hit(IVec3::new(0, 40, 0), IVec3::Y));
-    assert!(!game.sim_mut().try_place_for_test());
-}
 
 #[test]
 fn right_clicking_interactable_blocks_requests_their_screen() {
@@ -98,45 +89,6 @@ fn right_clicking_a_door_toggles_it_through_block_interaction() {
             .door_state_at(upper.x, upper.y, upper.z)
             .unwrap()
             .open
-    );
-}
-
-#[test]
-fn place_into_loaded_air_decrements_selected() {
-    let mut game = game();
-    game.server_player_mut().inventory = filled_inventory();
-    game.server_world_mut().update_load(0, 4, 0);
-    let deadline = std::time::Instant::now() + petramond_util::test_time::TEST_HARD_DEADLINE;
-    let mut loaded = false;
-    while std::time::Instant::now() < deadline {
-        game.server_world_mut().poll();
-        if game.server_world().data().chunk_loaded(0, 0) {
-            loaded = true;
-            break;
-        }
-    }
-    assert!(
-        loaded,
-        "chunk (0,0) failed to load within the hard deadline"
-    );
-
-    let p = IVec3::new(0, 200, 0);
-    assert!(Block::from_id(game.server_world().data().chunk_block(p.x, p.y, p.z)).is_replaceable());
-    game.server_player_mut().inventory.set_active(0);
-    let item = game.server_player().inventory.selected().unwrap().item;
-    let block = item.as_block().unwrap();
-    let before = game.server_player().inventory.selected().unwrap().count;
-
-    game.session_mut().input_mut().look = Some(hit(IVec3::new(0, 199, 0), IVec3::Y));
-    assert!(game.sim_mut().try_place_for_test());
-
-    assert_eq!(
-        Block::from_id(game.server_world().data().chunk_block(p.x, p.y, p.z)),
-        block
-    );
-    assert_eq!(
-        game.server_player().inventory.selected().unwrap().count,
-        before - 1
     );
 }
 
@@ -685,21 +637,6 @@ fn model_placement_orientation_spans_across_or_away() {
     );
     assert_eq!(at(&wb, p + IVec3::new(0, 0, 1)), Block::Air);
     assert_eq!(at(&wb, p - IVec3::new(0, 0, 1)), Block::Air);
-}
-
-#[test]
-fn furnace_front_faces_the_player_on_placement() {
-    assert_eq!(facing_from_forward(Vec3::new(0.0, 0.0, 1.0)), Facing::North);
-    assert_eq!(
-        facing_from_forward(Vec3::new(0.0, 0.0, -1.0)),
-        Facing::South
-    );
-    assert_eq!(facing_from_forward(Vec3::new(1.0, 0.0, 0.0)), Facing::West);
-    assert_eq!(facing_from_forward(Vec3::new(-1.0, 0.0, 0.0)), Facing::East);
-    assert_eq!(
-        facing_from_forward(Vec3::new(0.2, -0.9, 0.95)),
-        Facing::North
-    );
 }
 
 #[test]

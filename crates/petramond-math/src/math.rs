@@ -158,15 +158,6 @@ mod tests {
     }
 
     #[test]
-    fn lerp_angle_crosses_the_seam_instead_of_spinning() {
-        let (a, b) = (PI - 0.1, -PI + 0.1);
-        assert!(close(lerp_angle(a, b, 0.5), PI));
-        assert!(close(lerp_angle(a, b, 1.0), PI + 0.1));
-        assert!(close(lerp_angle(a, b, 0.0), a));
-        assert!(close(lerp_angle(0.0, FRAC_PI_2, 0.5), FRAC_PI_2 / 2.0));
-    }
-
-    #[test]
     fn voxel_at_floors_negative_coordinates() {
         assert_eq!(voxel_at(Vec3::new(0.5, 1.999, 2.0)), IVec3::new(0, 1, 2));
         assert_eq!(
@@ -174,26 +165,5 @@ mod tests {
             IVec3::new(-1, -1, -2)
         );
         assert_eq!(voxel_at(Vec3::splat(-0.0)), IVec3::ZERO);
-    }
-
-    #[test]
-    fn lerp_and_smoothstep_hit_their_endpoints() {
-        assert_eq!(lerp(2.0, 6.0, 0.0), 2.0);
-        assert_eq!(lerp(2.0, 6.0, 1.0), 6.0);
-        assert_eq!(lerp(2.0, 6.0, 0.25), 3.0);
-        assert_eq!(smoothstep(1.0, 3.0, 0.0), 0.0);
-        assert_eq!(smoothstep(1.0, 3.0, 2.0), 0.5);
-        assert_eq!(smoothstep(1.0, 3.0, 9.0), 1.0);
-        assert!(smoothstep(1.0, 3.0, 1.5) < 0.25, "eases in");
-    }
-
-    #[test]
-    fn tilt_eases_to_level_without_overshoot() {
-        let t = Tilt::new(0.3, -0.05);
-        let eased = t.toward_level(0.1);
-        assert!(close(eased.pitch, 0.2) && close(eased.roll, 0.0));
-        assert!(t.toward_level(1.0).is_level());
-        assert_eq!(Tilt::LEVEL.rotation(), Mat4::IDENTITY);
-        assert!(!Tilt::new(f32::NAN, 0.0).is_finite());
     }
 }

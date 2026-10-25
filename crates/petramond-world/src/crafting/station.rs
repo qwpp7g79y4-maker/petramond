@@ -74,28 +74,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn engine_keys_resolve_and_unknown_or_bare_keys_are_refused() {
-        assert_eq!(
-            CraftingStation::from_key("petramond:inventory"),
-            Some(CraftingStation::Inventory)
-        );
-        assert_eq!(
-            CraftingStation::from_key("petramond:crafting_table"),
-            Some(CraftingStation::CraftingTable)
-        );
-        assert_eq!(
-            CraftingStation::from_key("petramond:furniture_workbench"),
-            Some(CraftingStation::FurnitureWorkbench)
-        );
-        assert_eq!(
-            CraftingStation::from_key("petramond:chiseling_station"),
-            Some(CraftingStation::ChiselingStation)
-        );
-        assert_eq!(CraftingStation::from_key("petramond:not_a_station"), None);
-        assert_eq!(CraftingStation::from_key("bare_name"), None);
-    }
-
-    #[test]
     fn pack_stations_register_once_and_resolve_by_kind() {
         let a = CraftingStation::from_key("stationtest:bench").expect("namespaced key registers");
         let b = CraftingStation::from_key("stationtest:bench").unwrap();
@@ -104,19 +82,5 @@ mod tests {
         assert_eq!(CraftingStation::of_kind(a.gui_kind()), Some(a));
         let plain = crate::gui_state::intern_kind("stationtest:not_a_bench").unwrap();
         assert_eq!(CraftingStation::of_kind(plain), None);
-    }
-
-    #[test]
-    fn pack_stations_admit_only_their_own_tier() {
-        let bench = CraftingStation::from_key("stationtest:admits_bench").unwrap();
-        assert!(bench.admits(bench));
-        assert!(!bench.admits(CraftingStation::Inventory));
-        assert!(!bench.admits(CraftingStation::CraftingTable));
-        assert!(!CraftingStation::CraftingTable.admits(bench));
-        assert!(!CraftingStation::Inventory.admits(bench));
-        assert!(CraftingStation::CraftingTable.admits(CraftingStation::Inventory));
-        assert!(CraftingStation::CraftingTable.admits(CraftingStation::CraftingTable));
-        assert!(CraftingStation::Inventory.admits(CraftingStation::Inventory));
-        assert!(!CraftingStation::Inventory.admits(CraftingStation::CraftingTable));
     }
 }

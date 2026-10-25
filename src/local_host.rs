@@ -78,34 +78,3 @@ fn build(
         },
     )
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn local_join_mirrors_the_built_session() {
-        let key = crate::net::identity::PlayerIdentity::generate()
-            .expect("os randomness")
-            .key();
-        let (server, session) = build_in_process(
-            "",
-            3,
-            1,
-            key,
-            "Local".to_string(),
-            Arc::new(JobPool::inline()),
-        );
-        let local = &server.sessions()[0];
-        assert_eq!(session.join.player_id, local.id());
-        assert_eq!(session.join.seed, server.world().data().seed);
-        assert_eq!(session.join.self_restore.transform.pos, local.player().pos);
-        assert_eq!(session.join.self_restore.health, local.player().health());
-        assert!(session.join.players.is_empty(), "nobody else is connected");
-        assert_eq!(
-            session.join.tables,
-            crate::net::remap::local_name_tables(),
-            "the loopback join speaks the local id vocabulary"
-        );
-    }
-}

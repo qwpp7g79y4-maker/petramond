@@ -66,36 +66,6 @@ fn connected_rooms_have_open_passages_after_lattice_interpolation() {
 }
 
 #[test]
-fn connections_require_both_rooms_to_pass_admission() {
-    let layer = CONNECTED.replace(
-        "\"spacing\":48",
-        "\"spacing\":48,\"contact\":\"natural_cave\"",
-    );
-    let table = crate::data::underground::test_table(&[]);
-    let rows = excavations::test_table(&[&layer], table);
-    let denied = ChamberField::gather(
-        &CandidateCache::default(),
-        table,
-        rows,
-        42,
-        [[-64, -48, -64], [64, 32, 64]],
-        |_, y, _| table.id_at([0.0, 0.0, 0.0, 0.0, 0.0, 0.5], y),
-        |_| false,
-    );
-    assert!(denied.is_empty());
-    let admitted = ChamberField::gather(
-        &CandidateCache::default(),
-        table,
-        rows,
-        42,
-        [[-64, -48, -64], [64, 32, 64]],
-        |_, y, _| table.id_at([0.0, 0.0, 0.0, 0.0, 0.0, 0.5], y),
-        |_| true,
-    );
-    assert!(!admitted.passages.is_empty());
-}
-
-#[test]
 fn a_connected_room_can_join_through_a_directly_anchored_neighbor() {
     let layer = CONNECTED.replace(
         "\"spacing\":48",

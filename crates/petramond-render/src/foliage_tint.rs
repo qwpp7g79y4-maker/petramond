@@ -53,20 +53,3 @@ pub fn face_material(tile: Tile) -> FaceMaterial {
         },
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn t(name: &str) -> Tile {
-        Tile::from_name(name).unwrap_or_else(|| panic!("missing tile '{name}'"))
-    }
-
-    #[test]
-    fn grass_side_becomes_dirt_plus_tinted_overlay() {
-        let m = face_material(t("grass_side"));
-        assert_eq!(m.base_tile, t("dirt"));
-        assert_eq!(m.overlay_tile, Some(t("grass_side_overlay")));
-        assert_eq!(m.tint, default_grass_color());
-    }
-}

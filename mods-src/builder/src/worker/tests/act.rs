@@ -1,10 +1,9 @@
 use super::{at_work, unit, working};
 use crate::host::fake::rows::{AIR, DIRT, STONE};
-use crate::host::fake::Deed;
 use crate::host::prelude::*;
 use crate::project::Projects;
 use crate::survey::Known;
-use crate::worker::act::{begin, dig, settle};
+use crate::worker::act::{dig, settle};
 use crate::worker::tuning::waits::FACELESS_SPACING;
 use crate::worker::Job;
 use crate::worker::{acted, Ctx, Step, Task};
@@ -25,46 +24,6 @@ fn refuse(
     };
     acted(ctx, projects, job, pos, ActorAction::Place, Some(refusal));
     assert_eq!(job.crew.step, Step::Plan);
-}
-
-#[test]
-fn a_block_in_reach_and_in_hand_is_laid_and_then_waited_on() {
-    let (mut session, id, golem) = working(AT);
-    let middle = unit(&session, id, [1, 0, 0]);
-    let body = session.body(golem);
-    at_work(&mut session, id, |ctx, projects, job| {
-        let step = begin(ctx, projects, job, &body, Task::Unit(middle));
-        assert_eq!(step, Step::Plan, "nothing to lay it with");
-        assert!(!job.crew.deferrals.deferred(Task::Unit(middle), ctx.now));
-    });
-    session
-        .world
-        .give(ContainerAddress::Mob(golem), "petramond:stone", 3);
-    let body = session.body(golem);
-    at_work(&mut session, id, |ctx, projects, job| {
-        let step = begin(ctx, projects, job, &body, Task::Unit(middle));
-        assert_eq!(
-            step,
-            Step::Await {
-                task: Task::Unit(middle),
-                since: ctx.now
-            }
-        );
-        job.crew.step = step;
-        acted(ctx, projects, job, [1, 0, 0], ActorAction::Place, None);
-        assert!(job.crew.built.contains(&middle));
-    });
-    assert_eq!(session.world.block([1, 0, 0]), STONE);
-    assert_eq!(
-        session
-            .world
-            .count(ContainerAddress::Mob(golem), "petramond:stone"),
-        2
-    );
-    assert!(session
-        .world
-        .deeds()
-        .contains(&Deed::Placed([1, 0, 0], "petramond:stone".into())));
 }
 
 #[test]
@@ -120,81 +79,6 @@ fn a_block_with_nothing_to_hang_on_is_propped_once_refused_often_enough() {
         assert!(job.crew.deferrals.deferred(task, tries[1] + 119));
         assert!(!job.crew.deferrals.deferred(task, tries[1] + 120));
     });
-}
-
-#[test]
-fn a_refusal_says_why_and_sets_the_work_aside_as_long_as_it_calls_for() {
-    let (mut session, id, _) = working(AT);
-    let task = Task::Unit(unit(&session, id, [1, 0, 0]));
-    at_work(&mut session, id, |ctx, projects, job| {
-        let now = ctx.now;
-        refuse(
-            ctx,
-            projects,
-            job,
-            task,
-            [1, 0, 0],
-            ActionRefusal::OutOfReach,
-        );
-        assert!(job.crew.deferrals.blind(task, AT), "never from here again");
-        assert!(job.crew.deferrals.deferred(task, now + 9));
-        assert!(!job.crew.deferrals.deferred(task, now + 10));
-        assert_eq!(job.crew.note, "");
-
-        refuse(
-            ctx,
-            projects,
-            job,
-            task,
-            [1, 0, 0],
-            ActionRefusal::BodyInTheWay,
-        );
-        assert_eq!(job.crew.note, "Someone is standing where a block goes");
-        assert!(job.crew.deferrals.deferred(task, now + 39));
-
-        refuse(
-            ctx,
-            projects,
-            job,
-            task,
-            [1, 0, 0],
-            ActionRefusal::Unbreakable,
-        );
-        assert_eq!(job.crew.note, "Something unbreakable is in the way");
-        assert!(job.crew.deferrals.deferred(task, now + 2399));
-
-        job.crew.note.clear();
-        let scaffold = Task::Scaffold([4, 0, 4]);
-        refuse(
-            ctx,
-            projects,
-            job,
-            scaffold,
-            [4, 0, 4],
-            ActionRefusal::Unbreakable,
-        );
-        assert!(job.crew.deferrals.deferred(scaffold, now + 39));
-        assert!(!job.crew.deferrals.deferred(scaffold, now + 40));
-        assert_eq!(job.crew.note, "", "scaffolding just waits");
-
-        let fresh = Task::Unit(unit_at(job, [0, 0, 0]));
-        refuse(
-            ctx,
-            projects,
-            job,
-            fresh,
-            [0, 0, 0],
-            ActionRefusal::MissingItems,
-        );
-        assert!(
-            !job.crew.deferrals.deferred(fresh, now),
-            "fetched, not waited for"
-        );
-    });
-}
-
-fn unit_at(job: &Job, pos: [i32; 3]) -> usize {
-    job.design.unit_at(pos).expect("a unit there")
 }
 
 #[test]

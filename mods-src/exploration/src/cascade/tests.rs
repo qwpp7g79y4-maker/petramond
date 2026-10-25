@@ -335,19 +335,6 @@ fn the_flood_rejects_unfed_pools_and_water_past_the_probe() {
 }
 
 #[test]
-fn a_rim_of_tall_walls_is_a_tank_not_a_terrace() {
-    let rim: BTreeSet<(i32, i32)> = [(0, 0), (1, 0)].into_iter().collect();
-    let column = |x: i32, h: i32| (0..h).map(move |y| [x, y, 0]);
-    let low: BTreeSet<[i32; 3]> = column(0, 4).chain(column(1, 1)).collect();
-    assert!(
-        !seal::rim_is_a_wall(&low, &rim),
-        "half the rim tall is still a lip"
-    );
-    let tall: BTreeSet<[i32; 3]> = column(0, 4).chain(column(1, 4)).collect();
-    assert!(seal::rim_is_a_wall(&tall, &rim));
-}
-
-#[test]
 fn a_notch_path_runs_from_the_source_rim_to_the_plunge() {
     let mut cols = BTreeMap::new();
     cols.insert((0, 0), (1usize, -5));

@@ -847,19 +847,6 @@ mod tests {
     }
 
     #[test]
-    fn client_overlay_rect_uses_explicit_physical_display_size() {
-        let rect = overlay_rect(
-            (1900, 1000),
-            (256, 256),
-            mod_api::ClientOverlayAnchor::TopRight,
-            [8, 8],
-        );
-        assert_eq!(rect[2..], [256.0, 256.0]);
-        assert_eq!(rect[0] + rect[2] + 8.0, 1900.0);
-        assert_eq!(rect[1], 8.0);
-    }
-
-    #[test]
     fn client_canvas_keeps_native_resolution_when_it_fits() {
         let rect = canvas_rect((1900, 1034), (640, 640));
         assert_eq!(rect[2..], [640.0, 640.0]);

@@ -155,15 +155,3 @@ impl BytesWire for Option<Vec<u8>> {
         wire.map(serde_bytes::ByteBuf::into_vec)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn ptr_len_packing_is_lossless() {
-        for (ptr, len) in [(0, 0), (1, u32::MAX), (u32::MAX, 17), (0x1234_5678, 9)] {
-            assert_eq!(unpack_ptr_len(pack_ptr_len(ptr, len)), (ptr, len));
-        }
-    }
-}

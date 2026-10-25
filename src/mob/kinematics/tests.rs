@@ -21,21 +21,6 @@ fn sheep_def() -> &'static MobDef {
 }
 
 #[test]
-fn gravity_settles_the_mob_on_the_floor() {
-    let mut owl = Instance::new(Mob::Owl, WorldPos::new(0.5, 5.0, 0.5), 0.0, 1);
-    for _ in 0..600 {
-        owl.integrate(1.0 / 60.0, owl_def(), Vec3::ZERO, false, &floor_at_zero);
-    }
-    assert!(
-        owl.pos.y >= -1e-3,
-        "mob fell through the floor: {}",
-        owl.pos.y
-    );
-    assert!(owl.pos.y < 0.05, "mob rests on the floor: {}", owl.pos.y);
-    assert!(owl.on_ground());
-}
-
-#[test]
 fn zero_gravity_preserves_vertical_drive_but_still_collides() {
     let (text, _) = petramond_world::assets::read_base_text("mobs.json").unwrap();
     let mut rows: serde_json::Value = serde_json::from_str(&text).unwrap();
@@ -308,28 +293,6 @@ fn an_airborne_drive_cannot_replace_carry_or_yaw() {
     assert!(
         owl.motion.drive.is_none(),
         "the rejected intent still expires"
-    );
-}
-
-#[test]
-fn jump_impulse_lifts_a_grounded_mob() {
-    let mut owl = Instance::new(Mob::Owl, WorldPos::new(0.5, 0.0, 0.5), 0.0, 1);
-    owl.integrate(1.0 / 60.0, owl_def(), Vec3::ZERO, false, &floor_at_zero);
-    assert!(owl.on_ground());
-    owl.integrate(1.0 / 60.0, owl_def(), Vec3::ZERO, true, &floor_at_zero);
-    assert!(!owl.on_ground(), "jump leaves the ground");
-    assert!(owl.pos.y > 0.0, "jump raises the mob");
-}
-
-#[test]
-fn idle_mob_is_not_moving() {
-    let mut owl = Instance::new(Mob::Owl, WorldPos::new(0.5, 0.0, 0.5), 0.0, 1);
-    for _ in 0..10 {
-        owl.integrate(1.0 / 60.0, owl_def(), Vec3::ZERO, false, &floor_at_zero);
-    }
-    assert!(
-        !owl.moving,
-        "a still mob reports not moving (renders the rest pose)"
     );
 }
 

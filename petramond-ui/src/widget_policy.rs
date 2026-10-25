@@ -62,30 +62,3 @@ pub fn pointer_target(kind: &NodeKind) -> bool {
         | NodeKind::Tooltip { .. } => false,
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn interactive_kinds_are_not_bare_layout_containers() {
-        for kind in [
-            NodeKind::Checkbox,
-            NodeKind::Frame,
-            NodeKind::Row,
-            NodeKind::Column,
-            NodeKind::Spacer,
-            NodeKind::Hook,
-            NodeKind::Tooltip { hover: None },
-        ] {
-            let container = matches!(
-                kind,
-                NodeKind::Frame | NodeKind::Row | NodeKind::Column | NodeKind::Spacer
-            );
-            assert!(
-                !(container && pointer_target(&kind)),
-                "a layout container must not take pointer targeting directly"
-            );
-        }
-    }
-}

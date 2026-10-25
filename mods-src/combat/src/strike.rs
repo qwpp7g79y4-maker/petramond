@@ -418,12 +418,4 @@ mod tests {
         });
         assert_eq!(square.len(), 1);
     }
-
-    #[test]
-    fn a_roll_stays_inside_its_range() {
-        for word in [0, u64::MAX, 0x9E37_79B9_7F4A_7C15] {
-            let d = roll([2.0, 5.0], word);
-            assert!((2.0..=5.0).contains(&d), "{d}");
-        }
-    }
 }

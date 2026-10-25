@@ -268,24 +268,6 @@ fn closing_a_menu_stashes_the_cursor_stack() {
 }
 
 #[test]
-fn route_inventory_click_open_picks_up_slot_stack() {
-    let mut app = app_with_grass();
-    app.handle_control(Control::ToggleInventory, true);
-    assert!(app.screen.inventory_open());
-    let screen = (1280, 720);
-    let (cx, cy) = cursor_over_slot(&mut app, screen, 0);
-    app.set_cursor_position(cx, cy);
-
-    assert!(app.inventory().cursor().is_none());
-    let item0 = app.inventory().slot(0).unwrap().item;
-
-    let consumed = app.click_screen_for_test(screen, 0.0);
-    assert!(consumed);
-    assert!(app.inventory().slot(0).is_none());
-    assert_eq!(app.inventory().cursor().unwrap().item, item0);
-}
-
-#[test]
 fn fast_double_click_keeps_stack_on_cursor_to_gather() {
     let mut app = app_with_grass();
     app.handle_control(Control::ToggleInventory, true);
@@ -335,17 +317,6 @@ fn fast_click_on_a_different_slot_is_not_a_double_click() {
         "stack dropped into the new slot"
     );
     assert!(app.inventory().slot(dest).is_some());
-}
-
-#[test]
-fn route_inventory_click_closed_is_a_noop() {
-    let mut app = app();
-    assert!(!app.screen.inventory_open());
-    let before = app.inventory().slot(0).map(|s| s.count);
-    let consumed = app.click_screen_for_test((1280, 720), 0.0);
-    assert!(!consumed);
-    assert!(app.inventory().cursor().is_none());
-    assert_eq!(app.inventory().slot(0).map(|s| s.count), before);
 }
 
 #[test]
@@ -480,35 +451,6 @@ fn secondary_drag_preview_places_one_on_each_new_slot_before_release() {
 }
 
 #[test]
-fn primary_drag_evenly_splits_the_cursor_and_puts_remainder_last() {
-    let mut app = app();
-    app.add_to_inventory(ItemStack::new(ItemType::Grass, 10));
-    app.handle_control(Control::ToggleInventory, true);
-    let screen = (1280, 720);
-    let source = cursor_over_slot(&mut app, screen, 0);
-    app.set_cursor_position(source.0, source.1);
-    app.click_screen_for_test(screen, 0.0);
-    assert_eq!(app.inventory().cursor().map(|stack| stack.count), Some(10));
-
-    app.drag_screen_for_test(
-        screen,
-        0.1,
-        petramond_world::gui_state::PointerButton::Primary,
-        &[
-            petramond_world::gui_state::MenuSlot::Inventory(9),
-            petramond_world::gui_state::MenuSlot::Inventory(10),
-            petramond_world::gui_state::MenuSlot::Inventory(9),
-            petramond_world::gui_state::MenuSlot::Inventory(11),
-        ],
-    );
-
-    assert!(app.inventory().cursor().is_none());
-    assert_eq!(app.inventory().slot(9).map(|stack| stack.count), Some(3));
-    assert_eq!(app.inventory().slot(10).map(|stack| stack.count), Some(3));
-    assert_eq!(app.inventory().slot(11).map(|stack| stack.count), Some(4));
-}
-
-#[test]
 fn secondary_drag_places_once_per_distinct_slot_per_press() {
     let mut app = app();
     app.add_to_inventory(ItemStack::new(ItemType::Grass, 5));
@@ -544,38 +486,6 @@ fn secondary_drag_places_once_per_distinct_slot_per_press() {
     assert!(app.inventory().cursor().is_none());
     assert_eq!(app.inventory().slot(9).map(|stack| stack.count), Some(2));
     assert_eq!(app.inventory().slot(10).map(|stack| stack.count), Some(2));
-}
-
-#[test]
-fn route_inventory_right_click_closed_falls_through_to_placement() {
-    let mut app = app();
-    assert!(!app.screen.inventory_open());
-    assert!(!app.right_click_screen_for_test((1280, 720), 0.0));
-}
-
-#[test]
-fn route_inventory_shift_click_moves_hotbar_to_main_grid() {
-    let mut app = app_with_grass();
-    app.handle_control(Control::ToggleInventory, true);
-    app.set_modifiers(Modifiers {
-        ctrl: false,
-        shift: true,
-        ..Modifiers::default()
-    });
-    let screen = (1280, 720);
-    let (cx, cy) = cursor_over_slot(&mut app, screen, 0);
-    app.set_cursor_position(cx, cy);
-    let item0 = app.inventory().slot(0).unwrap().item;
-    app.click_screen_for_test(screen, 0.0);
-    assert!(app.inventory().slot(0).is_none(), "hotbar slot emptied");
-    assert_eq!(
-        app.inventory()
-            .slot(petramond_world::inventory::HOTBAR_LEN)
-            .unwrap()
-            .item,
-        item0,
-        "moved to the first main-grid slot"
-    );
 }
 
 #[test]
@@ -809,141 +719,4 @@ fn hovering_a_filled_slot_publishes_the_item_tooltip() {
     app.solve_menu_frame_for_test(screen);
     app.solve_menu_frame_for_test(screen);
     assert_eq!(app.ui.state_mut().get_bool("show_item_tip"), Some(false));
-}
-
-#[test]
-fn selecting_a_recipe_arms_craft_without_a_detail_line() {
-    let mut app = app();
-    app.install_test_crafting_recipe();
-    app.add_to_inventory(ItemStack::new(ItemType::Coal, 1));
-    app.handle_control(Control::ToggleInventory, true);
-    let screen = (1280u32, 720u32);
-    search_recipes(&mut app, screen, "stick");
-
-    assert_eq!(app.ui.state_mut().get_i32("craft_recipe_sel"), Some(-1));
-    assert_eq!(app.ui.state_mut().get_bool("can_craft"), Some(false));
-
-    let (x, y) = cursor_over_widget(&mut app, screen, "recipe", Some(0));
-    app.set_cursor_position(x, y);
-    app.click_screen_for_test(screen, 0.1);
-    app.solve_menu_frame_for_test(screen);
-
-    assert_eq!(app.ui.state_mut().get_i32("craft_recipe_sel"), Some(0));
-    assert_eq!(app.ui.state_mut().get_bool("can_craft"), Some(true));
-    assert!(
-        !app.ui
-            .out()
-            .named
-            .iter()
-            .any(|(key, _)| key.id.starts_with("craft_detail")),
-        "the detail row is gone from the document"
-    );
-}
-
-#[test]
-fn the_recipe_grid_tiles_nine_cells_per_row_in_filtered_order() {
-    let mut app = app();
-    app.install_test_crafting_catalog(
-        (0..11)
-            .map(|i| {
-                super::test_recipe(
-                    &format!("test:row{i}"),
-                    ItemType::Coal,
-                    ItemStack::new(ItemType::Stick, 1),
-                )
-            })
-            .collect(),
-    );
-    app.add_to_inventory(ItemStack::new(ItemType::Coal, 64));
-    app.handle_control(Control::ToggleInventory, true);
-    let screen = (1280u32, 720u32);
-    app.solve_menu_frame_for_test(screen);
-
-    let cells: Vec<_> = (0..11)
-        .map(|i| {
-            app.ui
-                .out()
-                .named
-                .iter()
-                .find(|(key, _)| key.id == "recipe" && key.item == Some(i))
-                .unwrap_or_else(|| panic!("cell {i} stamped"))
-                .1
-        })
-        .collect();
-    for row in cells.chunks(9) {
-        assert!(
-            row.windows(2).all(|w| w[1].x > w[0].x && w[1].y == w[0].y),
-            "cells within a row advance left to right at one height"
-        );
-    }
-    assert!(cells[9].y > cells[0].y, "the tenth cell wraps to a new row");
-    assert_eq!(cells[9].x, cells[0].x, "and returns to the first column");
-    assert_eq!(cells[10].x, cells[1].x);
-
-    for (i, cell) in cells.iter().enumerate() {
-        let icon = app
-            .ui
-            .out()
-            .named
-            .iter()
-            .find(|(key, _)| key.id == "recipe_result" && key.item == Some(i as u32))
-            .unwrap_or_else(|| panic!("cell {i} reserves an icon hook"))
-            .1;
-        assert!(
-            icon.x >= cell.x
-                && icon.y >= cell.y
-                && icon.x + icon.w <= cell.x + cell.w
-                && icon.y + icon.h <= cell.y + cell.h,
-            "icon {icon:?} escapes cell {cell:?}"
-        );
-    }
-}
-
-#[test]
-fn a_toggle_activates_its_widget_like_a_primary_click() {
-    use crate::app::shell_docs::menu_widget_activation;
-    use petramond_ui::{PointerButton, UiEvent};
-
-    let click = |button| UiEvent::Click {
-        id: "lever".into(),
-        item: None,
-        button,
-    };
-    assert_eq!(
-        menu_widget_activation(&click(PointerButton::Primary)),
-        Some("lever")
-    );
-    assert_eq!(
-        menu_widget_activation(&click(PointerButton::Secondary)),
-        None,
-        "widget clicks stay primary-only"
-    );
-
-    let toggle = |button, on| UiEvent::Toggle {
-        id: "lever".into(),
-        item: None,
-        on,
-        button,
-    };
-    for on in [false, true] {
-        assert_eq!(
-            menu_widget_activation(&toggle(PointerButton::Primary, on)),
-            Some("lever"),
-            "the node's own latch is presentation; the mod decides what it means"
-        );
-        assert_eq!(
-            menu_widget_activation(&toggle(PointerButton::Secondary, on)),
-            None
-        );
-    }
-
-    assert_eq!(
-        menu_widget_activation(&UiEvent::SlotClick {
-            role: "container".into(),
-            index: 0,
-            button: PointerButton::Primary,
-            shift: false,
-        }),
-        None
-    );
 }

@@ -56,7 +56,6 @@ impl Plans {
                 super::CANVAS_TEXELS[1]
             ));
         }
-        mod_sdk::log(&format!("{} paintable items", plans.0.len()));
         plans
     }
 

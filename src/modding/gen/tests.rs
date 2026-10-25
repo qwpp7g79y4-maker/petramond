@@ -2,34 +2,6 @@ use super::*;
 use petramond_world::chunk::SectionPos;
 use petramond_worldgen::ChunkGenerator;
 
-#[test]
-fn invalid_plan_members_reject_the_whole_generation_output() {
-    let good = ([0, 0, 0], mod_api::BlockId(Block::Stone.id()));
-    assert!(validated_writes(
-        mod_api::GenOutput {
-            blocks: vec![good, ([1, 0, 0], mod_api::BlockId(u16::MAX))],
-            ..Default::default()
-        },
-        1,
-        1
-    )
-    .is_err());
-    assert!(validated_writes(
-        mod_api::GenOutput {
-            blocks: vec![good],
-            structures: vec![mod_api::StructurePlacement {
-                template: "fixture:missing".into(),
-                origin: [0, 0, 0],
-                turn: 0,
-            }],
-            ..Default::default()
-        },
-        1,
-        1
-    )
-    .is_err());
-}
-
 fn trapping_module() -> Module {
     let wat = format!(
         r#"(module

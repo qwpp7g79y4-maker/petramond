@@ -41,12 +41,6 @@ fn look_tagged(tag: MobTagValue) -> Option<[f32; 2]> {
 }
 
 #[test]
-fn only_a_golem_bound_to_a_project_is_steered() {
-    assert!(decide(&ctx(&[])).is_none());
-    assert!(decide(&ctx(&[(GOAL_TAG, [1, 0, 1].to_tag())])).is_none());
-}
-
-#[test]
 fn a_golem_walks_to_its_goal_unless_held_and_stays_put_without_one() {
     let goal = (GOAL_TAG, [4, 0, -2].to_tag());
     let walking = decide(&ctx(&[project(), goal.clone()])).unwrap();

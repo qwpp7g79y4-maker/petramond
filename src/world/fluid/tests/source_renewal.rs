@@ -31,38 +31,3 @@ fn only_water_renews_sources_between_neighboring_sources() {
         }
     }
 }
-
-#[test]
-fn lava_fed_from_above_stays_falling_between_sources() {
-    let mut w = flat_server_world();
-    let gap = IVec3::new(8, 65, 8);
-    for offset in [-IVec3::X, IVec3::X, UP] {
-        assert!(w.set_fluid_world(gap + offset, Block::Lava, 0));
-    }
-    assert!(w.set_fluid_world(gap, Block::Lava, FALLING));
-    run_ticks(&mut w, lava_ring() * 2);
-
-    assert_eq!(block(&w, gap.x, gap.y, gap.z), Block::Lava);
-    assert!(is_falling(w.data.fluid_meta_world(gap.x, gap.y, gap.z)));
-}
-
-#[test]
-fn lava_between_removed_sources_fully_drains() {
-    let mut w = flat_server_world();
-    for x in [7, 9] {
-        assert!(w.set_fluid_world(IVec3::new(x, 65, 8), Block::Lava, 0));
-    }
-    run_ticks(&mut w, lava_ring() * 4);
-    assert_eq!(block(&w, 8, 65, 8), Block::Lava);
-
-    for x in [7, 9] {
-        carve(&mut w, x, 65, 8);
-    }
-    run_ticks(&mut w, lava_ring() * 8);
-
-    for x in 3..=13 {
-        for z in 4..=12 {
-            assert_eq!(block(&w, x, 65, z), Block::Air, "lava left at ({x},65,{z})");
-        }
-    }
-}

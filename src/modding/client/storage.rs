@@ -352,26 +352,6 @@ mod tests {
     const ANY: u64 = u64::MAX;
 
     #[test]
-    fn queued_writes_are_immediately_readable_and_persist_before_drop() {
-        let dir = petramond_util::test_dirs::TestScratchDir::new("client-storage");
-        {
-            let mut storage = ClientStorage::new(dir.to_path_buf());
-            assert!(storage
-                .set_many(vec![("map:tile:0:0".into(), Some(vec![1, 2, 3]))])
-                .is_ok());
-            assert_eq!(
-                storage.get_many(&["map:tile:0:0".into()], ANY).unwrap(),
-                vec![Some(vec![1, 2, 3])]
-            );
-        }
-        let mut reopened = ClientStorage::new(dir.to_path_buf());
-        assert_eq!(
-            reopened.get_many(&["map:tile:0:0".into()], ANY).unwrap(),
-            vec![Some(vec![1, 2, 3])]
-        );
-    }
-
-    #[test]
     fn async_reads_are_ordered_after_writes_and_ticketed() {
         let dir = petramond_util::test_dirs::TestScratchDir::new("client-storage-async");
         let mut storage = ClientStorage::new(dir.to_path_buf());

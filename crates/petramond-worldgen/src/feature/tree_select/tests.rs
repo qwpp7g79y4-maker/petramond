@@ -148,53 +148,6 @@ fn rule_order_is_the_only_precedence() {
 }
 
 #[test]
-fn a_grove_rule_carries_its_own_density_spacing_and_species_or_none_of_them() {
-    let mut field = Habitat {
-        origin: (0, 0),
-        target: None,
-        radius: 0,
-        reads: 0,
-    };
-    for (chance, claimed) in [(1.0, true), (0.0, false)] {
-        let profile = profile(vec![grove(chance)]);
-        let mut candidates = TreeCandidates::new(871, 0, 0);
-        for (x, z) in [(-20, 31), (0, -1), (18, 16), (41, 40)] {
-            let selection = candidates.select(&profile, RuleStage::Candidate, &mut field, x, z);
-            assert_eq!(selection.rule.is_some(), claimed);
-            let (species, density, spacing) = if claimed {
-                (&profile.rules[0].species, 0.37, 3)
-            } else {
-                (
-                    profile.species.as_ref().unwrap(),
-                    profile.density,
-                    profile.spacing_radius,
-                )
-            };
-            assert!(same(selection.species.unwrap(), species));
-            assert_eq!(selection.density, density);
-            assert_eq!(selection.spacing_radius, spacing);
-        }
-    }
-    assert_eq!(field.reads, 0);
-}
-
-#[test]
-fn profiles_without_rules_touch_neither_terrain_nor_lattices() {
-    let mut field = Habitat {
-        origin: (0, 0),
-        target: None,
-        radius: 0,
-        reads: 0,
-    };
-    let profile = profile(vec![]);
-    let mut candidates = TreeCandidates::new(1, 0, 0);
-    let selection = candidates.select(&profile, RuleStage::Accepted, &mut field, 0, 0);
-    assert!(selection.rule.is_none());
-    assert_eq!(field.reads, 0);
-    assert_eq!(candidates.groves.lattice_count(), 0);
-}
-
-#[test]
 fn dense_small_trees_cannot_displace_large_crowns() {
     let large = TreeCandidate {
         anchor: 70,

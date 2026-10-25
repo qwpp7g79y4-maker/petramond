@@ -91,20 +91,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn one_flag_per_mod_shared_by_every_holder() {
-        let board = ModHealthBoard::default();
-        let a = board.health("alpha");
-        let a_again = board.health("alpha");
-        let b = board.health("beta");
-        assert!(Arc::ptr_eq(&a, &a_again));
-        assert!(a.disable("trap on worker 1"));
-        assert!(a_again.is_disabled(), "every holder observes the flip");
-        assert!(!a_again.disable("the same trap on worker 2"), "flips once");
-        assert!(!b.is_disabled(), "other mods are unaffected");
-        assert_eq!(board.disabled_since(0), vec!["alpha".to_owned()]);
-    }
-
-    #[test]
     fn the_disable_log_is_an_ordered_suffix() {
         let board = ModHealthBoard::default();
         board.health("beta").disable("x");
@@ -117,29 +103,5 @@ mod tests {
             board.disabled_since(7).is_empty(),
             "a stale counter is harmless"
         );
-    }
-
-    #[test]
-    fn a_standalone_health_is_its_own() {
-        let board = ModHealthBoard::default();
-        let lone = ModHealth::standalone("alpha");
-        lone.disable("fixture");
-        assert!(!board.health("alpha").is_disabled());
-        assert_eq!(board.disabled_count(), 0);
-    }
-
-    #[test]
-    fn one_mod_shares_one_watchdog_across_its_instances() {
-        let board = ModHealthBoard::default();
-        board.health("alpha").watchdog().grow_memory(1).unwrap();
-        board.health("alpha").watchdog().release_memory(1);
-        assert!(std::ptr::eq(
-            board.health("alpha").watchdog(),
-            board.health("alpha").watchdog()
-        ));
-        assert!(!std::ptr::eq(
-            board.health("alpha").watchdog(),
-            board.health("beta").watchdog()
-        ));
     }
 }

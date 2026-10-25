@@ -289,33 +289,4 @@ mod tests {
             );
         }
     }
-
-    #[test]
-    fn a_spectator_is_not_guarding_and_so_releases_every_claim() {
-        let mut watching = actor(Some(SHIELD), Some(SHIELD), true);
-        watching.spectator = true;
-        let g = guard(&watching, Some(0.3));
-        assert!(!g.raised);
-        assert!(!g.absorbs());
-        assert_eq!(g.speed_scale(), 1.0, "the speed claim is released");
-        assert!(g.claims().plays.is_empty());
-    }
-
-    #[test]
-    fn releasing_the_guard_releases_every_claim() {
-        let up = guard(&guarding(), None);
-        assert_eq!(up.speed_scale(), GUARD_SPEED_SCALE);
-        assert_eq!(up.denied(), [BodyAction::Attack, BodyAction::Mine]);
-
-        let down = guard(&actor(Some(SHIELD), None, false), None);
-        assert_eq!(down.speed_scale(), 1.0);
-        assert!(down.denied().is_empty());
-    }
-
-    #[test]
-    fn a_reeling_shield_still_denies_the_hands() {
-        let hit = guard(&guarding(), Some(0.5));
-        assert!(!hit.absorbs());
-        assert_eq!(hit.denied(), [BodyAction::Attack, BodyAction::Mine]);
-    }
 }

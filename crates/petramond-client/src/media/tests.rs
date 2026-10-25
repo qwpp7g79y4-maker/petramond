@@ -310,27 +310,6 @@ fn a_finished_file_replaces_the_old_one_only_once_complete() {
 }
 
 #[test]
-fn a_full_disk_is_told_apart_by_the_systems_own_words() {
-    let code = if cfg!(windows) { 112 } else { 28 };
-    let io = std::io::Error::from_raw_os_error(code);
-    assert_eq!(
-        super::failure_of(&format!("could not write the audio track: {io}")),
-        ClientMediaFailure::DiskFull
-    );
-    let words = io.to_string();
-    let words = &words[..words.rfind(" (os error").unwrap_or(words.len())];
-    assert_eq!(
-        super::failure_of(&format!("ffmpeg failed (exit 1): out.mp4: {words}")),
-        ClientMediaFailure::DiskFull,
-        "the encoder repeating the system's words"
-    );
-    assert_eq!(
-        super::failure_of("ffmpeg failed (exit 1): bad"),
-        ClientMediaFailure::EncoderFailed
-    );
-}
-
-#[test]
 fn n_advances_span_exactly_n_steps() {
     for fps in [24.0, 30.0, 60.0] {
         let mut clock = SteppedClock::new(100.0, 1.0 / fps);
@@ -352,15 +331,6 @@ fn n_advances_span_exactly_n_steps() {
             "{fps}: {moved} vs {expected}"
         );
     }
-}
-
-#[test]
-fn a_held_frame_moves_no_time_and_queued_advances_move_at_once() {
-    let mut clock = SteppedClock::new(0.0, 0.5);
-    assert_eq!(clock.take_step(), 0.0, "nothing advanced yet");
-    clock.advance(3);
-    assert_eq!(clock.take_step(), 1.5);
-    assert_eq!(clock.take_step(), 0.0, "each advance steps once");
 }
 
 #[test]

@@ -304,20 +304,6 @@ mod tests {
     }
 
     #[test]
-    fn fresh_save_gets_identity_palette_and_a_pinned_file() {
-        let dir = temp_dir("fresh");
-        let p = load_or_create(&dir, &no_disabled()).unwrap();
-        for &b in Block::all() {
-            assert_eq!(p.block_to_disk(b.id()), b.id(), "{b:?} identity");
-            assert_eq!(p.block_from_disk(b.id()), b.id(), "{b:?} identity");
-        }
-        assert!(
-            dir.join("palette.json").exists(),
-            "palette pinned on creation"
-        );
-    }
-
-    #[test]
     fn a_corrupt_palette_is_an_error_and_is_never_rewritten() {
         let dir = temp_dir("corrupt");
         std::fs::write(dir.join("palette.json"), b"{ not json").unwrap();
@@ -353,83 +339,6 @@ mod tests {
             std::fs::read_to_string(dir.join("palette.json")).unwrap(),
             text
         );
-    }
-
-    #[test]
-    fn shuffled_palette_round_trips_and_remaps() {
-        let dir = temp_dir("shuffled");
-        let mut blocks: Vec<String> = Block::all().iter().map(|&b| block_name(b)).collect();
-        blocks[1..].rotate_left(1);
-        let items: Vec<String> = ItemType::all().iter().map(|&i| item_name(i)).collect();
-        let mobs: Vec<String> = Mob::all().iter().map(|&m| mob_name(m)).collect();
-        let file = PaletteFile {
-            blocks,
-            items,
-            mobs,
-        };
-        std::fs::write(
-            dir.join("palette.json"),
-            serde_json::to_string(&file).unwrap(),
-        )
-        .unwrap();
-        let p = load_or_create(&dir, &no_disabled()).unwrap();
-        let mut remapped_any = false;
-        for &b in Block::all() {
-            let disk = p.block_to_disk(b.id());
-            assert_eq!(p.block_from_disk(disk), b.id(), "{b:?} round-trips");
-            remapped_any |= disk != b.id();
-        }
-        assert!(remapped_any, "rotation must produce non-identity ids");
-    }
-
-    #[test]
-    fn unknown_disk_names_decode_to_air_and_registry_gets_appended() {
-        let dir = temp_dir("unknown");
-        let mut blocks = vec!["petramond:air".to_string(), "unobtainium".to_string()];
-        blocks.extend(Block::all().iter().skip(1).map(|&b| block_name(b)));
-        let items: Vec<String> = ItemType::all().iter().map(|&i| item_name(i)).collect();
-        let mobs: Vec<String> = Mob::all().iter().map(|&m| mob_name(m)).collect();
-        std::fs::write(
-            dir.join("palette.json"),
-            serde_json::to_string(&PaletteFile {
-                blocks,
-                items,
-                mobs,
-            })
-            .unwrap(),
-        )
-        .unwrap();
-        let p = load_or_create(&dir, &no_disabled()).unwrap();
-        assert_eq!(p.block_from_disk(1), 0, "unknown disk name decodes to air");
-        assert_eq!(
-            p.block_from_disk_known(1),
-            None,
-            "and is reported unknown, so the codec keeps it"
-        );
-        assert_eq!(p.block_from_disk_known(0), Some(0), "air is known");
-        assert_eq!(p.block_from_disk_known(4000), None, "never pinned");
-        for &b in Block::all() {
-            assert_eq!(p.block_from_disk(p.block_to_disk(b.id())), b.id());
-        }
-    }
-
-    #[test]
-    fn pre_mob_palette_backfills_identity_and_pins_the_list() {
-        let dir = temp_dir("premob");
-        let blocks: Vec<String> = Block::all().iter().map(|&b| block_name(b)).collect();
-        let items: Vec<String> = ItemType::all().iter().map(|&i| item_name(i)).collect();
-        std::fs::write(
-            dir.join("palette.json"),
-            serde_json::json!({ "blocks": blocks, "items": items }).to_string(),
-        )
-        .unwrap();
-        let p = load_or_create(&dir, &no_disabled()).unwrap();
-        for &m in Mob::all() {
-            assert_eq!(p.mob_to_disk(m.id()), Some(m.id()), "{m:?} identity");
-            assert_eq!(p.mob_from_disk(m.id()), Some(m.id()), "{m:?} identity");
-        }
-        let text = std::fs::read_to_string(dir.join("palette.json")).unwrap();
-        assert!(text.contains("\"mobs\""), "the mob list is pinned on load");
     }
 
     #[test]

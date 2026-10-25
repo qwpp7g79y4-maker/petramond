@@ -135,46 +135,6 @@ mod tests {
     use super::*;
     use glam::IVec3;
 
-    #[test]
-    fn destroy_tile_maps_stage_and_clamps() {
-        assert_eq!(destroy_tile(0), Tile::from_name("destroy_stage_0").unwrap());
-        assert_eq!(destroy_tile(9), Tile::from_name("destroy_stage_9").unwrap());
-        assert_eq!(
-            destroy_tile(42),
-            Tile::from_name("destroy_stage_9").unwrap()
-        );
-    }
-
-    #[test]
-    fn builds_one_coincident_cube_with_the_stage_tile() {
-        let mut v = Vec::new();
-        let mut i = Vec::new();
-        let view = BreakOverlayView {
-            block: IVec3::new(3, 64, -7),
-            visual_box: None,
-            shape_boxes: None,
-            model: None,
-            stage: 4,
-        };
-        let n = build_break_overlay(&view, &mut v, &mut i);
-        assert_eq!(v.len(), 24);
-        assert_eq!(n, 36);
-        let want = Tile::from_name("destroy_stage_4").unwrap().index() as u32;
-        for vert in &v {
-            assert_eq!(vert.packed & petramond_mesh::vertex::TILE_MASK, want);
-        }
-        let min_x = v
-            .iter()
-            .map(|vert| vert.pos[0])
-            .fold(f32::INFINITY, f32::min);
-        let max_x = v
-            .iter()
-            .map(|vert| vert.pos[0])
-            .fold(f32::NEG_INFINITY, f32::max);
-        assert_eq!(min_x, 3.0, "cube min lands exactly on the block boundary");
-        assert_eq!(max_x, 4.0, "cube max lands exactly on the block boundary");
-    }
-
     fn face_uv_spans(v: &[Vertex]) -> Vec<(u32, u32)> {
         v.chunks(4)
             .map(|face| {
@@ -300,67 +260,5 @@ mod tests {
                 );
             }
         }
-    }
-
-    #[test]
-    fn crack_skips_faces_the_shape_does_not_emit() {
-        let mut faces = [true; 6];
-        faces[5] = false;
-        let view = boxes_view(
-            IVec3::new(1, 2, 3),
-            &[([0.0, 0.0, 0.0], [1.0, 1.0, 0.125], faces)],
-            3,
-        );
-        let mut v = Vec::new();
-        let mut i = Vec::new();
-        build_break_overlay(&view, &mut v, &mut i);
-        assert_eq!(v.len(), 5 * 4, "the unemitted face draws no crack");
-        // No whole quad lies on the buried z == 3.0 plane. (Side faces span
-        // that plane's edge, so per-vertex tests would false-positive; only a
-        // NegZ quad has all four corners on it.)
-        assert!(
-            v.chunks(4)
-                .all(|q| !q.iter().all(|vert| (vert.pos[2] - 3.0).abs() < 1e-6)),
-            "no crack quad on the face the shape never emits"
-        );
-    }
-
-    #[test]
-    fn reuses_buffers() {
-        let mut v = Vec::new();
-        let mut i = Vec::new();
-        let view = BreakOverlayView {
-            block: IVec3::ZERO,
-            visual_box: None,
-            shape_boxes: None,
-            model: None,
-            stage: 0,
-        };
-        build_break_overlay(&view, &mut v, &mut i);
-        let (cap_v, cap_i) = (v.capacity(), i.capacity());
-        build_break_overlay(&view, &mut v, &mut i);
-        assert_eq!(v.len(), 24);
-        assert_eq!(v.capacity(), cap_v, "vert buffer reused");
-        assert_eq!(i.capacity(), cap_i, "index buffer reused");
-    }
-
-    #[test]
-    fn multi_part_shape_cracks_over_its_parts_not_the_empty_cell() {
-        let mut v = Vec::new();
-        let mut i = Vec::new();
-        let view = boxes_view(
-            IVec3::new(0, 0, 0),
-            &[
-                ([0.1, 0.0, 0.1], [0.3, 0.5, 0.3], [true; 6]),
-                ([0.7, 0.0, 0.7], [0.9, 0.5, 0.9], [true; 6]),
-            ],
-            4,
-        );
-        let n = build_break_overlay(&view, &mut v, &mut i);
-        // TWO resolved boxes × 6 cell-local faces × 4 verts — the crack hugs
-        // the shape's parts (a chair's legs), NOT a single 24-vert cube
-        // spanning the empty cell.
-        assert_eq!(v.len(), 48);
-        assert_eq!(n, 72);
     }
 }

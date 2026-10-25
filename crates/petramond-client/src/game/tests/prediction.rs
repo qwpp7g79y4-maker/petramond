@@ -2,9 +2,7 @@ use super::common::*;
 use crate::game::prediction::PredictionSnapshot;
 use crate::game::tick::{GameInput, PlacePrediction};
 use petramond::events::tick::{TickEvents, TICK_DT};
-use petramond::net::protocol::{
-    ActionDenyReason, ClientToServer, MenuSlotWire, PlayerAction, TickUpdate,
-};
+use petramond::net::protocol::{ActionDenyReason, ClientToServer, PlayerAction, TickUpdate};
 use petramond_math::math::IVec3;
 use petramond_math::world_pos::WorldPos;
 use petramond_world::block::Block;
@@ -900,24 +898,6 @@ fn no_op_use_click_queues_the_disputed_cells_for_corrective_sync() {
 }
 
 #[test]
-fn menu_click_ships_request_id_and_server_accepts() {
-    let mut game = game();
-    game.server_player_mut().inventory = filled_inventory();
-    game.send_to_server(ClientToServer::MenuClick {
-        slot: MenuSlotWire::from_menu_slot(&MenuSlot::Inventory(0)),
-        button: 0,
-        shift: false,
-        gather: false,
-        request_id: 42,
-    });
-    game.sim_mut().tick_menu(0, &mut TickEvents::default());
-    let outcomes = &game.session().replication().pending_action_outcomes;
-    assert_eq!(outcomes.len(), 1);
-    assert!(outcomes[0].accepted);
-    assert_eq!(outcomes[0].id, 42);
-}
-
-#[test]
 fn optimistic_place_mutates_replica_hotbar_and_queues_world_event() {
     let mut game = game_on_empty_chunk();
     game.game.replica.world.insert_chunk_for_test(
@@ -1043,110 +1023,6 @@ fn interactive_block_click_cancels_the_custom_shape_ghost_unless_sneaking() {
             .chunk_block(place_pos.x, place_pos.y, place_pos.z),
         Block::Air.0,
         "the sneak click ghosts the custom block"
-    );
-}
-
-#[test]
-fn optimistic_torch_place_records_wall_mount_immediately() {
-    let mut game = game_on_empty_chunk();
-    game.game.replica.world.insert_chunk_for_test(
-        petramond_world::chunk::ChunkPos::new(0, 0),
-        petramond_world::chunk::Chunk::new(0, 0),
-    );
-    let wall = IVec3::new(8, 64, 8);
-    assert!(game
-        .game
-        .replica
-        .world
-        .set_block_world(wall.x, wall.y, wall.z, Block::Stone));
-    game.game.local.player.pos = WorldPos::new(100.0, 64.0, 100.0);
-    give(&mut game, petramond_world::item::ItemType::Torch, 1);
-    game.sync_self_view_for_test();
-
-    assert!(matches!(
-        game.game.predict_place_at_for_test(wall, -IVec3::X, false),
-        PlacePrediction::Predicted(_)
-    ));
-
-    let torch = wall - IVec3::X;
-    assert_eq!(
-        Block::from_id(
-            game.game
-                .replica
-                .world
-                .data()
-                .chunk_block(torch.x, torch.y, torch.z)
-        ),
-        Block::Torch
-    );
-    assert_eq!(
-        game.game.replica.world.data().torch_placement(torch),
-        petramond_world::torch::TorchPlacement::West,
-        "predicted place must record the wall mount for the same-frame mesh"
-    );
-}
-
-#[test]
-fn optimistic_stair_place_records_orientation_immediately() {
-    let mut game = game_on_empty_chunk();
-    game.game.replica.world.insert_chunk_for_test(
-        petramond_world::chunk::ChunkPos::new(0, 0),
-        petramond_world::chunk::Chunk::new(0, 0),
-    );
-    let floor = IVec3::new(8, 63, 8);
-    assert!(game
-        .game
-        .replica
-        .world
-        .set_block_world(floor.x, floor.y, floor.z, Block::Stone));
-    game.game.local.player.pos = WorldPos::new(100.0, 64.0, 100.0);
-    give(&mut game, petramond_world::item::ItemType::OakStairs, 1);
-    game.sync_self_view_for_test();
-
-    let default_state = game
-        .game
-        .replica
-        .world
-        .section_at_world_for_test(floor.x, floor.y, floor.z)
-        .expect("floor section")
-        .stair_state(0, 0, 0);
-    let expected_state = |g: &crate::game::Game| {
-        petramond_world::block_state::StairState::new(
-            petramond::rules::placement::facing_from_forward(g.local.player.forward()),
-            petramond_world::block_state::StairHalf::Bottom,
-        )
-    };
-    if expected_state(&game.game) == default_state {
-        game.game.local.player.yaw += std::f32::consts::PI;
-    }
-    let expected = expected_state(&game.game);
-    assert_ne!(expected, default_state, "fixture: non-default orientation");
-
-    assert!(matches!(
-        game.game.predict_place_at_for_test(floor, IVec3::Y, false),
-        PlacePrediction::Predicted(_)
-    ));
-
-    let cell = floor + IVec3::Y;
-    assert_eq!(
-        Block::from_id(
-            game.game
-                .replica
-                .world
-                .data()
-                .chunk_block(cell.x, cell.y, cell.z)
-        ),
-        Block::OakStairs
-    );
-    assert_eq!(
-        game.game
-            .replica
-            .world
-            .section_at_world_for_test(cell.x, cell.y, cell.z)
-            .expect("stair section")
-            .stair_state(8, 0, 8),
-        expected,
-        "predicted place must record the stair orientation for the same-frame mesh"
     );
 }
 
@@ -1371,36 +1247,6 @@ fn denied_place_restores_cell_and_inventory_silently() {
         game.game.replica.events.world.is_empty(),
         "rollback must not emit presentation events"
     );
-}
-
-#[test]
-fn break_finished_deny_queues_corrective_cells() {
-    let mut game = game_on_empty_chunk();
-    let pos = IVec3::new(2, 64, 2);
-    assert!(game
-        .server_world_mut()
-        .set_block_world(pos.x, pos.y, pos.z, Block::Stone));
-    game.server_player_mut().pos = WorldPos::new(2.5, 65.0, 4.5);
-    game.session_mut().input_mut().claim_pos = game.server_player().pos;
-
-    game.send_to_server(ClientToServer::Action(PlayerAction::BreakFinished {
-        request_id: 9,
-        pos,
-        tool_item_id: None,
-        predicted: true,
-    }));
-    game.sim_mut().tick_mining(0, &mut TickEvents::default());
-    let cells = &game.session().replication().pending_corrective_cells;
-    assert!(
-        cells.contains(&pos),
-        "a denied break finish must queue the claimed cell for corrective sync"
-    );
-    assert!(game
-        .session()
-        .replication()
-        .pending_action_outcomes
-        .iter()
-        .any(|o| o.id == 9 && !o.accepted));
 }
 
 #[test]

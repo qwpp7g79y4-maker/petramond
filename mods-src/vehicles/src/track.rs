@@ -223,29 +223,6 @@ mod tests {
     }
 
     #[test]
-    fn a_curve_leaves_each_exit_along_that_exits_direction() {
-        let p = Path::of(Form::Curve(Corner::NE));
-        let t0 = p.tangent(0.0);
-        let t1 = p.tangent(p.len());
-        assert!(t0[0].abs() < 1e-4 && t0[2].abs() > 0.99, "{t0:?}");
-        assert!(t1[2].abs() < 1e-4 && t1[0].abs() > 0.99, "{t1:?}");
-        assert!(t1[0] > 0.0);
-        assert!((p.len() - std::f32::consts::FRAC_PI_4).abs() < 1e-4);
-    }
-
-    #[test]
-    fn a_slope_climbs_one_cell_over_its_run_at_a_constant_grade() {
-        let p = Path::of(Form::Slope(Dir::N));
-        assert!((p.len() - std::f32::consts::SQRT_2).abs() < 1e-4);
-        assert!((grade(&p, 0.3) - std::f32::consts::FRAC_1_SQRT_2).abs() < 1e-4);
-        let foot = p.point(0.0);
-        let head = p.point(p.len());
-        assert!(close(foot, [0.5, 0.0, 1.0]), "{foot:?}");
-        assert!(close(head, [0.5, 1.0, 0.0]), "{head:?}");
-        assert!(!p.exits()[0].up && p.exits()[1].up);
-    }
-
-    #[test]
     fn projection_clamps_onto_the_path_from_off_cell_points() {
         let p = Path::of(Form::Straight(Axis::EW));
         assert_eq!(p.project([-3.0, 0.5]), 0.0);

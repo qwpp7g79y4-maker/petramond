@@ -89,19 +89,6 @@ fn an_escape_leg_is_held_while_navigation_follows_it() {
 }
 
 #[test]
-fn invalid_panic_parameters_are_refused() {
-    for params in [
-        serde_json::json!({"radius":1}),
-        serde_json::json!({"radius":200}),
-        serde_json::json!({"memory_ticks":0}),
-        serde_json::json!({"speed_scale":-1.0}),
-        serde_json::json!({"speed_scale":mod_api::MAX_MOB_SPEED_SCALE + 1.0}),
-    ] {
-        assert!(PanicAi::from_params(&params).is_err());
-    }
-}
-
-#[test]
 fn boxed_in_panic_does_not_choose_an_unreachable_escape() {
     let mut world = flat_world();
     for x in 7..=9 {

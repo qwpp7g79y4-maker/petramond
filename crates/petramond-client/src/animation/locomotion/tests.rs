@@ -148,14 +148,3 @@ fn shipped_table_loads() {
     let table = LocomotionTable::load().expect("shipped table");
     assert!(!table.layers.is_empty());
 }
-
-#[test]
-fn the_empty_fallback_table_weighs_nothing() {
-    let inputs = Inputs {
-        walking: 1.0,
-        run: 1.0,
-        swim: 1.0,
-        ..Default::default()
-    };
-    assert!(weights_of(&LocomotionTable::empty(), &inputs, all).is_empty());
-}

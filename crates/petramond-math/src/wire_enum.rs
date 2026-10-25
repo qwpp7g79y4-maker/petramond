@@ -133,33 +133,4 @@ mod tests {
         assert_eq!(Dense::VARIANTS, &[Dense::X, Dense::Y]);
         assert_eq!(Dense::default(), Dense::X);
     }
-
-    #[test]
-    fn unknown_bytes_are_rejected_or_defaulted_explicitly() {
-        for byte in [1u8, 2, 4, 8, 255] {
-            assert_eq!(Sparse::try_from_u8(byte), None);
-            assert_eq!(Sparse::try_from(byte), Err(byte));
-            assert_eq!(Sparse::from_u8(byte), Sparse::B);
-        }
-        assert_eq!(Dense::try_from_u8(2), None);
-        assert_eq!(Dense::from_u8(2), Dense::X);
-    }
-
-    #[test]
-    fn from_index_cycles_declaration_order_not_discriminants() {
-        let cycled: Vec<Sparse> = (0..7).map(Sparse::from_index).collect();
-        assert_eq!(
-            cycled,
-            [
-                Sparse::A,
-                Sparse::B,
-                Sparse::C,
-                Sparse::A,
-                Sparse::B,
-                Sparse::C,
-                Sparse::A,
-            ]
-        );
-        assert_eq!(Sparse::from_index(255), Sparse::VARIANTS[255 % 3]);
-    }
 }

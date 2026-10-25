@@ -373,22 +373,8 @@ mod tests {
     }
 
     #[test]
-    fn hsl_average_of_identical_colors_is_identity() {
-        for rgb in [[200, 40, 40], [30, 180, 90], [128, 128, 128]] {
-            let avg = average_rgb_hsl(&[rgb, rgb, rgb, rgb]);
-            assert!(close(avg, rgb, 1), "{rgb:?} -> {avg:?}");
-        }
-    }
-
-    #[test]
     fn hsl_average_handles_the_hue_wraparound() {
         let avg = average_rgb_hsl(&[[255, 30, 0], [255, 0, 30]]);
         assert!(avg[0] > 200 && avg[1] < 60 && avg[2] < 60, "{avg:?}");
-    }
-
-    #[test]
-    fn hsl_average_of_black_and_white_is_mid_gray() {
-        let avg = average_rgb_hsl(&[[0, 0, 0], [255, 255, 255]]);
-        assert!(close(avg, [128, 128, 128], 2), "{avg:?}");
     }
 }

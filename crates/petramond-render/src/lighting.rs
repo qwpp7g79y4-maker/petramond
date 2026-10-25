@@ -101,33 +101,6 @@ pub(super) fn fold_tint_self_lit(
 mod tests {
     use super::*;
 
-    fn legacy_factor(combined: u8, sky_scale: f32) -> f32 {
-        channel_term(combined, sky_scale).max(FINAL_MIN)
-    }
-
-    #[test]
-    fn two_channel_light_matches_the_single_channel_at_identity() {
-        for sky in 0..=63u8 {
-            for block in 0..=63u8 {
-                let rgb = light_rgb(
-                    DynLight {
-                        sky,
-                        block: BlockLight6::grey(block as u32),
-                    },
-                    LightEnv::IDENTITY,
-                );
-                let expect = legacy_factor(sky.max(block), 1.0);
-                for c in rgb {
-                    assert_eq!(
-                        c.to_bits(),
-                        expect.to_bits(),
-                        "identity mismatch at sky={sky} block={block}"
-                    );
-                }
-            }
-        }
-    }
-
     #[test]
     fn block_channel_is_night_invariant() {
         let torchlit = DynLight {

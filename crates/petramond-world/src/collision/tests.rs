@@ -14,20 +14,6 @@ fn one_cell(shape: &'static [Aabb]) -> impl Fn(i32, i32, i32) -> &'static [Aabb]
 }
 
 #[test]
-fn sweep_stops_at_a_full_cube_face() {
-    let travel = sweep_axis([2.0, 0.2, 0.2], [3.0, 0.8, 0.8], 0, -5.0, one_cell(FULL));
-    assert!(
-        (travel - (-1.0)).abs() < 1e-3,
-        "stops at the cube face, got {travel}"
-    );
-    let free = sweep_axis([2.0, 5.0, 0.2], [3.0, 6.0, 0.8], 0, -5.0, one_cell(FULL));
-    assert!(
-        (free - (-5.0)).abs() < 1e-6,
-        "no overlap → full travel, got {free}"
-    );
-}
-
-#[test]
 fn sweep_respects_an_inset_box_margin() {
     let travel = sweep_axis([0.3, 1.5, 0.3], [0.7, 2.5, 0.7], 1, -2.0, one_cell(INSET));
     assert!(

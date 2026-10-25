@@ -22,7 +22,7 @@ pub use builder::{
 };
 pub use builder::{SamplingHalo, FOLIAGE_OVERHANG, SAMPLING_HALO};
 #[cfg(test)]
-pub use skylight::{compute_chunk_skylight, compute_chunk_skylight_with_neighbors};
+pub use skylight::compute_chunk_skylight;
 pub use vertex::transition::UV_MODE_TRANSITION;
 pub use vertex::MAX_TILES;
 pub use vertex::{

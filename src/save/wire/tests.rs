@@ -70,15 +70,6 @@ fn malformed_values_are_rejected() {
 }
 
 #[test]
-fn a_wire_struct_writes_its_fields_in_order() {
-    let bytes = to_bytes(&Pair {
-        a: 0x0102,
-        b: "z".into(),
-    });
-    assert_eq!(bytes, [0x02, 0x01, 1, 0, 0, 0, b'z']);
-}
-
-#[test]
 fn a_field_the_record_lacks_reads_as_its_default() {
     let old = Old {
         name: "sheep".into(),

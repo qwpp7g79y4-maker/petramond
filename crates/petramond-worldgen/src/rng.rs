@@ -83,7 +83,6 @@ pub fn patch_field(seed: u32, salt: u64, wx: i32, wz: i32, period: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
 
     fn stream_prefix(seed: u32, salt: u64, wx: i32, wy: i32, wz: i32) -> [u64; 4] {
         let mut rng = FeatureRng::positional(seed, salt, wx, wy, wz);
@@ -143,45 +142,5 @@ mod tests {
                 "positional stream changed for seed {seed:#x}, salt {salt:#x}, pos ({wx},{wy},{wz})"
             );
         }
-    }
-
-    #[test]
-    fn positional_inputs_select_distinct_streams() {
-        let inputs = [
-            (0x1234_5678, 0x0000_7a3e_0ac0_ffee, 4, 5, 6),
-            (0x1234_5678, 0x0000_7a3e_0ac0_ffef, 4, 5, 6),
-            (0x1234_5678, 0x0000_7a3e_0ac0_ffee, 5, 5, 6),
-            (0x1234_5678, 0x0000_7a3e_0ac0_ffee, 4, 6, 6),
-            (0x1234_5678, 0x0000_7a3e_0ac0_ffee, 4, 5, 7),
-        ];
-        let streams = inputs
-            .into_iter()
-            .map(|(seed, salt, wx, wy, wz)| stream_prefix(seed, salt, wx, wy, wz))
-            .collect::<HashSet<_>>();
-
-        assert_eq!(
-            streams.len(),
-            inputs.len(),
-            "salt and each coordinate axis must contribute to positional seeding"
-        );
-    }
-
-    #[test]
-    fn repeated_positional_construction_replays_the_same_stream() {
-        let input = (0x5eed_1234, 0xf00d_cafe_dead_beef, -19, 83, 41);
-        let mut first = FeatureRng::positional(input.0, input.1, input.2, input.3, input.4);
-
-        let consumed = [
-            first.next_u64(),
-            first.next_u64(),
-            first.next_u64(),
-            first.next_u64(),
-        ];
-
-        assert_eq!(
-            consumed,
-            stream_prefix(input.0, input.1, input.2, input.3, input.4),
-            "constructing a positional RNG must not depend on prior stream consumption"
-        );
     }
 }

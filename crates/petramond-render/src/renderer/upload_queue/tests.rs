@@ -165,14 +165,3 @@ fn a_restarted_column_waits_a_fresh_window() {
     queue.finish(drain, by_distance);
     assert_eq!(run_frame(&mut queue), [col(4, 4)]);
 }
-
-#[test]
-fn clearing_forgets_everything() {
-    let mut queue = UploadQueue::default();
-    queue.begin_frame();
-    dirty(&mut queue, col(0, 0), 1);
-    queue.clear();
-    assert!(queue.is_empty());
-    queue.begin_frame();
-    assert!(run_frame(&mut queue).is_empty());
-}

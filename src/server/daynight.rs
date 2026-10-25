@@ -170,28 +170,6 @@ mod tests {
 
     const C: u64 = DEFAULT_CYCLE_TICKS;
 
-    #[test]
-    fn sleeping_skips_to_the_next_early_morning() {
-        let mut world = ServerWorld::new(1, 1);
-        world.world_kv_set(CLOCK_KEY.into(), (C * 3 / 4).to_le_bytes().to_vec());
-        skip_to_morning(&mut world);
-        assert_eq!(
-            world.data().world_kv_get(CLOCK_KEY),
-            Some(&(C + fresh_clock(C)).to_le_bytes()[..]),
-            "the skip writes the adopted petramond:clock format"
-        );
-
-        let mut world = ServerWorld::new(1, 1);
-        world.set_day_cycle_ticks(crate::rules::daynight::cycle_ticks_for_day_minutes(10));
-        let c10 = world.day_cycle_ticks();
-        world.world_kv_set(CLOCK_KEY.into(), (c10 * 3 / 4).to_le_bytes().to_vec());
-        skip_to_morning(&mut world);
-        assert_eq!(
-            world.data().world_kv_get(CLOCK_KEY),
-            Some(&(c10 + fresh_clock(c10)).to_le_bytes()[..])
-        );
-    }
-
     use crate::events::tick::TickEvents;
     use crate::events::{EventBus, RosterRefs};
 

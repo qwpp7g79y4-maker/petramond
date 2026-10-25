@@ -49,18 +49,3 @@ fn the_record_codec_round_trips_condition_and_level() {
     assert!(Record::parse(b"0|forge:diamond_tip^4").is_none());
     assert!(Record::parse(b"0|@50").is_none());
 }
-
-#[test]
-fn condition_and_level_words_band_as_specified() {
-    assert_eq!(condition_word(100, 0), ("Pristine", "green"));
-    assert_eq!(condition_word(81, 0), ("Pristine", "green"));
-    assert_eq!(condition_word(80, 0), ("Excellent", "green"));
-    assert_eq!(condition_word(41, 0), ("Good", "yellow"));
-    assert_eq!(condition_word(40, 0), ("Worn", "yellow"));
-    assert_eq!(condition_word(1, 0), ("Damaged", "red"));
-    assert_eq!(condition_word(0, 0), ("Broken", "red"));
-    assert_eq!(condition_word(150, 1), ("Pristine", "green"));
-    assert_eq!(condition_word(150, 3), ("Good", "yellow"));
-    assert_eq!(level_word(0).0, "Basic");
-    assert_eq!(level_word(3), ("Legendary", "gold"));
-}

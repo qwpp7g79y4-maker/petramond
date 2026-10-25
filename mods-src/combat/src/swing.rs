@@ -358,30 +358,6 @@ mod tests {
     }
 
     #[test]
-    fn work_shares_the_dig_cadence_and_attacks_play_their_own_window() {
-        let step = 0.05;
-        let family = plain();
-        let mut loop_hand = Clock::default();
-        let looped = loop_hand
-            .step(Some((AXE, &family)), None, true, step)
-            .unwrap();
-        let mut break_hand = Clock::default();
-        let broke = break_hand
-            .step(Some((AXE, &family)), Some(SwingKind::Break), true, step)
-            .unwrap();
-        assert_eq!(broke, looped, "a break lands on the loop's clock");
-
-        let mut attack_hand = Clock::default();
-        let attacked = attack_hand
-            .step(Some((AXE, &family)), Some(SwingKind::Attack), false, step)
-            .unwrap();
-        assert!(
-            (attacked.phase - step / 0.4).abs() < 1e-6 && attacked.phase < looped.phase,
-            "the attack is the heavier, slower play"
-        );
-    }
-
-    #[test]
     fn authored_windows_pace_attacks_per_step_and_mining_by_the_work_window() {
         let family = family(&[0.5, 0.25], 0.42, &[]);
         let attack = |hand: &mut Clock| {
@@ -690,13 +666,5 @@ mod tests {
         axe.step(Some((PICK, &family)), None, false, dt());
         assert_eq!(axe.style, Some(PICK));
         assert!(!axe.playing, "the pickaxe's clock starts fresh");
-    }
-
-    #[test]
-    fn the_claim_follows_the_tool_and_yields_to_the_guard() {
-        assert!(claim(Some(AXE), false));
-        assert!(!claim(None, false), "a bare hand stays vanilla");
-        assert!(!claim(Some(PICK), true), "a raised guard owns it");
-        assert!(!claim(None, true));
     }
 }

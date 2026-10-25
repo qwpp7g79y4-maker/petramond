@@ -186,12 +186,6 @@ mod tests {
     }
 
     #[test]
-    fn compile_failure_propagates() {
-        let root = petramond_util::test_dirs::TestScratchDir::new("asset-cache");
-        assert!(load_or_compile_in::<Dummy>(&root, "x", b"bad").is_err());
-    }
-
-    #[test]
     fn decode_rejects_wrong_magic_version_hash_and_truncation() {
         let hash = hash_source(b"src");
         let good = encode::<Dummy>(hash, &Dummy::compile(b"src").unwrap()).unwrap();

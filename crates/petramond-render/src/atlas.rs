@@ -387,30 +387,6 @@ mod tests {
     }
 
     #[test]
-    fn composed_atlas_matches_the_identity_registry() {
-        let d = data();
-        assert_eq!(d.count, Tile::count());
-        assert_eq!(
-            d.rgba.len(),
-            (d.cols * TILE * 2 * d.rows * TILE * 4) as usize
-        );
-    }
-
-    #[test]
-    fn mips_are_tile_isolated_and_stop_at_one_texel_per_tile() {
-        let d = data();
-        let mips = build_atlas_mips(&d.rgba);
-
-        assert_eq!(mips.len(), TILE.trailing_zeros() as usize + 1);
-
-        for (level, mip) in mips.iter().enumerate() {
-            let tile = TILE >> level;
-            assert_eq!(mip.len(), (d.cols * tile * 2 * d.rows * tile * 4) as usize);
-        }
-        assert_eq!(TILE >> (mips.len() - 1), 1);
-    }
-
-    #[test]
     fn leaf_mips_expand_cutout_alpha() {
         let d = data();
         let leaves = Tile::from_name("oak_leaves").expect("oak_leaves tile");

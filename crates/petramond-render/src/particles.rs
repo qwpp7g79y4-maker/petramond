@@ -112,18 +112,6 @@ pub(crate) fn wgsl_faces() -> String {
     )
 }
 
-#[cfg(test)]
-pub fn build_particles(instances: &[ParticleInstance], rows: &mut Vec<ParticleRow>) -> u32 {
-    rows.clear();
-    rows.extend(
-        instances
-            .iter()
-            .filter(|inst| inst.alpha > 0.0)
-            .map(|inst| particle_row(inst, LightEnv::IDENTITY, glam::IVec3::ZERO)),
-    );
-    rows.len() as u32
-}
-
 pub fn build_particles_split(
     block: &[ParticleInstance],
     model: &[ParticleInstance],

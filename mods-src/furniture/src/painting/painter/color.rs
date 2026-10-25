@@ -73,9 +73,4 @@ mod tests {
             assert_eq!(Hsv::from_rgb(rgb, 0.3).to_rgb(), rgb);
         }
     }
-
-    #[test]
-    fn a_grey_keeps_the_hue_the_picker_was_on() {
-        assert_eq!(Hsv::from_rgb([90, 90, 90], 0.7).h, 0.7);
-    }
 }

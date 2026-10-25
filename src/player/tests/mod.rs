@@ -1,8 +1,8 @@
 use super::{
     collision::Axis,
     movement::{
-        friction_retain, Surroundings, AIR_ACCEL, AIR_FRICTION, CLIMB_LATERAL_SPEED, CLIMB_SPEED,
-        FRICTION_REF_DT, GRAVITY, GROUND_ACCEL, GROUND_FRICTION, SPECTATOR_SPEED, SPRINT, WALK,
+        friction_retain, Surroundings, AIR_FRICTION, CLIMB_LATERAL_SPEED, CLIMB_SPEED,
+        FRICTION_REF_DT, GRAVITY, GROUND_FRICTION, SPECTATOR_SPEED, SPRINT, WALK,
     },
     *,
 };

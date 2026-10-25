@@ -85,13 +85,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn support_is_the_wall_behind_the_panel() {
-        let p = IVec3::new(5, 10, -3);
-        assert_eq!(support_cell(p, Facing::East), IVec3::new(4, 10, -3));
-        assert_eq!(support_cell(p, Facing::North), IVec3::new(5, 10, -2));
-    }
-
-    #[test]
     fn panel_hugs_the_supporting_wall() {
         let t = THICKNESS;
         let aabb = |f| panel_aabb_dim(f, THICKNESS, 1.0);

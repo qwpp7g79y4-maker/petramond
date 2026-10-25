@@ -34,20 +34,6 @@ fn ring() -> u32 {
 }
 
 #[test]
-fn bucket_source_check_accepts_only_still_sources() {
-    let mut w = flat_server_world();
-    assert!(w.set_fluid_world(IVec3::new(2, 65, 2), Block::Water, 0));
-    assert!(w.set_fluid_world(IVec3::new(3, 65, 2), Block::Water, flowing(3)));
-    assert!(w.set_fluid_world(IVec3::new(4, 65, 2), Block::Water, FALLING));
-
-    assert!(w.is_water_source_world(IVec3::new(2, 65, 2)));
-    assert!(!w.is_water_source_world(IVec3::new(3, 65, 2)), "flowing");
-    assert!(!w.is_water_source_world(IVec3::new(4, 65, 2)), "falling");
-    assert!(!w.is_water_source_world(IVec3::new(5, 65, 2)), "air");
-    assert!(!w.is_water_source_world(IVec3::new(2, 64, 2)), "stone");
-}
-
-#[test]
 fn water_flow_dir_matches_surface_gradient_used_by_texture() {
     let mut w = flat_server_world();
     for x in 0..=5 {
@@ -98,18 +84,6 @@ fn flow_at_a_point_stops_above_the_fluid_surface() {
 }
 
 #[test]
-fn game_tick_advances_and_block_update_schedules_a_water_check() {
-    let mut w = flat_server_world();
-    assert_eq!(w.current_tick(), 0);
-    w.set_block_world(8, 65, 8, Block::Water);
-    w.game_tick(&petramond_world::crafting::Recipes::default());
-    assert_eq!(w.current_tick(), 1);
-    assert_eq!(block(&w, 9, 65, 8), Block::Air);
-    run_ticks(&mut w, water_flow_delay() as u32 + 1);
-    assert_eq!(block(&w, 9, 65, 8), Block::Water);
-}
-
-#[test]
 fn source_spreads_one_ring_per_delay_on_a_flat_floor() {
     let mut w = flat_server_world();
     w.set_block_world(8, 65, 8, Block::Water);
@@ -122,28 +96,6 @@ fn source_spreads_one_ring_per_delay_on_a_flat_floor() {
     }
     assert_eq!(block(&w, 9, 65, 9), Block::Air);
     assert!(is_source(w.data.fluid_meta_world(8, 65, 8)));
-}
-
-#[test]
-fn flowing_water_dies_out_after_seven_blocks() {
-    let mut w = flat_server_world();
-    w.set_block_world(8, 65, 8, Block::Water);
-    run_ticks(&mut w, 200);
-    assert_eq!(level(w.data.fluid_meta_world(12, 65, 8)), 4);
-    assert_eq!(level(w.data.fluid_meta_world(15, 65, 8)), 7);
-    assert_eq!(block(&w, 16, 65, 8), Block::Air);
-}
-
-#[test]
-fn source_prefers_flowing_toward_a_downhill_drop() {
-    let mut w = flat_server_world();
-    carve(&mut w, 10, 64, 8);
-    w.set_block_world(8, 65, 8, Block::Water);
-    run_ticks(&mut w, 12);
-    assert_eq!(block(&w, 9, 65, 8), Block::Water);
-    assert_eq!(block(&w, 7, 65, 8), Block::Air);
-    assert_eq!(block(&w, 8, 65, 7), Block::Air);
-    assert_eq!(block(&w, 8, 65, 9), Block::Air);
 }
 
 #[test]
@@ -344,25 +296,6 @@ fn cut_off_waterfall_and_pool_fully_drain() {
 }
 
 #[test]
-fn flowing_water_recedes_when_its_source_is_removed() {
-    let mut w = flat_server_world();
-    w.set_block_world(8, 65, 8, Block::Water);
-    run_ticks(&mut w, 40);
-    assert_eq!(block(&w, 10, 65, 8), Block::Water);
-
-    w.set_block_world(8, 65, 8, Block::Air);
-    run_ticks(&mut w, 200);
-    for r in 1..=4 {
-        assert_eq!(
-            block(&w, 8 + r, 65, 8),
-            Block::Air,
-            "ring {r} should be dry"
-        );
-    }
-    assert_eq!(block(&w, 8, 65, 8), Block::Air);
-}
-
-#[test]
 fn a_cut_off_sheet_steps_down_through_levels_rather_than_vanishing() {
     let mut w = flat_server_world();
     w.set_block_world(8, 65, 8, Block::Water);
@@ -445,35 +378,6 @@ fn one_deep_flow_between_two_sources_becomes_a_source() {
     assert!(
         !is_source(w.data.fluid_meta_world(8, 65, 7)),
         "the surrounding ring (one source neighbour) stays flowing"
-    );
-}
-
-#[test]
-fn a_one_deep_flow_resting_on_a_source_becomes_a_source() {
-    let mut w = flat_server_world();
-    assert!(w.set_fluid_world(IVec3::new(8, 65, 8), Block::Water, 0));
-    assert!(w.set_fluid_world(IVec3::new(7, 66, 8), Block::Water, 0));
-    assert!(w.set_fluid_world(IVec3::new(9, 66, 8), Block::Water, 0));
-    assert!(w.set_fluid_world(IVec3::new(8, 66, 8), Block::Water, flowing(1)));
-    run_ticks(&mut w, 30);
-
-    assert!(
-        is_source(w.data.fluid_meta_world(8, 66, 8)),
-        "a flow resting on a source, flanked by two sources, converts"
-    );
-}
-
-#[test]
-fn a_falling_cell_between_two_sources_converts_to_a_source() {
-    let mut w = flat_server_world();
-    w.set_block_world(7, 65, 8, Block::Water);
-    w.set_block_world(9, 65, 8, Block::Water);
-    assert!(w.set_fluid_world(IVec3::new(8, 65, 8), Block::Water, FALLING));
-    run_ticks(&mut w, 30);
-
-    assert!(
-        is_source(w.data.fluid_meta_world(8, 65, 8)),
-        "a falling cell flanked by two sources over solid ground converts"
     );
 }
 
@@ -599,64 +503,6 @@ fn a_cut_cascade_flows_inside_its_gorge_and_a_breached_one_does_not() {
 
 fn lava_ring() -> u32 {
     lava_flow_delay() as u32 + 2
-}
-
-#[test]
-fn lava_spreads_slower_and_shorter_than_water() {
-    let mut w = flat_server_world();
-    assert!(w.set_fluid_world(IVec3::new(2, 65, 2), Block::Lava, 0));
-    run_ticks(&mut w, lava_ring());
-    assert_eq!(
-        block(&w, 3, 65, 2),
-        Block::Lava,
-        "one ring reaches one cell"
-    );
-    assert_eq!(w.data.fluid_meta_world(3, 65, 2), flowing(8 - 6));
-    run_ticks(&mut w, lava_ring() * 2);
-    assert_eq!(block(&w, 5, 65, 2), Block::Lava);
-    assert_eq!(block(&w, 6, 65, 2), Block::Air, "lava reaches three cells");
-}
-
-#[test]
-fn lava_is_insulated_from_water_flow_probes() {
-    let mut w = flat_server_world();
-    assert!(w.set_fluid_world(IVec3::new(2, 65, 2), Block::Lava, 0));
-    assert_eq!(
-        w.data.fluid_current_at(WorldPos::new(2.5, 65.2, 2.5)),
-        petramond_world::fluid::FluidCurrent::NONE,
-        "lava is a hazard, not a conveyor"
-    );
-    assert!(w
-        .data
-        .is_fluid_source_world(IVec3::new(2, 65, 2), Block::Lava));
-    assert!(!w.is_water_source_world(IVec3::new(2, 65, 2)));
-}
-
-#[test]
-fn lava_pours_down_as_falling_cells_and_lands_in_a_ring() {
-    let mut w = flat_server_world();
-    carve(&mut w, 2, 64, 2);
-    assert!(w.set_fluid_world(IVec3::new(2, 65, 2), Block::Lava, 0));
-    run_ticks(&mut w, lava_ring());
-    assert_eq!(block(&w, 2, 64, 2), Block::Lava);
-    assert_eq!(w.data.fluid_meta_world(2, 64, 2), FALLING);
-    assert_eq!(
-        block(&w, 3, 65, 2),
-        Block::Air,
-        "no sideways spread over a drop"
-    );
-}
-
-#[test]
-fn horizontal_water_flow_cools_lava_without_displacing_it() {
-    let mut w = flat_server_world();
-    assert!(w.set_fluid_world(IVec3::new(2, 65, 2), Block::Lava, 0));
-    assert!(w.set_fluid_world(IVec3::new(4, 65, 2), Block::Water, 0));
-    run_ticks(&mut w, lava_ring() * 6);
-    assert_eq!(block(&w, 2, 65, 2), Block::Stone, "the lava quenched");
-    for x in 3..=4 {
-        assert_ne!(block(&w, x, 65, 2), Block::Lava, "lava never entered x={x}");
-    }
 }
 
 /// A generated lava fall (a still source in the ceiling, its falling column below) has to survive

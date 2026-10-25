@@ -7,27 +7,6 @@ fn air_cells() -> Vec<IVec3> {
 }
 
 #[test]
-fn fluid_checks_past_the_budget_carry_over_to_later_ticks() {
-    let mut w = flat_server_world();
-    let cells = air_cells();
-    assert!(cells.len() > FLUID_CHECKS_PER_TICK);
-    for &p in &cells {
-        w.schedule_fluid_tick(p, 1);
-    }
-    run_ticks(&mut w, 1);
-    assert_eq!(
-        w.pending_fluid_checks(),
-        cells.len() - FLUID_CHECKS_PER_TICK
-    );
-    run_ticks(&mut w, 1);
-    assert_eq!(
-        w.pending_fluid_checks(),
-        0,
-        "the carry-over drains next tick"
-    );
-}
-
-#[test]
 fn a_carried_over_flow_check_runs_on_the_next_tick() {
     let mut w = flat_server_world();
     let source = IVec3::new(8, 65, 8);

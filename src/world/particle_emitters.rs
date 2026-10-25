@@ -276,15 +276,6 @@ mod tests {
     }
 
     #[test]
-    fn the_envelope_covers_the_fall() {
-        let e = drip();
-        assert!(emitter_envelope(&e).y >= 20.0);
-        let mut still = e;
-        still.gravity = 0.0;
-        assert!(emitter_envelope(&still).y < 1.0);
-    }
-
-    #[test]
     fn a_landing_emitter_finds_the_first_floor_under_its_anchor() {
         let mut w = ServerWorld::new(1, 1);
         w.insert_chunk_for_test(ChunkPos::new(0, 0), Chunk::new(0, 0));

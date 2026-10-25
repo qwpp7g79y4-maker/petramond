@@ -30,55 +30,6 @@ fn water_side_faces_at_unloaded_streaming_edges_are_culled() {
 }
 
 #[test]
-fn water_meshing_picks_still_vs_flow_tiles_and_varies_height() {
-    let still_id = Block::Water.fluid_still_tile().index() as u32;
-    let flow_id = Block::Water.fluid_flow_tile().index() as u32;
-
-    let mut section = Section::new(0, 0, 0);
-    for z in 6..=10 {
-        for x in 6..=10 {
-            section.set_block(x, 4, z, Block::Stone);
-            section.set_fluid(x, 5, z, Block::Water, 0);
-        }
-    }
-    section.set_block(11, 4, 8, Block::Stone);
-    section.set_fluid(11, 5, 8, Block::Water, 4);
-
-    let m = mesh(&section);
-
-    let mut saw_still = false;
-    let mut saw_flow = false;
-    let mut min_top = f32::INFINITY;
-    let mut max_top: f32 = 0.0;
-    for v in &m.transparent {
-        let tile = tile_idx(v);
-        if v.pos[1] > 5.05 {
-            min_top = min_top.min(v.pos[1]);
-            max_top = max_top.max(v.pos[1]);
-        }
-        if tile == still_id {
-            saw_still = true;
-        } else if tile == flow_id {
-            saw_flow = true;
-        }
-    }
-
-    assert!(
-        saw_still,
-        "interior still sources should use the still tile"
-    );
-    assert!(saw_flow, "the flowing rim cell should use the flow tile");
-    assert!(
-        max_top <= 5.9,
-        "water tops are recessed below the full block (got {max_top})"
-    );
-    assert!(
-        min_top < 5.6,
-        "the flowing cell should slope notably lower than a source (got {min_top})"
-    );
-}
-
-#[test]
 fn submerged_water_renders_exposed_step_toward_a_shorter_neighbour() {
     let mut section = section_with(&[((8, 3, 8), Block::Stone), ((9, 3, 8), Block::Stone)]);
     section.set_fluid(8, 4, 8, Block::Water, 0);

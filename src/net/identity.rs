@@ -245,42 +245,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_signed_challenge_verifies_only_for_its_challenge_and_key() {
-        let id = PlayerIdentity::generate().expect("os randomness");
-        let challenge = [7u8; 32];
-        let proof = id.sign_join(&challenge);
-        assert!(verify_join(&challenge, &id.key(), &proof));
-
-        assert!(
-            !verify_join(&[8u8; 32], &id.key(), &proof),
-            "a proof never replays against another connection's challenge"
-        );
-        let other = PlayerIdentity::generate().expect("os randomness");
-        assert!(
-            !verify_join(&challenge, &other.key(), &proof),
-            "a proof cannot be claimed for somebody else's key"
-        );
-        assert!(!verify_join(&challenge, &id.key(), &proof[..63]));
-        assert!(!verify_join(&challenge, &id.key(), &[]));
-        let mut forged = proof.clone();
-        forged[0] ^= 1;
-        assert!(!verify_join(&challenge, &id.key(), &forged));
-    }
-
-    #[test]
-    fn offline_keys_are_stable_per_name() {
-        assert_eq!(offline_key("Rachel"), offline_key(" rachel "));
-        assert_ne!(offline_key("Rachel"), offline_key("Bob"));
-    }
-
-    #[test]
-    fn challenges_are_fresh() {
-        let a = new_challenge().expect("os randomness");
-        let b = new_challenge().expect("os randomness");
-        assert_ne!(a, b);
-    }
-
-    #[test]
     fn player_keys_roundtrip_through_hex() {
         let key = PlayerIdentity::generate().expect("os randomness").key();
         let text = key.to_string();

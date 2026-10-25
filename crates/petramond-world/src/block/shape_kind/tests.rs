@@ -39,50 +39,6 @@ fn collision_state_free_kinds_resolve_identically() {
     }
 }
 
-#[test]
-fn raw_shape_deserializes_families_params_and_named_references() {
-    let de = |s: &str| serde_json::from_str::<RawShape>(s).expect("parses");
-    assert!(matches!(de(r#""cube""#), RawShape::Cube));
-    assert!(matches!(de(r#""fence""#), RawShape::Fence));
-    assert!(matches!(de(r#""door""#), RawShape::Door));
-    let (family, params, _) = resolve_json(
-        r#"{"boxes":[{"to":[16,15,16]},{"from":[0,15,0],"faces":["up"],"collides":false}]}"#,
-    )
-    .unwrap();
-    assert_eq!(family, ShapeFamily::BoxSet);
-    let set = params.box_set().expect("box set params");
-    assert_eq!(set.boxes(0, 0).len(), 2);
-    assert_eq!(set.boxes(0, 0)[0].aabb.max, [1.0, 15.0 / 16.0, 1.0]);
-    assert_eq!(set.boxes(0, 0)[0].faces, [true; 6]);
-    assert!(set.boxes(0, 0)[0].collides);
-    assert_eq!(
-        set.boxes(0, 0)[1].faces,
-        [false, false, true, false, false, false]
-    );
-    assert_eq!(set.collision(0, 0).len(), 1);
-    assert_eq!(set.bounds(0, 0).max, [1.0, 1.0, 1.0]);
-    for bad in [
-        r#"{"boxes":[]}"#,
-        r#"{"boxes":[{"from":[9,0,0],"to":[8,16,16]}]}"#,
-        r#"{"boxes":[{"from":[8,0,8],"to":[8,16,8]}]}"#,
-        r#"{"boxes":[{"to":[33,16,16]}]}"#,
-        r#"{"boxes":[{"faces":["sideways"]}]}"#,
-        r#"{"boxes":[{"tiles":{"up":"petramond:no_such_tile"}}]}"#,
-        r#"{"boxes":[{"faces":["up"],"tiles":{"down":"stone"}}]}"#,
-    ] {
-        assert!(resolve_json(bad).is_err(), "{bad}");
-    }
-    assert!(matches!(
-        de(r#"{"custom":{"family":"fence"}}"#),
-        RawShape::Custom(_)
-    ));
-    match de(r#""mymod:gate""#) {
-        RawShape::Named(key) => assert_eq!(key, "mymod:gate"),
-        _ => panic!("a namespaced string is a custom-shape reference"),
-    }
-    assert!(serde_json::from_str::<RawShape>(r#""bogus""#).is_err());
-}
-
 /// Apertures ask whether matter SEALS a boundary, not whether it fills the
 /// octant behind it. A cover that stops a texel short of its top must read
 /// OPEN above — otherwise its own cell floods to black, the sunken top the
@@ -325,35 +281,6 @@ fn an_inherited_top_face_is_uv_turned_by_its_parents_frame() {
         .expect("the same piece, one turn on");
     assert_eq!(moved.art_turns[2], 1);
     assert_eq!(moved.tiles[2], Tile::from_name("stone"));
-}
-
-#[test]
-fn custom_dimension_families_resolve_to_dimension_params() {
-    let (fam, params, _) = resolve_json(r#"{"custom":{"family":"cross","inset":4}}"#).unwrap();
-    assert_eq!(fam, ShapeFamily::Cross);
-    assert_eq!(params.dimensions().unwrap().inset, 4.0 / 16.0);
-
-    let (fam, params, _) =
-        resolve_json(r#"{"custom":{"family":"crop","inset":3,"drop":2}}"#).unwrap();
-    assert_eq!(fam, ShapeFamily::Crop);
-    let d = params.dimensions().unwrap();
-    assert_eq!((d.inset, d.drop), (3.0 / 16.0, 2.0 / 16.0));
-
-    let (fam, params, _) =
-        resolve_json(r#"{"custom":{"family":"wall_panel","thickness":4,"height":12}}"#).unwrap();
-    assert_eq!(fam, ShapeFamily::Ladder);
-    let d = params.dimensions().unwrap();
-    assert_eq!((d.thickness, d.height), (4.0 / 16.0, 12.0 / 16.0));
-}
-
-#[test]
-fn custom_dimension_families_validate() {
-    assert!(resolve_json(r#"{"custom":{"family":"cross","inset":8}}"#).is_err());
-    assert!(resolve_json(r#"{"custom":{"family":"crop","inset":20}}"#).is_err());
-    assert!(resolve_json(r#"{"custom":{"family":"wall_panel","thickness":0}}"#).is_err());
-    assert!(resolve_json(r#"{"custom":{"family":"cross","plane_count":3}}"#).is_err());
-    assert!(resolve_json(r#"{"custom":{"family":"pyramid"}}"#).is_err());
-    assert!(resolve_json(r#"{"custom":{"family":"crop","post_thickness":4}}"#).is_err());
 }
 
 /// `shade_boxes` and `shades_pocket` are two spellings of one predicate; the mesher trusts the

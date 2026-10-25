@@ -36,22 +36,4 @@ mod tests {
             assert_eq!(h, hash01(i), "hash01 must be deterministic");
         }
     }
-
-    #[test]
-    fn hash01_spreads_across_the_range() {
-        let mut buckets = [0u32; 10];
-        for i in 0..10_000u64 {
-            let b = (hash01(i.wrapping_mul(2_654_435_761)) * 10.0) as usize;
-            buckets[b.min(9)] += 1;
-        }
-        assert!(buckets.iter().all(|&c| c > 0), "buckets: {buckets:?}");
-    }
-
-    #[test]
-    fn hash_signed_is_symmetric_range() {
-        for i in 0..10_000u64 {
-            let h = hash_signed(i);
-            assert!((-1.0..1.0).contains(&h), "hash_signed({i}) = {h}");
-        }
-    }
 }

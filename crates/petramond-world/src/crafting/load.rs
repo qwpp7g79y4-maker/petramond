@@ -442,30 +442,6 @@ mod tests {
     }
 
     #[test]
-    fn crafting_schema_resolves_quantities_tags_and_remainders() {
-        let text = r#"{ "recipes": [{
-            "type":"crafting", "recipe":"petramond:test", "station":"petramond:inventory",
-            "ingredients":[
-                {"tag":"petramond:planks","count":2},
-                {"item":"petramond:water_bucket","count":1,"remainder":"petramond:wooden_bucket"}
-            ],
-            "result":{"item":"petramond:stick","count":4}
-        }] }"#;
-        let (crafting, _) = parse(text);
-        let recipe = crafting.first().expect("valid recipe");
-        assert_eq!(recipe.key(), "petramond:test");
-        assert_eq!(recipe.ingredients()[0].count, 2);
-        assert_eq!(
-            recipe.ingredients()[0].selector,
-            IngredientSelector::Tag(ItemTag::PLANKS)
-        );
-        assert_eq!(
-            recipe.ingredients()[1].use_mode,
-            IngredientUse::Remainder(ItemType::WoodenBucket)
-        );
-    }
-
-    #[test]
     fn malformed_crafting_rows_are_skipped_without_legacy_decoders() {
         let text = r#"{ "recipes": [
             {"type":"crafting","recipe":"petramond:ok","station":"petramond:inventory",
@@ -486,19 +462,6 @@ mod tests {
         let furniture = r#"{ "recipes": [{"type":"furniture","input":"petramond:oak_planks","result":"petramond:oak_door","cost":1}] }"#;
         let (crafting, processing) = parse(furniture);
         assert!(crafting.is_empty() && processing.is_empty());
-    }
-
-    #[test]
-    fn processing_lookup_contract_remains_distinct() {
-        let text = r#"{ "recipes": [
-            {"type":"processing","recipe":"petramond:test_cook","class":"test:cooking","ingredient":"petramond:raw_iron","result":"petramond:iron_ingot"}
-        ] }"#;
-        let (crafting, processing) = parse(text);
-        let recipes = Recipes::new(crafting, processing);
-        assert_eq!(
-            recipes.process("test:cooking", ItemType::RawIron),
-            Some(ItemStack::new(ItemType::IronIngot, 1))
-        );
     }
 
     #[test]

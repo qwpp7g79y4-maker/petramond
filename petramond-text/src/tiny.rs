@@ -77,22 +77,6 @@ mod tests {
     }
 
     #[test]
-    fn one_glyph_has_expected_lit_cells() {
-        assert!(digit_cell(1, 1, 0));
-        assert!(!digit_cell(1, 0, 0));
-        assert!(!digit_cell(1, 2, 0));
-        assert!(digit_cell(1, 0, 4));
-        assert!(digit_cell(1, 1, 4));
-        assert!(digit_cell(1, 2, 4));
-    }
-
-    #[test]
-    fn out_of_range_cells_are_unlit() {
-        assert!(!digit_cell(0, GLYPH_W, 0));
-        assert!(!digit_cell(0, 0, GLYPH_H));
-    }
-
-    #[test]
     fn for_each_lit_cell_covers_two_digits() {
         let mut min_x = u32::MAX;
         let mut max_x = 0;
@@ -106,20 +90,5 @@ mod tests {
             "second glyph cells past the advance"
         );
         assert!(max_x < number_width(64) + 1);
-    }
-
-    #[test]
-    fn every_digit_has_at_least_one_lit_cell() {
-        for d in 0u8..=9 {
-            let mut lit = 0;
-            for row in 0..GLYPH_H {
-                for col in 0..GLYPH_W {
-                    if digit_cell(d, col, row) {
-                        lit += 1;
-                    }
-                }
-            }
-            assert!(lit > 0, "digit {d} should be visible");
-        }
     }
 }

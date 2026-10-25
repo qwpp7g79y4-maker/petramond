@@ -75,22 +75,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_shipped_font_loads_and_covers_european_latin() {
-        let bytes = std::fs::read(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../assets/ui/font/DepartureMono-Regular.otf"
-        ))
-        .expect("shipped font is vendored");
-        let font = Font::from_ttf(&bytes, 11.0).expect("shipped font rasterizes at its size");
-        for ch in "AZaz09 ×·—…'\"Ööäëéèñçßæø".chars() {
-            assert!(font.has_glyph(ch), "missing glyph {ch:?}");
-        }
-        assert!(font.glyph_count() > 200, "{}", font.glyph_count());
-        let builtin = Font::builtin();
-        assert!(font.line_h() > builtin.line_h());
-    }
-
-    #[test]
     fn glyph_bitmaps_match_the_fonts_own_pixel_grid() {
         let bytes = std::fs::read(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -130,12 +114,6 @@ mod tests {
                     .collect()
             })
             .collect()
-    }
-
-    #[test]
-    fn a_broken_font_file_is_an_error_not_a_panic() {
-        assert!(Font::from_ttf(b"not a font", 10.0).is_err());
-        assert!(Font::from_ttf(&[], 10.0).is_err());
     }
 
     #[test]

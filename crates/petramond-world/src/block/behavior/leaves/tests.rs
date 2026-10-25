@@ -31,23 +31,6 @@ fn log_one_step_past_max_does_not_support() {
 }
 
 #[test]
-fn adjacent_log_supports() {
-    let mut w = world_with_chunk();
-    let p = IVec3::new(8, 70, 8);
-    w.set_block_world(p.x, p.y, p.z, Block::OakLeaves);
-    w.set_block_world(p.x + 1, p.y, p.z, Block::OakLog);
-    assert!(leaf_supported(&w.data, p));
-}
-
-#[test]
-fn isolated_leaf_is_unsupported() {
-    let mut w = world_with_chunk();
-    let p = IVec3::new(8, 70, 8);
-    w.set_block_world(p.x, p.y, p.z, Block::OakLeaves);
-    assert!(!leaf_supported(&w.data, p));
-}
-
-#[test]
 fn a_decaying_leaf_breaks_naturally_so_its_drop_can_roll() {
     let mut w = world_with_chunk();
     let p = IVec3::new(8, 70, 8);

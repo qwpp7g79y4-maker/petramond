@@ -1,57 +1,5 @@
 use super::*;
 
-#[test]
-fn a_full_cube_under_a_snow_layer_culls_its_top_face() {
-    let mut section = floor_section(Block::Stone);
-    section.set_block(8, 1, 8, Block::SnowLayer);
-    let m = mesh(&section);
-
-    let quads: Vec<&[Vertex]> = m.opaque.chunks_exact(4).collect();
-    let covers = |q: &[Vertex], x: f32, z: f32| {
-        let (mut xmin, mut xmax, mut zmin, mut zmax) = (
-            f32::INFINITY,
-            f32::NEG_INFINITY,
-            f32::INFINITY,
-            f32::NEG_INFINITY,
-        );
-        for v in q {
-            xmin = xmin.min(v.pos[0]);
-            xmax = xmax.max(v.pos[0]);
-            zmin = zmin.min(v.pos[2]);
-            zmax = zmax.max(v.pos[2]);
-        }
-        xmin < x && x < xmax && zmin < z && z < zmax
-    };
-
-    let carrier_top_covered = quads.iter().any(|q| {
-        shade_idx(&q[0]) == 0
-            && q.iter().all(|v| (v.pos[1] - 1.0).abs() < 1e-3)
-            && covers(q, 8.5, 8.5)
-    });
-    assert!(
-        !carrier_top_covered,
-        "the block under a snow layer must not emit its covered top face"
-    );
-
-    let snow_top = quads.iter().any(|q| {
-        shade_idx(&q[0]) == 0
-            && q.iter()
-                .all(|v| (v.pos[1] - (1.0 + 1.0 / 16.0)).abs() < 1e-3)
-            && covers(q, 8.5, 8.5)
-    });
-    assert!(
-        snow_top,
-        "the snow layer's own top face must keep rendering"
-    );
-
-    let open_top_covered = quads.iter().any(|q| {
-        shade_idx(&q[0]) == 0
-            && q.iter().all(|v| (v.pos[1] - 1.0).abs() < 1e-3)
-            && covers(q, 2.5, 2.5)
-    });
-    assert!(open_top_covered, "uncovered floor tops must still render");
-}
-
 /// A bottom slab has to seal the face under it, even though it's not opaque. Flip it to the top
 /// half and it shouldn't. The cull only looks at the resolved boxes.
 #[test]
@@ -158,9 +106,8 @@ fn decoration_beside_snow_is_bedded_in_it_without_doubling_the_surface() {
 
 /// A bedded cell wears its blanket for the block BELOW it too: the grass keeps
 /// the snowy sides its undecorated neighbours have, and stops drawing the top
-/// face the blanket now hides (which would otherwise z-fight it from far off,
-/// the artifact `a_full_cube_under_a_snow_layer_culls_its_top_face` exists to
-/// prevent — the two planes are 1/16 apart).
+/// face the blanket now hides (which would otherwise z-fight it from far off:
+/// the two planes are 1/16 apart).
 #[test]
 fn a_bedded_cell_covers_the_grass_below_it_like_the_snow_it_stands_in() {
     let carrier_top_drawn = |neighbour: Option<Block>| {

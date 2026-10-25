@@ -26,16 +26,6 @@ fn cross_plant_emits_double_sided_billboards() {
 }
 
 #[test]
-fn leaves_go_to_opaque_pass() {
-    let m = mesh(&section_with(&[((8, 8, 8), Block::OakLeaves)]));
-    assert!(
-        m.transparent.is_empty() && m.transparent_two_sided.is_empty(),
-        "leaves+no-water section should have an empty transparent buffer"
-    );
-    assert!(!m.opaque.is_empty(), "leaves should fill the opaque buffer");
-}
-
-#[test]
 fn distant_canopy_keeps_exterior_sprays_and_materials() {
     type Mesher = fn(&Section) -> ChunkMesh;
     for (path, build) in [

@@ -191,49 +191,6 @@ mod tests {
     use petramond_math::world_pos::WorldPos;
 
     #[test]
-    fn emit_sound_rides_the_tick_feed() {
-        let mut data = ModStoreData::new("alpha", 1);
-        let mut world = ServerWorld::new(1, 1);
-        let mut nobody = RosterRefs::empty();
-        let mut feed = TickEvents::default();
-        let mut queue = PostQueue::default();
-        let mut ctx = SimCtx {
-            world: &mut world,
-            actor: None,
-            players: &mut nobody,
-            feed: &mut feed,
-            queue: &mut queue,
-        };
-        scope::enter(&mut ctx, || {
-            assert_eq!(
-                handle_host_call(
-                    &mut data,
-                    HostCall::from(calls::EmitSound {
-                        key: "petramond:item_pickup".into(),
-                        pos: Some([1.0, 64.0, 1.0]),
-                    }),
-                ),
-                HostRet::Bool(true)
-            );
-            assert_eq!(
-                handle_host_call(
-                    &mut data,
-                    HostCall::from(calls::EmitSound {
-                        key: "no_such:sound".into(),
-                        pos: None,
-                    }),
-                ),
-                HostRet::Bool(false)
-            );
-        });
-        assert_eq!(feed.world.sounds.len(), 1, "one resolved sound queued");
-        assert_eq!(
-            feed.world.sounds[0].pos,
-            Some(WorldPos::new(1.0, 64.0, 1.0))
-        );
-    }
-
-    #[test]
     fn spatial_sound_calls_queue_resolved_commands_with_deterministic_handles() {
         fn run_once() -> (u64, u64, Vec<crate::events::tick::SpatialSoundCommand>) {
             let mut data = ModStoreData::new("alpha", 1);

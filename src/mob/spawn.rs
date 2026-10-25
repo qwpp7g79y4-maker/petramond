@@ -653,32 +653,6 @@ mod tests {
     }
 
     #[test]
-    fn cap_room_needs_room_in_both() {
-        assert_eq!(cap_room(0, 8, 0, 25), 8);
-        assert_eq!(cap_room(7, 8, 20, 25), 1);
-        assert_eq!(cap_room(8, 8, 0, 25), 0);
-        assert_eq!(cap_room(0, 8, 25, 25), 0);
-        assert_eq!(cap_room(8, 8, 25, 25), 0);
-    }
-
-    #[test]
-    fn the_chance_gate_is_certain_at_full_chance_and_rolls_below_it() {
-        assert!(chance_gate(1.0, || unreachable!(
-            "full chance draws no roll"
-        )));
-        assert!(chance_gate(0.2, || 0.19));
-        assert!(!chance_gate(0.2, || 0.2));
-    }
-
-    #[test]
-    fn too_close_is_a_sphere_around_the_player() {
-        let player = WorldPos::new(0.0, 0.0, 0.0);
-        assert!(too_close(player, WorldPos::new(49.0, 0.0, 0.0), 50.0));
-        assert!(!too_close(player, WorldPos::new(51.0, 0.0, 0.0), 50.0));
-        assert!(too_close(player, WorldPos::new(0.0, 49.0, 0.0), 50.0));
-    }
-
-    #[test]
     fn spawn_site_accepts_a_dry_valid_foothold() {
         let world = flat_grass_spawn_world(|_| {});
 

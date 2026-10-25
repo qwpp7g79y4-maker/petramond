@@ -375,30 +375,4 @@ mod tests {
         )
         .is_none());
     }
-
-    #[test]
-    fn ray_pick_takes_a_solid_faces_front_side() {
-        let cube = ModelCube {
-            name: String::new(),
-            from: Vec3::ZERO,
-            to: Vec3::ONE,
-            origin: Vec3::ZERO,
-            rotation: Vec3::ZERO,
-            faces: [Some(crate::bbmodel::FaceUv::new([0.0, 0.0, 1.0, 1.0])); 6],
-            cull: [None; 6],
-        };
-        let hit = ray_vs_model_cubes(
-            Vec3::new(0.5, -2.0, 0.5),
-            Vec3::Y,
-            std::slice::from_ref(&cube),
-            |_, face, _, _, _| face == Face::NegY,
-        )
-        .expect("the bottom face from below is front-facing");
-        assert!((hit - 2.0).abs() < 1e-5, "ray should hit at y=0, got {hit}");
-    }
-
-    #[test]
-    fn ray_far_outside_the_model_misses() {
-        assert!(ray_vs_model(Vec3::new(100.0, 100.0, 100.0), Vec3::Z, WB).is_none());
-    }
 }

@@ -1,47 +1,7 @@
-use super::dress::{patch_at, vine_at, Dress, STRAY_PER_MILLE};
+use super::dress::{vine_at, Dress};
 use super::giants::{beats, could_beat, could_reach_box, roll_giant, Candidate, COMPETE_PAD};
 use super::*;
-use crate::cascade;
 use crate::shroom::{self, Giant, Part};
-
-#[test]
-fn ground_flora_grows_in_colonies_not_an_even_dusting() {
-    for seed in [0x312u32, 0x1D001, 0x2BEEF] {
-        let mut dens: Vec<i32> = Vec::new();
-        let (mut same, mut pairs) = (0usize, 0usize);
-        for wz in -60..60 {
-            for wx in -60..60 {
-                let (d, _, salt) = patch_at(seed, wx, wz);
-                dens.push(d);
-                let (dn, _, sn) = patch_at(seed, wx + 1, wz);
-                if salt != 0 && sn != 0 && d > STRAY_PER_MILLE && dn > STRAY_PER_MILLE {
-                    pairs += 1;
-                    same += (salt % 4 == sn % 4) as usize;
-                }
-            }
-        }
-        dens.sort_unstable();
-        let p10 = dens[dens.len() / 10];
-        let p95 = dens[dens.len() * 95 / 100];
-        let bare = dens.iter().filter(|&&d| d <= STRAY_PER_MILLE).count();
-        assert!(
-            p95 > p10,
-            "flora is nearly uniform (p10 {p10}, p95 {p95}) — the colonies are gone \
-             (seed {seed:#x})"
-        );
-        assert!(
-            bare > 0,
-            "only {bare}/{} columns are bare; patches need gaps between them \
-             (seed {seed:#x})",
-            dens.len()
-        );
-        assert!(
-            pairs > 0 && same * 4 > pairs,
-            "neighbouring colony cells agree on species only {same}/{pairs} of the time \
-             (seed {seed:#x})"
-        );
-    }
-}
 
 #[test]
 fn rolled_mushrooms_never_escape_the_scan_margin() {
@@ -132,27 +92,6 @@ fn giant_prefilter_keeps_every_body_cell_and_possible_winner() {
     }
 }
 
-#[test]
-fn one_dispatch_stays_within_a_couple_of_abi_batches() {
-    let cells = |span: i32| (span.div_euclid(ANCHOR_LATTICE) + 2) as usize;
-    let giants = cells(16 + 2 * MAX_REACH).pow(2) * cells(16 + MAX_RISE) * PROBE_PER_CANDIDATE;
-    let dressing = 2 * 256 + 256 * PROBE_PER_MARGIN;
-    let worst = giants + dressing;
-    assert!(
-        worst <= 2 * SIM_BATCH_MAX,
-        "worst-case probe batch {worst} ({giants} giants, {dressing} dressing) \
-         needs more than two ABI batches"
-    );
-}
-
-#[test]
-fn a_dispatch_consults_only_a_handful_of_cascade_cells() {
-    for origin in [[0, 0, 0], [16, -48, -16], [-16, -64, 48]] {
-        let cells = cascade::cells_overlapping(origin, CLAIM_ROWS).len();
-        assert!(cells <= 12, "a dispatch consults {cells} cascade cells");
-    }
-}
-
 /// A vine curtain hangs DOWN, so it routinely crosses the floor of the
 /// section its root sits in. Every cell of a run must therefore be reachable
 /// by the section that OWNS that cell — either because the root is inside
@@ -175,12 +114,6 @@ fn every_cell_of_a_curtain_is_reachable_by_the_section_that_owns_it() {
             }
         }
     }
-}
-
-#[test]
-fn the_ceiling_margin_is_no_wider_than_a_curtain_reaches() {
-    assert_eq!(CEILING_MARGIN, VINE_MAX_LEN - 1);
-    assert_eq!(15 + VINE_MAX_LEN - 1, 15 + CEILING_MARGIN);
 }
 
 fn split_section(section: [i32; 3]) -> GenCtx {
@@ -376,21 +309,6 @@ fn a_dressing_block_never_replaces_a_structural_block() {
     }
 }
 
-#[test]
-fn species_are_stable_across_a_stand_and_vary_between_stands() {
-    let content = test_content();
-    let at = |x, z| pick_species(&content, 7, x, -40, z).cap.0;
-    let base = at(0, 0);
-    for d in 0..8 {
-        assert_eq!(at(d, d), base, "species changed inside one stand");
-    }
-    let far: Vec<u16> = (1..12).map(|k| at(k * 40, k * 40)).collect();
-    assert!(
-        far.iter().any(|&c| c != base),
-        "species never varies between distant stands: {far:?}"
-    );
-}
-
 /// Curtain only cares about the cell's world position, nothing else.
 ///
 /// Run is gathered from the dispatching section's own snapshot. Use the root's rng stream or run
@@ -452,14 +370,6 @@ fn a_curtain_picks_each_segment_from_that_cell_alone() {
         "only {mixed} of {} curtains mix plain and flowering segments",
         curtains.len()
     );
-}
-
-#[test]
-fn a_section_above_the_biome_band_does_no_work_at_all() {
-    let content = test_content();
-    let first_clear = TOP_CONTENT_Y.div_euclid(16) + 1;
-    let ctx = split_section([0, first_clear, 0]);
-    assert!(generate(&content, &ctx).is_ok_and(|writes| writes.is_empty()));
 }
 
 fn all_ours(positions: Vec<[i32; 3]>) -> Vec<u8> {

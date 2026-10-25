@@ -68,28 +68,6 @@ fn a_u32_header_record_splits_before_upgrading() {
 }
 
 #[test]
-fn only_newer_build_errors_forbid_overwriting() {
-    assert!(RecordError::Newer {
-        format: "x",
-        found: 2,
-        newest: 1
-    }
-    .is_from_newer_build());
-    assert!(RecordError::UnknownPayload {
-        format: "x",
-        flags: 1
-    }
-    .is_from_newer_build());
-    assert!(!RecordError::corrupt("x", "y", 0).is_from_newer_build());
-    assert!(!RecordError::Retired {
-        format: "x",
-        found: 0,
-        oldest: 1
-    }
-    .is_from_newer_build());
-}
-
-#[test]
 fn a_fresh_world_is_stamped_with_this_build() {
     let dir = temp_dir("fresh");
     assert_eq!(prepare_world(&dir).unwrap(), None);

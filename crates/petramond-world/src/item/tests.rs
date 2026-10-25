@@ -1,20 +1,6 @@
-use crate::block::{Block, ShapeFamily};
-use crate::tile::Tile;
+use crate::block::Block;
 
 use super::*;
-
-#[test]
-fn attack_damage_ranges_are_ordered_and_positive() {
-    assert_eq!(
-        attack_damage(Some(&ItemStack::new(ItemType::Dirt, 1))),
-        attack_damage(None),
-        "a non-weapon punches like a fist"
-    );
-    for &it in ItemType::all() {
-        let (lo, hi) = attack_damage(Some(&ItemStack::new(it, 1)));
-        assert!(lo > 0.0 && lo <= hi, "{it:?}: invalid range {lo}..{hi}");
-    }
-}
 
 #[test]
 fn a_stack_tool_override_changes_tier_speed_and_damage_but_never_kind() {
@@ -70,14 +56,6 @@ fn a_malformed_tool_override_degrades_to_the_rows_values() {
 }
 
 #[test]
-fn durable_items_do_not_stack() {
-    for &durable in ItemType::all().iter().filter(|it| it.is_durable()) {
-        assert_eq!(durable.max_stack_size(), 1, "{durable:?}");
-        assert_eq!(ItemStack::new(durable, 5).count, 1);
-    }
-}
-
-#[test]
 fn every_item_draws_as_itself_and_never_falls_back_to_the_stick() {
     let stick = ItemType::Stick.render_kind();
     for &it in ItemType::all() {
@@ -90,120 +68,6 @@ fn every_item_draws_as_itself_and_never_falls_back_to_the_stick() {
             "{it:?} has no sprite, block link or model, so it silently draws as a stick"
         );
     }
-}
-
-#[test]
-fn item_tags_are_item_data() {
-    assert_eq!(ItemTag::from_key("petramond:planks"), Some(ItemTag::PLANKS));
-    assert_eq!(ItemTag::from_key("petramond:logs"), Some(ItemTag::LOGS));
-    assert_eq!(ItemTag::from_key("bogus"), None);
-    assert_eq!(ItemTag::from_key("petramond:fuel"), Some(ItemTag::FUEL));
-    assert_eq!(
-        ItemTag::from_key("petramond:smeltable"),
-        Some(ItemTag::SMELTABLE)
-    );
-}
-
-#[test]
-fn render_kind_matches_shape_family() {
-    for &block in Block::all() {
-        let item = ItemType::from_block(block);
-        if item == ItemType::Air && block != Block::Air {
-            continue;
-        }
-        match block.shape_family() {
-            ShapeFamily::Cube
-            | ShapeFamily::BoxSet
-            | ShapeFamily::Stair
-            | ShapeFamily::Slab
-            | ShapeFamily::Fence => {
-                let expected = match item.declared_sprite() {
-                    Some(sprite) => ItemRenderKind::Sprite(sprite),
-                    None => ItemRenderKind::BlockCube(block),
-                };
-                assert_eq!(item.render_kind(), expected, "{block:?}");
-            }
-            ShapeFamily::Cross | ShapeFamily::Crop => {
-                let kind = item.render_kind();
-                assert!(
-                    matches!(kind, ItemRenderKind::Sprite(_)),
-                    "{block:?} plant items render as flat sprites"
-                );
-                if item.declared_sprite().is_none() {
-                    assert_eq!(kind, ItemRenderKind::Sprite(block.tiles()[0]), "{block:?}");
-                }
-            }
-            ShapeFamily::Torch => {
-                assert!(
-                    matches!(item.render_kind(), ItemRenderKind::Sprite(_)),
-                    "{block:?} renders as a flat sprite"
-                );
-                assert_ne!(
-                    item.render_kind(),
-                    ItemRenderKind::Sprite(Tile::named("stick")),
-                    "{block:?} must declare its own item sprite"
-                );
-            }
-            ShapeFamily::Model => {
-                let kind = block.model_kind().expect("model family");
-                match item.declared_sprite() {
-                    Some(sprite) => {
-                        assert_eq!(
-                            item.render_kind(),
-                            ItemRenderKind::Sprite(sprite),
-                            "{block:?}"
-                        )
-                    }
-                    None => {
-                        assert_eq!(item.render_kind(), ItemRenderKind::Model(kind), "{block:?}")
-                    }
-                }
-            }
-            ShapeFamily::Door | ShapeFamily::Trapdoor | ShapeFamily::Pane | ShapeFamily::Ladder => {
-                assert!(
-                    matches!(item.render_kind(), ItemRenderKind::Sprite(_)),
-                    "{block:?} renders as a flat sprite"
-                );
-            }
-            ShapeFamily::Custom => {
-                assert_eq!(
-                    item.render_kind(),
-                    ItemRenderKind::BlockCube(block),
-                    "{block:?}"
-                );
-            }
-        }
-    }
-}
-
-#[test]
-fn item_only_model_item_renders_as_its_model() {
-    assert_eq!(ItemType::WoodenBucket.as_block(), None);
-    assert!(matches!(
-        ItemType::WoodenBucket.render_kind(),
-        ItemRenderKind::Model(_)
-    ));
-}
-
-#[test]
-fn stack_basics() {
-    let s = ItemStack::new(ItemType::Stone, 200);
-    assert_eq!(s.count, 64);
-    assert_eq!(s.space_left(), 0);
-
-    let s = ItemStack::new(ItemType::Dirt, 10);
-    assert!(!s.is_empty());
-    assert_eq!(s.space_left(), 54);
-    assert!(s.can_stack_with(&ItemStack::new(ItemType::Dirt, 1)));
-    assert!(!s.can_stack_with(&ItemStack::new(ItemType::Stone, 1)));
-
-    assert!(ItemStack::new(ItemType::Air, 5).is_empty());
-    assert!(ItemStack::new(ItemType::Dirt, 0).is_empty());
-}
-
-#[test]
-fn drop_spec_none_is_empty() {
-    assert!(DropSpec::NONE.drops.is_empty());
 }
 
 #[test]

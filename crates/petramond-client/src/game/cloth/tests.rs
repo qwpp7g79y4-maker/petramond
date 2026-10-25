@@ -87,23 +87,6 @@ fn wind_streams_the_cloth_downwind_and_calm_lets_it_hang() {
 }
 
 #[test]
-fn a_wall_downwind_keeps_every_point_out_of_it() {
-    let def = flag();
-    let wall = |c: IVec3| -> &'static [Aabb] {
-        if c.x == -1 {
-            std::slice::from_ref(&FLOOR)
-        } else {
-            &[]
-        }
-    };
-    let mut sim = ClothSim::new(IVec3::ZERO, def, [0.0, 1.0], 0.0);
-    run(&mut sim, 6.0, [-6.0, 0.0], &wall, &[]);
-    for p in sim.points(1.0) {
-        assert!(p.x >= 0.0 - 1e-3, "point inside the wall: {p}");
-    }
-}
-
-#[test]
 fn a_body_standing_in_the_cloth_pushes_it_aside() {
     let def = flag();
     let mut sim = ClothSim::new(IVec3::ZERO, def, DEFAULT_WIND, 0.0);

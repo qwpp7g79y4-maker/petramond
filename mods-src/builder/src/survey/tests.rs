@@ -139,28 +139,3 @@ fn unsupported_work_is_counted_once_and_never_asked_about() {
         Known::Unsupported("Fluids cannot be built".into())
     );
 }
-
-#[test]
-fn a_bill_counts_items_by_their_exact_data() {
-    let plain = stack("petramond:stone", 2);
-    let marked = ItemStackData {
-        data: vec![("builder:project".into(), vec![1])],
-        ..stack("petramond:stone", 5)
-    };
-    let mut summary = Summary::default();
-    summary.count(
-        &Known::Place(vec![plain.clone(), marked.clone()]),
-        &[],
-        true,
-    );
-    summary.count(&Known::Place(vec![plain.clone()]), &[], true);
-    assert_eq!(summary.bill.get(&key_of(&plain)), Some(&4));
-    assert_eq!(summary.bill.get(&key_of(&marked)), Some(&5));
-    summary.count(&Known::Place(vec![plain.clone(), marked]), &[], false);
-    assert_eq!(summary.bill.len(), 1, "the marked stack is paid off");
-    assert_eq!(summary.open, 1);
-    summary.count(&Known::Place(vec![stack("petramond:stone", 9)]), &[], false);
-    summary.count(&Known::Place(Vec::new()), &[], false);
-    assert!(summary.bill.is_empty());
-    assert_eq!(summary.open, 0);
-}

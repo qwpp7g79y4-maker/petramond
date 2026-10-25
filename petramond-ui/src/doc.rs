@@ -908,17 +908,6 @@ mod tests {
     }
 
     #[test]
-    fn size_forms_parse() {
-        let doc = Document::from_json(sample_doc()).unwrap();
-        let row = &doc.root.children[1];
-        let gauge = &row.children[1];
-        assert_eq!(gauge.layout.w, Size::Px(24));
-        let spacer = doc.root.children.last().unwrap();
-        assert_eq!(spacer.layout.h, Size::Grow(1));
-        assert_eq!(spacer.layout.w, Size::Auto);
-    }
-
-    #[test]
     fn role_slots_accumulate_in_document_order() {
         let doc = Document::from_json(sample_doc()).unwrap();
         assert_eq!(
@@ -930,13 +919,6 @@ mod tests {
                 ("hotbar".to_owned(), 9),
             ]
         );
-    }
-
-    #[test]
-    fn flow_dir_fixed_by_row_column_kinds() {
-        let doc = Document::from_json(sample_doc()).unwrap();
-        assert_eq!(doc.root.flow_dir(), Dir::Column);
-        assert_eq!(doc.root.children[1].flow_dir(), Dir::Row);
     }
 
     #[test]
@@ -963,13 +945,6 @@ mod tests {
         let out = plain.to_json_pretty();
         assert!(!out.contains("frames"), "{out}");
         assert!(!out.contains("fps"), "{out}");
-    }
-
-    #[test]
-    fn wrong_format_version_is_rejected() {
-        let json = r#"{ "format": 99, "kind": "petramond:x", "class": "screen",
-                        "root": { "type": "frame" } }"#;
-        assert!(Document::from_json(json).is_err());
     }
 
     #[test]

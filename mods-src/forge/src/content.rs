@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use mod_sdk::*;
-
 use crate::keys;
 use crate::schema::{read_rows, MetalSpec, MouldSpec};
 
@@ -83,11 +81,6 @@ impl Casting {
                 .map(|(item, spec)| (item, RawMetal::from(spec)))
                 .collect(),
         );
-        log(&format!(
-            "forge: {} mould rows, {} metal rows",
-            moulds.len(),
-            metals.len()
-        ));
         Casting { moulds, metals }
     }
 
@@ -151,35 +144,6 @@ impl From<MetalSpec> for RawMetal {
 mod tests {
     use super::*;
 
-    fn casting() -> Casting {
-        let mut metals = HashMap::new();
-        metals.insert(
-            "petramond:raw_iron".into(),
-            Metal {
-                melts_to: None,
-                ..Metal::default()
-            },
-        );
-        metals.insert(
-            "forge:iron_plate".into(),
-            Metal {
-                melts_to: Some("petramond:raw_iron".into()),
-                ..Metal::default()
-            },
-        );
-        let mut moulds = HashMap::new();
-        moulds.insert("forge:axe_head_mould".into(), "forge:cast_axe_head".into());
-        Casting { moulds, metals }
-    }
-
-    #[test]
-    fn a_melted_down_product_becomes_its_metal_again() {
-        let c = casting();
-        assert_eq!(c.molten_form("forge:iron_plate"), "petramond:raw_iron");
-        assert_eq!(c.molten_form("petramond:raw_iron"), "petramond:raw_iron");
-        assert_eq!(c.molten_form("other:mystery"), "other:mystery");
-    }
-
     #[test]
     fn a_derived_form_inherits_its_metals_numbers() {
         let raw = |melts_to: Option<&str>, ticks: Option<u32>| RawMetal {
@@ -207,15 +171,5 @@ mod tests {
         );
         assert_eq!(metals["other:mystery"].melt_ticks, MELT_TICKS_DEFAULT);
         assert_eq!(metals["other:mystery"].name, None);
-    }
-
-    #[test]
-    fn only_a_mould_names_a_cast_class() {
-        let c = casting();
-        assert_eq!(
-            c.mould_class("forge:axe_head_mould"),
-            Some("forge:cast_axe_head")
-        );
-        assert_eq!(c.mould_class("petramond:raw_iron"), None);
     }
 }

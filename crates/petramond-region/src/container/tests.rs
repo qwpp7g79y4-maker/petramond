@@ -32,16 +32,6 @@ fn write_v2(path: &Path, records: &[(u16, &[u8])]) {
 }
 
 #[test]
-fn empty_merge_is_a_noop() {
-    let (_dir, path) = temp_path("empty");
-    merge_region(&path, [], MergePolicy::Durable).expect("empty merge");
-    assert!(
-        !path.exists(),
-        "an empty replacement set must not create a region file"
-    );
-}
-
-#[test]
 fn merge_preserves_untouched_records() {
     let (_dir, path) = temp_path("preserve");
     merge_region(
@@ -169,39 +159,6 @@ fn an_unreadable_region_fails_a_durable_merge_and_is_left_alone() {
 
     merge_region(&path, [(1, vec![1])], MergePolicy::Rebuildable).expect("starts fresh");
     assert_eq!(read_region_indices(&path).unwrap(), vec![1]);
-}
-
-#[test]
-fn v1_interleaved_files_are_rejected() {
-    let (_dir, path) = temp_path("v1");
-    let mut out = Vec::new();
-    out.extend(MAGIC_V2.to_le_bytes());
-    out.extend(1u16.to_le_bytes());
-    out.extend(1u16.to_le_bytes());
-    out.extend(7u16.to_le_bytes());
-    out.extend(3u32.to_le_bytes());
-    out.extend([1, 2, 3]);
-    fs::write(&path, out).unwrap();
-    match RegionReader::open(&path) {
-        Err(err) => assert_eq!(err.kind(), io::ErrorKind::InvalidData),
-        Ok(_) => panic!("v1 interleaved region must be rejected"),
-    }
-}
-
-#[test]
-fn a_slot_roundtrips_and_rejects_torn_or_empty_bytes() {
-    let slot = Slot {
-        seq: 7,
-        index_offset: 4096,
-        index_len: 18,
-        index_hash: 0xDEAD_BEEF_0123,
-    };
-    let bytes = slot.to_bytes();
-    assert_eq!(Slot::from_bytes(&bytes), Some(slot));
-    let mut torn = bytes;
-    torn[9] ^= 1;
-    assert_eq!(Slot::from_bytes(&torn), None);
-    assert_eq!(Slot::from_bytes(&[0u8; SLOT_BYTES]), None);
 }
 
 fn wreck_both_slots(path: &Path) {

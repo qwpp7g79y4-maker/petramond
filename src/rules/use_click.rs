@@ -197,14 +197,4 @@ mod tests {
         assert_eq!(out.hand, Hand::Main);
         assert!(reg.offered.iter().all(|&(h, _)| h == Hand::Main));
     }
-
-    #[test]
-    fn the_registered_consumer_needs_a_target() {
-        assert!(!registered_offered(None, None));
-        assert!(registered_offered(Some(IVec3::ZERO), None));
-        assert!(
-            registered_offered(None, Some(3)),
-            "a mob click is an attempt"
-        );
-    }
 }

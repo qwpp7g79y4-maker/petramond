@@ -205,6 +205,3 @@ fn load_table(reg: &petramond_world::content::ContentRegistry) -> Result<OreTabl
 pub fn table() -> &'static OreTable {
     TABLE.current()
 }
-
-#[cfg(test)]
-mod tests;

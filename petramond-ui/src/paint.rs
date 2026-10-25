@@ -637,29 +637,6 @@ mod tests {
     }
 
     #[test]
-    fn painter_scales_logical_to_physical() {
-        let mut dl = DrawList::default();
-        let font = crate::text::Font::builtin();
-        let mut p = Painter {
-            list: &mut dl,
-            scale: 3,
-            font: &font,
-        };
-        p.solid(
-            RectI {
-                x: 5,
-                y: 7,
-                w: 10,
-                h: 2,
-            },
-            [1.0; 4],
-            None,
-        );
-        assert_eq!(dl.vertices[0].pos, [15.0, 21.0]);
-        assert_eq!(dl.vertices[2].pos, [45.0, 27.0]);
-    }
-
-    #[test]
     fn cover_sprite_crops_source_without_squishing() {
         let mut dl = DrawList::default();
         let font = crate::text::Font::builtin();

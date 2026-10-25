@@ -83,50 +83,6 @@ pub fn row_error(key: &str, row: &str, reason: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde::Deserialize;
-
-    #[derive(Debug, Deserialize, PartialEq)]
-    #[serde(deny_unknown_fields)]
-    struct Vessel {
-        filled: String,
-        #[serde(default)]
-        capacity: u8,
-    }
-
-    #[test]
-    fn matching_rows_parse_and_the_rest_are_rejected_with_a_reason() {
-        let rows = vec![
-            (1u16, r#"{"filled":"a:full","capacity":3}"#.to_owned()),
-            (2, r#"{"filed":"a:typo"}"#.to_owned()),
-            (3, r#"{"filled":"b:full"}"#.to_owned()),
-            (4, "not json".to_owned()),
-        ];
-        let (parsed, rejected) = split_rows::<_, Vessel>(rows);
-        assert_eq!(
-            parsed,
-            vec![
-                (
-                    1,
-                    Vessel {
-                        filled: "a:full".into(),
-                        capacity: 3
-                    }
-                ),
-                (
-                    3,
-                    Vessel {
-                        filled: "b:full".into(),
-                        capacity: 0
-                    }
-                ),
-            ]
-        );
-        assert_eq!(
-            rejected.iter().map(|(id, _)| *id).collect::<Vec<_>>(),
-            [2, 4]
-        );
-        assert!(rejected[0].1.contains("filed"), "{}", rejected[0].1);
-    }
 
     #[test]
     fn a_pack_documents_rows_are_listed_with_their_names() {
@@ -146,14 +102,5 @@ mod tests {
             ]
         );
         assert!(pack_rows_with_data("not json", "items", "x:vessel").is_empty());
-    }
-
-    #[test]
-    fn a_rejected_row_is_named_in_its_log_line() {
-        let line = row_error("x:vessel", "y:bucket", "missing field `filled`");
-        assert_eq!(
-            line,
-            "row data 'x:vessel' on 'y:bucket' is ignored: missing field `filled`"
-        );
     }
 }

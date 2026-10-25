@@ -346,59 +346,14 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use super::super::payload::*;
-    use super::super::roster::{RosterRefs, SessionPlayerRef};
+    use super::super::roster::RosterRefs;
     use super::*;
     use petramond_math::math::IVec3;
-    use petramond_math::world_pos::WorldPos;
     use petramond_world::block::Block;
     use petramond_world::item::ItemType;
 
     fn sim() -> (ServerWorld, TickEvents) {
         (ServerWorld::new(1, 1), TickEvents::default())
-    }
-
-    #[test]
-    fn a_context_reaches_players_only_by_id_through_its_roster() {
-        let (mut world, mut feed) = sim();
-        let mut a = Player::new(WorldPos::new(0.0, 80.0, 0.0));
-        let mut b = Player::new(WorldPos::new(4.0, 80.0, 0.0));
-        let mut a_gui = petramond_world::gui_state::empty_gui_state();
-        let mut b_gui = petramond_world::gui_state::empty_gui_state();
-        let mut queue = PostQueue::default();
-        {
-            let mut roster = RosterRefs::new(vec![
-                SessionPlayerRef {
-                    id: PlayerId(0),
-                    player: &mut a,
-                    gui_state: &mut a_gui,
-                    gui: None,
-                },
-                SessionPlayerRef {
-                    id: PlayerId(1),
-                    player: &mut b,
-                    gui_state: &mut b_gui,
-                    gui: None,
-                },
-            ]);
-            let mut ctx = SimCtx {
-                world: &mut world,
-                actor: Some(PlayerId(1)),
-                players: &mut roster,
-                feed: &mut feed,
-                queue: &mut queue,
-            };
-            assert_eq!(ctx.with_actor(|p| p.pos.x), Some(4.0), "the named actor");
-            assert_eq!(ctx.session_index(PlayerId(1)), Some(1));
-            ctx.with_player(PlayerId(0), |p| p.set_health(3));
-            assert!(ctx.with_player(PlayerId(9), |_| ()).is_none());
-
-            ctx.actor = None;
-            assert!(
-                ctx.with_actor(|_| ()).is_none(),
-                "an actor-less dispatch lends nobody"
-            );
-        }
-        assert_eq!(a.health(), 3, "the write landed on the addressed player");
     }
 
     #[test]

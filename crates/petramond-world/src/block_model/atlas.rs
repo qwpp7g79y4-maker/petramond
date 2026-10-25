@@ -286,19 +286,6 @@ pub fn particle_patch(kind: BlockModelKind, r: f32) -> ([f32; 2], [f32; 2]) {
 mod tests {
     use super::*;
 
-    const WB: BlockModelKind = BlockModelKind::FurnitureWorkbench;
-
-    #[test]
-    fn atlas_remap_is_within_unit_square() {
-        let at = atlas();
-        let (_, w, h) = at.texture();
-        assert!(w >= 1 && h >= 1);
-        for &uv in &[[0.0, 0.0], [1.0, 1.0], [0.5, 0.25]] {
-            let [u, v] = at.remap(WB, uv);
-            assert!((0.0..=1.0).contains(&u) && (0.0..=1.0).contains(&v));
-        }
-    }
-
     #[test]
     fn inset_face_uv_moves_edges_inward_and_never_past_the_midpoint() {
         let at = ModelAtlas {

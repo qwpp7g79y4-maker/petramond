@@ -26,8 +26,6 @@ pub struct Mob {
     pub tags: BTreeMap<String, MobTagValue>,
     pub anims: BTreeSet<String>,
     pub held: (Option<String>, Option<String>),
-    pub drawn: usize,
-    pub driven: Option<[f32; 3]>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -127,8 +125,6 @@ impl State {
                 tags: BTreeMap::new(),
                 anims: BTreeSet::new(),
                 held: (None, None),
-                drawn: 0,
-                driven: None,
             },
         );
         self.containers

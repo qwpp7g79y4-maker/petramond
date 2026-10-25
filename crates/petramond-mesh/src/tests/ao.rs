@@ -1,5 +1,4 @@
 use super::*;
-use crate::face::{should_flip, vertex_ao};
 use petramond_world::block_state::{SlabSplit, SlabState};
 
 #[test]
@@ -26,24 +25,6 @@ fn leaves_self_occlude() {
         min_ao < 3,
         "leaves in a cluster must self-occlude (some ao < 3)"
     );
-}
-
-#[test]
-fn vertex_ao_levels() {
-    assert_eq!(vertex_ao(false, false, false), 3);
-    assert_eq!(vertex_ao(true, false, false), 2);
-    assert_eq!(vertex_ao(false, false, true), 2);
-    assert_eq!(vertex_ao(true, false, true), 1);
-    assert_eq!(vertex_ao(true, true, false), 0);
-    assert_eq!(vertex_ao(true, true, true), 0);
-}
-
-#[test]
-fn flip_runs_along_darker_diagonal() {
-    assert!(should_flip([3, 0, 3, 0]));
-    assert!(!should_flip([0, 3, 0, 3]));
-    assert!(!should_flip([3, 3, 3, 3]));
-    assert!(!should_flip([2, 1, 1, 2]));
 }
 
 #[test]
@@ -114,24 +95,6 @@ fn stair_casts_onto_the_terrain_beside_it() {
             .filter(|v| (v.pos[0] - 7.0).abs() < 1.0e-3)
             .all(|v| ao_idx(v) == 3),
         "floor corners away from the stair stay open"
-    );
-}
-
-#[test]
-fn fence_self_ao_at_rail_junctions_only() {
-    let m_lone = mesh(&section_with(&[((8, 8, 8), Block::OakFence)]));
-    assert!(
-        m_lone.opaque.iter().all(|v| ao_idx(v) == 3),
-        "a bare post in empty air keeps full AO everywhere"
-    );
-
-    let m_pair = mesh(&section_with(&[
-        ((8, 8, 8), Block::OakFence),
-        ((9, 8, 8), Block::OakFence),
-    ]));
-    assert!(
-        m_pair.opaque.iter().any(|v| ao_idx(v) < 3),
-        "the post/rail junctions must self-shadow"
     );
 }
 

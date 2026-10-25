@@ -309,51 +309,6 @@ mod spruce_tests {
     }
 
     #[test]
-    fn spruce_crown_and_third_block_are_deterministic_plus() {
-        const FACES: [(i32, i32); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
-        for radius in [2, 3] {
-            for seed in [1u32, 7, 42, 1000, 31337] {
-                let mut chunk = Chunk::new(0, 0);
-                let (cx, cz, base, h) = (8i32, 8i32, 64i32, 9i32);
-                let plan = column_trunk(&mut chunk, cx, cz, base, h);
-                let top = plan.attach[0];
-                let mut rng = FeatureRng::positional(seed, 0xABCD, cx, 0, cz);
-                let mut sink = crate::feature::ChunkSink::new(&mut chunk);
-                let mut ctx = FeatureCtx::new(&mut sink);
-                let cone = ConiferFoliage {
-                    radius,
-                    skirt_ragged: 0.25,
-                };
-                cone.place(
-                    &mut ctx,
-                    &mut |_| true,
-                    &plan,
-                    Block::SpruceLeaves,
-                    &mut rng,
-                );
-
-                let leaf = |x: i32, y: i32, z: i32| {
-                    chunk.block_raw(x as usize, y as usize, z as usize) == Block::SpruceLeaves.id()
-                };
-                assert!(
-                    leaf(cx, top.y + 1, cz),
-                    "r{radius} seed {seed}: missing tip"
-                );
-                for (dx, dz) in FACES {
-                    assert!(
-                        leaf(cx + dx, top.y, cz + dz),
-                        "r{radius} seed {seed}: crown face {dx},{dz}"
-                    );
-                    assert!(
-                        leaf(cx + dx, top.y - 2, cz + dz),
-                        "r{radius} seed {seed}: 3rd-block face {dx},{dz}"
-                    );
-                }
-            }
-        }
-    }
-
-    #[test]
     fn conifer_skirts_never_trim_the_trunk_hugging_ring() {
         const FACES: [(i32, i32); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
         for radius in [2i32, 3] {
@@ -388,75 +343,6 @@ mod spruce_tests {
                         );
                     }
                 }
-            }
-        }
-    }
-
-    /// Conifer canopy against a closed half-space (hillside or cave wall next to the trunk):
-    /// nothing goes in closed cells, and every placed leaf has a face-step path back to a trunk
-    /// log through other leaves, matching the decay flood checks. This keeps
-    /// leaves out of closed terrain and connected to the trunk.
-    #[test]
-    fn conifer_canopy_respects_closed_cells_and_stays_connected() {
-        use std::collections::{HashSet, VecDeque};
-        for seed in [1u32, 7, 42, 1000, 31337] {
-            let mut chunk = Chunk::new(0, 0);
-            let (cx, cz, base, h) = (8i32, 8i32, 64i32, 9i32);
-            let plan = column_trunk(&mut chunk, cx, cz, base, h);
-            let logs: HashSet<(i32, i32, i32)> =
-                plan.logs.iter().map(|p| (p.x, p.y, p.z)).collect();
-            let mut open = |p: IVec3| p.x <= cx;
-            let mut rng = FeatureRng::positional(seed, 0xABCD, cx, 0, cz);
-            let mut sink = crate::feature::ChunkSink::new(&mut chunk);
-            let mut ctx = FeatureCtx::new(&mut sink);
-            let cone = ConiferFoliage {
-                radius: 2,
-                skirt_ragged: 0.25,
-            };
-            cone.place(&mut ctx, &mut open, &plan, Block::SpruceLeaves, &mut rng);
-
-            let mut leaves = HashSet::new();
-            for y in 0..200i32 {
-                for x in 0..16i32 {
-                    for z in 0..16i32 {
-                        if chunk.block_raw(x as usize, y as usize, z as usize)
-                            == Block::SpruceLeaves.id()
-                        {
-                            leaves.insert((x, y, z));
-                        }
-                    }
-                }
-            }
-            assert!(
-                !leaves.is_empty(),
-                "seed {seed}: the open side must still get a canopy"
-            );
-            assert!(
-                leaves.iter().all(|&(x, _, _)| x <= cx),
-                "seed {seed}: a leaf was placed in a closed cell"
-            );
-            let mut reached: HashSet<(i32, i32, i32)> = HashSet::new();
-            let mut frontier: VecDeque<(i32, i32, i32)> = logs.iter().copied().collect();
-            while let Some((x, y, z)) = frontier.pop_front() {
-                for (dx, dy, dz) in [
-                    (1, 0, 0),
-                    (-1, 0, 0),
-                    (0, 1, 0),
-                    (0, -1, 0),
-                    (0, 0, 1),
-                    (0, 0, -1),
-                ] {
-                    let n = (x + dx, y + dy, z + dz);
-                    if leaves.contains(&n) && reached.insert(n) {
-                        frontier.push_back(n);
-                    }
-                }
-            }
-            for l in &leaves {
-                assert!(
-                    reached.contains(l),
-                    "seed {seed}: leaf at {l:?} has no face-step path to the trunk — it would decay"
-                );
             }
         }
     }

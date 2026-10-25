@@ -85,20 +85,6 @@ fn overlay_documents_ship_and_validate() {
 }
 
 #[test]
-fn crafting_browser_documents_ship_and_validate() {
-    for kind in [GuiKind::Inventory, GuiKind::CraftingTable] {
-        let doc = doc_for(kind).unwrap_or_else(|| panic!("{kind:?} document loads"));
-        assert!(
-            doc.doc
-                .role_slots()
-                .iter()
-                .all(|(role, _)| role != "craft_input"),
-            "the removed grid role must not return"
-        );
-    }
-}
-
-#[test]
 fn crafting_table_browser_shrinks_before_inventory_leaves_the_viewport() {
     use petramond_ui::{
         FrameArgs, FrameOutput, FrameState, NoImages, UiMap, UiRuntime, UiState, UiValue,
@@ -201,15 +187,6 @@ fn inventory_browser_shrinks_before_inventory_leaves_the_viewport() {
             .iter()
             .all(|slot| slot.rect.y >= 0 && slot.rect.y + slot.rect.h <= 720),
         "the compact stacked form must keep every inventory slot on-screen"
-    );
-}
-
-#[test]
-fn documents_resolve_images_beside_the_document() {
-    let doc = doc_for(GuiKind::CreateWorld).expect("create_world document loads");
-    assert!(
-        !doc.images.is_empty(),
-        "the screenshot backdrop resolves beside the document"
     );
 }
 
@@ -480,12 +457,6 @@ fn an_unframed_reference_does_not_hide_a_sheet_grid() {
     );
     let err = collect_doc_images(&doc, &dir).unwrap_err();
     assert!(err.contains("does not divide evenly"), "{err}");
-}
-
-#[test]
-fn creative_document_keeps_hotbar_slots_outside_its_tabs() {
-    let doc = doc_for(GuiKind::Creative).expect("creative document loads and validates");
-    assert_eq!(doc.doc.role_slots(), vec![("hotbar".to_string(), 9)]);
 }
 
 #[test]

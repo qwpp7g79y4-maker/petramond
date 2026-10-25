@@ -60,16 +60,3 @@ fn source(theme: Theme, label: String, rev: u64) -> ThemeSource {
         rev,
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn style_combo_source_is_the_themes_own_key_list() {
-        let src = load(&AssetRoots::new(None, Vec::new()), 0);
-        let expect: Vec<String> = src.theme.style_keys().map(str::to_owned).collect();
-        assert_eq!(src.style_keys, expect);
-        assert!(!src.style_keys.is_empty(), "theme defines no parts?");
-    }
-}

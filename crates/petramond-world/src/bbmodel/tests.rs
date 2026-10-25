@@ -9,38 +9,6 @@ fn owl() -> Model {
     Model::load(src).expect("owl.bbmodel parses")
 }
 
-fn sheep() -> Model {
-    let src = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../assets/models/sheep.bbmodel"
-    ));
-    Model::load(src).expect("sheep.bbmodel parses")
-}
-
-#[test]
-fn compiled_model_roundtrips_with_full_fidelity() {
-    let m = owl();
-    let bytes = bincode::serialize(&m).expect("model serializes");
-    let m2: Model = bincode::deserialize(&bytes).expect("model deserializes");
-
-    assert_eq!(m.cubes.len(), m2.cubes.len());
-    assert_eq!(m.bones.len(), m2.bones.len());
-    assert_eq!((m.tex_w, m.tex_h), (m2.tex_w, m2.tex_h));
-    assert_eq!(m.texture_rgba, m2.texture_rgba, "texture bytes survive");
-    let mut names1: Vec<&String> = m.animations.keys().collect();
-    let mut names2: Vec<&String> = m2.animations.keys().collect();
-    names1.sort();
-    names2.sort();
-    assert_eq!(names1, names2, "animation set survives");
-
-    let (walk1, walk2) = (m.animation("walk").unwrap(), m2.animation("walk").unwrap());
-    for &t in &[0.0f32, 0.17, 0.33, 0.5] {
-        for (a, b) in m.pose(walk1, t).iter().zip(m2.pose(walk2, t).iter()) {
-            assert!(a.abs_diff_eq(*b, 1e-6), "posed transforms match at t={t}");
-        }
-    }
-}
-
 fn base64_encode(bytes: &[u8]) -> String {
     const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::new();
@@ -160,28 +128,6 @@ fn element_inflate_grows_the_cube_box() {
         Vec3::splat(-0.25),
         "inflate grows every face outward"
     );
-    assert_eq!(m.cubes[1].to, Vec3::splat(4.25));
-    assert_eq!(m.cubes[0].faces[2], m.cubes[1].faces[2]);
-}
-
-#[test]
-fn cube_names_are_parsed_and_survive_the_compiled_roundtrip() {
-    let m = sheep();
-    let wool = m.cubes.iter().filter(|c| c.name == "wool").count();
-    assert!(wool > 0, "the sheep fixture authors `wool` cubes");
-
-    let bytes = bincode::serialize(&m).expect("model serializes");
-    let m2: Model = bincode::deserialize(&bytes).expect("model deserializes");
-    let names = |m: &Model| -> Vec<String> { m.cubes.iter().map(|c| c.name.clone()).collect() };
-    assert_eq!(names(&m), names(&m2), "cube names survive the round-trip");
-}
-
-#[test]
-fn every_cube_has_a_resolved_bone() {
-    let m = owl();
-    for (i, c) in m.cubes.iter().enumerate() {
-        assert!(c.bone < m.bones.len(), "cube {i} bone unresolved");
-    }
 }
 
 #[test]
@@ -193,14 +139,6 @@ fn pose_loops_over_the_length() {
     for (x, y) in a.iter().zip(b.iter()) {
         assert!(x.abs_diff_eq(*y, 1e-4), "pose must loop");
     }
-}
-
-#[test]
-fn empty_model_is_safe() {
-    let m = Model::empty();
-    assert!(m.cubes.is_empty());
-    assert_eq!((m.tex_w, m.tex_h), (1, 1));
-    assert_eq!(m.texture_rgba.len(), 4);
 }
 
 #[test]

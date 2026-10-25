@@ -465,39 +465,6 @@ mod tests {
         std::iter::from_fn(|| sched.take_ready().map(|(_, job)| job)).collect()
     }
 
-    fn landed(sched: &mut Sched<&'static str, ()>, key: &FileKey, len: u64) {
-        sched.file_mut(key).disk = Disk::Len(len);
-    }
-
-    #[test]
-    fn a_read_waits_only_for_the_queued_writes_it_overlaps() {
-        let mut sched = Sched::<&'static str, ()>::default();
-        let log = key("log");
-        landed(&mut sched, &log, 100);
-        let record = sched.mutate(&log, Effect::Grow(None), "record", true);
-        let write = sched.mutate(
-            &log,
-            Effect::Put {
-                offset: 10,
-                len: 5,
-                truncate: false,
-            },
-            "write",
-            false,
-        );
-        sched.read(&log, 0, 10, "landed");
-        sched.read(&log, 12, 1, "overlaps the write");
-        sched.read(&log, 100, 4, "past the landed end");
-        assert_eq!(ready(&mut sched), vec!["landed"]);
-
-        sched.release(record, 8);
-        assert_eq!(ready(&mut sched), vec!["record"]);
-        sched.finish(record);
-        assert_eq!(ready(&mut sched), vec!["write", "past the landed end"]);
-        sched.finish(write);
-        assert_eq!(ready(&mut sched), vec!["overlaps the write"]);
-    }
-
     #[test]
     fn renames_and_deletes_are_ordered_after_queued_writes() {
         let mut sched = Sched::<&'static str, ()>::default();

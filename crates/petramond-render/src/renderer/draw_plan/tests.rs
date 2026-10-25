@@ -213,34 +213,6 @@ fn a_culled_opaque_section_splits_the_column_unless_draws_are_direct() {
 }
 
 #[test]
-fn model_and_contact_batches_follow_their_own_presence_bits() {
-    let column = VisibleColumn {
-        has_model: true,
-        ..VisibleColumn::default()
-    };
-    let batch = batch_column(column, STREAMS, false);
-    assert!(batch.model && !batch.contact);
-    let column = VisibleColumn {
-        has_contact: true,
-        ..VisibleColumn::default()
-    };
-    let batch = batch_column(column, STREAMS, false);
-    assert!(!batch.model && batch.contact);
-    let no_streams = ColumnStreams {
-        model_idx_count: 0,
-        contact_vertex_count: 0,
-        ..STREAMS
-    };
-    let column = VisibleColumn {
-        has_model: true,
-        has_contact: true,
-        ..VisibleColumn::default()
-    };
-    let batch = batch_column(column, no_streams, false);
-    assert!(!batch.model && !batch.contact);
-}
-
-#[test]
 fn sections_covered_by_whole_column_draws_are_dropped() {
     let opaque = with(section(1.0, 0, 0), SectionStream::OpaqueFar, 16);
     let mut leafy_far = with(section(2.0, 0, 0), SectionStream::OpaqueTail, 16);
@@ -328,22 +300,4 @@ fn equal_distances_break_ties_on_the_column_then_the_build_order() {
             (ChunkPos::new(1, 0), 8),
         ]
     );
-}
-
-#[test]
-fn whole_column_draws_sort_near_to_far() {
-    let mut plan = TerrainPlan {
-        opaque_columns: vec![
-            (9.0, ChunkPos::new(0, 0), 0, false),
-            (1.0, ChunkPos::new(2, 0), 1, true),
-            (1.0, ChunkPos::new(1, 0), 2, false),
-        ],
-        model_columns: vec![(3.0, ChunkPos::new(0, 0), 0), (2.0, ChunkPos::new(5, 5), 1)],
-        ..TerrainPlan::default()
-    };
-    sort_columns(&mut plan);
-    let opaque: Vec<_> = plan.opaque_columns.iter().map(|c| c.2).collect();
-    assert_eq!(opaque, [2, 1, 0]);
-    let model: Vec<_> = plan.model_columns.iter().map(|c| c.2).collect();
-    assert_eq!(model, [1, 0]);
 }

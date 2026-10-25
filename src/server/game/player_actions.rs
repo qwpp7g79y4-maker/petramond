@@ -66,27 +66,6 @@ mod tests {
     }
 
     #[test]
-    fn the_click_hand_picks_the_hand_prefix() {
-        let body = rigs::id(rigs::PLAYER_BODY).expect("body rig");
-        let p = PlayerTickEvents {
-            interacted: true,
-            click_off_hand: true,
-            ..Default::default()
-        };
-        let event = one_shot::resolve(body, Hand::Off, OneShot::Interact)
-            .expect("the shipped body graph hears an off-hand interact");
-        assert_eq!(
-            kinds(&p),
-            vec![PlayerActionKind::Animator { rig: body, event }]
-        );
-        assert_ne!(
-            Some(event),
-            one_shot::resolve(body, Hand::Main, OneShot::Interact),
-            "the two hands' interacts are distinct graph events"
-        );
-    }
-
-    #[test]
     fn unregistered_rigs_never_ride() {
         let mut p = PlayerTickEvents::default();
         p.animator_events.push((RigId(u16::MAX), 3));

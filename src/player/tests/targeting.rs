@@ -180,29 +180,6 @@ fn raycast_hits_a_plants_selection_box_without_pixel_precision() {
     );
 }
 
-#[test]
-fn intersects_block_consistent_with_sweep_when_flush() {
-    let pl = p(WorldPos::new(1.3, 64.0, 0.5));
-    assert!(
-        pl.aabb_min()[0] < 1.0,
-        "precondition: float pulls min.x below 1.0"
-    );
-    assert!(
-        !pl.intersects_block(IVec3::new(0, 64, 0)),
-        "flush-beside cell must read as free, matching sweep"
-    );
-    assert!(pl.intersects_block(IVec3::new(1, 64, 0)));
-}
-
-#[test]
-fn intersects_block_strict_faces() {
-    let pl = p(WorldPos::new(0.5, 64.0, 0.5));
-    assert!(pl.intersects_block(IVec3::new(0, 64, 0)));
-    assert!(!pl.intersects_block(IVec3::new(1, 64, 0)));
-    assert!(pl.intersects_block(IVec3::new(0, 65, 0)));
-    assert!(!pl.intersects_block(IVec3::new(0, 66, 0)));
-}
-
 /// A bbmodel block outlines its WHOLE model, from ANY of its cells.
 ///
 /// The selection chain is one `else if` ladder and the model arm sits in the

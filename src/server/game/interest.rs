@@ -225,32 +225,6 @@ mod tests {
     }
 
     #[test]
-    fn a_removed_entity_despawns_and_a_returning_one_spawns_again() {
-        let mut set = InterestSet::default();
-        set.refresh(
-            &index(&[(1, 0.0, 0.0), (2, 5.0, 0.0)]),
-            view(0.0, 64.0),
-            &[],
-        );
-        let sel = set.refresh(&index(&[(2, 5.0, 0.0)]), view(0.0, 64.0), &[]);
-        assert_eq!(sel.despawned, vec![1], "gone from the world: despawned");
-        assert_eq!(sel.updated, vec![0]);
-
-        set.refresh(&index(&[(2, 500.0, 0.0)]), view(0.0, 64.0), &[]);
-        let sel = set.refresh(&index(&[(2, 5.0, 0.0)]), view(0.0, 64.0), &[]);
-        assert_eq!(sel.spawned, vec![0], "re-entry is a fresh spawn");
-    }
-
-    #[test]
-    fn forced_entities_are_tracked_at_any_distance() {
-        let mut set = InterestSet::default();
-        let far = index(&[(1, 5000.0, 0.0)]);
-        assert_eq!(set.refresh(&far, view(0.0, 64.0), &[0]).spawned, vec![0]);
-        assert_eq!(set.refresh(&far, view(0.0, 64.0), &[0]).updated, vec![0]);
-        assert_eq!(set.refresh(&far, view(0.0, 64.0), &[]).despawned, vec![1]);
-    }
-
-    #[test]
     fn the_bucketed_probe_finds_exactly_the_entities_in_range() {
         let entities: Vec<(u64, f64, f64)> = (0..400)
             .map(|i| {

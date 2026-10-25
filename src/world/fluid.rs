@@ -129,10 +129,6 @@ impl ServerWorld {
         }
         announce.flush(self);
     }
-
-    pub fn pending_fluid_checks(&self) -> usize {
-        self.data.sim.fluid.len()
-    }
 }
 
 pub(super) static FLUID: FluidBehavior = FluidBehavior;

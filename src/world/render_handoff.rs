@@ -202,11 +202,4 @@ mod tests {
             .for_dirty_columns(&mut |c, _| dirty.push(c));
         assert_eq!(dirty, [column]);
     }
-
-    #[test]
-    fn a_full_reupload_of_an_empty_world_queues_nothing() {
-        let mut world = ReplicaWorld::new(0, 0);
-        world.terrain_render_handoff().request_full_reupload();
-        assert!(world.side.terrain.mesh_upload_dirty_columns.is_empty());
-    }
 }

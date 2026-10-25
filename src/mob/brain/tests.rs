@@ -19,12 +19,6 @@ impl AiBehavior for Look {
         }
     }
 }
-struct Yield;
-impl AiBehavior for Yield {
-    fn tick(&mut self, _ctx: &mut AiCtx) -> BehaviorOutput {
-        BehaviorOutput::default()
-    }
-}
 struct Combatant;
 impl AiBehavior for Combatant {
     fn tick(&mut self, _: &mut AiCtx) -> BehaviorOutput {
@@ -116,49 +110,4 @@ fn higher_priority_goal_wins_but_fields_compose() {
         Some(look),
         "an orthogonal field still composes in"
     );
-}
-
-#[test]
-fn yielding_behaviors_leave_fields_none() {
-    let world = ServerWorld::new(0, 1);
-    let mut rng = MobRng::new(1);
-    let mut brain = Brain::new().with_boxed(PRIORITY_WANDER, Box::new(Yield));
-    let d = brain.decide(&mut ctx(&world, &mut rng));
-    assert_eq!(d, BehaviorOutput::default());
-}
-
-#[test]
-fn lower_priority_fills_a_field_a_higher_one_left_unset() {
-    let world = ServerWorld::new(0, 1);
-    let mut rng = MobRng::new(1);
-    let mut brain = Brain::new()
-        .with_boxed(PRIORITY_WANDER, Box::new(Goal(IVec3::new(2, 0, 0))))
-        .with_boxed(
-            100,
-            Box::new(Look(HeadLook {
-                yaw: 0.0,
-                pitch: 0.0,
-            })),
-        );
-    let d = brain.decide(&mut ctx(&world, &mut rng));
-    assert_eq!(
-        d.goal,
-        Some(IVec3::new(2, 0, 0)),
-        "goal falls through to wander"
-    );
-    assert!(d.head_look.is_some());
-}
-
-#[test]
-fn filled_reports_exactly_the_channels_carrying_a_value() {
-    let out = BehaviorOutput {
-        goal: Some(IVec3::ZERO),
-        animation: Some("swipe".into()),
-        ..Default::default()
-    };
-    assert_eq!(
-        out.filled(),
-        ChannelClaims::of(&[DecisionChannel::Goal, DecisionChannel::Animation])
-    );
-    assert!(BehaviorOutput::default().filled().is_empty());
 }

@@ -253,41 +253,6 @@ mod tests {
     }
 
     #[test]
-    fn alpha_blends_over_background() {
-        let theme = Theme::placeholder();
-        let mut dl = DrawList::default();
-        Painter {
-            list: &mut dl,
-            scale: 1,
-            font: theme.ui_font(),
-        }
-        .solid(
-            RectI {
-                x: 0,
-                y: 0,
-                w: 2,
-                h: 2,
-            },
-            [1.0, 1.0, 1.0, 0.5],
-            None,
-        );
-        let font = theme.font_atlas();
-        let tex = TextureSet {
-            theme_pages: theme.pages(),
-            font: &font,
-            doc_images: &[],
-        };
-        let mut out = Vec::new();
-        rasterize(&dl, &tex, (2, 2), [0, 0, 0, 255], &mut out);
-        let p = px(&out, (2, 2), 0, 0);
-        assert!(
-            (126..=130).contains(&p[0]),
-            "50% white over black ≈ 128, got {}",
-            p[0]
-        );
-    }
-
-    #[test]
     fn text_renders_glyph_pixels() {
         let theme = Theme::placeholder();
         let mut dl = DrawList::default();

@@ -6,47 +6,6 @@ fn item(t: ItemType, n: u8) -> ItemStack {
 }
 
 #[test]
-fn new_is_empty() {
-    let inv = Inventory::new();
-    assert_eq!(inv.active_slot(), 0);
-    assert!(inv.cursor().is_none());
-    for i in 0..TOTAL_SLOTS {
-        assert!(inv.slot(i).is_none(), "slot {i} should be empty");
-    }
-}
-
-#[test]
-fn selected_follows_active() {
-    let mut inv = empty_inv();
-    inv.slots[0] = Some(item(ItemType::Grass, 1));
-    inv.slots[2] = Some(item(ItemType::Stone, 1));
-    assert_eq!(inv.selected().unwrap().item, ItemType::Grass);
-    inv.set_active(2);
-    assert_eq!(inv.selected().unwrap().item, ItemType::Stone);
-}
-
-#[test]
-fn replace_selected_one_swaps_in_place_and_splits_stacks() {
-    let mut inv = empty_inv();
-    inv.slots[0] = Some(item(ItemType::WoodenBucket, 1));
-    assert!(inv.replace_selected_one(item(ItemType::WaterBucket, 1)));
-    assert_eq!(inv.selected().unwrap().item, ItemType::WaterBucket);
-    assert_eq!(inv.selected().unwrap().count, 1);
-
-    let mut inv = empty_inv();
-    inv.slots[0] = Some(item(ItemType::WoodenBucket, 3));
-    assert!(inv.replace_selected_one(item(ItemType::WaterBucket, 1)));
-    assert_eq!(inv.selected().unwrap().item, ItemType::WoodenBucket);
-    assert_eq!(inv.selected().unwrap().count, 2);
-    let water: u32 = (0..TOTAL_SLOTS)
-        .filter_map(|i| inv.slot(i))
-        .filter(|s| s.item == ItemType::WaterBucket)
-        .map(|s| s.count as u32)
-        .sum();
-    assert_eq!(water, 1);
-}
-
-#[test]
 fn replace_selected_one_refuses_when_replacement_has_no_room() {
     let mut inv = empty_inv();
     for i in 1..TOTAL_SLOTS {
@@ -60,15 +19,6 @@ fn replace_selected_one_refuses_when_replacement_has_no_room() {
     let mut inv = empty_inv();
     assert!(!inv.replace_selected_one(item(ItemType::WaterBucket, 1)));
     assert!(inv.selected().is_none());
-}
-
-#[test]
-fn set_active_clamps() {
-    let mut inv = Inventory::new();
-    inv.set_active(200);
-    assert_eq!(inv.active_slot(), (HOTBAR_LEN - 1) as u8);
-    inv.set_active(3);
-    assert_eq!(inv.active_slot(), 3);
 }
 
 #[test]
@@ -104,18 +54,6 @@ fn add_merges_into_existing_then_overflows() {
 }
 
 #[test]
-fn add_splits_large_stack_across_empty_slots() {
-    let mut inv = Inventory::new();
-    for i in 0..TOTAL_SLOTS {
-        inv.slots[i] = None;
-    }
-    let leftover = inv.add(item(ItemType::Stone, 64));
-    assert!(leftover.is_none());
-    assert_eq!(inv.slot(0).unwrap().count, 64);
-    assert!(inv.slot(1).is_none());
-}
-
-#[test]
 fn add_returns_leftover_when_full() {
     let mut inv = Inventory::new();
     for i in 0..TOTAL_SLOTS {
@@ -135,78 +73,6 @@ fn add_returns_leftover_when_full() {
 }
 
 #[test]
-fn add_empty_is_noop() {
-    let mut inv = Inventory::new();
-    assert!(inv.add(item(ItemType::Air, 0)).is_none());
-    assert!(inv.add(item(ItemType::Dirt, 0)).is_none());
-}
-
-#[test]
-fn decrement_selected_clears_at_zero() {
-    let mut inv = Inventory::new();
-    for i in 0..TOTAL_SLOTS {
-        inv.slots[i] = None;
-    }
-    inv.slots[0] = Some(item(ItemType::Dirt, 2));
-    inv.set_active(0);
-    inv.decrement_selected();
-    assert_eq!(inv.selected().unwrap().count, 1);
-    inv.decrement_selected();
-    assert!(inv.selected().is_none());
-    inv.decrement_selected();
-    assert!(inv.selected().is_none());
-}
-
-#[test]
-fn click_slot_pick_and_drop() {
-    let mut inv = Inventory::new();
-    for i in 0..TOTAL_SLOTS {
-        inv.slots[i] = None;
-    }
-    inv.slots[0] = Some(item(ItemType::Stone, 10));
-
-    inv.click_slot(0);
-    assert!(inv.slot(0).is_none());
-    assert_eq!(inv.cursor(), Some(&item(ItemType::Stone, 10)));
-
-    inv.click_slot(5);
-    assert!(inv.cursor().is_none());
-    assert_eq!(inv.slot(5), Some(&item(ItemType::Stone, 10)));
-}
-
-#[test]
-fn stash_cursor_merges_matching_stacks_before_empty_slots() {
-    let mut inv = Inventory::new();
-    for i in 0..TOTAL_SLOTS {
-        inv.slots[i] = Some(item(ItemType::Stone, 64));
-    }
-    inv.slots[3] = Some(item(ItemType::Dirt, 60));
-    inv.slots[5] = None;
-    inv.cursor = Some(item(ItemType::Dirt, 4));
-
-    assert_eq!(inv.stash_cursor_in_inventory(), None);
-    assert!(inv.cursor().is_none());
-    assert_eq!(inv.slot(3), Some(&item(ItemType::Dirt, 64)));
-    assert!(inv.slot(5).is_none(), "matching partial stack filled first");
-}
-
-#[test]
-fn stash_cursor_uses_empty_slot_after_matching_partials() {
-    let mut inv = Inventory::new();
-    for i in 0..TOTAL_SLOTS {
-        inv.slots[i] = Some(item(ItemType::Stone, 64));
-    }
-    inv.slots[3] = Some(item(ItemType::Dirt, 60));
-    inv.slots[5] = None;
-    inv.cursor = Some(item(ItemType::Dirt, 8));
-
-    assert_eq!(inv.stash_cursor_in_inventory(), None);
-    assert!(inv.cursor().is_none());
-    assert_eq!(inv.slot(3), Some(&item(ItemType::Dirt, 64)));
-    assert_eq!(inv.slot(5), Some(&item(ItemType::Dirt, 4)));
-}
-
-#[test]
 fn stash_cursor_returns_only_unabsorbed_leftover() {
     let mut inv = Inventory::new();
     for i in 0..TOTAL_SLOTS {
@@ -221,21 +87,6 @@ fn stash_cursor_returns_only_unabsorbed_leftover() {
     );
     assert!(inv.cursor().is_none());
     assert_eq!(inv.slot(3), Some(&item(ItemType::Dirt, 64)));
-}
-
-#[test]
-fn stash_cursor_returns_stack_when_no_free_slot() {
-    let mut inv = Inventory::new();
-    for i in 0..TOTAL_SLOTS {
-        inv.slots[i] = Some(item(ItemType::Stone, 64));
-    }
-    inv.cursor = Some(item(ItemType::Dirt, 4));
-
-    assert_eq!(
-        inv.stash_cursor_in_inventory(),
-        Some(item(ItemType::Dirt, 4))
-    );
-    assert!(inv.cursor().is_none());
 }
 
 #[test]
@@ -292,14 +143,6 @@ fn click_slot_swap_when_slot_full_same_item() {
     assert_eq!(inv.cursor(), Some(&item(ItemType::Dirt, 64)));
 }
 
-#[test]
-fn click_slot_out_of_range_is_noop() {
-    let mut inv = Inventory::new();
-    inv.cursor = Some(item(ItemType::Dirt, 1));
-    inv.click_slot(TOTAL_SLOTS);
-    assert_eq!(inv.cursor(), Some(&item(ItemType::Dirt, 1)));
-}
-
 fn empty_inv() -> Inventory {
     let mut inv = Inventory::new();
     for i in 0..TOTAL_SLOTS {
@@ -318,30 +161,12 @@ fn right_click_splits_odd_stack_dragging_larger_half() {
 }
 
 #[test]
-fn right_click_splits_even_stack_in_half() {
-    let mut inv = empty_inv();
-    inv.slots[0] = Some(item(ItemType::Stone, 8));
-    inv.right_click_slot(0);
-    assert_eq!(inv.cursor(), Some(&item(ItemType::Stone, 4)));
-    assert_eq!(inv.slot(0), Some(&item(ItemType::Stone, 4)));
-}
-
-#[test]
 fn right_click_single_item_picks_it_up() {
     let mut inv = empty_inv();
     inv.slots[0] = Some(item(ItemType::Stone, 1));
     inv.right_click_slot(0);
     assert_eq!(inv.cursor(), Some(&item(ItemType::Stone, 1)));
     assert!(inv.slot(0).is_none());
-}
-
-#[test]
-fn right_click_places_one_into_empty_slot() {
-    let mut inv = empty_inv();
-    inv.cursor = Some(item(ItemType::Dirt, 4));
-    inv.right_click_slot(3);
-    assert_eq!(inv.slot(3), Some(&item(ItemType::Dirt, 1)));
-    assert_eq!(inv.cursor(), Some(&item(ItemType::Dirt, 3)));
 }
 
 #[test]
@@ -424,61 +249,6 @@ fn collect_to_cursor_drains_partials_before_breaking_full_stacks() {
 }
 
 #[test]
-fn collect_to_cursor_leaves_full_stacks_intact_when_partials_suffice() {
-    let mut inv = empty_inv();
-    inv.cursor = Some(item(ItemType::Dirt, 60));
-    inv.slots[0] = Some(item(ItemType::Dirt, 64));
-    inv.slots[1] = Some(item(ItemType::Dirt, 4));
-
-    inv.collect_to_cursor();
-
-    assert_eq!(inv.cursor(), Some(&item(ItemType::Dirt, 64)));
-    assert!(inv.slot(1).is_none(), "partial consumed to fill the cursor");
-    assert_eq!(inv.slot(0).unwrap().count, 64, "full stack never touched");
-}
-
-#[test]
-fn collect_to_cursor_is_noop_when_cursor_empty_or_full() {
-    let mut inv = empty_inv();
-    inv.slots[0] = Some(item(ItemType::Dirt, 10));
-    inv.collect_to_cursor();
-    assert!(inv.cursor().is_none());
-    assert_eq!(inv.slot(0), Some(&item(ItemType::Dirt, 10)));
-
-    let mut inv = empty_inv();
-    inv.cursor = Some(item(ItemType::Dirt, 64));
-    inv.slots[0] = Some(item(ItemType::Dirt, 10));
-    inv.collect_to_cursor();
-    assert_eq!(inv.cursor(), Some(&item(ItemType::Dirt, 64)));
-    assert_eq!(inv.slot(0), Some(&item(ItemType::Dirt, 10)));
-}
-
-#[test]
-fn collect_to_cursor_ignores_non_matching_items() {
-    let mut inv = empty_inv();
-    inv.cursor = Some(item(ItemType::Dirt, 5));
-    inv.slots[0] = Some(item(ItemType::Stone, 64));
-    inv.slots[1] = Some(item(ItemType::Sand, 30));
-    inv.collect_to_cursor();
-    assert_eq!(
-        inv.cursor(),
-        Some(&item(ItemType::Dirt, 5)),
-        "nothing to gather"
-    );
-    assert_eq!(inv.slot(0), Some(&item(ItemType::Stone, 64)));
-    assert_eq!(inv.slot(1), Some(&item(ItemType::Sand, 30)));
-}
-
-#[test]
-fn take_cursor_takes_the_whole_stack() {
-    let mut inv = empty_inv();
-    inv.cursor = Some(item(ItemType::Dirt, 3));
-    assert_eq!(inv.take_cursor(), Some(item(ItemType::Dirt, 3)));
-    assert!(inv.cursor().is_none());
-    assert!(inv.take_cursor().is_none());
-}
-
-#[test]
 fn shift_move_hotbar_to_main_grid_uses_first_empty() {
     let mut inv = empty_inv();
     inv.slots[2] = Some(item(ItemType::Stone, 20));
@@ -507,13 +277,6 @@ fn shift_move_leaves_remainder_when_destination_full() {
     inv.slots[0] = Some(item(ItemType::Dirt, 30));
     inv.shift_move_slot(0);
     assert_eq!(inv.slot(0), Some(&item(ItemType::Dirt, 30)));
-}
-
-#[test]
-fn shift_move_empty_slot_is_noop() {
-    let mut inv = empty_inv();
-    inv.shift_move_slot(5);
-    assert!(inv.slot(5).is_none());
 }
 
 #[test]

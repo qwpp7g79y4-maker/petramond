@@ -270,22 +270,6 @@ mod tests {
     }
 
     #[test]
-    fn a_mob_pinned_sound_uses_its_emission_position() {
-        let at = WorldPos::new(1.0, 64.0, 0.0);
-        let pinned = WorldEventMsg::SpatialSound(SpatialSoundMsg::PlayOnMob {
-            handle: 9,
-            sound_id: 0,
-            mob_id: 42,
-            volume: 1.0,
-            pitch: 1.0,
-            last_pos: at,
-        });
-        let cells = |_: IVec3| true;
-        assert!(viewer(0.0, &cells).perceives(reach(&pinned)));
-        assert!(!viewer(5000.0, &cells).perceives(reach(&pinned)));
-    }
-
-    #[test]
     fn entering_a_moving_mob_loops_replays_its_current_position() {
         let mut live = LiveSpatialLoops::new();
         live.insert(

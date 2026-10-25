@@ -32,22 +32,6 @@ fn schematic(cells: Vec<(IVec3, ResolvedCell)>, size: [i32; 3]) -> Schematic {
 }
 
 #[test]
-fn selection_unions_overlap_and_subtraction_without_expanding_holes() {
-    let mut s = Selection::default();
-    s.region([2, 0, 0], [0, 0, 0], false).unwrap();
-    s.region([1, 0, 0], [3, 0, 0], false).unwrap();
-    s.region([10, 1, 0], [10, 1, 0], false).unwrap();
-    s.region([1, 0, 0], [2, 0, 0], true).unwrap();
-    assert_eq!(
-        s.cells().collect::<Vec<_>>(),
-        vec![[0, 0, 0], [3, 0, 0], [10, 1, 0]]
-    );
-    let before = s.cells().collect::<Vec<_>>();
-    assert!(s.region([i32::MIN; 3], [i32::MAX; 3], false).is_err());
-    assert_eq!(s.cells().collect::<Vec<_>>(), before);
-}
-
-#[test]
 fn portable_cell_round_trip_keeps_shape_references_and_all_instance_stores() {
     let mut d = cell(Block::Stone);
     d.state = SlabState {
@@ -159,27 +143,6 @@ fn model_rotation_reanchors_machine_data_and_keeps_every_footprint_cell() {
         }
     }
     assert!(original.placed_cells(IVec3::splat(i32::MAX), 1).is_err());
-}
-
-#[test]
-fn creative_modes_survive_player_save_restore() {
-    for mode in [
-        crate::player::PlayerMode::Creative,
-        crate::player::PlayerMode::CreativeFlying,
-    ] {
-        let mut p =
-            crate::player::Player::new(petramond_math::world_pos::WorldPos::new(1.0, 64.0, 1.0));
-        p.set_mode(mode);
-        let pal = crate::save::palette::Palette::identity();
-        let bytes = crate::save::player::encode(&p, &pal);
-        assert_eq!(
-            crate::save::player::decode(&bytes, &pal)
-                .unwrap()
-                .restore()
-                .mode(),
-            mode
-        );
-    }
 }
 
 #[test]

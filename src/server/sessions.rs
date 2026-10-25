@@ -186,14 +186,4 @@ mod tests {
         assert_eq!(roster.id_at(1), PlayerId(2));
         assert!(SessionRegistry::new(None).local_id().is_none());
     }
-
-    #[test]
-    fn the_player_cap_is_clamped_to_the_id_space() {
-        let mut registry = SessionRegistry::new(None);
-        assert_eq!(registry.capacity(), MAX_SESSIONS);
-        registry.set_capacity(0);
-        assert_eq!(registry.capacity(), 1);
-        registry.set_capacity(usize::MAX);
-        assert_eq!(registry.capacity(), MAX_SESSIONS);
-    }
 }

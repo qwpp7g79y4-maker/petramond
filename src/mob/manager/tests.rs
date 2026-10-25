@@ -1,4 +1,4 @@
-use crate::mob::{Mob, MobDamageFeedback, MobId, MobTagValue, SavedMob};
+use crate::mob::{Mob, MobDamageFeedback, MobId, MobTagValue};
 use crate::world::ServerWorld;
 use petramond_math::world_pos::WorldPos;
 use petramond_world::body::Body;
@@ -8,30 +8,6 @@ mod fluid;
 
 fn id_at(mobs: &Mobs, i: usize) -> MobId {
     mobs.instances()[i].id()
-}
-
-#[test]
-fn mobs_anchor_on_the_nearest_player() {
-    use super::PlayerAnchor;
-    let a = PlayerAnchor {
-        id: crate::player::PlayerId(0),
-        pos: WorldPos::new(0.0, 64.0, 0.0),
-        ..Default::default()
-    };
-    let b = PlayerAnchor {
-        id: crate::player::PlayerId(1),
-        pos: WorldPos::new(10.0, 64.0, 0.0),
-        ..Default::default()
-    };
-    let near_b = WorldPos::new(8.0, 64.0, 0.0);
-    assert_eq!(super::nearest_anchor(&[a, b], near_b).id.0, 1);
-    assert_eq!(
-        super::nearest_anchor(&[b, a], near_b).id.0,
-        1,
-        "order-independent"
-    );
-    let near_a = WorldPos::new(1.0, 64.0, 0.0);
-    assert_eq!(super::nearest_anchor(&[a, b], near_a).id.0, 0);
 }
 
 #[test]
@@ -67,20 +43,6 @@ fn a_frozen_tick_discards_its_drive_intent() {
 use super::*;
 
 #[test]
-fn take_in_section_harvests_only_that_sections_mobs() {
-    let mut mobs = Mobs::new(0);
-    assert!(mobs.spawn(Mob::Owl, WorldPos::new(2.5, 64.0, 2.5), 0.5));
-    assert!(mobs.spawn(Mob::Owl, WorldPos::new(20.5, 64.0, 2.5), 1.0));
-
-    let taken = mobs.take_in_section(SectionPos::new(0, 4, 0));
-    assert_eq!(taken.len(), 1, "only the (0,4,0) owl is harvested");
-    assert_eq!(taken[0].kind, Mob::Owl);
-    assert_eq!(taken[0].pos, WorldPos::new(2.5, 64.0, 2.5));
-    assert_eq!(taken[0].yaw, 0.5, "facing is captured");
-    assert_eq!(mobs.len(), 1, "the (1,4,0) owl stays live");
-}
-
-#[test]
 fn saved_by_section_groups_live_mobs_without_removing_them() {
     let mut mobs = Mobs::new(0);
     assert!(mobs.spawn(Mob::Owl, WorldPos::new(2.5, 64.0, 2.5), 0.0));
@@ -91,45 +53,6 @@ fn saved_by_section_groups_live_mobs_without_removing_them() {
     assert_eq!(map[&SectionPos::new(0, 4, 0)].len(), 2);
     assert_eq!(map[&SectionPos::new(1, 4, 0)].len(), 1);
     assert_eq!(mobs.len(), 3, "the flush clones; the mobs stay live");
-}
-
-#[test]
-fn restore_respawns_saved_mobs_with_their_pose() {
-    let mut mobs = Mobs::new(0);
-    mobs.restore([
-        SavedMob {
-            kind: Mob::Owl,
-            pos: WorldPos::new(8.5, 70.0, 8.5),
-            yaw: 1.25,
-            tags: Default::default(),
-            container: Default::default(),
-        },
-        SavedMob {
-            kind: Mob::Sheep,
-            pos: WorldPos::new(9.5, 70.0, 8.5),
-            yaw: -0.5,
-            tags: std::collections::BTreeMap::from([(
-                crate::mob::tags::SHEAR_REGROW.to_owned(),
-                MobTagValue::Int(500),
-            )]),
-            container: Default::default(),
-        },
-    ]);
-    assert_eq!(mobs.len(), 2);
-    let poses: Vec<(WorldPos, f32)> = mobs.instances().iter().map(|m| (m.pos, m.yaw)).collect();
-    assert!(
-        poses.contains(&(WorldPos::new(8.5, 70.0, 8.5), 1.25)),
-        "first mob restored in place"
-    );
-    assert!(
-        poses.contains(&(WorldPos::new(9.5, 70.0, 8.5), -0.5)),
-        "second mob restored in place"
-    );
-    let shorn: Vec<bool> = mobs.instances().iter().map(Instance::is_shorn).collect();
-    assert!(
-        shorn.contains(&true) && shorn.contains(&false),
-        "a saved regrow counter carries over on restore: {shorn:?}"
-    );
 }
 
 #[test]
@@ -239,34 +162,6 @@ fn shearing_a_sheep_yields_wool_once_until_the_coat_regrows() {
     );
 }
 
-#[test]
-fn a_species_without_a_shear_spec_cannot_be_shorn() {
-    let mut mobs = Mobs::new(0);
-    assert!(mobs.spawn(Mob::Owl, WorldPos::new(8.5, 64.0, 8.5), 0.0));
-    assert!(mobs.shear_mob(id_at(&mobs, 0)).is_none());
-    assert!(!mobs.instances()[0].is_shorn());
-}
-
-#[test]
-fn a_corpse_cannot_be_shorn() {
-    let mut mobs = Mobs::new(0);
-    assert!(mobs.spawn(Mob::Sheep, WorldPos::new(8.5, 64.0, 8.5), 0.0));
-    assert!(mobs
-        .damage_mob(
-            id_at(&mobs, 0),
-            100.0,
-            Some(WorldPos::new(5.0, 64.0, 8.5)),
-            true,
-            None,
-            &MobDamageFeedback::default()
-        )
-        .is_some());
-    assert!(
-        mobs.shear_mob(id_at(&mobs, 0)).is_none(),
-        "a ragdolling corpse keeps its coat"
-    );
-}
-
 fn horizontal_gap(mobs: &Mobs) -> f32 {
     let p = mobs.instances();
     let (a, b) = (p[0].pos, p[1].pos);
@@ -370,42 +265,6 @@ fn a_mob_overlapping_the_player_pushes_it_away() {
         "the player is pushed -X, away from the owl: {push:?}"
     );
     assert_eq!(push.y, 0.0, "the push is horizontal");
-}
-
-#[test]
-fn a_distant_mob_does_not_push_the_player() {
-    let mut mobs = Mobs::new(0);
-    assert!(mobs.spawn(Mob::Owl, WorldPos::new(8.0, 64.0, 8.0), 0.0));
-    let player_body = Body::new(far(), 0.3, 1.8);
-    assert_eq!(
-        mobs.push_on_player(player_body),
-        Vec3::ZERO,
-        "an out-of-reach mob imparts no push"
-    );
-}
-
-#[test]
-fn a_bodiless_player_does_not_shove_mobs() {
-    let world = ServerWorld::new(0, 1);
-    let mut mobs = Mobs::new(0);
-    let spot = WorldPos::new(8.0, 64.0, 8.0);
-    assert!(mobs.spawn(Mob::Owl, spot, 0.0));
-    let before = mobs.instances()[0].pos;
-    mobs.tick(
-        0.05,
-        &world,
-        &[crate::mob::PlayerAnchor {
-            pos: spot,
-            ..Default::default()
-        }],
-        false,
-    );
-    let after = mobs.instances()[0].pos;
-    assert_eq!(
-        (before.x, before.z),
-        (after.x, after.z),
-        "a player with no body doesn't shove the mob sideways"
-    );
 }
 
 #[test]

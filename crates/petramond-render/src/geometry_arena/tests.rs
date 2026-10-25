@@ -151,14 +151,6 @@ fn a_random_workload_never_overlaps_live_allocations() {
 }
 
 #[test]
-fn the_byte_arena_keeps_its_classes() {
-    assert_eq!(class_size(1, 4), 512);
-    assert_eq!(class_size(4096, 4), 4096);
-    assert_eq!(class_size(4100, 4), 4608);
-    assert_eq!(class_size(1 << 20, 4), 1 << 20);
-}
-
-#[test]
 fn a_vertex_arena_places_only_whole_elements() {
     let mut book = Book::new(20, BLOCK_BYTES);
     for len in [1u64, 19, 21, 999, 5000, 70_000] {

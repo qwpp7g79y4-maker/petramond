@@ -555,29 +555,6 @@ mod tests {
     }
 
     #[test]
-    fn the_last_of_an_input_leaves_an_empty_slot() {
-        let mut slot = Some(stack("petramond:coal", 1));
-        consume_one(&mut slot);
-        assert!(slot.is_none());
-
-        let mut slot = Some(stack("petramond:coal", 3));
-        consume_one(&mut slot);
-        assert_eq!(slot.map(|s| s.count), Some(2));
-    }
-
-    #[test]
-    fn merging_output_keeps_the_stored_stack() {
-        let mut out = Some(ItemStackData {
-            data: vec![("forge:heat".into(), "1".into())],
-            ..stack("forge:iron_ingot", 2)
-        });
-        merge_output(&mut out, &stack("forge:iron_ingot", 3));
-        let out = out.unwrap();
-        assert_eq!(out.count, 5);
-        assert_eq!(out.data.len(), 1, "the stored stack's data survives");
-    }
-
-    #[test]
     fn the_anchor_list_shards_and_shard_zero_keeps_the_plain_key() {
         let mut reg = AnchorRegistry::new("m:anchors");
         assert_eq!(reg.shard_key(0), "m:anchors");

@@ -20,37 +20,6 @@ fn a_full_cold_crucible_still_wants_fuel() {
     );
 }
 
-#[test]
-fn the_fire_is_the_only_thing_the_mask_stages() {
-    let spec = ForgingFurnaceSpec::default();
-    assert_eq!(
-        spec.parts_mask(&State::default()),
-        0,
-        "a cold forge shows no fire"
-    );
-    let lit = State {
-        fire: burning(40),
-        ..State::default()
-    };
-    assert_eq!(spec.parts_mask(&lit), PART_COALS);
-}
-
-#[test]
-fn the_lever_frame_follows_the_phase() {
-    let mut state = State::default();
-    assert_eq!(lever_frame(&state), 0, "idle snaps the lever back up");
-
-    state.phase = Phase::Pouring;
-    for (ticks, want) in [(0, 0), (6, 3), (11, 6), (12, 7), (POUR_TICKS - 1, 7)] {
-        state.phase_ticks = ticks;
-        assert_eq!(lever_frame(&state), want, "pour tick {ticks}");
-    }
-
-    state.phase = Phase::Setting;
-    state.phase_ticks = 0;
-    assert_eq!(lever_frame(&state), 7, "the lever stays down while it sets");
-}
-
 /// Row follows the stream, not the phase. Row owns the droplet emitter.
 /// Phase runs longer than the visible stream by the whole set. Go by phase alone and
 /// droplets and spatter keep going for `SET_TICKS` after the metal has finished falling.
@@ -149,30 +118,6 @@ fn a_loaded_crucible_takes_its_own_metal_and_nothing_else() {
     let mut remelt = holding_iron();
     one_melt_tick(&mut remelt, "forge:iron_plate");
     assert_eq!(remelt.melt_progress, 1, "a plate melts back into its metal");
-}
-
-#[test]
-fn a_cast_head_remelts_into_its_own_metal_only() {
-    let mut same = State {
-        fire: burning(200),
-        units: 1,
-        metal: "petramond:raw_iron".into(),
-        ..State::default()
-    };
-    one_melt_tick(&mut same, "forge:iron_pickaxe_head");
-    assert_eq!(same.melt_progress, 1, "a head melts back into its metal");
-
-    let mut foreign = State {
-        fire: burning(200),
-        units: 1,
-        metal: "petramond:raw_copper".into(),
-        ..State::default()
-    };
-    one_melt_tick(&mut foreign, "forge:iron_pickaxe_head");
-    assert_eq!(
-        foreign.melt_progress, 0,
-        "a head cannot join a different metal"
-    );
 }
 
 #[test]

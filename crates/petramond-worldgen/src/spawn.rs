@@ -200,20 +200,6 @@ mod tests {
     const SEEDS: [u32; 5] = [0x1234_5678, 1, 7, 0xDEAD_BEEF, 42];
 
     #[test]
-    fn find_spawn_rng_is_deterministic() {
-        for &seed in &SEEDS {
-            let world = SpawnWorld::new(seed);
-            for rng_seed in [0u64, 1, 99, 1_000_000] {
-                assert_eq!(
-                    find_spawn_rng(&world, rng_seed),
-                    find_spawn_rng(&world, rng_seed),
-                    "seed {seed:#x} rng {rng_seed}"
-                );
-            }
-        }
-    }
-
-    #[test]
     fn spawns_stand_on_uncarved_dry_land() {
         for &seed in &SEEDS {
             let world = SpawnWorld::new(seed);

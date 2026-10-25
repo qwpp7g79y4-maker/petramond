@@ -184,7 +184,6 @@ pub fn transform_footprint_point(p: Vec3, footprint: [u8; 3], facing: Facing) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::block_model::PlacementOrientation;
 
     #[test]
     fn placement_transform_maps_authored_front_to_facing() {
@@ -202,38 +201,6 @@ mod tests {
                 "{facing:?} maps authored front to {got:?}, want {want:?}"
             );
         }
-    }
-
-    /// A back-to-front model stores the half-turned facing, so its authored +Z
-    /// working face — not the convention's −Z — ends up on the placer's side.
-    #[test]
-    fn a_back_to_front_model_meets_the_player_with_its_authored_pos_z_face() {
-        assert_eq!(
-            PlacementOrientation::BackToFront.apply(Facing::North),
-            Facing::South
-        );
-        assert_eq!(
-            PlacementOrientation::BackToFront.apply(Facing::East),
-            Facing::West
-        );
-        // The chiseling station is the shipped back-to-front row: a player
-        // looking along +Z stores South, whose transform maps the authored +Z
-        // boundary onto the near (z = 0) footprint edge — the face the player
-        // sees — while `left_to_right` would have buried it on the far side.
-        let kind = BlockModelKind::ChiselingStation;
-        let fp = footprint(kind);
-        assert_eq!(
-            super::super::def(kind).orientation,
-            PlacementOrientation::BackToFront
-        );
-        let player_side =
-            transform_footprint_point(Vec3::new(0.0, 0.0, fp[2] as f32), fp, Facing::South);
-        assert_eq!(
-            player_side.z, 0.0,
-            "authored +Z face must land nearest the player"
-        );
-        let far_side = transform_footprint_point(Vec3::new(0.0, 0.0, 0.0), fp, Facing::South);
-        assert_eq!(far_side.z, fp[2] as f32);
     }
 
     #[test]

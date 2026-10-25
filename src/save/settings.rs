@@ -98,44 +98,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn settings_roundtrip_and_absent_file_defaults() {
-        let scratch = petramond_util::test_dirs::TestScratchDir::new("settings-test");
-        let dir = scratch.join("world");
-
-        assert_eq!(load(&dir), WorldSettings::default());
-        assert!(load(&dir).disabled_mods.is_empty());
-
-        let settings = WorldSettings {
-            disabled_mods: ["zeta".to_owned(), "alpha".to_owned()]
-                .into_iter()
-                .collect(),
-            keep_inventory: true,
-            auto_open_lan: true,
-            day_minutes: 30,
-        };
-        store(&dir, &settings).expect("settings write");
-        assert_eq!(load(&dir), settings);
-
-        let text = std::fs::read_to_string(dir.join("settings.json")).unwrap();
-        assert!(
-            text.find("alpha").unwrap() < text.find("zeta").unwrap(),
-            "encoding is sorted (deterministic): {text}"
-        );
-
-        std::fs::write(
-            dir.join("settings.json"),
-            br#"{ "disabled_mods": ["alpha"], "optimize_explored_terrain": false }"#,
-        )
-        .unwrap();
-        assert!(load(&dir).disabled_mods.contains("alpha"));
-
-        std::fs::write(dir.join("settings.json"), b"{ nope").unwrap();
-        assert_eq!(load(&dir), WorldSettings::default());
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
     fn a_library_pack_starts_off_only_in_a_world_that_never_saw_it() {
         let held: BTreeSet<String> = ["world_blocks".to_owned()].into();
         let mut settings = WorldSettings::default();

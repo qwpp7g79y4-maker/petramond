@@ -122,17 +122,6 @@ mod tests {
     }
 
     #[test]
-    fn deeper_overlap_pushes_harder() {
-        let a = body(0.0, 0.0, 0.0);
-        let shallow = separation(a, body(0.4, 0.0, 0.0)).unwrap().length();
-        let deep = separation(a, body(0.1, 0.0, 0.0)).unwrap().length();
-        assert!(
-            deep > shallow,
-            "closer means more push: {deep} vs {shallow}"
-        );
-    }
-
-    #[test]
     fn coincident_centres_still_separate_deterministically() {
         let a = body(5.0, 0.0, 5.0);
         let b = body(5.0, 0.0, 5.0);

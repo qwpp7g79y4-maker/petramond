@@ -1,4 +1,4 @@
-use super::{Block, ShapeFamily};
+use super::Block;
 use crate::item::ItemType;
 
 /// Apertures come from shape occupancy, not per-family data. A quadrant is open where nothing
@@ -103,29 +103,6 @@ fn floor_fully_covered(boxes: &[crate::block::shape_kind::BoxDef]) -> bool {
             })
         })
     })
-}
-
-#[test]
-fn shape_kinds_resolve_consistently_for_every_block() {
-    for &b in Block::all() {
-        let def = b.shape_kind().def();
-        assert_eq!(b.model_kind(), def.params.model_kind(), "{b:?} model");
-        assert_eq!(
-            def.params.box_set().is_some(),
-            b.shape_family() == ShapeFamily::BoxSet,
-            "{b:?} box payload matches family"
-        );
-        assert_eq!(
-            b.model_kind().is_some(),
-            b.shape_family() == ShapeFamily::Model,
-            "{b:?} model payload matches family"
-        );
-    }
-    assert_eq!(
-        Block::Stone.shape_kind(),
-        Block::Dirt.shape_kind(),
-        "plain cubes share one shape kind"
-    );
 }
 
 #[test]

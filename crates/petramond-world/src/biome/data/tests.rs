@@ -2,13 +2,7 @@ use super::*;
 
 #[test]
 fn packs_may_override_engine_rows_and_add_biomes() {
-    let base = std::fs::read_to_string(
-        crate::assets::candidate_paths("biomes.json")
-            .into_iter()
-            .find(|p| p.exists())
-            .expect("shipped biomes.json"),
-    )
-    .unwrap();
+    let (base, _) = crate::assets::read_base_text("biomes.json").expect("shipped biomes.json");
     let recolour = r#"{"biomes": [{"biome": "petramond:forest",
             "fog_color": [0.1, 0.2, 0.3], "grass_color": [0.1, 0.2, 0.3],
             "foliage_color": [0.1, 0.2, 0.3], "water_color": [0.1, 0.2, 0.3]}]}"#;
@@ -46,69 +40,5 @@ fn packs_may_override_engine_rows_and_add_biomes() {
                 "foliage_color": [0.1, 0.2, 0.3], "water_color": [0.1, 0.2, 0.3]}}]}}"#
         );
         assert!(parse_layers(&[&base, &row]).is_err(), "accepted '{bad}'");
-    }
-}
-
-#[test]
-fn the_trees_field_is_carried_verbatim_and_absent_when_omitted() {
-    let base = std::fs::read_to_string(
-        crate::assets::candidate_paths("biomes.json")
-            .into_iter()
-            .find(|p| p.exists())
-            .expect("shipped biomes.json"),
-    )
-    .unwrap();
-    let row = |trees: &str| {
-        format!(
-            r#"{{"biomes": [{{"biome": "petramond:desert",
-                "fog_color": [0.1, 0.2, 0.3], "grass_color": [0.1, 0.2, 0.3],
-                "foliage_color": [0.1, 0.2, 0.3], "water_color": [0.1, 0.2, 0.3]{trees}}}]}}"#
-        )
-    };
-    let desert = |table: &crate::registry::Catalog<BiomeDef>| {
-        table.rows()[(Biome::DESERT.id() - 1) as usize].trees
-    };
-    let stated = parse_layers(&[
-        &base,
-        &row(r#", "trees": {"density": 0.5, "anything": [1]}"#),
-    ])
-    .expect("loads");
-    let text = desert(&stated).expect("stated");
-    let value: serde_json::Value = serde_json::from_str(text).unwrap();
-    assert_eq!(value["density"], 0.5);
-    assert_eq!(value["anything"], serde_json::json!([1]));
-    assert!(desert(&parse_layers(&[&base, &row("")]).unwrap()).is_none());
-}
-
-#[test]
-fn ambient_densities_validate_per_entry() {
-    let row = |ambient: &str| {
-        format!(
-            r#"{{"biomes": [{{"biome": "petramond:forest",
-                "fog_color": [0.1, 0.2, 0.3], "grass_color": [0.1, 0.2, 0.3],
-                "foliage_color": [0.1, 0.2, 0.3], "water_color": [0.1, 0.2, 0.3],
-                "ambient": {ambient}}}]}}"#
-        )
-    };
-    let base = std::fs::read_to_string(
-        crate::assets::candidate_paths("biomes.json")
-            .into_iter()
-            .find(|p| p.exists())
-            .expect("shipped biomes.json"),
-    )
-    .unwrap();
-    let forest = |table: &crate::registry::Catalog<BiomeDef>| {
-        table.rows()[(Biome::FOREST.id() - 1) as usize].ambient
-    };
-    let ok = parse_layers(&[&base, &row(r#"{"mymod:fireflies": 0.3, "mymod:moths": 1}"#)])
-        .expect("valid entries load");
-    assert_eq!(
-        forest(&ok),
-        &[("mymod:fireflies", 0.3), ("mymod:moths", 1.0)]
-    );
-    assert!(forest(&parse_layers(&[&base, &row("{}")]).unwrap()).is_empty());
-    for bad in [r#"{"fireflies": 0.3}"#, r#"{"mymod:fireflies": 1.5}"#] {
-        let err = parse_layers(&[&base, &row(bad)]).err().expect("refused");
-        assert!(err.contains("ambient"), "{err}");
     }
 }

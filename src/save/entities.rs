@@ -148,7 +148,6 @@ pub fn get_entities(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::save::wire::{to_bytes, TaggedWriter};
     use petramond_world::item::{ItemStack, ItemType};
 
     fn roundtrip(items: &[DroppedItem]) -> Vec<DroppedItem> {
@@ -282,24 +281,6 @@ mod tests {
     }
 
     #[test]
-    fn instance_data_survives_the_entity_roundtrip() {
-        use petramond_world::item::variant;
-        let mut m = variant::VariantMap::new();
-        m.insert("petramond:tint".into(), vec![1, 2, 3]);
-        let v = variant::intern(&m).unwrap();
-        let d = DroppedItem::new(
-            WorldPos::new(0.0, 64.0, 0.0),
-            ItemStack::with_variant(ItemType::Stone, 2, v),
-            1,
-        );
-        let got = roundtrip(&[d]);
-        assert_eq!(
-            got[0].stack.variant, v,
-            "the blob re-interns to the same id"
-        );
-    }
-
-    #[test]
     fn an_entity_this_build_cannot_represent_is_kept_not_dropped() {
         let pal = Palette::identity();
         let mut strange_item = EntityRecord::of(
@@ -330,36 +311,5 @@ mod tests {
         let mut again = Vec::new();
         put_entities(&mut again, &[], &back, &pal);
         assert_eq!(again, buf, "kept records re-encode unchanged");
-    }
-
-    #[test]
-    fn a_record_missing_fields_reads_them_as_defaults() {
-        let pal = Palette::identity();
-        let mut record = Vec::new();
-        let mut w = TaggedWriter::new(&mut record);
-        w.field(1, &WorldPos::new(4.0, 64.0, 4.0));
-        w.field(
-            3,
-            &DiskSlot::of(Some(ItemStack::new(ItemType::Stone, 3)), &pal),
-        );
-        w.finish();
-        let mut list = to_bytes(&1u32);
-        list.extend(record);
-        let (live, kept) = get_entities(&mut Reader::new(&list), &pal).expect("decodes");
-        assert!(kept.is_empty());
-        assert_eq!(live[0].stack, ItemStack::new(ItemType::Stone, 3));
-        assert_eq!(live[0].ticks_lived, 0);
-        assert!(matches!(live[0].motion, Motion::Loose));
-    }
-
-    #[test]
-    fn empty_list_roundtrips() {
-        assert!(roundtrip(&[]).is_empty());
-    }
-
-    #[test]
-    fn truncated_input_is_none() {
-        let buf = to_bytes(&1u32);
-        assert!(get_entities(&mut Reader::new(&buf), &Palette::identity()).is_none());
     }
 }

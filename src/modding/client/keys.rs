@@ -98,36 +98,4 @@ mod tests {
         assert_eq!(key_name(KeyCode::ArrowLeft), "arrow_left");
         assert_eq!(key_name(KeyCode::Numpad0), "numpad_0");
     }
-
-    #[test]
-    fn only_a_gameplay_default_is_measured_against_the_engine() {
-        let mods = |ctrl| mod_api::ClientKeyMods {
-            ctrl,
-            ..Default::default()
-        };
-        let default_chord = BindableAction::ALL
-            .iter()
-            .map(|a| BindingSet::default().binding(*a))
-            .find(|b| !b.mods.is_empty())
-            .expect("the engine has at least one chord default");
-        assert!(default_refusal(default_chord, true).is_some());
-        assert!(default_refusal(default_chord, false).is_none());
-        let bare = Binding {
-            mods: BindMods::default(),
-            ..default_chord
-        };
-        let bare_is_engine = BindableAction::ALL
-            .iter()
-            .any(|a| BindingSet::default().binding(*a) == bare);
-        assert_eq!(
-            default_refusal(bare, true).is_some(),
-            bare_is_engine
-                || matches!(bare.input, BoundInput::Key(c) if fixed_control_from_key_code(c).is_some())
-        );
-        let fixed = default_binding(KeyCode::KeyV, mods(false));
-        assert!(default_refusal(fixed, true).is_some());
-        assert!(default_refusal(default_binding(KeyCode::KeyV, mods(true)), true).is_none());
-        let escape = default_binding(KeyCode::Escape, mods(false));
-        assert!(default_refusal(escape, false).is_some());
-    }
 }

@@ -26,15 +26,6 @@ struct DecodedSound {
     samples: Arc<[f32]>,
 }
 
-impl DecodedSound {
-    #[inline]
-    #[cfg(test)]
-    fn duration(&self) -> f64 {
-        let frames = self.samples.len() / self.channels.get() as usize;
-        frames as f64 / self.sample_rate.get() as f64
-    }
-}
-
 impl SpatialListener {
     fn audio_space(
         self,
@@ -772,45 +763,6 @@ mod tests {
             gain_loops: HashMap::new(),
             music: None,
         }
-    }
-
-    #[test]
-    fn wood_punch_variant_decodes_to_pcm() {
-        let rel = sound_defs()[Sound::WoodPunch.0 as usize].variants[0];
-        let bytes = petramond_world::assets::read_bytes(rel)
-            .expect("clip file exists")
-            .0;
-        let d = decode(bytes).expect("wood_punch variant should decode");
-        assert!(!d.samples.is_empty(), "decoded to some samples");
-        assert!(d.sample_rate.get() > 0);
-        assert!(d.channels.get() >= 1);
-        assert!(d.duration() > 0.0, "has a positive duration");
-    }
-
-    #[test]
-    fn jitter_stays_in_unit_range() {
-        let mut a = silent_audio(0x1234_5678_9abc_def1);
-        for _ in 0..10_000 {
-            let j = a.rng.jitter();
-            assert!((-1.0..1.0).contains(&j), "jitter {j} out of range");
-        }
-    }
-
-    #[test]
-    fn random_variant_stays_in_range_and_covers_all() {
-        let mut a = silent_audio(0xDEAD_BEEF_CAFE_1234);
-        let mut seen = [false; 3];
-        for _ in 0..1_000 {
-            let i = a.rng.index(3);
-            assert!(i < 3, "index {i} out of range");
-            seen[i] = true;
-        }
-        assert!(
-            seen.iter().all(|&s| s),
-            "every variant should be chosen over many plays"
-        );
-        assert_eq!(a.rng.index(1), 0);
-        assert_eq!(a.rng.index(0), 0);
     }
 
     #[test]

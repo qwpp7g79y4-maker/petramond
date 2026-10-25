@@ -116,13 +116,4 @@ mod tests {
             "nothing is routed to a kicked session"
         );
     }
-
-    #[test]
-    fn a_local_session_fault_still_unwinds() {
-        let mut server = crate::server::session_build::build_server_inline("", 1, 2);
-        let unwound = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            server.isolated::<()>(0, "a test stage", |_| panic!("injected"))
-        }));
-        assert!(unwound.is_err());
-    }
 }

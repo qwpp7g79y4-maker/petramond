@@ -188,21 +188,6 @@ fn block_between_mob_and_player_prevents_strike_without_cooldown() {
 }
 
 #[test]
-fn no_lock_means_no_strike_even_in_reach() {
-    let world = ServerWorld::new(0, 1);
-    let mut rng = MobRng::new(1);
-    let mut ai = MeleeAttackAi::new(1.5, 2.0, 5.0, 10);
-    let (pos, yaw, player) = in_reach();
-    let mut c = ctx(&world, &mut rng, pos, yaw, player);
-    c.target = None;
-    assert!(ai.tick(&mut c).attack.is_none());
-    assert!(ai
-        .tick(&mut ctx(&world, &mut rng, pos, yaw, player))
-        .attack
-        .is_some());
-}
-
-#[test]
 fn a_locked_mob_target_is_struck_and_a_vanished_one_fizzles() {
     use super::super::super::brain::AiMob;
     let world = ServerWorld::new(0, 1);

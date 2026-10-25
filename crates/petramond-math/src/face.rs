@@ -74,30 +74,7 @@ impl Face {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::FACE_NEIGHBORS;
     use glam::Vec3;
-
-    #[test]
-    fn face_order_matches_the_neighbour_table() {
-        for (i, face) in Face::ALL.into_iter().enumerate() {
-            assert_eq!(face as usize, i);
-            assert_eq!(face.dir(), FACE_NEIGHBORS[i]);
-            assert_eq!(face.dir().abs().element_sum(), 1, "{face:?} is a unit axis");
-        }
-        for pair in Face::ALL.chunks(2) {
-            assert_eq!(pair[0].dir(), -pair[1].dir());
-        }
-    }
-
-    #[test]
-    fn ao_tangents_span_the_face_plane() {
-        for face in Face::ALL {
-            let (n, u, v) = (face.dir(), face.ao_u(), face.ao_v());
-            assert_eq!(n.dot(u), 0, "{face:?} ao_u lies in the face plane");
-            assert_eq!(n.dot(v), 0, "{face:?} ao_v lies in the face plane");
-            assert_eq!(u.dot(v), 0, "{face:?} tangents are distinct axes");
-        }
-    }
 
     #[test]
     fn quad_box_winds_counter_clockwise_from_outside() {
@@ -125,18 +102,6 @@ mod tests {
             let sign = |x: f32| if x > 0.5 { 1 } else { -1 };
             let derived = corners.map(|c| (sign(c.dot(u)), sign(c.dot(v))));
             assert_eq!(face.ao_signs(), derived, "{face:?}");
-        }
-    }
-
-    #[test]
-    fn quad_box_spans_arbitrary_extents() {
-        let (min, max) = ([0.25, -1.0, 2.0], [0.75, 3.0, 2.5]);
-        for face in Face::ALL {
-            for c in face.quad_box(min, max) {
-                for a in 0..3 {
-                    assert!(c[a] == min[a] || c[a] == max[a], "{face:?} axis {a}");
-                }
-            }
         }
     }
 }

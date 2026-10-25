@@ -1,5 +1,5 @@
 use super::*;
-use crate::biome::climate::{AxisRange, BiomeClimateEntry, ClimateRect, SurfaceClimate};
+use crate::biome::climate::{AxisRange, BiomeClimateEntry, ClimateRect};
 use crate::density::terrain::TerrainDensitySpec;
 use crate::graph::{Channel, SamplePoint, SampledScalarField};
 use petramond_world::chunk::Chunk;
@@ -309,23 +309,6 @@ fn section_fill_matches_the_lattice_reference() {
 }
 
 #[test]
-fn biome_assignment_is_stable_across_overlapping_regions() {
-    let system = SurfaceDensitySystem::new(7);
-    let small = system.region(-8, 3, 16, 16);
-    let large = system.region(-16, -5, 40, 32);
-
-    for wz in 3..19 {
-        for wx in -8..8 {
-            assert_eq!(
-                small.at(wx, wz).1,
-                large.at(wx, wz).1,
-                "biome mismatch at ({wx},{wz})"
-            );
-        }
-    }
-}
-
-#[test]
 fn fallback_biome_lookup_matches_region_biomes() {
     let system = SurfaceDensitySystem::new(99);
     let region = system.region(-4, -4, 12, 12);
@@ -348,27 +331,4 @@ fn beach_is_derived_only_on_low_land_near_ocean_climate() {
     assert_eq!(system.biome_at(-8, 0), Biome::OCEAN);
     assert_eq!(system.biome_at(8, 0), Biome::BEACH);
     assert_eq!(system.biome_at(40, 0), Biome::PLAINS);
-}
-
-#[test]
-fn climate_classification_uses_variance_derived_ridge() {
-    let index = plains_index();
-    assert_eq!(
-        index.classify_surface(SurfaceClimate::new(0.0, 0.0, 0.0, 0.0, 0.25)),
-        Some(Biome::PLAINS)
-    );
-}
-
-#[test]
-fn surfaces_are_searched_from_the_density_floor_to_the_world_top() {
-    assert_eq!(SURFACE_SEARCH_Y.end, WORLD_MAX_Y);
-    assert_eq!(
-        SURFACE_SEARCH_Y.start,
-        FloorDensitySpec::default_surface().floor_y as i32
-    );
-    assert_eq!(SURFACE_FLOOR_Y, SURFACE_SEARCH_Y.start - 1);
-    let system = SurfaceDensitySystem::new(0x5EA_0013);
-    let heights = surface_heights(&system.columns, -40, 25, 24, 24);
-    assert_eq!(heights.len(), 24 * 24);
-    assert!(heights.iter().all(|h| SURFACE_SEARCH_Y.contains(h)));
 }

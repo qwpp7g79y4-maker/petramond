@@ -50,11 +50,6 @@ impl Spawner {
         self.species.zombie
     }
 
-    /// How many surfaces refuse spawns.
-    pub fn spawn_proof_surfaces(&self) -> usize {
-        self.spawn_proof.count
-    }
-
     /// The species to spawn at `candidate`, if any.
     pub fn candidate(&self, candidate: &HostileSpawnCandidate) -> Option<String> {
         let daylight = daylight_now()?;

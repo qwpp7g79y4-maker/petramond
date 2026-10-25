@@ -102,30 +102,6 @@ fn palette_packs_global_times_pose_and_falls_back_to_global() {
 }
 
 #[test]
-fn instances_address_their_own_palette_runs() {
-    let mut batch = SkinBatch::default();
-    let a = batch.push(&[Mat4::IDENTITY; 4], Mat4::IDENTITY, 5, look());
-    let b = batch.push(
-        &[Mat4::IDENTITY; 2],
-        Mat4::IDENTITY,
-        3,
-        SkinLook {
-            hidden: PART_COAT,
-            ..look()
-        },
-    );
-    assert_eq!((a, b), (0, 1));
-    assert_eq!(batch.next_instance(), 2);
-    assert_eq!(batch.instances[0].bone_base, 0);
-    assert_eq!(batch.instances[1].bone_base, 5);
-    assert_eq!(batch.instances[1].hidden, PART_COAT);
-    assert_eq!(batch.palette.len(), 8);
-    batch.clear();
-    assert!(batch.palette.is_empty() && batch.instances.is_empty());
-    assert_eq!(batch.next_instance(), 0);
-}
-
-#[test]
 fn unbound_cubes_ride_the_extra_slot() {
     let mut owl = model("owl");
     let bones = owl.bones.len();

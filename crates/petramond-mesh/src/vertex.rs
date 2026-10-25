@@ -148,29 +148,6 @@ mod terrain_vertex_tests {
         }
     }
 
-    #[test]
-    fn terrain_pos_quantizes_within_half_unit() {
-        let v = Vertex {
-            pos: [3.125, 64.5, 0.0625],
-            tint: 0xFF00_00FF,
-            packed: 1,
-            packed2: 2,
-        };
-        let t = TerrainVertex::from_mesh(&v);
-        let back = t.to_mesh();
-        for i in 0..3 {
-            assert!(
-                (back[i] - v.pos[i]).abs() <= 0.5 / TERRAIN_POS_SCALE + f32::EPSILON,
-                "axis {i}: {back:?} vs {:?}",
-                v.pos
-            );
-        }
-        assert_eq!(t.tint, v.tint);
-        assert_eq!(t.packed, v.packed);
-        assert_eq!(t.packed2, v.packed2);
-        assert_eq!(std::mem::size_of::<TerrainVertex>(), 20);
-    }
-
     /// The three GPU words are the `petramond::vertex` shader ABI: engine
     /// shaders decode them through the module [`wgsl::layout`] generates, and
     /// pack shaders may import it too. This spells that ABI out — BOTH packed

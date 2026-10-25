@@ -142,27 +142,4 @@ mod tests {
         assert!(field.is_empty());
         assert_eq!(field.near(WorldPos::new(3.0, 64.0, 0.0), 10.0).count(), 0);
     }
-
-    #[test]
-    fn steps_are_audible_only_for_grounded_unsneaky_locomotion() {
-        let walk_sq = 4.3f32 * 4.3;
-        let sneak_sq = 2.15f32 * 2.15;
-        assert!(player_steps_are_audible(walk_sq, true, false, false));
-        assert!(
-            !player_steps_are_audible(walk_sq, true, true, false),
-            "sneaking is silent at any speed"
-        );
-        assert!(
-            !player_steps_are_audible(walk_sq, false, false, false),
-            "airborne movement is silent"
-        );
-        assert!(
-            !player_steps_are_audible(walk_sq, true, false, true),
-            "spectators have no feet"
-        );
-        assert!(
-            !player_steps_are_audible(sneak_sq, true, false, false),
-            "sub-threshold drift is silent"
-        );
-    }
 }

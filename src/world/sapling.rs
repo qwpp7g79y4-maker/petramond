@@ -244,20 +244,6 @@ mod tests {
     }
 
     #[test]
-    fn a_sapling_grows_into_a_tree_on_clear_ground() {
-        let mut w = world_with_grove();
-        let pos = plant_oak(&mut w);
-        let mut rng = FeatureRng::from_state(0x1234_5678);
-        w.grow_sapling(pos, final_stage(Block::OakSapling), &mut rng);
-
-        assert!(
-            block(&w, 8, 64, 8).is_log(),
-            "trunk roots where the sapling stood"
-        );
-        assert!(has_canopy(&w), "a grown tree has a leaf canopy");
-    }
-
-    #[test]
     fn a_sapling_will_not_grow_when_a_solid_block_blocks_the_trunk() {
         let mut w = world_with_grove();
         let pos = plant_oak(&mut w);

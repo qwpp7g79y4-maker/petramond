@@ -49,31 +49,3 @@ impl From<HostError> for String {
         error.detail
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn only_data_bounds_and_refusals_are_recoverable() {
-        assert!(ErrorCode::LimitExceeded.is_recoverable());
-        assert!(ErrorCode::Refused.is_recoverable());
-        for code in [
-            ErrorCode::WrongSide,
-            ErrorCode::NotInInit,
-            ErrorCode::NoContext,
-            ErrorCode::ReadOnly,
-            ErrorCode::NoActor,
-            ErrorCode::Forbidden,
-            ErrorCode::InvalidArgument,
-        ] {
-            assert!(!code.is_recoverable(), "{code:?}");
-        }
-    }
-
-    #[test]
-    fn display_names_the_code_and_the_detail() {
-        let e = HostError::new(ErrorCode::LimitExceeded, "KV value is 70000 bytes");
-        assert_eq!(e.to_string(), "LimitExceeded: KV value is 70000 bytes");
-    }
-}

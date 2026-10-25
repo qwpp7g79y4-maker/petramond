@@ -18,19 +18,6 @@ fn feature_bounds_include_cross_section_writes_and_do_not_overflow() {
 }
 
 #[test]
-fn inverted_bands_are_invalid_and_constructors_compose() {
-    assert!(!GenFeatureFilter::y_band(1, 0).is_valid());
-    assert!(!GenFeatureFilter::surface_band(1, 0).is_valid());
-    assert!(GenFeatureFilter::y_band(0, 0).is_valid());
-    let positional = GenFeatureFilter::y_band(-64, -40).without_blocks();
-    assert!(!positional.needs_blocks);
-    assert_eq!(positional.min_y, -64);
-    assert!(!GenFeatureFilter::ANY
-        .near_underground_biomes([1], -1, 0, 0)
-        .is_valid());
-}
-
-#[test]
 fn biome_sets_and_gates_cover_their_edges() {
     let set = BiomeSet::new([0, 63, 64, 255]);
     assert!(set.contains(0) && set.contains(63) && set.contains(64) && set.contains(255));

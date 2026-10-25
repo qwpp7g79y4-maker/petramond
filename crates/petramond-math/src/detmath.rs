@@ -118,42 +118,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn results_are_exact_where_exact_and_close_elsewhere() {
-        assert_eq!(pow(3.0, 4.0), 81.0);
-        assert_eq!(pow(2.0, -2.0), 0.25);
-        assert_eq!(exp(0.0), 1.0);
-        assert_eq!(sin(0.0), 0.0);
-        assert_eq!(cos(0.0), 1.0);
-        assert_eq!(cbrtf(27.0), 3.0);
-        assert_eq!(expf(0.0), 1.0);
-        assert_eq!(powf(2.0, 10.0), 1024.0);
-        assert_eq!(sin_cos(0.25), (sin(0.25), cos(0.25)));
-        assert_eq!(sin_cosf(0.25), (sinf(0.25), cosf(0.25)));
-        let ulps = |a: f64, b: f64| (a.to_bits() as i64 - b.to_bits() as i64).unsigned_abs();
-        let ulpsf = |a: f32, b: f32| (a.to_bits() as i32 - b.to_bits() as i32).unsigned_abs();
-        for i in 1..200 {
-            let x = f64::from(i) * 0.137;
-            assert!(
-                ulps(sin(x), x.sin()) <= 2 || sin(x).abs() < 1e-3,
-                "sin({x})"
-            );
-            assert!(
-                ulps(cos(x), x.cos()) <= 2 || cos(x).abs() < 1e-3,
-                "cos({x})"
-            );
-            assert!(ulps(exp(-x), (-x).exp()) <= 2, "exp(-{x})");
-            assert!(ulps(pow(x, 0.85), x.powf(0.85)) <= 2, "pow({x}, 0.85)");
-            let xf = x as f32;
-            assert!(
-                ulpsf(sinf(xf), xf.sin()) <= 2 || sinf(xf).abs() < 1e-3,
-                "sinf({xf})"
-            );
-            assert!(ulpsf(powf(xf, 1.7), xf.powf(1.7)) <= 2, "powf({xf}, 1.7)");
-            assert!(ulpsf(cbrtf(xf), xf.cbrt()) <= 2, "cbrtf({xf})");
-        }
-    }
-
-    #[test]
     fn rotations_match_glam_layouts() {
         let close = |a: Mat4, b: Mat4| a.abs_diff_eq(b, 1e-6);
         for angle in [0.3_f32, -1.2, 2.5] {

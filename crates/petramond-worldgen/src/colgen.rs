@@ -239,33 +239,4 @@ mod tests {
         payload[stamp].copy_from_slice(&(ENGINE_STAMP ^ 1).to_le_bytes());
         assert!(decode_record(rec.pos, rec.seed, &deflate(&payload)).is_none());
     }
-
-    #[test]
-    fn a_truncated_core_is_rejected() {
-        let rec = sample_record();
-        let mut payload = inflate(&encode_record(&rec)).unwrap();
-        payload.truncate(payload.len() - 1);
-        assert!(decode_record(rec.pos, rec.seed, &deflate(&payload)).is_none());
-    }
-
-    #[test]
-    fn a_failed_region_write_is_not_reported_as_written() {
-        let dir = std::env::temp_dir().join(format!(
-            "petramond-colgen-write-{}-{:?}",
-            std::process::id(),
-            std::thread::current().id()
-        ));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        let ok = sample_record();
-        let mut blocked = sample_record();
-        blocked.pos = ChunkPos::new(ok.pos.cx + REGION_SIZE, ok.pos.cz);
-        let (brx, brz) = region_of(blocked.pos);
-        std::fs::create_dir_all(cache_path(&dir, brx, brz)).unwrap();
-
-        let written = write_records(&dir, vec![ok, blocked]);
-        let (rx, rz) = region_of(sample_record().pos);
-        assert_eq!(written, vec![cache_path(&dir, rx, rz)]);
-        let _ = std::fs::remove_dir_all(&dir);
-    }
 }

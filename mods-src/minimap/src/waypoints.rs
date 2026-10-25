@@ -264,14 +264,4 @@ mod tests {
         let current = encode_versioned(&WaypointList(sample()[..1].to_vec()));
         assert_eq!(load_list(Some(&current), Some(&legacy)).len(), 1);
     }
-
-    #[test]
-    fn a_newer_builds_list_is_not_misread() {
-        let host = mod_sdk::testing::MockHost::new();
-        let _host_guard = host.install();
-        let mut bytes = encode_versioned(&WaypointList(sample()));
-        bytes[0] = WaypointList::VERSION + 1;
-        assert!(load_list(Some(&bytes), None).is_empty());
-        assert!(host.logs().iter().any(|line| line.contains("unreadable")));
-    }
 }

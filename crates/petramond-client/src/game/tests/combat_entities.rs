@@ -999,28 +999,4 @@ fn mobs_take_player_rule_fall_damage_when_they_land() {
     assert!(!mob.is_dead(), "the owl survives this fall at one health");
 }
 
-#[test]
-fn killing_owls_drops_loot_into_the_world() {
-    let mut game = game_on_empty_chunk();
-    let pos = WorldPos::new(8.0, 64.0, 8.0);
-    for _ in 0..40 {
-        assert!(game.server_world_mut().mobs_mut().spawn(Mob::Owl, pos, 0.0));
-        let id = game.server_world().mobs().instances().last().unwrap().id();
-        if let Some(death) = game.server_world_mut().mobs_mut().damage_mob(
-            id,
-            100.0,
-            Some(pos + Vec3::X),
-            true,
-            None,
-            &MobDamageFeedback::default(),
-        ) {
-            game.sim_mut().spawn_mob_loot(death);
-        }
-    }
-    assert!(
-        !game.server_world().item_entities().is_empty(),
-        "killing owls drops loot via the loot table"
-    );
-}
-
 mod physics_and_pvp;

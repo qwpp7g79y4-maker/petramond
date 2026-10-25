@@ -112,10 +112,6 @@ impl GlyphSet {
         self.index(ch).is_some()
     }
 
-    pub fn count(&self) -> usize {
-        self.slots.len()
-    }
-
     pub fn advance(&self, ch: char) -> i32 {
         match self.index(ch) {
             Some(i) => self.slots[i].advance,

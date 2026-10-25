@@ -238,10 +238,6 @@ impl FloorDensitySpec {
             solid_density,
         }
     }
-
-    pub const fn default_surface() -> Self {
-        Self::new(0.0, 8.0, 64.0)
-    }
 }
 
 fn shaping_inputs(

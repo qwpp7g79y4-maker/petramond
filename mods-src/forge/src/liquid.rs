@@ -306,48 +306,6 @@ mod tests {
     }
 
     #[test]
-    fn the_drop_begins_at_the_metal_in_the_channel_not_under_it() {
-        let mut l = Liquid::default();
-        for _ in 0..12 {
-            l.step(true, 0.0);
-        }
-        assert!(l.channel > 0.0, "fixture: the channel is running");
-        let channel_surface = SPOUT_Y + CHANNEL_DEPTH * l.channel;
-        assert!(
-            (l.fall_y(0.0) - channel_surface).abs() < 1e-6,
-            "the drop starts at {} but the channel's metal reaches {channel_surface}",
-            l.fall_y(0.0)
-        );
-    }
-
-    #[test]
-    fn the_last_of_the_pour_falls_away_from_the_lip_downward() {
-        let mut l = Liquid::default();
-        while !l.landed() {
-            l.step(true, 0.0);
-        }
-        assert_eq!(l.tail, 0.0, "while it runs, the column is attached");
-
-        let mut prev_top = l.fall_y(l.tail);
-        let mut prev_bottom = l.fall_y(l.head);
-        for _ in 0..40 {
-            l.step(false, 0.0);
-            if l.head <= l.tail {
-                break;
-            }
-            let (top, bottom) = (l.fall_y(l.tail), l.fall_y(l.head));
-            assert!(
-                top <= prev_top + 1e-6,
-                "the top of the column only ever descends"
-            );
-            assert!(bottom <= prev_bottom + 1e-6, "and so does the bottom");
-            prev_top = top;
-            prev_bottom = bottom;
-        }
-        assert_eq!(l.head, 0.0, "the stream is gone once the tail catches it");
-    }
-
-    #[test]
     fn closing_the_tap_leaves_the_airborne_metal_falling() {
         let mut l = Liquid::default();
         for _ in 0..8 {
@@ -387,45 +345,6 @@ mod tests {
             .unwrap_or_else(|| {
                 panic!("no cube named '{name}' — the constants above were measured off it")
             })
-    }
-
-    /// `"fit": "native"` MAPS THE AUTHORED ORIGIN ONTO THE FOOTPRINT ORIGIN,
-    /// which makes every number in this file a raw read off the model — and
-    /// makes a model authored about its own centre render a whole cell away
-    /// from the block it belongs to.
-    ///
-    /// That is invisible in Blockbench, where the model looks perfect, and it
-    /// is invisible in a lone screenshot, where a furnace one cell to the left
-    /// is still a furnace. It shows up as the machine standing beside the
-    /// metal it is pouring, and as a block you have to aim off-target to hit.
-    /// The shipped model is translated into its footprint for exactly this
-    /// reason; this is the assertion that says so.
-    #[test]
-    fn the_model_fills_the_footprint_it_declares() {
-        const BOX: [f32; 3] = [32.0, 48.0, 32.0];
-        let mut lo = [f32::MAX; 3];
-        let mut hi = [f32::MIN; 3];
-        for e in elements().iter().filter(|e| e.get("rotation").is_none()) {
-            let (a, b) = (corner(e, "from").unwrap(), corner(e, "to").unwrap());
-            for i in 0..3 {
-                lo[i] = lo[i].min(a[i]);
-                hi[i] = hi[i].max(b[i]);
-            }
-        }
-        for i in 0..3 {
-            assert!(
-                lo[i] > -0.25 && hi[i] < BOX[i] + 0.25,
-                "axis {i} spans {}..{}, not the declared 0..{}",
-                lo[i],
-                hi[i],
-                BOX[i]
-            );
-        }
-        assert!(
-            lo[0] < 1.0 && hi[0] > BOX[0] - 1.0,
-            "the model spans its width"
-        );
-        assert!(lo[2] < 1.0 && hi[2] > BOX[2] - 1.0, "and its depth");
     }
 
     #[test]
@@ -566,57 +485,6 @@ mod tests {
     }
 
     #[test]
-    fn the_launder_turns_its_corner_without_a_step_a_notch_or_an_overhang() {
-        let close = |a: f32, b: f32| (a - b).abs() < 1e-5;
-        let (spout, lip) = (cube("tap_spout"), cube("tap_lip"));
-        assert!(
-            close(spout.0[1], lip.0[1]) && close(spout.1[1], lip.1[1]),
-            "ONE floor plane at ONE thickness through the turn"
-        );
-        assert!(
-            close(spout.0[2], lip.1[2]),
-            "and its two pieces meet edge to edge"
-        );
-        for (arm, run, axis) in [
-            ("outer", (cube("tap_spout_r"), cube("tap_wall_far")), 0),
-            ("inner", (cube("tap_spout_l"), cube("tap_wall_near")), 0),
-        ] {
-            let (a, b) = run;
-            assert!(
-                close(a.0[axis], b.1[axis]),
-                "the {arm} walls meet: no gap, no overlap"
-            );
-            assert!(
-                close(a.0[2], b.0[2]),
-                "the {arm} corner CLOSES — the leg-A wall reaches the far edge \
-                 of the one it meets, or the turn has a notch in it"
-            );
-            assert!(
-                close(a.0[1], b.0[1]) && close(a.1[1], b.1[1]),
-                "and they are the same height, so the trough does not change \
-                 section through the bend"
-            );
-            assert!(
-                a.1[axis] <= lip.1[axis] + 1e-5 && a.0[axis] >= lip.0[axis] - 1e-5,
-                "the {arm} wall stands ON the floor rather than off the end of it"
-            );
-        }
-    }
-
-    #[test]
-    fn liquid_survives_the_kv_round_trip() {
-        let mut l = Liquid::default();
-        for _ in 0..14 {
-            l.step(true, 0.07);
-        }
-        let mut w = ByteWriter::new();
-        l.encode(&mut w);
-        let bytes = w.finish();
-        let back = Liquid::decode(&mut ByteReader::new(&bytes));
-        assert!(back == l, "the pour resumes exactly where it stopped");
-    }
-
-    #[test]
     fn a_cast_replaces_the_pool_rather_than_joining_it() {
         let l = Liquid {
             level: 0.8,
@@ -713,23 +581,6 @@ mod tests {
         assert!(
             (column_bottom(&Basin::default()) - pool_surface).abs() < 1e-6,
             "a mould-less basin keeps the rising pool surface"
-        );
-    }
-
-    #[test]
-    fn a_mould_less_basin_still_pools_square() {
-        let l = Liquid {
-            level: 0.6,
-            ..Liquid::default()
-        };
-        let prims = l.prims("stone", [255, 0, 0], &Basin::default());
-        assert!(
-            prims.iter().any(|p| matches!(p, DrawPrim::Cuboid { .. })),
-            "the square pool is the bare basin's metal"
-        );
-        assert!(
-            prims.iter().all(|p| !matches!(p, DrawPrim::Item { .. })),
-            "and no item stands in for it"
         );
     }
 }

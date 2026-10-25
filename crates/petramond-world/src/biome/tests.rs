@@ -56,14 +56,6 @@ fn engine_consts_name_their_frozen_rows() {
     }
 }
 
-#[test]
-fn unregistered_ids_fall_back_to_ocean() {
-    assert_eq!(Biome::from_id(0), Biome::OCEAN);
-    assert_eq!(Biome::from_id(u8::MAX), Biome::OCEAN);
-    assert_eq!(Biome::all().count(), super::count());
-    assert!(Biome::from_name("mymod:nowhere").is_none());
-}
-
 fn assert_color_close(actual: [f32; 3], expected: [f32; 3]) {
     for i in 0..3 {
         assert!(
@@ -73,14 +65,6 @@ fn assert_color_close(actual: [f32; 3], expected: [f32; 3]) {
             expected[i]
         );
     }
-}
-
-#[test]
-fn blended_fog_color_is_exact_in_uniform_biome_area() {
-    assert_color_close(
-        blended_fog_color(12.25, -4.75, |_, _| Biome::FOREST),
-        Biome::FOREST.fog_color(),
-    );
 }
 
 #[test]

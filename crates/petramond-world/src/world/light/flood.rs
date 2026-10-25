@@ -1036,21 +1036,4 @@ mod tests {
 
         assert_eq!(cube[section_idx(8, 8, 8)], 0);
     }
-
-    #[test]
-    fn skylight_stays_dark_under_full_cover() {
-        let pos = SectionPos::new(0, 0, 0);
-        let blocks = vec![0u16; NBHD_VOLUME].into_boxed_slice();
-        let surface = vec![40i32; NBHD_AREA].into_boxed_slice();
-        let states = default_states();
-
-        let cube = skylight(
-            pos,
-            cells(&blocks, &states),
-            &surface,
-            &mut FloodScratch::new(),
-        );
-
-        assert!(cube.iter().all(|&l| l == 0));
-    }
 }

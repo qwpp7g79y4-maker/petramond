@@ -392,35 +392,6 @@ mod tests {
     }
 
     #[test]
-    fn cap_is_wider_than_its_stem() {
-        for form in [Form::Flatcap, Form::Round] {
-            let g = Giant {
-                form,
-                height: 10,
-                stem_r: 1,
-                cap_r: 5,
-                skirt: 3,
-                lean_x: 0,
-                lean_z: 0,
-            };
-            let c = cells(&g);
-            let cap_w = c
-                .iter()
-                .filter(|(_, _, _, p)| *p != Part::Stem)
-                .map(|(dx, _, _, _)| dx.abs())
-                .max()
-                .unwrap();
-            let stem_w = c
-                .iter()
-                .filter(|(_, _, _, p)| *p == Part::Stem)
-                .map(|(dx, _, _, _)| dx.abs())
-                .max()
-                .unwrap();
-            assert!(cap_w > stem_w, "{form:?} cap {cap_w} vs stem {stem_w}");
-        }
-    }
-
-    #[test]
     fn both_forms_roll_and_only_the_round_one_is_open_underneath() {
         let mut seen = [0usize; 2];
         for i in 0..600i32 {

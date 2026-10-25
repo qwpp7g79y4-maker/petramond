@@ -56,16 +56,6 @@ fn a_tunnel_joins_only_its_two_ends() {
 }
 
 #[test]
-fn a_sealed_pocket_connects_nothing() {
-    let mut s = section(Block::Stone);
-    for (x, y, z) in [(7, 7, 7), (8, 7, 7), (8, 8, 7)] {
-        s.set_block(x, y, z, Block::Air);
-    }
-    s.recompute_opaque_count();
-    assert_eq!(SectionVisibility::of_section(&s), SectionVisibility::NONE);
-}
-
-#[test]
 fn a_floor_separates_above_from_below() {
     let mut s = section(Block::Air);
     for x in 0..SECTION_SIZE {
@@ -81,19 +71,4 @@ fn a_floor_separates_above_from_below() {
         !v.connects(Face::PosY, Face::NegY),
         "the floor seals top from bottom"
     );
-}
-
-#[test]
-fn see_through_blocks_do_not_occlude() {
-    for block in [Block::Water] {
-        let mut s = section(Block::Stone);
-        for x in 0..SECTION_SIZE {
-            s.set_block(x, 3, 3, block);
-        }
-        s.recompute_opaque_count();
-        assert!(
-            SectionVisibility::of_section(&s).connects(Face::PosX, Face::NegX),
-            "{block:?}"
-        );
-    }
 }

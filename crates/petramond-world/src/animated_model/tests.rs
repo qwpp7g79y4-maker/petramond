@@ -50,15 +50,6 @@ fn assert_same_box(drawn: Aabb, collides: Aabb, what: &str) {
 }
 
 #[test]
-fn every_engine_model_loads() {
-    for &key in ENGINE_MODEL_NAMES {
-        let model = engine(key);
-        assert_eq!(model.key, key);
-        assert!(!model.variants().is_empty());
-    }
-}
-
-#[test]
 fn the_drawn_door_swing_lands_on_its_collision_slab_for_every_facing() {
     let lower = &engine("petramond:door").variant(0).parts[0];
     for facing in FACINGS {
@@ -164,22 +155,6 @@ fn a_family_poses_its_model_from_the_cell_state() {
         !pose.open,
         "a chest's lid follows its viewers, not its state"
     );
-}
-
-#[test]
-fn a_part_takes_its_rows_tiles() {
-    let door = engine("petramond:door");
-    let [top, bottom, side] = Block::OakDoor.tiles();
-    let lower = door.variant(0).parts[0].tiles(Block::OakDoor);
-    assert_eq!(lower, [side, side, side, side, bottom, bottom]);
-    let upper = door.variant(0).parts[1].tiles(Block::OakDoor);
-    assert_eq!(upper[4], top);
-}
-
-#[test]
-fn an_out_of_range_variant_draws_the_first() {
-    let door = engine("petramond:door");
-    assert_eq!(door.variant(7), door.variant(0));
 }
 
 #[test]

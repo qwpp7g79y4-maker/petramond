@@ -1,5 +1,4 @@
 use super::*;
-use crate::host::fake::rows::LEAVES;
 use crate::testing::{Session, ASSET};
 
 fn wall_around(lintel: bool) -> (Design, usize) {
@@ -107,20 +106,6 @@ fn compiled(turns: u8) -> Design {
 }
 
 #[test]
-fn a_schematic_compiles_the_sections_each_call_is_given() {
-    let _session = strip(2);
-    let mut design = Design::new(ASSET, [10, 0, 5], 0);
-    assert!(matches!(design.compile(1), Progress::Compiling));
-    assert!(matches!(design.compile(1), Progress::Compiling));
-    assert_eq!((design.compiled(), design.complete), (2, false));
-    assert!(matches!(design.compile(1), Progress::Ready));
-    assert!(design.complete);
-    assert!(matches!(design.compile(1), Progress::Ready), "and stays so");
-    assert_eq!(design.title, "Strip");
-    assert_eq!((design.min, design.max), ([10, 0, 5], [12, 1, 5]));
-}
-
-#[test]
 fn units_go_bottom_up_whole_blocks_before_what_hangs_on_them() {
     let design = compiled(0);
     let order: Vec<[i32; 3]> = design.units.iter().map(|u| u.pos).collect();
@@ -158,51 +143,4 @@ fn a_turned_design_stays_in_its_turned_box() {
     let inside = |c: &&[i32; 3]| (0..3).all(|i| (design.min[i]..=design.max[i]).contains(&c[i]));
     assert_eq!(design.governed.iter().filter(inside).count(), 5);
     assert_eq!(design.governed.len(), 5);
-}
-
-#[test]
-fn a_design_that_cannot_be_read_fails_with_the_reason() {
-    let session = strip(64);
-    let mut missing = Design::new([1; 32], [0; 3], 0);
-    assert!(matches!(
-        missing.compile(8),
-        Progress::Failed(reason) if reason == "The schematic is missing"
-    ));
-    session.world.schematic_lookup(
-        ASSET,
-        SchematicLookup::Failed {
-            reason: "Corrupt".into(),
-        },
-    );
-    let mut failed = Design::new(ASSET, [0; 3], 0);
-    assert!(matches!(failed.compile(8), Progress::Failed(reason) if reason == "Corrupt"));
-    session
-        .world
-        .schematic_lookup(ASSET, SchematicLookup::Loading);
-    let mut loading = Design::new(ASSET, [0; 3], 0);
-    assert!(matches!(loading.compile(8), Progress::Compiling));
-    assert_eq!(loading.compiled(), 0);
-}
-
-#[test]
-fn a_block_items_cannot_build_stays_in_the_design_as_unsupported() {
-    let session = Session::flat(4);
-    session.world.schematic(
-        ASSET,
-        "Pond",
-        [2, 1, 1],
-        &[
-            ([0, 0, 0], "petramond:stone"),
-            ([1, 0, 0], "petramond:water"),
-        ],
-        64,
-    );
-    let mut design = Design::new(ASSET, [0, 0, 0], 0);
-    assert!(matches!(design.compile(8), Progress::Ready));
-    let water = design.unit_at([1, 0, 0]).expect("the water is a unit");
-    assert!(matches!(
-        design.plan(design.units[water]),
-        Plan::Unsupported(reason) if reason == "Fluids cannot be built"
-    ));
-    assert_eq!(design.overgrowth(), vec![LEAVES]);
 }

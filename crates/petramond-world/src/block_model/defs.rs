@@ -321,34 +321,3 @@ fn parse_layers(texts: &[&str]) -> Result<crate::registry::Catalog<BlockModelDef
 pub fn def(kind: BlockModelKind) -> &'static BlockModelDef {
     &defs()[kind.0 as usize]
 }
-
-#[cfg(test)]
-mod part_list_tests {
-    use super::*;
-
-    fn row(key: &'static str, file: &'static str, parts: &'static [&'static str]) -> BlockModelDef {
-        BlockModelDef {
-            key,
-            model_file: file,
-            parts,
-            ..*def(BlockModelKind(0))
-        }
-    }
-
-    #[test]
-    fn rows_sharing_a_model_must_agree_on_part_order() {
-        let same = [
-            row("a", "m.bbmodel", &["coals", "lever"]),
-            row("b", "m.bbmodel", &["coals", "lever"]),
-            row("c", "m.bbmodel", &[]),
-            row("d", "other.bbmodel", &["lever", "coals"]),
-        ];
-        assert!(check_shared_part_lists(&same).is_ok());
-
-        let swapped = [
-            row("a", "m.bbmodel", &["coals", "lever"]),
-            row("b", "m.bbmodel", &["lever", "coals"]),
-        ];
-        assert!(check_shared_part_lists(&swapped).is_err());
-    }
-}

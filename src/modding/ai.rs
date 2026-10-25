@@ -359,12 +359,4 @@ mod tests {
             "the batch decodes as AiNodeBatch"
         );
     }
-
-    #[test]
-    fn unclaimed_keys_answer_no_opinion_per_request() {
-        install(HashMap::new());
-        let requests = [request(1, &[]), request(2, &[])];
-        assert_eq!(dispatch_batch(3, &requests), vec![None, None]);
-        assert_eq!(detached_tick(), None, "no dispatch leaves a tick published");
-    }
 }

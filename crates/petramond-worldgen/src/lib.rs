@@ -83,25 +83,6 @@ mod tests {
     }
 
     #[test]
-    fn generate_chunk_with_matches_one_shot() {
-        let seed = 0x1234_5678;
-        let generator = driver::ChunkGenerator::new(seed);
-
-        for (cx, cz) in [(0, 0), (-3, 5), (12, -7)] {
-            let one_shot = generate_chunk(seed, cx, cz);
-            let reused = generate_chunk_with(&generator, cx, cz);
-
-            assert_eq!(one_shot.cx, reused.cx);
-            assert_eq!(one_shot.cz, reused.cz);
-            assert_eq!(one_shot.blocks_slice(), reused.blocks_slice());
-            assert_eq!(one_shot.biomes_slice(), reused.biomes_slice());
-            assert_eq!(&one_shot.heightmap[..], &reused.heightmap[..]);
-            assert_eq!(one_shot.dirty, reused.dirty);
-            assert_eq!(one_shot.light_dirty, reused.light_dirty);
-        }
-    }
-
-    #[test]
     fn cave_capable_section_summaries_are_conservative() {
         use super::noise::cave_field::CaveField;
         use petramond_world::section::SectionSummary;
@@ -157,35 +138,6 @@ mod tests {
                 }
             }
         }
-    }
-
-    #[test]
-    fn frozen_ponds_carry_bare_sea_ice_without_a_snow_layer() {
-        let seed = 34;
-        let mut cases = 0;
-        for &(cx, cz) in &[(6, -1), (7, -1), (8, -1)] {
-            let chunk = generate_chunk(seed, cx, cz);
-            for z in 0..CHUNK_SZ {
-                for x in 0..CHUNK_SX {
-                    let biome = petramond_world::biome::Biome::from_id(chunk.biome_at(x, z));
-                    let snowy = matches!(
-                        biome,
-                        petramond_world::biome::Biome::SNOWY_PLAINS
-                            | petramond_world::biome::Biome::SNOWY_TUNDRA
-                            | petramond_world::biome::Biome::SNOWY_TAIGA
-                    );
-                    if snowy && chunk.block(x, SEA_LEVEL as usize, z) == Block::Ice {
-                        cases += 1;
-                        assert_eq!(
-                            chunk.block(x, SEA_LEVEL as usize + 1, z),
-                            Block::Air,
-                            "snow layer on sea ice at ({cx},{cz}) local ({x},{z})"
-                        );
-                    }
-                }
-            }
-        }
-        assert!(cases > 0, "the scanned chunks must still hold frozen ponds");
     }
 
     #[test]

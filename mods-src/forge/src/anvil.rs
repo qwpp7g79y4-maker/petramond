@@ -120,12 +120,6 @@ impl MachineSpec for AnvilSpec {
         self.tools = rows::augmentable_tools();
         self.socket_items = rows::items_with(keys::SOCKET_KEY_DATA);
         self.nondestructive = rows::items_with(keys::NONDESTRUCTIVE_DATA);
-        log(&format!(
-            "forge: {} augment materials, {} augmentable tools, {} socket materials",
-            self.augments.len(),
-            self.tools.len(),
-            self.socket_items.len()
-        ));
     }
 
     fn step(

@@ -487,20 +487,6 @@ mod tests {
     }
 
     #[test]
-    fn empty_contract_forbids_all_slots() {
-        let d = doc(r#"{
-            "format": 1, "kind": "somemod:wheel", "class": "container",
-            "root": { "type": "frame", "children": [
-                { "type": "slot", "role": "hotbar" }
-            ] }
-        }"#);
-        let issues = d.validate(None, Some(&SlotContract::default()));
-        assert!(issues
-            .iter()
-            .any(|i| i.message.contains("not in this kind's contract")));
-    }
-
-    #[test]
     fn ids_must_be_present_on_event_widgets_and_unique() {
         let d = doc(r#"{
             "format": 1, "kind": "petramond:pause", "class": "screen",

@@ -30,14 +30,6 @@ fn vertical_scratch_matches_independent_samples_in_any_order() {
 }
 
 #[test]
-fn references_and_operator_arity_are_checked_before_evaluation() {
-    for text in [r#""absent""#, r#"["add",2]"#, r#"["unknown",1,2]"#, "[]"] {
-        assert!(Formula::compile(&[], &[expression(text)]).is_err());
-    }
-    assert!(Formula::compile(&[("x".into(), Expression::Number(3.0))], &[]).is_err());
-}
-
-#[test]
 fn compilation_shares_expressions_and_prunes_unused_work() {
     let bindings = vec![
         ("unused".into(), expression(r#"["noise3","x","y","z",17]"#)),

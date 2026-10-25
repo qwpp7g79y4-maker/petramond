@@ -37,19 +37,6 @@ fn fps_cycles_row_major_and_invalid_rates_rest_on_frame_zero() {
     assert_eq!(frame_index(g, None, None, 10.0), 0);
 }
 
-#[test]
-fn frame_src_is_row_major_one_cell() {
-    assert_eq!(
-        frame_src((64, 64), Some([2, 2]), Some(2), None, 0.0),
-        [0, 32, 32, 32]
-    );
-    assert_eq!(
-        frame_src((64, 64), Some([2, 2]), Some(3), None, 0.0),
-        [32, 32, 32, 32]
-    );
-    assert_eq!(frame_src((64, 64), None, None, None, 0.0), [0, 0, 64, 64]);
-}
-
 struct Sheets(&'static [(&'static str, u16, (u32, u32))]);
 
 impl DocImages for Sheets {

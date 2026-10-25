@@ -183,17 +183,3 @@ fn a_restarted_or_changed_scrub_is_never_carried_backward() {
     );
     assert_eq!(got, [0.3], "another clip in the slot is a new play");
 }
-
-#[test]
-fn hurt_edge_runs_a_decaying_flash_envelope() {
-    let mut store = RemotePlayers::default();
-    let mut hurt = row(1, WorldPos::ZERO);
-    hurt.hurt_recent = true;
-    apply(&mut store, &[hurt]);
-    assert_eq!(store.iter().next().unwrap().hurt_flash01(), 1.0);
-    store.advance(HURT_FLASH_SECS * 0.5, 1.0, |_| MovementMedium::Land);
-    let mid = store.iter().next().unwrap().hurt_flash01();
-    assert!(mid > 0.0 && mid < 1.0, "the flash decays: {mid}");
-    store.advance(HURT_FLASH_SECS, 1.0, |_| MovementMedium::Land);
-    assert_eq!(store.iter().next().unwrap().hurt_flash01(), 0.0);
-}

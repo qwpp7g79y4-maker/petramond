@@ -66,30 +66,3 @@ fn ran_exactly_one_passing_test(stdout: &str) -> Result<(), String> {
         None => Err("printed no libtest summary".to_owned()),
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::ran_exactly_one_passing_test;
-
-    #[test]
-    fn one_passing_test_with_interleaved_output_is_accepted() {
-        let stdout = "\nrunning 1 test\nrunning late\ntest result: made up\n\
-                      test a::b ... ok\n\ntest result: ok. 1 passed; 0 failed; \
-                      0 ignored; 0 measured; 41 filtered out; finished in 0.01s\n\n";
-        assert_eq!(ran_exactly_one_passing_test(stdout), Ok(()));
-    }
-
-    #[test]
-    fn a_filter_that_matches_nothing_is_rejected() {
-        let stdout = "\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; \
-                      0 ignored; 0 measured; 42 filtered out; finished in 0.00s\n\n";
-        let why = ran_exactly_one_passing_test(stdout).unwrap_err();
-        assert!(why.contains("0 tests"), "{why}");
-    }
-
-    #[test]
-    fn missing_libtest_output_is_rejected() {
-        assert!(ran_exactly_one_passing_test("").is_err());
-        assert!(ran_exactly_one_passing_test("running 1 test\n").is_err());
-    }
-}

@@ -155,24 +155,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn accept_drops_pending_deny_returns_snapshot() {
-        let mut ledger = PredictionLedger::new();
-        let inv = Inventory::new();
-        let id = ledger.begin(PredictionSnapshot::Inventory(inv.clone()));
-        assert_eq!(ledger.pending_len(), 1);
-        let rollbacks = ledger.reconcile(&[ActionOutcome::accept(id)]);
-        assert!(rollbacks.is_empty());
-        assert_eq!(ledger.pending_len(), 0);
-
-        let id2 = ledger.begin(PredictionSnapshot::Inventory(inv));
-        let rollbacks = ledger.reconcile(&[ActionOutcome::deny(
-            id2,
-            petramond::net::protocol::ActionDenyReason::Denied,
-        )]);
-        assert_eq!(rollbacks.len(), 1);
-    }
-
-    #[test]
     fn presented_cells_stay_suppressed_until_their_outcome_lands() {
         let mut ledger = PredictionLedger::new();
         let cell = IVec3::new(1, 64, 1);

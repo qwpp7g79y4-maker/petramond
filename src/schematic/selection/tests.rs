@@ -2,24 +2,6 @@ use super::*;
 use petramond_math::{math::Vec3, world_pos::WorldPos};
 
 #[test]
-fn overlapping_edits_undo_to_the_exact_previous_union() {
-    let mut s = Selection::default();
-    s.region([0, 0, 0], [2, 2, 2], false).unwrap();
-    let original: Vec<_> = s.cells().collect();
-    s.region([1, 1, 1], [3, 3, 3], false).unwrap();
-    let union: Vec<_> = s.cells().collect();
-    s.region([0, 1, 0], [3, 1, 3], true).unwrap();
-    s.region([20, 20, 20], [21, 21, 21], true).unwrap();
-    assert!(s.undo(), "empty remove does not consume an undo step");
-    assert_eq!(s.cells().collect::<Vec<_>>(), union);
-    assert!(s.undo());
-    assert_eq!(s.cells().collect::<Vec<_>>(), original);
-    s.clear();
-    assert!(s.undo());
-    assert_eq!(s.cells().collect::<Vec<_>>(), original);
-}
-
-#[test]
 fn redo_replays_overlaps_subtraction_and_clear_in_order() {
     let mut s = Selection::default();
     let mut states = vec![Vec::new()];

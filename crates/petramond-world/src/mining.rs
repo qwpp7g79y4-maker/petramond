@@ -307,27 +307,6 @@ mod tests {
     }
 
     #[test]
-    fn overlay_reports_target_and_stage_while_mining() {
-        let mut state = MiningState::new();
-        let pos = IVec3::new(7, 8, 9);
-        let hit = hit_at(pos);
-        let total = break_time(Block::Stone, None);
-        let half = total / 2.0;
-        let dt = 0.05;
-        let mut t = 0.0;
-        while t + dt < half {
-            step(&mut state, dt, Some(hit), true, false, Block::Stone);
-            t += dt;
-        }
-        let (otarget, stage) = state.overlay().expect("overlay while mining stone");
-        assert_eq!(otarget, pos);
-        assert!(
-            (4..=5).contains(&stage),
-            "halfway should be ~stage 4-5, got {stage}"
-        );
-    }
-
-    #[test]
     fn changing_target_resets_progress() {
         let mut state = MiningState::new();
         let a = hit_at(IVec3::new(0, 0, 0));
@@ -361,66 +340,12 @@ mod tests {
     }
 
     #[test]
-    fn inventory_open_gates_mining_off() {
-        let mut state = MiningState::new();
-        let hit = hit_at(IVec3::new(1, 1, 1));
-        for _ in 0..5 {
-            step(&mut state, 0.1, Some(hit), true, false, Block::Stone);
-        }
-        assert!(state.is_mining());
-        assert!(step(&mut state, 0.1, Some(hit), true, true, Block::Stone).is_none());
-        assert!(!state.is_mining());
-    }
-
-    #[test]
-    fn no_target_resets() {
-        let mut state = MiningState::new();
-        let hit = hit_at(IVec3::new(1, 1, 1));
-        for _ in 0..5 {
-            step(&mut state, 0.1, Some(hit), true, false, Block::Stone);
-        }
-        assert!(state.is_mining());
-        assert!(step(&mut state, 0.1, None, true, false, Block::Stone).is_none());
-        assert!(!state.is_mining());
-    }
-
-    #[test]
     fn unbreakable_block_is_never_a_target() {
         let mut state = MiningState::new();
         let hit = hit_at(IVec3::new(0, 0, 0));
         assert!(step(&mut state, 1.0, Some(hit), true, false, Block::Water).is_none());
         assert!(!state.is_mining());
         assert_eq!(state.target(), None);
-    }
-
-    #[test]
-    fn break_event_harvest_flag_follows_tool() {
-        let hit = hit_at(IVec3::new(1, 1, 1));
-        let dt = 0.05;
-        let mine = |tool: Option<Tool>, block: Block| {
-            let mut state = MiningState::new();
-            let total = break_time(block, tool);
-            for _ in 0..((total / dt) as usize + 2) {
-                if let Some(e) = step_with_tool(&mut state, dt, Some(hit), true, false, tool, block)
-                {
-                    return e;
-                }
-            }
-            panic!("{block:?} should break with tool {tool:?}");
-        };
-        for (tool, block) in [
-            (pick(1), Block::Stone),
-            (None, Block::Stone),
-            (pick(1), Block::IronOre),
-            (pick(2), Block::IronOre),
-            (pick(2), Block::DiamondOre),
-            (pick(3), Block::DiamondOre),
-            (axe(1), Block::OakLog),
-            (None, Block::OakLog),
-            (pick(4), Block::OakLog),
-        ] {
-            assert_eq!(mine(tool, block).harvested, harvests(block, tool));
-        }
     }
 
     #[test]

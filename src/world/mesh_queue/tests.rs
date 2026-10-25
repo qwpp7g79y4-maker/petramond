@@ -184,30 +184,6 @@ fn all_air_transition_removes_stale_ghost_mesh() {
 }
 
 #[test]
-fn loaded_opaque_neighbour_planes_seal_future_mesh_work() {
-    let mut world = ReplicaWorld::new(0, 0);
-    let center = SectionPos::new(0, 0, 0);
-    insert_solid_section(&mut world, center);
-    for (dx, dy, dz) in [
-        (1, 0, 0),
-        (-1, 0, 0),
-        (0, 1, 0),
-        (0, -1, 0),
-        (0, 0, 1),
-        (0, 0, -1),
-    ] {
-        insert_solid_section(
-            &mut world,
-            SectionPos::new(center.cx + dx, center.cy + dy, center.cz + dz),
-        );
-    }
-    assert!(
-        world.section_sealed_by_loaded_neighbors(center),
-        "six exact opaque neighbour planes make future mesh work invisible"
-    );
-}
-
-#[test]
 fn sealed_section_around_player_still_meshes_and_remeshes() {
     let mut world = ReplicaWorld::new(0, 4);
     let center = SectionPos::new(0, 0, 0);

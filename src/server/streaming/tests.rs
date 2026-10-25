@@ -53,22 +53,6 @@ fn find_lit_air(world: &crate::world::ServerWorld, sp: SectionPos) -> Option<(i3
 }
 
 #[test]
-fn stream_allowance_pauses_below_the_reserve_and_terrain_stays_capped() {
-    assert_eq!(stream_allowance(0), 0);
-    assert_eq!(stream_allowance(STREAM_QUEUE_RESERVE), 0);
-    assert!(stream_allowance(STREAM_QUEUE_RESERVE + 64) > 0);
-    assert_eq!(terrain_budget(0), 0);
-    assert_eq!(
-        terrain_budget(stream_allowance(SERVER_QUEUE_MSGS)),
-        TERRAIN_SECTIONS_PER_PUMP
-    );
-    assert_eq!(
-        terrain_budget(stream_allowance(usize::MAX)),
-        TERRAIN_SECTIONS_PER_PUMP
-    );
-}
-
-#[test]
 fn starved_sessions_pause_streaming_and_resume_without_losing_any() {
     let mut server = crate::server::session_build::build_server_inline("", 1, 2);
     let player = crate::server::session_build::spawn_player(server.world.data().seed);

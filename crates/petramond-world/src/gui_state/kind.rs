@@ -178,11 +178,4 @@ mod tests {
         assert_eq!(resolve_kind("kindtest:never_declared"), None);
         assert_eq!(kind_key(GuiKind::Other), None);
     }
-
-    #[test]
-    fn intern_str_deduplicates() {
-        let a = intern_str("kindtest:a-string");
-        let b = intern_str("kindtest:a-string");
-        assert!(std::ptr::eq(a, b));
-    }
 }

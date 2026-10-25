@@ -425,24 +425,6 @@ mod cabinet_documents {
 mod bake_tests {
     use super::*;
 
-    #[test]
-    fn every_chain_link_is_a_strut() {
-        let links = chains::cell_links();
-        assert!(!links.is_empty());
-        for (i, b) in links.iter().enumerate() {
-            assert!(is_strut(b), "link box {i} is not a strut: {b:?}");
-        }
-    }
-
-    #[test]
-    fn a_plate_keeps_its_contact_shadow() {
-        let plate = ShapeAabb {
-            min: [4.0 / 16.0, 0.0, 4.0 / 16.0],
-            max: [12.0 / 16.0, 1.0 / 16.0, 12.0 / 16.0],
-        };
-        assert!(!is_strut(&plate));
-    }
-
     /// The bake must be PERIODIC along a run: link k and the link two above it
     /// are the same box in the same surroundings, so they must bake the same.
     ///

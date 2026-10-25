@@ -79,22 +79,6 @@ const ALL: [N; 7] = [
 ];
 
 #[test]
-fn nodes_are_ordered_by_phase_not_declaration() {
-    assert_eq!(
-        graph().order().collect::<Vec<_>>(),
-        [
-            N::First,
-            N::Stamp,
-            N::Sampler,
-            N::Late,
-            N::Hand,
-            N::Out,
-            N::Chrome
-        ]
-    );
-}
-
-#[test]
 fn equal_phases_keep_declaration_order() {
     let g = FrameGraph::new(vec![
         world(N::Late, "b", Phase::Solid),

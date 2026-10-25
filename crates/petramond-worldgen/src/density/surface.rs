@@ -6,8 +6,6 @@ use petramond_world::section::Section;
 use super::columns::Columns;
 use super::lattice::{DensityLattice, DensityLatticeBounds, DensityLatticeCellSize};
 use super::terrain::channels;
-#[cfg(test)]
-use super::terrain::reference::FloorDensitySpec;
 
 use crate::biome::climate::{
     BiomeClimateIndex, ClimateAxis, ClimateSampleCell, CLIMATE_SAMPLE_CELL_X, CLIMATE_SAMPLE_CELL_Z,

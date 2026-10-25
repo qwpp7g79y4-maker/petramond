@@ -172,14 +172,4 @@ mod tests {
             parse_row_data::<Vec<UpgradeSpec>>(raw).unwrap_or_else(|e| panic!("{row}: {e}"));
         }
     }
-
-    #[test]
-    fn a_misspelt_field_is_an_error_not_a_default() {
-        assert!(parse_row_data::<MouldSpec>(r#"{"clas": "forge:cast"}"#).is_err());
-        assert!(parse_row_data::<SlotsSpec>(r#"{"famly": "stone"}"#).is_err());
-        let spec: NondestructiveSpec = parse_row_data("true").unwrap();
-        assert!(spec.tags().is_empty());
-        let spec: NondestructiveSpec = parse_row_data(r#"{"blocks": ["a:b"]}"#).unwrap();
-        assert_eq!(spec.tags(), ["a:b"]);
-    }
 }

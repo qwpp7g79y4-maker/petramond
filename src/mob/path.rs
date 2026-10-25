@@ -116,16 +116,6 @@ pub fn is_foothold(cell: IVec3, params: PathParams, solid: &impl Fn(IVec3) -> bo
     supported_foothold(cell, params, solid, solid)
 }
 
-#[cfg(test)]
-fn is_navigation_foothold(
-    cell: IVec3,
-    params: PathParams,
-    solid: &impl Fn(IVec3) -> bool,
-    fluid: &impl Fn(IVec3) -> bool,
-) -> bool {
-    is_navigation_foothold_with(cell, params, solid, solid, fluid)
-}
-
 pub fn is_navigation_foothold_with(
     cell: IVec3,
     params: PathParams,

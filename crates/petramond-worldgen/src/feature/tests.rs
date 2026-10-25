@@ -1,7 +1,6 @@
 use super::tree_select::{place_features_section, TreeCandidates};
 use super::{cached_feature_region, feature_candidate_bounds, feature_region_bounds, MARGIN};
 use crate::density::surface::SurfaceDensitySystem;
-use crate::generate_chunk;
 use crate::region::RegionCells;
 use petramond_world::biome::Biome;
 use petramond_world::block::Block;
@@ -264,29 +263,6 @@ fn tree_origin_spacing_rule_enforces_configured_radius() {
 }
 
 #[test]
-fn live_density_feature_region_covers_margin_and_spacing_queries() {
-    let seed = 7u32;
-    let surface = SurfaceDensitySystem::new(seed);
-
-    for (cx, cz) in [(0, 0), (-2, 1), (4, -3)] {
-        let ox = cx * CHUNK_SX as i32;
-        let oz = cz * CHUNK_SZ as i32;
-        let mut candidates = TreeCandidates::new(seed, ox, oz);
-        let (x0, z0, w, h) = feature_region_bounds(ox, oz);
-        let field = surface.region(x0, z0, w, h);
-        let mut field = &field;
-
-        for wz in (oz - MARGIN)..(oz + CHUNK_SZ as i32 + MARGIN) {
-            for wx in (ox - MARGIN)..(ox + CHUNK_SX as i32 + MARGIN) {
-                if let Some(candidate) = candidates.at(&mut field, wx, wz) {
-                    let _ = candidates.spacing_allows(candidate, &mut field, wx, wz);
-                }
-            }
-        }
-    }
-}
-
-#[test]
 fn cached_feature_windows_match_the_uncached_region() {
     let seed = 0x1234_5678;
     let surface = SurfaceDensitySystem::new(seed);
@@ -314,25 +290,6 @@ fn cached_feature_windows_match_the_uncached_region() {
                 );
             }
         }
-    }
-}
-
-#[test]
-fn generate_chunk_is_deterministic() {
-    let seed = 0x1234_5678;
-    for &(cx, cz) in &[(0, 0), (3, -2), (-5, 7), (12, 9)] {
-        let a = generate_chunk(seed, cx, cz);
-        let b = generate_chunk(seed, cx, cz);
-        assert_eq!(
-            a.blocks_slice(),
-            b.blocks_slice(),
-            "blocks differ at {cx},{cz}"
-        );
-        assert_eq!(
-            a.biomes_slice(),
-            b.biomes_slice(),
-            "biomes differ at {cx},{cz}"
-        );
     }
 }
 

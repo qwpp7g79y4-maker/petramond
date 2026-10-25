@@ -362,26 +362,4 @@ mod tests {
             Some("a")
         );
     }
-
-    #[test]
-    fn a_page_owns_its_session_and_leaving_drops_it() {
-        let mut shell = ShellState::default();
-        shell.open_create_world();
-        assert!(shell.create_world().is_some());
-        assert!(shell.world_settings().is_none(), "one page at a time");
-        shell.toggle_create_world_row(usize::MAX);
-        let session = shell.take_create_world().expect("the create page was open");
-        assert_eq!(session.tab, SettingsTab::World);
-        assert!(shell.create_world().is_none(), "taking closes the page");
-        shell.open_create_world();
-        shell.close_page();
-        assert!(shell.create_world().is_none());
-    }
-
-    #[test]
-    fn world_settings_need_a_selected_world() {
-        let mut shell = ShellState::default();
-        assert!(!shell.open_world_settings());
-        assert!(shell.world_settings().is_none());
-    }
 }

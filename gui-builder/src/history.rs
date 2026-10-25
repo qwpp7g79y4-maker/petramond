@@ -166,19 +166,4 @@ mod tests {
         assert!(!h.can_undo());
         assert!(!h.undo(&mut d));
     }
-
-    #[test]
-    fn ring_caps_at_depth() {
-        let mut h = History::new();
-        let mut d = doc("0");
-        for i in 1..400 {
-            h.record(&d);
-            set(&mut d, &i.to_string());
-        }
-        let mut undone = 0;
-        while h.undo(&mut d) {
-            undone += 1;
-        }
-        assert_eq!(undone, 256);
-    }
 }

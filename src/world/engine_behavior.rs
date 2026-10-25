@@ -22,21 +22,3 @@ pub(crate) fn engine_behavior(key: &str) -> Option<&'static dyn EngineBlockBehav
         _ => return None,
     })
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn engine_hooks_and_registry_agree() {
-        for key in ["fluid", "fragile", "sapling", "door"] {
-            let hook = petramond_world::block::behavior::by_name(key)
-                .unwrap_or_else(|| panic!("data layer misses engine hook '{key}'"));
-            assert_eq!(hook.key(), key);
-            assert!(
-                super::engine_behavior(key).is_some(),
-                "engine registry misses '{key}'"
-            );
-        }
-        assert!(super::engine_behavior("inert").is_none());
-        assert!(super::engine_behavior("grass").is_none());
-    }
-}

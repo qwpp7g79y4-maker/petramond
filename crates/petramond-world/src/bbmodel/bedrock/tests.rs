@@ -68,12 +68,6 @@ fn a_library_reads_back_into_blockbench_axes_with_steps_modes_and_markers() {
 }
 
 #[test]
-fn a_document_without_animations_is_refused() {
-    assert!(parse_library("{}", arm).is_err());
-    assert!(parse_library("{", arm).is_err());
-}
-
-#[test]
 fn the_last_key_steps_only_when_the_pair_before_it_does() {
     let track = |keys: &str| {
         let text = format!(

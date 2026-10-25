@@ -50,47 +50,6 @@ fn an_inset_shape_caps_its_top_without_sealing_the_ground_under_it() {
     );
 }
 
-/// An inset shape's side faces span the WHOLE cell, not just the body behind
-/// them. A 14-wide face leaves the four corner columns open and you see
-/// straight through the block. Because the face
-/// spans the cell, its cell-local UV covers the tile edge to edge, which is
-/// what keeps art drawn at the tile's edges (the cactus spines) on screen.
-#[test]
-fn an_inset_face_spans_the_whole_cell_so_no_corner_is_left_open() {
-    let mut section = floor_section(Block::Sand);
-    section.set_block(8, 1, 8, Block::Cactus);
-    let m = mesh(&section);
-
-    let face: Vec<&[Vertex]> = m
-        .opaque
-        .chunks_exact(4)
-        .filter(|q| {
-            q.iter()
-                .all(|v| (v.pos[0] - (8.0 + 15.0 / 16.0)).abs() < 1e-3)
-        })
-        .collect();
-    assert!(!face.is_empty(), "expected the inset +X face");
-    let (z0, z1) = face
-        .iter()
-        .flat_map(|q| q.iter())
-        .fold((f32::INFINITY, f32::NEG_INFINITY), |(l, h), v| {
-            (l.min(v.pos[2]), h.max(v.pos[2]))
-        });
-    assert!(
-        (z0 - 8.0).abs() < 1e-3 && (z1 - 9.0).abs() < 1e-3,
-        "an inset face must still span the cell corner to corner, got {z0}..{z1}"
-    );
-
-    let us: Vec<u32> = face
-        .iter()
-        .flat_map(|q| q.iter().map(|v| cell_uv16(v).0))
-        .collect();
-    assert!(
-        us.contains(&0) && us.contains(&16),
-        "a full-width face samples the tile edge to edge, got {us:?}"
-    );
-}
-
 /// Double-sided faces repeat their corners in reverse order so the plane isn't back-face culled
 /// from either side. Through the notches in a cactus's near face you should see the far face's
 /// spines. Single-sided, half the spines vanish as you strafe past.

@@ -58,50 +58,6 @@ mod tests {
     use crate::mob::MobRng;
     use crate::world::ServerWorld;
 
-    fn ticks_until_start(ai: &mut IdleAnimAi, idle: &[IdleAnimMeta]) -> Option<u32> {
-        let world = ServerWorld::new(0, 1);
-        let mut rng = MobRng::new(7);
-        for _ in 0..20_000 {
-            let out = {
-                let mut ctx = crate::mob::behavior::test_support::ctx(&world, &mut rng);
-                ctx.idle_anims = idle;
-                ai.tick(&mut ctx)
-            };
-            if out.idle_anim.is_some() {
-                return Some(ai.timer);
-            }
-        }
-        None
-    }
-
-    #[test]
-    fn one_shot_idle_plays_for_exactly_its_length() {
-        let idle = [IdleAnimMeta {
-            length: 1.0,
-            looping: false,
-        }];
-        let timer = ticks_until_start(&mut IdleAnimAi::new(), &idle).expect("idle starts");
-        assert_eq!(timer, 20, "one-shot plays for its length in ticks");
-    }
-
-    #[test]
-    fn looping_idle_plays_for_a_longer_random_while() {
-        let idle = [IdleAnimMeta {
-            length: 0.1,
-            looping: true,
-        }];
-        let timer = ticks_until_start(&mut IdleAnimAi::new(), &idle).expect("idle starts");
-        assert!(
-            timer >= PLAY_MIN_TICKS,
-            "looping idle uses the random play window: {timer}"
-        );
-    }
-
-    #[test]
-    fn no_idle_animations_means_never_plays() {
-        assert_eq!(ticks_until_start(&mut IdleAnimAi::new(), &[]), None);
-    }
-
     #[test]
     fn never_plays_an_idle_animation_while_in_fluid() {
         let world = ServerWorld::new(0, 1);

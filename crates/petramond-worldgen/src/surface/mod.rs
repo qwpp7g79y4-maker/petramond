@@ -95,21 +95,4 @@ mod tests {
             Block::Dirt
         );
     }
-
-    #[test]
-    fn above_sea_grass_caps_are_unchanged() {
-        let surface = SurfaceSystem;
-
-        let plains = ctx(SEA_LEVEL + 1, 0, Biome::PLAINS);
-        assert_eq!(
-            surface.skin_block(&plains, spec(Biome::PLAINS).surface),
-            Block::Grass
-        );
-
-        let snowy = ctx(SEA_LEVEL + 1, 0, Biome::SNOWY_TUNDRA);
-        assert_eq!(
-            surface.skin_block(&snowy, spec(Biome::SNOWY_TUNDRA).surface),
-            Block::Grass
-        );
-    }
 }

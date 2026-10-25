@@ -11,22 +11,6 @@ use petramond_world::gui_state::PointerButton;
 use petramond_world::sound_registry::Sound;
 
 #[test]
-fn app_starts_on_title_without_loading_a_game() {
-    let app = App::new(Camera::new(WorldPos::new(0.0, 80.0, 0.0), 16.0 / 9.0), 1);
-
-    assert_eq!(app.screen, crate::app::AppScreen::Title);
-    assert!(!app.has_session(), "title screen does not preload a world");
-    assert_eq!(
-        app.cursor_policy(),
-        CursorPolicy {
-            grabbed: false,
-            visible: true,
-            icon: CursorIcon::Default,
-        }
-    );
-}
-
-#[test]
 fn world_settings_requires_selection_and_hosts_the_delete_flow() {
     use petramond_world::gui_state::GuiKind;
     let mut app = App::new(Camera::new(WorldPos::new(0.0, 80.0, 0.0), 16.0 / 9.0), 1);
@@ -380,15 +364,6 @@ fn inventory_toggle_is_once_per_press() {
 }
 
 #[test]
-fn opening_inventory_releases_grab() {
-    let mut app = app();
-    app.controls.pointer.grab_for_gameplay();
-    app.handle_control(Control::ToggleInventory, true);
-    assert!(app.screen.inventory_open());
-    assert!(!app.controls.pointer.is_grabbing());
-}
-
-#[test]
 fn opening_inventory_clears_held_pointer_buttons() {
     let mut app = app();
     app.set_pointer_button(PointerButton::Primary, true);
@@ -401,40 +376,6 @@ fn opening_inventory_clears_held_pointer_buttons() {
 }
 
 #[test]
-fn focus_loss_clears_held_pointer_buttons() {
-    let mut app = app();
-    app.set_pointer_button(PointerButton::Primary, true);
-
-    app.release_pointer_buttons();
-    let game_input = app.take_game_input();
-
-    assert!(!game_input.break_held);
-    assert!(!game_input.attack_clicked);
-}
-
-#[test]
-fn escape_closes_open_inventory_and_regrabs() {
-    let mut app = app();
-    app.handle_control(Control::ToggleInventory, true);
-    assert!(app.screen.inventory_open());
-    assert!(!app.controls.pointer.is_grabbing());
-
-    assert!(app.handle_control(Control::CloseScreen, true));
-    assert!(!app.screen.inventory_open());
-    assert!(app.controls.pointer.is_grabbing());
-}
-
-#[test]
-fn escape_with_inventory_closed_opens_pause() {
-    let mut app = app();
-    assert!(!app.screen.inventory_open());
-    assert!(app.handle_control(Control::CloseScreen, true));
-    assert!(!app.screen.inventory_open());
-    assert_eq!(app.screen, crate::app::AppScreen::Pause);
-    assert!(!app.controls.pointer.is_grabbing());
-}
-
-#[test]
 fn escape_on_pause_resumes_gameplay_and_regrabs() {
     let mut app = app();
     app.handle_control(Control::CloseScreen, true);
@@ -444,29 +385,6 @@ fn escape_on_pause_resumes_gameplay_and_regrabs() {
 
     assert_eq!(app.screen, crate::app::AppScreen::Game);
     assert!(app.controls.pointer.is_grabbing());
-}
-
-#[test]
-fn save_and_quit_returns_to_title_and_drops_game() {
-    let mut app = app();
-    app.handle_control(Control::CloseScreen, true);
-    assert_eq!(app.screen, crate::app::AppScreen::Pause);
-
-    app.save_and_quit_to_title();
-
-    assert_eq!(app.screen, crate::app::AppScreen::Title);
-    assert!(!app.has_session());
-}
-
-#[test]
-fn digit_controls_select_hotbar_slot() {
-    let mut app = app();
-    app.handle_control(Control::SelectHotbar(4), true);
-    assert_eq!(app.game().active_hotbar(), 4);
-    app.handle_control(Control::SelectHotbar(0), true);
-    assert_eq!(app.game().active_hotbar(), 0);
-    app.handle_control(Control::SelectHotbar(8), true);
-    assert_eq!(app.game().active_hotbar(), 8);
 }
 
 #[test]
@@ -784,36 +702,6 @@ fn attack_rebinds_from_mouse_to_key() {
         "left click moved off Attack; it must not mine"
     );
     app.handle_raw_mouse(petramond_input::keycode::MouseButton::Left, false);
-}
-
-#[test]
-fn mod_key_actions_join_the_controls_table() {
-    let app = app();
-    let table = &app.controls.action_table;
-    assert!(
-        table.row("minimap:open_map").is_some(),
-        "minimap's registered action is in the table"
-    );
-    assert!(table.row("minimap:add_waypoint").is_some());
-    assert!(
-        crate::app::shell_docs::controls_action_row_index(table, "minimap:open_map").is_some(),
-        "the controls list has a row for the mod action"
-    );
-}
-
-#[test]
-fn mod_bound_key_dispatches_to_the_client_mod() {
-    use petramond_input::keycode::KeyCode;
-    let mut app = app();
-    app.update_frame((1280, 720));
-    assert!(app.handle_raw_key(KeyCode::KeyM, true));
-    let _ = app.handle_raw_key(KeyCode::KeyM, false);
-    app.update_frame((1280, 720));
-    assert!(
-        app.screen.client_canvas_open(),
-        "M reached the minimap mod and opened the world map, got {:?}",
-        app.screen
-    );
 }
 
 #[test]

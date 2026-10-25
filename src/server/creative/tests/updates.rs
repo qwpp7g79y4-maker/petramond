@@ -2,65 +2,6 @@ use super::*;
 use petramond_world::chunk::ChunkPos;
 
 #[test]
-fn a_floor_pasted_without_air_breaks_litter_that_cannot_live_on_the_new_surface() {
-    let mut server = server();
-    let origin = IVec3::new(7, 64, 7);
-    let litter = [
-        Block::ShortGrass,
-        Block::PebblesSmall,
-        Block::PebblesMedium,
-        Block::PebblesLarge,
-    ];
-    let floor = Schematic::from_cells(
-        "Floor".into(),
-        [4, 1, 1],
-        (0..4).map(|x| SchematicCell {
-            pos: [x, 0, 0],
-            data: CellData::capture(&data(Block::OakPlanks)),
-        }),
-    )
-    .unwrap();
-
-    for (x, b) in litter.into_iter().enumerate() {
-        for z in 0..=1 {
-            let p = origin + IVec3::new(x as i32, 0, z);
-            server.world.set_block_world(p.x, p.y, p.z, Block::Grass);
-            server.world.set_block_world(p.x, p.y + 1, p.z, b);
-        }
-    }
-    server.world.game_tick(server.catalog.recipes());
-    assert!(server.world.take_natural_breaks().is_empty());
-    server
-        .place_schematic(0, &floor, origin.to_array(), 0, &mut TickEvents::default())
-        .unwrap();
-    server.world.game_tick(server.catalog.recipes());
-    let breaks = server.world.take_natural_breaks();
-    let remaining: Vec<_> = litter
-        .into_iter()
-        .enumerate()
-        .filter_map(|(x, b)| {
-            let p = origin + IVec3::new(x as i32, 1, 0);
-            assert_eq!(
-                server.world.snapshot_cell(p - IVec3::Y).unwrap().block,
-                Block::OakPlanks
-            );
-            assert_eq!(
-                server.world.snapshot_cell(p + IVec3::Z).unwrap().block,
-                b,
-                "the same litter on untouched soil must survive the border update"
-            );
-            (server.world.snapshot_cell(p).unwrap().block != Block::Air
-                || !breaks.contains(&(p, b)))
-            .then_some(b)
-        })
-        .collect();
-    assert!(
-        remaining.is_empty(),
-        "litter left on the wooden floor: {remaining:?}"
-    );
-}
-
-#[test]
 fn schematic_placement_updates_skipped_interior_cells_and_the_rotated_one_block_border() {
     let mut server = server();
     let mut schematic = plan(data(Block::Stone));

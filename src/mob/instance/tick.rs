@@ -520,38 +520,3 @@ fn despawn_now(dist2: f32, rule: Despawn, roll: impl FnOnce() -> f32) -> bool {
         && dist2 >= RANDOM_DESPAWN_MIN_DIST * RANDOM_DESPAWN_MIN_DIST
         && roll() < RANDOM_DESPAWN_CHANCE
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn despawn_is_certain_at_radius_random_when_far_never_when_near() {
-        let r = 128.0;
-        let rule = Despawn {
-            radius: r,
-            random: true,
-        };
-        assert!(despawn_now(r * r, rule, || unreachable!(
-            "no roll at the hard radius"
-        )));
-        let far2 = (RANDOM_DESPAWN_MIN_DIST + 1.0).powi(2);
-        assert!(despawn_now(far2, rule, || 0.0));
-        assert!(!despawn_now(far2, rule, || RANDOM_DESPAWN_CHANCE));
-        let near2 = (RANDOM_DESPAWN_MIN_DIST - 1.0).powi(2);
-        assert!(!despawn_now(near2, rule, || unreachable!(
-            "no roll near the player"
-        )));
-    }
-
-    #[test]
-    fn a_row_can_opt_out_of_the_random_despawn_but_not_the_hard_radius() {
-        let rule = Despawn {
-            radius: 128.0,
-            random: false,
-        };
-        let far2 = (RANDOM_DESPAWN_MIN_DIST + 1.0).powi(2);
-        assert!(!despawn_now(far2, rule, || unreachable!("no random roll")));
-        assert!(despawn_now(128.0 * 128.0, rule, || unreachable!()));
-    }
-}

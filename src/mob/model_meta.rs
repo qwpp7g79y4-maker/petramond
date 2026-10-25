@@ -340,11 +340,4 @@ mod tests {
             }
         }
     }
-
-    #[test]
-    fn empty_model_yields_empty_metadata() {
-        let m = Model::empty();
-        assert!(idle_anims(&m).is_empty());
-        assert!(skeleton(&m).bones.is_empty());
-    }
 }

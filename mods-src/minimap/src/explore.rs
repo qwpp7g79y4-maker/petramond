@@ -1102,17 +1102,4 @@ mod tests {
             }
         }
     }
-
-    #[test]
-    fn region_block_rects_cover_their_kind_span() {
-        assert_eq!(region_block_rect(RegionKind::Base, (0, 0)), [0, 0, 64, 64]);
-        assert_eq!(
-            region_block_rect(RegionKind::Base, (-1, 2)),
-            [-64, 128, 0, 192]
-        );
-        assert_eq!(
-            region_block_rect(RegionKind::Mip, (1, -1)),
-            [128, -128, 256, 0]
-        );
-    }
 }

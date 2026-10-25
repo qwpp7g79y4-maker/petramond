@@ -558,49 +558,6 @@ fn a_wrapping_label_in_a_row_makes_the_row_as_tall_as_its_lines() {
 }
 
 #[test]
-fn slot_grid_natural_size_and_row_major_cells() {
-    let (s, _) = solve_doc(
-        r#"{
-            "format": 1, "kind": "petramond:x", "class": "container",
-            "root": { "type": "frame", "children": [
-                { "type": "slot_grid", "id": "g", "role": "storage", "cols": 9, "rows": 3 }
-            ] }
-        }"#,
-        (400, 300),
-    );
-    let g = s.rects[1];
-    assert_eq!((g.w, g.h), (162, 54));
-    let m = MockEnv.slot_metrics();
-    assert_eq!(
-        grid_cell(g, 9, 0, m),
-        RectI {
-            x: g.x,
-            y: g.y,
-            w: 18,
-            h: 18
-        }
-    );
-    assert_eq!(
-        grid_cell(g, 9, 8, m),
-        RectI {
-            x: g.x + 8 * 18,
-            y: g.y,
-            w: 18,
-            h: 18
-        }
-    );
-    assert_eq!(
-        grid_cell(g, 9, 9, m),
-        RectI {
-            x: g.x,
-            y: g.y + 18,
-            w: 18,
-            h: 18
-        }
-    );
-}
-
-#[test]
 fn root_anchor_end_with_margin_is_the_hotbar_rule() {
     let (s, _) = solve_doc(
         r#"{

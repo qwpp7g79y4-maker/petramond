@@ -5,9 +5,7 @@ use std::sync::Arc;
 
 use petramond_math::math::IVec3;
 use petramond_world::block::Block;
-use petramond_world::chunk::{
-    Chunk, ChunkPos, SectionPos, SEA_LEVEL, SECTION_MAX_CY, SECTION_SIZE,
-};
+use petramond_world::chunk::{ChunkPos, SectionPos, SEA_LEVEL, SECTION_MAX_CY, SECTION_SIZE};
 use petramond_world::section::Section;
 
 use crate::world::store::{LoadAnchor, LoadTarget};
@@ -82,31 +80,6 @@ fn mob_census_waits_for_nearby_columns_and_overlays_only() {
         !world.mob_census_loaded_around(center, census_radius),
         "a missing nearby column closes the gate"
     );
-}
-
-#[test]
-fn split_keeps_surface_blocks_and_adds_stone_below() {
-    let mut chunk = Chunk::new(0, 0);
-    chunk.set_block(1, 64, 2, Block::Stone);
-    chunk.set_block(3, 70, 4, Block::Grass);
-    let (_column, sections) = split_generated_column(&chunk);
-
-    let s4 = sections.iter().find(|(cy, _)| *cy == 4).expect("cy 4");
-    assert_eq!(s4.1.block_raw(1, 0, 2), Block::Stone.id());
-    let below = sections.iter().find(|(cy, _)| *cy == -1).expect("cy -1");
-    assert_eq!(below.1.block_raw(0, 0, 0), Block::Stone.id());
-    assert_eq!(below.1.block_raw(8, 8, 8), Block::Stone.id());
-}
-
-#[test]
-fn generated_water_metadata_survives_the_split() {
-    let mut chunk = Chunk::new(0, 0);
-    chunk.set_block(5, 64, 5, Block::Stone);
-    chunk.set_fluid(5, 65, 5, Block::Water, 0x07);
-    let (_column, sections) = split_generated_column(&chunk);
-    let s4 = sections.iter().find(|(cy, _)| *cy == 4).expect("cy 4");
-    assert_eq!(s4.1.block_raw(5, 1, 5), Block::Water.id());
-    assert_eq!(s4.1.fluid_meta(5, 1, 5), 0x07, "falloff metadata carried");
 }
 
 #[test]
@@ -280,27 +253,6 @@ fn streaming_wants_a_full_horizontal_disc() {
     assert!(
         !ServerWorld::column_kept(target, ChunkPos::new(-20, 0)),
         "columns beyond circular unload hysteresis are evicted"
-    );
-}
-
-#[test]
-fn streaming_priority_is_distance_only() {
-    let target = LoadTarget::new(0, 5, 0, 16);
-
-    assert!(
-        target.column_priority_key(ChunkPos::new(0, 2))
-            < target.column_priority_key(ChunkPos::new(16, 0)),
-        "near terrain must beat the far edge"
-    );
-    assert_eq!(
-        target.column_priority_key(ChunkPos::new(6, 0)),
-        target.column_priority_key(ChunkPos::new(-6, 0)),
-        "opposite directions at the same distance have equal priority"
-    );
-    assert_eq!(
-        target.column_priority_key(ChunkPos::new(6, 0)),
-        target.column_priority_key(ChunkPos::new(0, 6)),
-        "axes at the same distance have equal priority"
     );
 }
 

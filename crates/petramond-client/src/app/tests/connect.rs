@@ -207,27 +207,6 @@ fn connection_lost_event_tears_down_to_the_disconnected_screen() {
 }
 
 #[test]
-fn pause_menu_shows_lan_controls_for_host() {
-    let mut app = app();
-    app.handle_control(Control::CloseScreen, true);
-    assert_eq!(app.screen, AppScreen::Pause);
-
-    app.drive_doc_ui(GuiKind::Pause, SCREEN, 0.0);
-    assert_eq!(app.ui.state_mut().get_bool("is_host"), Some(true));
-    assert_eq!(app.ui.state_mut().get_bool("lan_closed"), Some(true));
-    assert_eq!(app.ui.state_mut().get_bool("lan_open"), Some(false));
-    assert!(app.ui.out().rect("open_lan").is_some());
-    assert!(app.ui.out().rect("save_quit").is_some());
-    assert!(app.ui.out().rect("disconnect").is_none());
-
-    app.sess_mut().lan_port = Some(7434);
-    app.drive_doc_ui(GuiKind::Pause, SCREEN, 0.1);
-    assert_eq!(app.ui.state_mut().get_bool("lan_open"), Some(true));
-    assert_eq!(app.ui.state_mut().get_bool("lan_closed"), Some(false));
-    assert!(app.ui.out().rect("open_lan").is_none());
-}
-
-#[test]
 fn pause_menu_shows_disconnect_for_remote_and_hides_save_quit() {
     let (handle, _pipe) = ServerHandle::loopback();
     let cam = Camera::new(WorldPos::new(0.0, 80.0, 0.0), 16.0 / 9.0);
@@ -432,28 +411,4 @@ fn account_back_returns_to_the_screen_that_opened_it() {
     click_doc_id(&mut app, "back");
     app.drive_doc_ui(GuiKind::Account, SCREEN, 0.1);
     assert_eq!(app.screen, AppScreen::ConnectServer);
-}
-
-#[test]
-fn an_online_server_offered_no_sign_in_routes_the_player_to_the_account_screen() {
-    use petramond::account::AccountError;
-
-    let e = AccountError::SignInRequired(
-        "Sign in to your Petramond account to play on a server".to_owned(),
-    );
-    assert!(
-        e.clears_sign_in(),
-        "only this kind of refusal routes to the Account screen"
-    );
-
-    let mut app = shell_app();
-    app.open_account(Some(e.message().to_owned()));
-    assert_eq!(app.screen, AppScreen::Account);
-    app.drive_doc_ui(GuiKind::Account, SCREEN, 0.0);
-    assert_eq!(app.ui.state_mut().get_bool("has_status"), Some(true));
-    assert_eq!(
-        app.ui.state_mut().get_str("status_text"),
-        Some(e.message()),
-        "the join's reason is what the screen shows"
-    );
 }

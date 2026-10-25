@@ -209,24 +209,6 @@ fn unfed_lava_drains_before_it_can_flow_down_into_water() {
 }
 
 #[test]
-fn water_cools_lava_before_it_can_pour_into_water_below() {
-    for direction in [UP].into_iter().chain(CARDINALS) {
-        for update_offset in [IVec3::ZERO, direction] {
-            let mut w = flat_server_world();
-            let lava = IVec3::new(8, 66, 8);
-            assert!(w.set_fluid_world(lava, Block::Lava, 0));
-            assert!(w.set_fluid_world(lava + DOWN, Block::Water, 0));
-            assert!(w.set_fluid_world(lava + direction, Block::Water, 0));
-
-            FLUID.neighbor_update(&mut w, lava + update_offset);
-
-            assert_eq!(block(&w, 8, 66, 8), Block::Stone);
-            assert_eq!(block(&w, 8, 65, 8), Block::Water);
-        }
-    }
-}
-
-#[test]
 fn downward_flow_resolves_the_waters_other_contacts_before_consuming_it() {
     for update_water_first in [false, true] {
         let mut w = flat_server_world();

@@ -32,7 +32,6 @@ impl Mod for Vehicles {
         register_event_handler(EventKind::MobDamagePre, 0, ON_MOB_DAMAGE);
         register_tick_system(Stage::Mobs, AttachSide::Before, 0, TICK_BOATS);
         register_tick_system(Stage::Mobs, AttachSide::Before, 1, TICK_CARTS);
-        log("initialized: boat + minecarts and rails");
     }
 
     fn handle_event(&mut self, handler_id: u32, payload: &mut EventPayload) -> Outcome {

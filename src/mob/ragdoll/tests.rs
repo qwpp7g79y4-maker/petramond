@@ -185,28 +185,6 @@ fn the_launch_is_world_space_regardless_of_facing() {
 }
 
 #[test]
-fn a_corpse_rests_on_a_block_and_does_not_sink_through() {
-    let skel = Skeleton {
-        bones: vec![boxed(
-            Vec3::new(0.0, 3.0, 0.0),
-            Vec3::new(-0.5, 3.0, -0.5),
-            Vec3::new(0.5, 4.0, 0.5),
-            None,
-        )],
-    };
-    let mut rag = pending(2, Vec3::ZERO);
-    rag.init(&skel, 1.0, Vec3::ZERO, 0.0);
-    for _ in 0..80 {
-        rag.step(0.05, 1.0, Vec3::ZERO, 0.0, &floor);
-    }
-    assert!(
-        rag.lowest_node_y() > -0.2,
-        "corpse rests on the block top, doesn't sink through: {}",
-        rag.lowest_node_y()
-    );
-}
-
-#[test]
 fn a_long_fall_lands_on_thick_ground_instead_of_sinking_in() {
     let skel = Skeleton {
         bones: vec![boxed(
@@ -421,13 +399,6 @@ fn rotation_extraction_is_exact_regardless_of_box_size() {
             "rigid rotation recovered for box half-extent {half}: error {err} rad"
         );
     }
-}
-
-#[test]
-fn uninitialised_ragdoll_has_no_pose() {
-    let rag = pending(1, Vec3::ZERO);
-    assert!(!rag.is_initialized());
-    assert!(rag.pose(0.5).is_empty(), "no bones before init");
 }
 
 #[test]

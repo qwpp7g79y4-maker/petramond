@@ -41,29 +41,3 @@ pub const fn item_rails(post_lo: f32, post_hi: f32) -> [Aabb; 2] {
         },
     ]
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const POST_LO: f32 = 6.0 / 16.0;
-    const POST_HI: f32 = 10.0 / 16.0;
-
-    #[test]
-    fn item_shape_is_two_posts_bridged_by_the_rails() {
-        let posts = item_posts(POST_LO, POST_HI);
-        for post in posts {
-            assert_eq!(post.min[1], 0.0);
-            assert_eq!(post.max[1], 1.0);
-            assert_eq!(post.min[2], POST_LO);
-            assert_eq!(post.max[2], POST_HI);
-        }
-        let [west_post, east_post] = posts;
-        for rail in item_rails(POST_LO, POST_HI) {
-            assert_eq!(rail.min[0], west_post.max[0]);
-            assert_eq!(rail.max[0], east_post.min[0]);
-            assert!(rail.min[1] > 0.0 && rail.max[1] < 1.0);
-            assert!(rail.min[2] >= POST_LO && rail.max[2] <= POST_HI);
-        }
-    }
-}

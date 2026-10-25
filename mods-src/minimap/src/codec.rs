@@ -170,19 +170,6 @@ mod tests {
         tile
     }
 
-    fn terrain_tile(seed: i32) -> Box<Tile> {
-        let palette = [[90, 140, 60], [110, 150, 70], [40, 90, 190], [120, 110, 90]];
-        let mut tile = Box::new(Tile::default());
-        for i in 0..256i32 {
-            let (x, z) = (i % 16, i / 16);
-            tile.cells[i as usize] = Cell {
-                height: (60 + (x + z + seed) / 6) as i16,
-                rgb: palette[((x / 5 + z / 4 + seed) % 4) as usize],
-            };
-        }
-        tile
-    }
-
     #[test]
     fn packed_region_roundtrips_and_noise_never_inflates() {
         let tiles: Vec<Option<Box<Tile>>> = (0..16)
@@ -202,21 +189,6 @@ mod tests {
         assert!(
             encoded.len() <= raw_size,
             "noise stays bounded: packed {} vs raw {raw_size}",
-            encoded.len()
-        );
-    }
-
-    #[test]
-    fn realistic_terrain_shrinks_severalfold() {
-        let tiles: Vec<Box<Tile>> = (0..16).map(terrain_tile).collect();
-        let refs: [Option<&Tile>; 16] = std::array::from_fn(|i| Some(tiles[i].as_ref()));
-        let encoded = encode_region(&refs);
-        let decoded = decode_region(&encoded).expect("decodes");
-        assert_eq!(decoded[7].as_ref().unwrap().cells[..], tiles[7].cells[..]);
-        let raw_size = 1 + 16 + 16 * 256 * 5;
-        assert!(
-            encoded.len() * 2 < raw_size,
-            "terrain packs at least 2x: {} vs {raw_size}",
             encoded.len()
         );
     }

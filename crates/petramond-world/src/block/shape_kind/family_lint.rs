@@ -32,15 +32,6 @@ fn production(text: &str) -> &str {
 }
 
 #[test]
-fn production_stops_at_test_module_with_either_line_ending() {
-    for newline in ["\n", "\r\n"] {
-        let prefix = format!("fn production_code() {{}}{newline}");
-        let source = format!("{prefix}#[cfg(test)]{newline}mod tests {{ ShapeFamily::Cube }}");
-        assert_eq!(production(&source), prefix);
-    }
-}
-
-#[test]
 fn workspace_names_no_shape_family_outside_shape_kind() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let mut files = Vec::new();

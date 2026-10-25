@@ -51,8 +51,6 @@ thread_local! {
 
 const LIGHT_MARGIN_DOWN: i32 = 24;
 
-const LIGHT_HALO_CHUNKS: i32 = 1;
-
 const M_AIR: u8 = 0;
 const M_LEAF: u8 = 1;
 const M_WATER: u8 = 2;
@@ -61,13 +59,6 @@ const M_OPAQUE: u8 = 3;
 #[cfg(test)]
 pub fn compute_chunk_skylight(chunk: &Chunk) -> (Box<[u8]>, i32, i32) {
     compute_chunk_skylight_inner(chunk, 0, |_, _| None)
-}
-
-pub fn compute_chunk_skylight_with_neighbors<'a>(
-    chunk: &'a Chunk,
-    neighbour_chunk: impl Fn(i32, i32) -> Option<&'a Chunk>,
-) -> (Box<[u8]>, i32, i32) {
-    compute_chunk_skylight_inner(chunk, LIGHT_HALO_CHUNKS, neighbour_chunk)
 }
 
 fn compute_chunk_skylight_inner<'a>(

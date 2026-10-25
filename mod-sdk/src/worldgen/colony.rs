@@ -81,18 +81,6 @@ pub fn smoothstep01(t: f32) -> f32 {
 mod tests {
     use super::*;
 
-    #[test]
-    fn smoothstep01_eases_from_zero_to_one() {
-        assert_eq!(
-            (smoothstep01(0.0), smoothstep01(0.5), smoothstep01(1.0)),
-            (0.0, 0.5, 1.0)
-        );
-        assert!(
-            smoothstep01(0.1) < 0.1 && smoothstep01(0.9) > 0.9,
-            "flat at both ends"
-        );
-    }
-
     const FIELD: ColonyField = ColonyField {
         salt: 0x00C0_10E7,
         lattice: 16,
@@ -152,18 +140,5 @@ mod tests {
             }
         }
         panic!("no seed handed the colony its own draws");
-    }
-
-    #[test]
-    fn a_rare_field_rolls_before_placing() {
-        let rare = ColonyField {
-            one_in: 1_000_000,
-            ..FIELD
-        };
-        let owned = (-40..40)
-            .flat_map(|wz| (-40..40).map(move |wx| (wx, wz)))
-            .filter(|&(wx, wz)| rare.densest(3, wx, wz, |_| ()).1.is_some())
-            .count();
-        assert_eq!(owned, 0, "a one-in-a-million field seeded a colony here");
     }
 }

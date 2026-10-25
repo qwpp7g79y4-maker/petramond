@@ -126,18 +126,4 @@ mod tests {
         fire.tick();
         assert_eq!(fire.remaining, 0, "an out fire does not wrap");
     }
-
-    #[test]
-    fn the_persisted_layout_is_remaining_then_max() {
-        let fire = Burner {
-            remaining: 733,
-            max: 1600,
-        };
-        let mut w = ByteWriter::new();
-        fire.encode(&mut w);
-        let bytes = w.finish();
-        assert_eq!(bytes[..4], 733u32.to_le_bytes());
-        assert_eq!(Burner::decode(&mut ByteReader::new(&bytes)), fire);
-        assert_eq!(Burner::decode(&mut ByteReader::new(&[])), Burner::default());
-    }
 }

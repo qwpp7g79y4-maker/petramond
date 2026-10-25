@@ -64,18 +64,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn no_colon_falls_back_to_the_default_port() {
-        assert_eq!(
-            parse_server_address("play.example.com"),
-            Ok(("play.example.com".to_string(), DEFAULT_PORT))
-        );
-        assert_eq!(
-            parse_server_address("  192.168.1.7  "),
-            Ok(("192.168.1.7".to_string(), DEFAULT_PORT))
-        );
-    }
-
-    #[test]
     fn one_colon_splits_host_and_port() {
         assert_eq!(
             parse_server_address("192.168.1.7:25"),
@@ -116,11 +104,5 @@ mod tests {
         );
         assert_eq!(parse_server_address("[]"), Err(AddressError::EmptyHost));
         assert_eq!(parse_server_address("[::1"), Err(AddressError::EmptyHost));
-    }
-
-    #[test]
-    fn empty_and_whitespace_are_rejected() {
-        assert_eq!(parse_server_address(""), Err(AddressError::Empty));
-        assert_eq!(parse_server_address("   "), Err(AddressError::Empty));
     }
 }

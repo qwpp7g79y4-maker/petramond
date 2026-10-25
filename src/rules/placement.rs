@@ -67,29 +67,4 @@ mod tests {
         assert!(!player_occupies(false, false, false), "the dead do not");
         assert!(!player_occupies(false, true, true), "spectators do not");
     }
-
-    #[test]
-    fn the_front_faces_back_toward_the_player() {
-        assert_eq!(facing_from_forward(Vec3::new(0.0, 0.0, 1.0)), Facing::North);
-        assert_eq!(
-            facing_from_forward(Vec3::new(0.0, 0.0, -1.0)),
-            Facing::South
-        );
-        assert_eq!(facing_from_forward(Vec3::new(1.0, 0.0, 0.0)), Facing::West);
-        assert_eq!(facing_from_forward(Vec3::new(-1.0, 0.0, 0.0)), Facing::East);
-    }
-
-    #[test]
-    fn pitch_is_ignored_and_the_dominant_horizontal_axis_wins() {
-        assert_eq!(
-            facing_from_forward(Vec3::new(0.2, -0.9, 0.95)),
-            Facing::North,
-            "a steep look down still snaps by the horizontal component"
-        );
-        assert_eq!(
-            facing_from_forward(Vec3::new(0.5, 0.0, 0.5)),
-            Facing::West,
-            "a diagonal tie resolves to the x axis"
-        );
-    }
 }

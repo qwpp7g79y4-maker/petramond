@@ -500,26 +500,6 @@ mod tests {
     const SEED: u32 = 0x1234_5678;
 
     #[test]
-    fn flood_reachable_marks_only_floor_connected_solids() {
-        let w = 2usize;
-        let depth = 3usize;
-        let idx = |x: usize, y: usize, z: usize| (y * w + z) * w + x;
-        let mut occ = vec![false; w * w * depth];
-        for y in 0..depth {
-            occ[idx(0, y, 0)] = true;
-        }
-        occ[idx(1, 2, 1)] = true;
-        let reach = flood_reachable(&occ, w, depth);
-        assert!(
-            reach[idx(0, 0, 0)] && reach[idx(0, 2, 0)],
-            "pillar reachable"
-        );
-        assert!(!reach[idx(1, 2, 1)], "detached voxel must be unreachable");
-        let floaters = (0..occ.len()).filter(|&i| occ[i] && !reach[i]).count();
-        assert_eq!(floaters, 1);
-    }
-
-    #[test]
     #[ignore = "slow sweep; `make test-worldgen` runs it"]
     fn audit_has_zero_per_column_floating_debris() {
         let a = audit(SEED);

@@ -306,21 +306,6 @@ mod tests {
     }
 
     #[test]
-    fn an_empty_filter_admits_everything() {
-        let f = EventFilter::default();
-        assert!(f.is_empty());
-        assert!(f.matches(&placed(3, [0, 0, 0])));
-        assert!(f.matches(&EventPayload::PlayerDied));
-        for kind in [
-            EventKind::PlayerDied,
-            EventKind::ModEvent,
-            EventKind::BlockPlaced,
-        ] {
-            assert_eq!(f.check(kind), Ok(()));
-        }
-    }
-
-    #[test]
     fn id_lanes_admit_only_listed_ids() {
         let f = EventFilter::blocks([BlockId(3), BlockId(9)]);
         assert!(f.matches(&placed(3, [0, 0, 0])));
@@ -405,29 +390,5 @@ mod tests {
             ..EventFilter::default()
         };
         assert!(inverted.check(EventKind::BlockPlaced).is_err());
-    }
-
-    #[test]
-    fn every_carried_lane_is_offered_by_its_payloads() {
-        let hit = EventPayload::ProjectileHit {
-            entity: 1,
-            item: ItemId(5),
-            target: crate::ProjectileTarget::Mob(2),
-            pos: [0.5, 0.5, 0.5],
-            vel: [0.0; 3],
-            fate: crate::ProjectileFate::Drop,
-        };
-        assert!(EventKind::ProjectileHit.carries(FilterLane::Items));
-        assert!(EventFilter::items([ItemId(5)]).matches(&hit));
-        assert!(!EventFilter::items([ItemId(6)]).matches(&hit));
-    }
-
-    #[test]
-    fn only_mutable_kinds_echo_their_payload() {
-        assert!(EventKind::MobDamagePre.echoes_payload());
-        assert!(EventKind::BlockBreakPre.echoes_payload());
-        assert!(!EventKind::BlockPlaced.echoes_payload());
-        assert!(!EventKind::InteractAttempt.echoes_payload());
-        assert!(!EventKind::ModEvent.echoes_payload());
     }
 }

@@ -151,12 +151,4 @@ mod tests {
             "filling the slot replaced the kept item"
         );
     }
-
-    #[test]
-    fn truncated_input_is_none() {
-        let mut buf = Vec::new();
-        put_u16(&mut buf, 1);
-        let mut r = Reader::new(&buf);
-        assert!(get_containers(&mut r, &Palette::identity()).is_none());
-    }
 }

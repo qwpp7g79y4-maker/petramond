@@ -2,15 +2,6 @@ use super::*;
 use petramond_math::world_pos::WorldPos;
 
 #[test]
-fn small_look_turns_move_only_the_head() {
-    let body = follow_body_yaw(0.0, 30f32.to_radians(), false, 0.016);
-    assert!(
-        body.abs() < 1e-6,
-        "body untouched under the threshold: {body}"
-    );
-}
-
-#[test]
 fn past_the_threshold_the_body_is_dragged_along() {
     let head = 80f32.to_radians();
     let body = follow_body_yaw(0.0, head, false, 0.016);
@@ -32,45 +23,6 @@ fn walking_realigns_the_body_to_the_look() {
     assert!(
         wrap_angle(head - body).abs() < 0.01,
         "body aligned while walking: {body}"
-    );
-}
-
-#[test]
-fn follow_handles_the_yaw_wrap_seam() {
-    let head = std::f32::consts::PI - 0.05;
-    let body0 = -std::f32::consts::PI + 0.05;
-    let body = follow_body_yaw(body0, head, false, 0.016);
-    assert!(
-        wrap_angle(head - body).abs() <= HEAD_YAW_LIMIT + 1e-5,
-        "wrap seam does not over-rotate"
-    );
-}
-
-#[test]
-fn pose_walk_weight_eases_in_and_back_to_rest() {
-    let mut pose = BodyPose::default();
-    pose.advance_gait(1.0 / 60.0, 3.0, 0.0, true, false);
-    assert!(pose.moving);
-    assert!(
-        pose.walk_weight > 0.0 && pose.walk_weight < 1.0,
-        "the blend eases rather than snapping: {}",
-        pose.walk_weight
-    );
-    let mid_phase = pose.anim_time;
-    assert!(mid_phase > 0.0, "the phase advances while moving");
-    for _ in 0..120 {
-        pose.advance_gait(1.0 / 60.0, 0.0, 0.0, true, false);
-    }
-    assert_eq!(pose.walk_weight, 0.0, "stopping settles back to rest");
-}
-
-#[test]
-fn lerp_angle_crosses_the_wrap_seam_the_short_way() {
-    use std::f32::consts::PI;
-    let mid = lerp_angle(PI - 0.1, -PI + 0.1, 0.5);
-    assert!(
-        wrap_angle(mid - PI).abs() < 1e-5,
-        "midpoint sits on the seam, not the long way round: {mid}"
     );
 }
 

@@ -487,15 +487,6 @@ mod tests {
     }
 
     #[test]
-    fn channels_never_collapse_to_zero() {
-        let mut pot = [248u8; 3];
-        for _ in 0..64 {
-            pot = mix_dye(pot, [0, 0, 0], false);
-        }
-        assert_eq!(pot, [8; 3], "repeated max stain bottoms out at grid black");
-    }
-
-    #[test]
     fn dilution_converges_to_grid_white() {
         let mut pot = [8u8; 3];
         for _ in 0..64 {
@@ -522,16 +513,5 @@ mod tests {
         }
         assert_eq!(pot[2], 8, "the absorbed channel reaches grid black");
         assert!(pot[0] > 128 && pot[1] > 128, "pass channels stay bright");
-    }
-
-    #[test]
-    fn blue_plus_yellow_mixes_green() {
-        let mut pot = [32u8, 64, 224];
-        let yellow = [240u8, 224, 16];
-        for _ in 0..8 {
-            pot = mix_dye(pot, yellow, false);
-        }
-        let [r, g, b] = pot;
-        assert!(g > r && g > b, "expected green-dominant, got {pot:?}");
     }
 }

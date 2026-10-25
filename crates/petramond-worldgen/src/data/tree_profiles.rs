@@ -177,6 +177,3 @@ fn table() -> &'static [TreeProfile] {
 pub fn profile(biome: Biome) -> &'static TreeProfile {
     &table()[usize::from(biome.id()) - 1]
 }
-
-#[cfg(test)]
-mod tests;

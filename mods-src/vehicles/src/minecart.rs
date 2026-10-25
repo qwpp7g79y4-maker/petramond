@@ -122,7 +122,6 @@ impl Minecarts {
                 self.rows.insert((form, booster), id);
             }
         }
-        log(&format!("{} rail rows", self.rails.len()));
     }
 
     fn is_cart(&self, kind: MobId) -> bool {

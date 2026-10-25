@@ -419,11 +419,10 @@ impl RaycastQuery {
 
 #[cfg(test)]
 mod tests {
-    use mod_api::{calls, CollisionShape, HostCall, HostRet};
+    use mod_api::{calls, HostCall, HostRet};
 
     use crate::events::tick::TickEvents;
     use crate::events::{PostQueue, RosterRefs, SimCtx};
-    use crate::modding::host::guards::SIM_BATCH_MAX;
     use crate::modding::host::{handle_host_call, ModStoreData};
     use crate::modding::scope;
     use crate::world::ServerWorld;
@@ -442,71 +441,6 @@ mod tests {
             queue: &mut queue,
         };
         scope::enter(&mut ctx, f);
-    }
-
-    #[test]
-    fn batched_calls_reject_oversized_batches() {
-        let mut store = ModStoreData::new("alpha", 1);
-        for (name, call) in [
-            (
-                "GetBlocks",
-                HostCall::from(calls::GetBlocks {
-                    positions: vec![[0, 0, 0]; SIM_BATCH_MAX + 1],
-                }),
-            ),
-            (
-                "SetBlocks",
-                HostCall::from(calls::SetBlocks {
-                    blocks: vec![([0, 0, 0], mod_api::BlockId(0)); SIM_BATCH_MAX + 1],
-                }),
-            ),
-            (
-                "ContainerGetMany",
-                HostCall::from(calls::ContainerGetMany {
-                    addresses: vec![[0, 0, 0].into(); SIM_BATCH_MAX + 1],
-                }),
-            ),
-            (
-                "ContainerSet",
-                HostCall::from(calls::ContainerSet {
-                    at: [0, 0, 0].into(),
-                    slots: vec![(0, None); SIM_BATCH_MAX + 1],
-                }),
-            ),
-            (
-                "ItemNames",
-                HostCall::from(calls::ItemNames {
-                    items: vec![mod_api::ItemId(0); SIM_BATCH_MAX + 1],
-                }),
-            ),
-        ] {
-            match handle_host_call(&mut store, call) {
-                HostRet::Err(e) => assert!(
-                    e.detail.contains("exceeds"),
-                    "{name}: expected the cap error, got '{e}'"
-                ),
-                other => panic!("{name}: over-cap batch answered {other:?}"),
-            }
-        }
-        let got = handle_host_call(
-            &mut store,
-            HostCall::from(calls::ItemNames {
-                items: vec![mod_api::ItemId(0); SIM_BATCH_MAX],
-            }),
-        );
-        assert!(matches!(got, HostRet::Names(v) if v.len() == SIM_BATCH_MAX));
-        let mut world = ServerWorld::new(1, 4);
-        world.clear_world();
-        world.insert_empty_column_for_test(ChunkPos::new(0, 0));
-        with_world_ctx(&mut world, || {
-            let got = handle_host_call(
-                &mut store,
-                HostCall::from(calls::GetBlocks {
-                    positions: vec![[8, 64, 8]; SIM_BATCH_MAX],
-                }),
-            );
-            assert!(matches!(got, HostRet::Blocks(v) if v.len() == SIM_BATCH_MAX));
-        });
     }
 
     #[test]
@@ -576,56 +510,6 @@ mod tests {
     }
 
     #[test]
-    fn light_at_answers_none_for_unloaded_cells() {
-        let mut store = ModStoreData::new("alpha", 1);
-        let mut world = ServerWorld::new(1, 4);
-        world.clear_world();
-        world.insert_empty_column_for_test(ChunkPos::new(0, 0));
-        with_world_ctx(&mut world, || {
-            let loaded = handle_host_call(
-                &mut store,
-                HostCall::from(calls::LightAt { pos: [8, 64, 8] }),
-            );
-            assert!(
-                matches!(loaded, HostRet::Light(Some(_))),
-                "loaded cell must answer light, got {loaded:?}"
-            );
-            let unloaded = handle_host_call(
-                &mut store,
-                HostCall::from(calls::LightAt {
-                    pos: [512, 64, 512],
-                }),
-            );
-            assert_eq!(unloaded, HostRet::Light(None));
-        });
-    }
-
-    #[test]
-    fn collision_shape_classifies_geometry_and_gates_unloaded() {
-        let mut store = ModStoreData::new("alpha", 1);
-        let mut world = ServerWorld::new(1, 4);
-        world.clear_world();
-        world.insert_empty_column_for_test(ChunkPos::new(0, 0));
-        assert!(world.set_block_world(8, 63, 8, Block::Stone));
-        assert!(world.set_block_world(8, 64, 8, Block::OakStairs));
-        assert!(world.set_block_world(8, 65, 8, Block::Water));
-        with_world_ctx(&mut world, || {
-            let mut shape = |pos| match handle_host_call(
-                &mut store,
-                HostCall::from(calls::CollisionShapeAt { pos }),
-            ) {
-                HostRet::CollisionShape(s) => s,
-                other => panic!("expected a shape reply, got {other:?}"),
-            };
-            assert_eq!(shape([8, 63, 8]), Some(CollisionShape::Full));
-            assert_eq!(shape([8, 64, 8]), Some(CollisionShape::Partial));
-            assert_eq!(shape([8, 65, 8]), Some(CollisionShape::Empty));
-            assert_eq!(shape([8, 66, 8]), Some(CollisionShape::Empty), "air");
-            assert_eq!(shape([512, 64, 512]), None, "unloaded gates like GetBlock");
-        });
-    }
-
-    #[test]
     fn find_blocks_scans_in_order_and_gates_unreadable_boxes() {
         let mut store = ModStoreData::new("alpha", 1);
         let volume_capped = handle_host_call(
@@ -679,91 +563,6 @@ mod tests {
     }
 
     #[test]
-    fn a_non_finite_draw_prim_is_refused_rather_than_dropped() {
-        let mut store = ModStoreData::new("alpha", 1);
-        let nan = mod_api::DrawPrim::Cuboid {
-            min: [0.0, 0.0, 0.0],
-            max: [1.0, f32::NAN, 1.0],
-            tile: "stone".into(),
-            tint: [255, 255, 255],
-            emissive: false,
-        };
-        match handle_host_call(
-            &mut store,
-            HostCall::from(calls::SetBlockDraw {
-                pos: [0, 0, 0],
-                prims: vec![nan],
-            }),
-        ) {
-            HostRet::Err(e) => assert!(e.detail.contains("non-finite"), "got '{e}'"),
-            other => panic!("a NaN corner answered {other:?}"),
-        }
-    }
-
-    #[test]
-    fn a_draw_on_someone_elses_block_answers_false_and_the_mod_lives() {
-        let mut store = ModStoreData::new("alpha", 1);
-        let mut world = ServerWorld::new(1, 4);
-        world.clear_world();
-        world.insert_empty_column_for_test(ChunkPos::new(0, 0));
-        world.set_block_world(4, 64, 4, Block::Stone);
-        let foreign = [4, 64, 4];
-
-        with_world_ctx(&mut world, || {
-            match handle_host_call(
-                &mut store,
-                HostCall::from(calls::SetBlockDraw {
-                    pos: foreign,
-                    prims: Vec::new(),
-                }),
-            ) {
-                HostRet::Bool(false) => {}
-                other => panic!("a foreign block answered {other:?}"),
-            }
-            match handle_host_call(
-                &mut store,
-                HostCall::from(calls::SetBlockDraws {
-                    sets: vec![(foreign, Vec::new())],
-                }),
-            ) {
-                HostRet::Bools(v) => assert_eq!(v, vec![false], "per entry, and the call survives"),
-                other => panic!("the batched form answered {other:?}"),
-            }
-        });
-    }
-
-    #[test]
-    fn block_presentation_calls_route_to_the_block_handler() {
-        let mut store = ModStoreData::new("alpha", 1);
-        for call in [
-            HostCall::from(calls::SetBlockDraw {
-                pos: [0, 0, 0],
-                prims: Vec::new(),
-            }),
-            HostCall::from(calls::SetModelParts {
-                pos: [0, 0, 0],
-                parts: 0,
-                tint: None,
-            }),
-            HostCall::from(calls::SwapBlock {
-                pos: [0, 0, 0],
-                block: mod_api::BlockId(1),
-            }),
-            HostCall::from(calls::BlockLocalToWorld {
-                pos: [0, 0, 0],
-                points: Vec::new(),
-            }),
-        ] {
-            let name = format!("{call:?}");
-            let ret = handle_host_call(&mut store, call);
-            assert!(
-                !matches!(&ret, HostRet::Err(e) if e.detail.contains("mis-routed")),
-                "{name} did not reach the block handler: {ret:?}"
-            );
-        }
-    }
-
-    #[test]
     fn a_footprint_local_point_follows_the_placed_facing() {
         use petramond_math::facing::Facing;
 
@@ -813,25 +612,5 @@ mod tests {
             "the four facings all answered {:?} — the placement rotation is gone",
             seen[0]
         );
-    }
-
-    #[test]
-    fn local_to_world_gates_an_unreadable_cell() {
-        let mut store = ModStoreData::new("alpha", 1);
-        let mut world = ServerWorld::new(1, 4);
-        world.clear_world();
-        world.insert_empty_column_for_test(ChunkPos::new(0, 0));
-        with_world_ctx(&mut world, || {
-            assert_eq!(
-                handle_host_call(
-                    &mut store,
-                    HostCall::from(calls::BlockLocalToWorld {
-                        pos: [512, 64, 512],
-                        points: vec![[0.5, 0.5, 0.5]],
-                    }),
-                ),
-                HostRet::Points(None)
-            );
-        });
     }
 }

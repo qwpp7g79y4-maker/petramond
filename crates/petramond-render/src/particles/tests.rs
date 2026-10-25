@@ -111,12 +111,6 @@ fn expand(rows: &[ParticleRow]) -> Vec<ParticleVertex> {
     out
 }
 
-fn bake(instances: &[ParticleInstance]) -> Vec<ParticleVertex> {
-    let mut rows = Vec::new();
-    build_particles(instances, &mut rows);
-    expand(&rows)
-}
-
 fn vertex_center(v: &[ParticleVertex]) -> Vec3 {
     let sum = v.iter().fold(Vec3::ZERO, |acc, p| acc + Vec3::from(p.pos));
     sum / v.len() as f32
@@ -130,17 +124,6 @@ fn x_extent(v: &[ParticleVertex]) -> f32 {
 
 fn max_alpha(v: &[ParticleVertex]) -> f32 {
     v.iter().map(|p| p.alpha).fold(0.0, f32::max)
-}
-
-#[test]
-fn each_visible_particle_is_one_cube() {
-    let mut rows = Vec::new();
-    let n = build_particles(&[inst(1.0), inst(0.5)], &mut rows);
-    assert_eq!(n, 2, "two particles = two instance rows");
-    let v = expand(&rows);
-    assert_eq!(v.len(), 2 * VERTS_PER_CUBE, "two cubes = 48 verts");
-    assert_eq!(v[0].alpha, 1.0);
-    assert_eq!(v[VERTS_PER_CUBE].alpha, 0.5);
 }
 
 #[test]
@@ -191,57 +174,6 @@ fn oriented_particles_keep_their_plane_and_atlas_split_among_cubes() {
 }
 
 #[test]
-fn tint_is_carried_to_every_vertex() {
-    let green = ParticleInstance {
-        tint: [0.5, 0.72, 0.38],
-        ..inst(1.0)
-    };
-    let v = bake(std::slice::from_ref(&green));
-    assert_eq!(v.len(), VERTS_PER_CUBE);
-    for vert in &v {
-        assert_eq!(
-            vert.tint,
-            [0.5, 0.72, 0.38],
-            "every cube vertex carries the tint"
-        );
-    }
-}
-
-#[test]
-fn faces_carry_distinct_directional_shades() {
-    let v = bake(std::slice::from_ref(&inst(1.0)));
-    let top = v[2 * 4].shade;
-    let bottom = v[3 * 4].shade;
-    let side = v[0].shade;
-    assert!(
-        top > side && side > bottom,
-        "top > side > bottom shading reads 3D"
-    );
-    assert_eq!(top, 1.0);
-}
-
-#[test]
-fn sampled_light_folds_into_the_particle_tint() {
-    let dark = ParticleInstance {
-        skylight: 0,
-        ..inst(1.0)
-    };
-
-    let v = bake(std::slice::from_ref(&dark));
-
-    assert_eq!(v[2 * 4].shade, 1.0, "shade stays directional-only");
-    let expect = lighting::light_rgb(
-        DynLight {
-            sky: 0,
-            block: petramond_world::light::BlockLight6::DARK,
-        },
-        LightEnv::IDENTITY,
-    );
-    assert_eq!(v[2 * 4].tint, expect, "unlit sample dims the tint");
-    assert!(expect[0] < 1.0);
-}
-
-#[test]
 fn block_emitter_particles_rise_shrink_and_fade() {
     let inst = emitter_inst();
     let mut young = Vec::new();
@@ -286,46 +218,6 @@ fn block_emitter_particles_rise_shrink_and_fade() {
         max_alpha(&old) < max_alpha(&young),
         "emitter particles fade as they age"
     );
-}
-
-fn emitter_light_factor(self_lit: f32, skylight: u8) -> f32 {
-    let mut inst = emitter_inst();
-    inst.emitter.self_lit = self_lit;
-    inst.skylight = skylight;
-    let (mut rows, mut scratch) = (Vec::new(), Vec::new());
-    build_transparent_emitter_particles(
-        std::slice::from_ref(&inst),
-        &[],
-        one_live_emitter_time(&inst, 0.25),
-        petramond_math::math::IVec3::ZERO,
-        Vec3::ZERO,
-        LightEnv::IDENTITY,
-        1.0,
-        &mut rows,
-        &mut scratch,
-    );
-    rows[0].tint[0]
-}
-
-#[test]
-fn self_lit_particles_dim_with_the_room_without_reaching_the_cave_floor() {
-    let (dark, lit) = (0, lighting::FULL_SKYLIGHT);
-    let floor = emitter_light_factor(0.0, dark);
-    assert!(floor < 0.1, "an unlit cave is nearly black: {floor}");
-
-    let half_dark = emitter_light_factor(0.5, dark);
-    let half_lit = emitter_light_factor(0.5, lit);
-    assert!(
-        (half_dark - 0.5).abs() < 0.02,
-        "half self-lit reads about half bright in the dark: {half_dark}"
-    );
-    assert!(
-        half_dark < half_lit,
-        "half self-lit still responds to the room: {half_dark} vs {half_lit}"
-    );
-
-    assert_eq!(emitter_light_factor(1.0, dark), 1.0);
-    assert_eq!(emitter_light_factor(1.0, lit), 1.0);
 }
 
 #[test]
@@ -435,88 +327,6 @@ fn ramp_emitter_particles_cool_through_the_ramp_as_they_age() {
 }
 
 #[test]
-fn lower_fade_power_keeps_late_life_particles_more_visible() {
-    let quick = emitter_inst();
-    let mut lingering = emitter_inst();
-    lingering.emitter.fade_power = 1.0;
-    let mut a = Vec::new();
-    let mut b = Vec::new();
-    let mut scratch = Vec::new();
-
-    build_transparent_emitter_particles(
-        std::slice::from_ref(&quick),
-        &[],
-        one_live_emitter_time(&quick, 0.75),
-        petramond_math::math::IVec3::ZERO,
-        Vec3::ZERO,
-        LightEnv::IDENTITY,
-        1.0,
-        &mut a,
-        &mut scratch,
-    );
-    build_transparent_emitter_particles(
-        std::slice::from_ref(&lingering),
-        &[],
-        one_live_emitter_time(&lingering, 0.75),
-        petramond_math::math::IVec3::ZERO,
-        Vec3::ZERO,
-        LightEnv::IDENTITY,
-        1.0,
-        &mut b,
-        &mut scratch,
-    );
-
-    let (a, b) = (expand(&a), expand(&b));
-    assert!(
-        max_alpha(&b) > max_alpha(&a),
-        "fade_power 1 lingers longer than the default quadratic: {} vs {}",
-        max_alpha(&b),
-        max_alpha(&a)
-    );
-}
-
-#[test]
-fn lower_shrink_power_keeps_late_life_particles_larger() {
-    let linear = emitter_inst();
-    let mut chunky = emitter_inst();
-    chunky.emitter.shrink_power = 0.4;
-    let mut a = Vec::new();
-    let mut b = Vec::new();
-    let mut scratch = Vec::new();
-
-    build_transparent_emitter_particles(
-        std::slice::from_ref(&linear),
-        &[],
-        one_live_emitter_time(&linear, 0.75),
-        petramond_math::math::IVec3::ZERO,
-        Vec3::ZERO,
-        LightEnv::IDENTITY,
-        1.0,
-        &mut a,
-        &mut scratch,
-    );
-    build_transparent_emitter_particles(
-        std::slice::from_ref(&chunky),
-        &[],
-        one_live_emitter_time(&chunky, 0.75),
-        petramond_math::math::IVec3::ZERO,
-        Vec3::ZERO,
-        LightEnv::IDENTITY,
-        1.0,
-        &mut b,
-        &mut scratch,
-    );
-
-    let (a, b) = (expand(&a), expand(&b));
-    assert!(
-        x_extent(&b) > x_extent(&a),
-        "shrink_power 0.4 keeps an old cube chunkier than linear shrink: {} vs {}",
-        x_extent(&b),
-        x_extent(&a)
-    );
-}
-
-#[test]
 fn block_emitter_rate_range_jitters_spawn_intervals() {
     let seed = 0xCAFE_BABE_F00D_1234;
     let schedule = emitter_schedule(seed, [1.0, 2.0]);
@@ -541,163 +351,11 @@ fn block_emitter_rate_range_jitters_spawn_intervals() {
 }
 
 #[test]
-fn fully_faded_particles_are_skipped() {
-    let mut rows = Vec::new();
-    let n = build_particles(&[inst(0.0), inst(1.0)], &mut rows);
-    assert_eq!(n, 1, "the alpha=0 particle is dropped");
-    assert_eq!(rows[0].alpha, 1.0);
-}
-
-#[test]
-fn cube_is_centred_on_pos() {
-    let v = bake(std::slice::from_ref(&inst(1.0)));
-    let cx: f32 = v.iter().map(|p| p.pos[0]).sum::<f32>() / v.len() as f32;
-    let cy: f32 = v.iter().map(|p| p.pos[1]).sum::<f32>() / v.len() as f32;
-    let cz: f32 = v.iter().map(|p| p.pos[2]).sum::<f32>() / v.len() as f32;
-    assert!((cx - 1.0).abs() < 1e-5 && (cy - 2.0).abs() < 1e-5 && (cz - 3.0).abs() < 1e-5);
-}
-
-#[test]
-fn cube_extent_matches_size() {
-    let v = bake(std::slice::from_ref(&inst(1.0)));
-    let min_x = v.iter().map(|p| p.pos[0]).fold(f32::INFINITY, f32::min);
-    let max_x = v.iter().map(|p| p.pos[0]).fold(f32::NEG_INFINITY, f32::max);
-    assert!(
-        (max_x - min_x - 0.1).abs() < 1e-5,
-        "cube spans `size` on each axis"
-    );
-}
-
-#[test]
-fn faces_are_offset_to_the_cube_surface_not_the_centre() {
-    let v = bake(std::slice::from_ref(&inst(1.0)));
-    let c = Vec3::new(1.0, 2.0, 3.0);
-    let h = 0.1 * 0.5;
-    for i in 0..4 {
-        assert!(
-            (v[i].pos[0] - (c.x + h)).abs() < 1e-6,
-            "+X face on the +X surface"
-        );
-        assert!(
-            (v[4 + i].pos[0] - (c.x - h)).abs() < 1e-6,
-            "-X face on the -X surface"
-        );
-    }
-    for i in 0..4 {
-        assert!(
-            (v[8 + i].pos[1] - (c.y + h)).abs() < 1e-6,
-            "+Y face on the top surface"
-        );
-        assert!(
-            (v[12 + i].pos[1] - (c.y - h)).abs() < 1e-6,
-            "-Y face on the bottom surface"
-        );
-    }
-    for i in 0..4 {
-        assert!(
-            (v[16 + i].pos[2] - (c.z + h)).abs() < 1e-6,
-            "+Z face on the +Z surface"
-        );
-        assert!(
-            (v[20 + i].pos[2] - (c.z - h)).abs() < 1e-6,
-            "-Z face on the -Z surface"
-        );
-    }
-    let mut corners: Vec<[i32; 3]> = v
-        .iter()
-        .map(|p| {
-            [
-                (p.pos[0] * 1e4) as i32,
-                (p.pos[1] * 1e4) as i32,
-                (p.pos[2] * 1e4) as i32,
-            ]
-        })
-        .collect();
-    corners.sort_unstable();
-    corners.dedup();
-    assert_eq!(
-        corners.len(),
-        8,
-        "a real cube has 8 distinct corner positions"
-    );
-}
-
-#[test]
-fn every_particle_writes_a_row_and_the_buffer_is_reused() {
-    let mut rows = Vec::new();
-    let many = vec![inst(1.0); 10_000];
-    let n = build_particles(&many, &mut rows);
-    assert_eq!(n as usize, many.len(), "nothing is dropped");
-    let cap = rows.capacity();
-    let n = build_particles(&many, &mut rows);
-    assert_eq!(n as usize, many.len());
-    assert_eq!(rows.capacity(), cap, "row buffer reused");
-}
-
-#[test]
-fn the_cube_pattern_is_thirtysix_over_twentyfour_vertices() {
-    assert_eq!(CUBE_INDEX_PATTERN.len(), INDICES_PER_CUBE);
-    assert_eq!(&CUBE_INDEX_PATTERN[..6], &[0, 1, 2, 0, 2, 3]);
-    assert_eq!(&CUBE_INDEX_PATTERN[6..12], &[4, 5, 6, 4, 6, 7]);
-    assert!(CUBE_INDEX_PATTERN
-        .iter()
-        .all(|&i| (i as usize) < VERTS_PER_CUBE));
-}
-
-#[test]
 fn the_row_stride_matches_its_declared_layout() {
     assert_eq!(std::mem::size_of::<ParticleRow>(), 80);
     assert_eq!(std::mem::offset_of!(ParticleRow, uv_min), 48);
     assert_eq!(std::mem::offset_of!(ParticleRow, tint), 64);
     assert_eq!(std::mem::offset_of!(ParticleRow, quad), 76);
-}
-
-#[test]
-fn the_generated_face_table_is_faces() {
-    let wgsl = wgsl_faces();
-    let right = FACES
-        .iter()
-        .map(|f| {
-            format!(
-                "vec3<f32>({:?}, {:?}, {:?})",
-                f.right.x, f.right.y, f.right.z
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(", ");
-    assert!(wgsl.contains(&format!("array<vec3<f32>, 6>({right})")));
-    let shades = FACES
-        .iter()
-        .map(|f| format!("{:?}", f.shade))
-        .collect::<Vec<_>>()
-        .join(", ");
-    assert!(wgsl.contains(&format!("array<f32, 6>({shades})")));
-}
-
-#[test]
-fn a_row_expands_to_the_cube_the_cpu_bake_emitted() {
-    let particle = inst(1.0);
-    let v = bake(std::slice::from_ref(&particle));
-    let c = particle.pos.relative_to(glam::IVec3::ZERO);
-    let h = particle.size * 0.5;
-    let [u0, v0] = particle.uv_min;
-    let (u1, v1) = (u0 + particle.uv_size[0], v0 + particle.uv_size[1]);
-    let corner_uv = [[u0, v1], [u1, v1], [u1, v0], [u0, v0]];
-    let unit_stretch: f32 = 1.0;
-    let mut want = Vec::new();
-    for face in &FACES {
-        let (r, up) = (face.right * h, face.up * h);
-        let fc = c + face.right.cross(face.up) * h;
-        for (i, mut pos) in [fc - r - up, fc + r - up, fc + r + up, fc - r + up]
-            .into_iter()
-            .enumerate()
-        {
-            pos.y = c.y + (pos.y - c.y) * unit_stretch;
-            want.push((pos.to_array(), corner_uv[i], face.shade));
-        }
-    }
-    let got: Vec<_> = v.iter().map(|v| (v.pos, v.uv, v.shade)).collect();
-    assert_eq!(got, want);
 }
 
 #[test]

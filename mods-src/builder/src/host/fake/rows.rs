@@ -9,11 +9,9 @@ pub const DOOR: BlockId = BlockId(5);
 pub const CHEST: BlockId = BlockId(6);
 pub const TABLE: BlockId = BlockId(7);
 pub const LEAVES: BlockId = BlockId(8);
-pub const WATER: BlockId = BlockId(9);
 pub const BEDROCK: BlockId = BlockId(10);
 pub const FENCE: BlockId = BlockId(11);
 pub const TORCH: BlockId = BlockId(12);
-pub const GRASS: BlockId = BlockId(13);
 
 pub const GOLEM_KIND: MobId = MobId(0);
 pub const GOLEM_SLOTS: usize = 27;

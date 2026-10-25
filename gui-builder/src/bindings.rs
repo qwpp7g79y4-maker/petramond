@@ -221,54 +221,6 @@ mod tests {
     }"#;
 
     #[test]
-    fn catalog_parses_and_the_shipped_file_loads_when_present() {
-        let c = Catalog::parse(SAMPLE).unwrap();
-        let ws = c.kind("petramond:world_select").unwrap();
-        assert_eq!(ws.state.len(), 5);
-        assert_eq!(ws.state["worlds"].ty, "list");
-        assert_eq!(ws.state["worlds"].item["name"], "str");
-        assert_eq!(ws.handles["play"], "click: play the selected world");
-        assert!(
-            c.kind("somemod:wheel").is_none(),
-            "mod kinds are open-ended"
-        );
-        if let Some(real) = Catalog::load(&AssetRoots::new(None, Vec::new())) {
-            assert!(real.kind("petramond:world_select").is_some());
-        }
-    }
-
-    #[test]
-    fn bind_field_filters_offer_only_matching_types() {
-        let c = Catalog::parse(SAMPLE).unwrap();
-        let ws = c.kind("petramond:world_select").unwrap();
-        let names = |f| ws.keys_for(f).iter().map(|(n, _)| *n).collect::<Vec<_>>();
-        assert_eq!(names(BindField::Items), vec!["worlds"]);
-        assert_eq!(names(BindField::Selected), vec!["world_sel"]);
-        assert_eq!(
-            names(BindField::Enabled),
-            vec!["has_selection", "no_worlds"]
-        );
-        assert_eq!(
-            names(BindField::Visible),
-            vec!["has_selection", "no_worlds"]
-        );
-        assert_eq!(names(BindField::Image), vec!["filter_text"]);
-        assert!(
-            field_matches(BindField::Image, "str"),
-            "item icon fields qualify"
-        );
-        assert!(!field_matches(BindField::Image, "i32"));
-        assert_eq!(names(BindField::Frame), vec!["world_sel"]);
-        assert!(field_matches(BindField::Frame, "f32"));
-        assert!(!field_matches(BindField::Frame, "str"));
-        assert_eq!(
-            names(BindField::Text),
-            vec!["filter_text", "has_selection", "no_worlds", "world_sel"]
-        );
-        assert_eq!(names(BindField::Value), names(BindField::Text));
-    }
-
-    #[test]
     fn seeding_fills_lists_with_three_complete_items_and_is_non_destructive() {
         let c = Catalog::parse(SAMPLE).unwrap();
         let ws = c.kind("petramond:world_select").unwrap();

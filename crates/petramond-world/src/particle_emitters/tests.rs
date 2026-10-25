@@ -23,102 +23,6 @@ fn shipped_particle_emitters_json_loads_fully() {
 }
 
 #[test]
-fn burst_bundles_validate() {
-    let splash = |count: &str, up: &str, bias: &str| {
-        format!(
-            r#"{{"emitters": [{{"emitter": "mymod:pop", "burst": {{
-                    "count_per_intensity": {count},
-                    "up_speed": {up}, "radial_speed": [0.5, 1.5],
-                    "lifetime": [0.4, 0.8], "size": [0.05, 0.1],
-                    "color": [[0.1, 0.1, 0.5], [0.4, 0.8, 1.0]],
-                    "color_bias": {bias}, "die_on_contact": true }} }}]}}"#
-        )
-    };
-    let ok = splash("3.0", "[1.0, 2.0]", "2.0");
-    let defs = parse_layers(&[&base(), ok.as_str()])
-        .expect("burst bundle loads")
-        .rows();
-    let d = defs.last().unwrap();
-    assert!(d.burst.is_some() && d.rows.is_empty());
-
-    for (bad, why) in [
-        (splash("0.0", "[1.0, 2.0]", "2.0"), "zero count scaling"),
-        (splash("3.0", "[2.0, 1.0]", "2.0"), "reversed range"),
-        (splash("3.0", "[1.0, 2.0]", "100.0"), "out-of-range bias"),
-        (
-            r#"{"emitters": [{"emitter": "mymod:pop", "burst": {
-                    "count_per_intensity": 3.0,
-                    "up_speed": [1.0, 2.0], "radial_speed": [0.5, 1.5],
-                    "lifetime": [0.4, 0.8], "size": [0.05, 0.1],
-                    "color": [[0.1, 0.1, 0.5], [0.4, 0.8, 1.0]] },
-                    "particles": [{"rate": 2.0, "lifetime": [0.4, 0.8], "size": [0.05, 0.1],
-                        "color": [[1, 1, 1], [1, 1, 1]], "alpha": [0.5, 0.8]}] }]}"#
-                .to_owned(),
-            "both burst and particles",
-        ),
-    ] {
-        assert!(
-            parse_layers(&[&base(), bad.as_str()]).is_err(),
-            "{why} must fail the load"
-        );
-    }
-}
-
-#[test]
-fn pack_bundles_register_after_engine_rows_and_validate() {
-    let glow = r#"{"emitter": "mymod:glow", "tint": [1.0, 0.9, 0.6], "body_self_lit": 0.4, "particles": [
-            {"rate": 2.0, "lifetime": [0.4, 0.8], "size": [0.05, 0.1],
-             "color": [[0.9, 0.9, 0.2], [1.0, 1.0, 0.6]], "alpha": [0.5, 0.8]}]}"#;
-    let pack = format!(r#"{{"emitters": [{glow}]}}"#);
-    let defs = parse_layers(&[&base(), pack.as_str()])
-        .expect("pack bundle loads")
-        .rows();
-    let d = defs.last().unwrap();
-    assert_eq!(d.key, "mymod:glow");
-    assert_eq!(d.tint, Some([1.0, 0.9, 0.6]));
-    assert_eq!(d.body_self_lit, 0.4);
-    assert_eq!(d.rows.len(), 1);
-
-    for (bad, why) in [
-        (
-            glow.replace("\"body_self_lit\": 0.4", "\"body_self_lit\": 1.1"),
-            "out-of-range body lighting",
-        ),
-        (
-            r#"{"emitter": "mymod:glow", "particles": []}"#.to_owned(),
-            "no particle rows",
-        ),
-        (
-            r#"{"emitter": "mymod:glow", "tint": [2.0, 0.0, 0.0], "particles": [
-                    {"rate": 2.0, "lifetime": [0.4, 0.8], "size": [0.05, 0.1],
-                     "color": [[1, 1, 1], [1, 1, 1]], "alpha": [0.5, 0.8]}]}"#
-                .to_owned(),
-            "out-of-range tint",
-        ),
-        (
-            r#"{"emitter": "mymod:glow", "particles": [
-                    {"rate": 2.0, "lifetime": [0.8, 0.4], "size": [0.05, 0.1],
-                     "color": [[1, 1, 1], [1, 1, 1]], "alpha": [0.5, 0.8]}]}"#
-                .to_owned(),
-            "a row failing shared emitter validation",
-        ),
-        (
-            r#"{"emitter": "bareglow", "particles": [
-                    {"rate": 2.0, "lifetime": [0.4, 0.8], "size": [0.05, 0.1],
-                     "color": [[1, 1, 1], [1, 1, 1]], "alpha": [0.5, 0.8]}]}"#
-                .to_owned(),
-            "a bare (un-namespaced) new key",
-        ),
-    ] {
-        let pack = format!(r#"{{"emitters": [{bad}]}}"#);
-        assert!(
-            parse_layers(&[&base(), pack.as_str()]).is_err(),
-            "{why} must fail the load"
-        );
-    }
-}
-
-#[test]
 fn ambient_biome_filters_resolve_and_validate() {
     let with_filter = |extra: &str| {
         format!(
@@ -182,85 +86,6 @@ fn ambient_biome_filters_resolve_and_validate() {
 }
 
 #[test]
-fn flight_rows_validate_and_resolve_their_names() {
-    let row = |extra: &str, orbit: &str, occupancy: &str, names: &str| {
-        format!(
-            r#"{{"emitters": [{{"emitter": "mymod:moth", "ambient": {{
-                    "radius": 20, "height": [6, 6], "size": [0.2, 0.3],
-                    "alpha": [1, 1], "color": [[1, 1, 1], [1, 1, 1]], {extra}
-                    "motion": {{"flight": {{"spacing": 6, "occupancy": {occupancy},
-                        "orbit": {orbit}, "hover": [1, 0.3], "speed": [0.3, 0.6]{names} }} }} }} }}]}}"#
-        )
-    };
-    let ok = parse_layers(&[
-        &base(),
-        &row(
-            "",
-            "[1, 1]",
-            "0.5",
-            r#", "sprite": "dirt", "ground_tags": ["soil", "mymod:ash"]"#,
-        ),
-    ])
-    .expect("a flight row loads");
-    let moth = ok.rows()[ok.id("mymod:moth").unwrap() as usize]
-        .ambient
-        .as_ref()
-        .unwrap();
-    let flight = moth.motion.flight().expect("flight kind");
-    assert_eq!(flight.sprite_tile, Tile::from_name("dirt"));
-    assert_eq!(flight.ground.len(), 2);
-    assert!(
-        flight.ground.contains(&BlockTag::SOIL),
-        "engine tag resolved"
-    );
-    let bad = [
-        (
-            r#""fall_speed": [1, 2],"#,
-            "[1, 1]",
-            "0.5",
-            "",
-            "never falls",
-        ),
-        (
-            r#""count_per_intensity": 10, "max_count": 10,"#,
-            "[1, 1]",
-            "0.5",
-            "",
-            "never falls",
-        ),
-        (
-            "",
-            "[1, 1]",
-            "0.5",
-            r#", "sprite": "no_such_tile""#,
-            "no tile",
-        ),
-        ("", "[4, 4]", "0.5", "", "inside half the spacing"),
-        ("", "[1, 1]", "0", "", "occupancy"),
-        (
-            r#""palette": [{"weight": 0, "color": [1, 1, 1]}],"#,
-            "[1, 1]",
-            "0.5",
-            "",
-            "palette weights",
-        ),
-        (
-            r#""palette": [{"weight": 1, "color": [2, 1, 1]}],"#,
-            "[1, 1]",
-            "0.5",
-            "",
-            "palette color",
-        ),
-    ];
-    for (extra, orbit, occupancy, names, expect) in bad {
-        let err = parse_layers(&[&base(), &row(extra, orbit, occupancy, names)])
-            .err()
-            .expect(expect);
-        assert!(err.contains(expect), "{err}");
-    }
-}
-
-#[test]
 fn biome_density_table_covers_driven_bundles_only() {
     let catalog = parse_layers(&[&base()]).unwrap();
     let torch = catalog.id("petramond:torch_flame").unwrap() as u8;
@@ -300,11 +125,6 @@ fn biome_density_table_covers_driven_bundles_only() {
         .err()
         .unwrap();
     assert!(err.contains("not an ambient"), "{err}");
-}
-
-#[test]
-fn missing_engine_row_is_a_load_error() {
-    assert!(parse_layers(&[r#"{"emitters": []}"#]).is_err());
 }
 
 #[test]

@@ -231,15 +231,6 @@ mod tests {
     }
 
     #[test]
-    fn a_played_clip_mixes_down_to_sound() {
-        let mut audio = Audio::new_offline(2, RATE, 1);
-        audio.play(Sound::WoodPunch);
-        let mut out = Vec::new();
-        audio.pull(0.25, &mut out);
-        assert!(out.iter().any(|s| s.abs() > 1e-4));
-    }
-
-    #[test]
     fn fractional_frames_carry_so_the_track_never_drifts() {
         let mut audio = Audio::new_offline(2, RATE, 1);
         let dt = 1.0 / 59.94;

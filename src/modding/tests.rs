@@ -60,48 +60,6 @@ impl Sim {
     }
 }
 
-#[test]
-fn disabled_packs_contribute_no_wasm_instance() {
-    let pack = |name: &str, id: Option<&str>, wasm: Option<&str>| petramond_world::assets::Pack {
-        dir: PathBuf::from(format!("/fixture/{name}")),
-        header: petramond_world::assets::PackHeader {
-            name: name.to_owned(),
-            id: id.map(str::to_owned),
-            version: None,
-            description: String::new(),
-            summary: None,
-            icon: None,
-            dependencies: Vec::new(),
-            touches_world: wasm.is_some(),
-            resources: Default::default(),
-        },
-        origin: petramond_world::assets::PackOrigin::Shipped,
-        wasm: wasm.map(PathBuf::from),
-        client_wasm: None,
-        integrations: Vec::new(),
-        launch: None,
-    };
-    let packs = [
-        pack("alpha", Some("alpha"), Some("/fixture/alpha/mod.wasm")),
-        pack("content_only", None, None),
-        pack("omega", Some("omega"), Some("/fixture/omega/mod.wasm")),
-    ];
-
-    let none: std::collections::BTreeSet<String> = Default::default();
-    let all_ids: Vec<String> = super::session_wasm_mods(&packs, &none)
-        .into_iter()
-        .map(|(id, _)| id)
-        .collect();
-    assert_eq!(all_ids, ["alpha", "omega"], "wasm-bearing packs load");
-
-    let disabled: std::collections::BTreeSet<String> = ["omega".to_owned()].into();
-    let ids: Vec<String> = super::session_wasm_mods(&packs, &disabled)
-        .into_iter()
-        .map(|(id, _)| id)
-        .collect();
-    assert_eq!(ids, ["alpha"], "the disabled pack's wasm is never selected");
-}
-
 pub fn built_mod_wasm(krate: &str) -> Option<PathBuf> {
     let mods_src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("mods-src");
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());

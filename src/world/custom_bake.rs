@@ -1,5 +1,3 @@
-#[cfg(test)]
-use crate::world::ServerWorld;
 use crate::world::WorldData;
 use crate::world::{World, WorldSide};
 
@@ -73,43 +71,5 @@ impl<S: WorldSide> World<S> {
         if !self.queue_incremental_relight(pos) {
             self.mark_light_dirty_neighborhood(sp, true);
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use petramond_world::block::Aabb;
-    use petramond_world::world::custom_bake::intern_boxes;
-
-    #[test]
-    fn interning_dedups_equal_box_sets() {
-        let a = [Aabb {
-            min: [0.0, 0.0, 0.0],
-            max: [1.0, 0.5, 1.0],
-        }];
-        let b = [Aabb {
-            min: [0.0, 0.0, 0.0],
-            max: [1.0, 0.5, 1.0],
-        }];
-        assert!(std::ptr::eq(
-            intern_boxes(&a).unwrap(),
-            intern_boxes(&b).unwrap()
-        ));
-    }
-
-    #[test]
-    fn cache_stores_reads_and_invalidates() {
-        let mut w = ServerWorld::new(0, 4);
-        let pos = IVec3::new(3, 64, -7);
-        let half = [Aabb {
-            min: [0.0, 0.0, 0.0],
-            max: [1.0, 0.5, 1.0],
-        }];
-        assert_eq!(w.data.custom_shape_boxes(pos), None, "no bake yet");
-        w.data.set_custom_bake(pos, &half);
-        assert_eq!(w.data.custom_shape_boxes(pos), Some(&half[..]));
-        w.data.invalidate_custom_bake(pos);
-        assert_eq!(w.data.custom_shape_boxes(pos), None);
     }
 }

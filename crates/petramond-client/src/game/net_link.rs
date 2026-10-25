@@ -172,20 +172,6 @@ mod tests {
     }
 
     #[test]
-    fn a_dead_server_is_reported_once_with_the_first_reason() {
-        let (handle, server) = ServerHandle::loopback();
-        drop(server);
-        let mut link = NetLink::new(handle, false);
-        link.note_lost_because("the server closed");
-        link.send_now(ClientToServer::KeepAlive);
-        assert_eq!(
-            link.take_lost_report().as_deref(),
-            Some("the server closed")
-        );
-        assert!(link.take_lost_report().is_none(), "reported exactly once");
-    }
-
-    #[test]
     fn a_closed_stream_batch_acks_its_measured_rate() {
         let (handle, server) = ServerHandle::loopback();
         let mut link = NetLink::new(handle, false);

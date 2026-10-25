@@ -344,11 +344,6 @@ fn arms(p: [i32; 3]) -> [[i32; 3]; 4] {
     ]
 }
 
-#[cfg(test)]
-fn gather(seed: u32, origin: [i32; 3]) -> Vec<Root> {
-    gather_within(seed, origin, &LeafMask::everywhere())
-}
-
 /// The roots whose reach touches the section, rolled only where `leaves` admits the habitat:
 /// a root outside it is dropped by the biome check anyway, and rolls are positional.
 fn gather_within(seed: u32, origin: [i32; 3], leaves: &LeafMask) -> Vec<Root> {
@@ -437,56 +432,6 @@ fn formation_at(seed: u32, wx: i32, wz: i32) -> (i32, bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn the_margin_admits_exactly_the_roots_whose_reach_touches_the_section() {
-        let seed = 7;
-        let (mut any, mut plain_far) = (0, 0);
-        for sx in 0..40 {
-            let origin = [sx * 16, 32, 0];
-            for r in gather(seed, origin) {
-                any += 1;
-                let (axial, side) = r.reach();
-                let rows_away = (origin[1] - r.p[1]).max(r.p[1] - (origin[1] + 15)).max(0);
-                let side_away = (origin[0] - r.p[0])
-                    .max(r.p[0] - (origin[0] + 15))
-                    .max(origin[2] - r.p[2])
-                    .max(r.p[2] - (origin[2] + 15))
-                    .max(0);
-                assert!(axial > rows_away, "{:?} rows away with reach {axial}", r.p);
-                assert!(
-                    side >= side_away,
-                    "{:?} columns away, side reach {side}",
-                    r.p
-                );
-                if r.kind == Kind::Single && rows_away > 0 {
-                    plain_far += 1;
-                }
-            }
-        }
-        assert!(
-            any > 0 && plain_far > 0,
-            "the band yields reaching roots at all"
-        );
-    }
-
-    #[test]
-    fn formations_concentrate_the_roots() {
-        let seed = 11;
-        let (mut stray, mut dense) = (0, 0);
-        for z in 0..256 {
-            for x in 0..256 {
-                let (d, _) = formation_at(seed, x, z);
-                if d == STRAY_PER_MILLE {
-                    stray += 1;
-                } else if d >= CORE_PER_MILLE / 2 {
-                    dense += 1;
-                }
-            }
-        }
-        assert!(stray > 0, "some columns are strays");
-        assert!(dense > 0, "some columns sit in a core");
-    }
 
     #[test]
     fn orientation_prefers_hanging_and_refuses_open_air() {

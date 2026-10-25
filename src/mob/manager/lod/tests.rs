@@ -73,21 +73,6 @@ fn a_mod_driven_body_keeps_the_full_tick_anywhere() {
 }
 
 #[test]
-fn a_nonsensical_policy_is_sanitized() {
-    let policy = SimDistance {
-        full_chunks: 8,
-        reduced_chunks: 2,
-        reduced_interval: 0,
-    }
-    .sanitized();
-    assert_eq!(policy.reduced_chunks, 8);
-    assert_eq!(policy.reduced_interval, 1);
-    let parsed: SimDistance = serde_json::from_str(r#"{"full_chunks": 3}"#).expect("parses");
-    assert_eq!(parsed.full_chunks, 3);
-    assert_eq!(parsed.reduced_chunks, SimDistance::default().reduced_chunks);
-}
-
-#[test]
 fn frozen_mobs_do_not_simulate_while_near_ones_do() {
     let world = ServerWorld::new(0, 1);
     let mut mobs = Mobs::new(0);

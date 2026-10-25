@@ -522,14 +522,8 @@ impl Host for Fake {
         self.mob_drive_velocity(mob_id, [vel[0], 0.0, vel[1]], None)
     }
 
-    fn mob_drive_velocity(&self, mob_id: u64, vel: [f32; 3], _yaw: Option<f32>) -> bool {
-        match self.state_mut().mobs.get_mut(&mob_id) {
-            Some(mob) => {
-                mob.driven = Some(vel);
-                true
-            }
-            None => false,
-        }
+    fn mob_drive_velocity(&self, mob_id: u64, _vel: [f32; 3], _yaw: Option<f32>) -> bool {
+        self.state().mobs.contains_key(&mob_id)
     }
 
     fn mob_step(&self, mob_id: u64, vel: [f32; 2]) -> bool {
@@ -560,14 +554,8 @@ impl Host for Fake {
         }
     }
 
-    fn set_mob_draw(&self, mob_id: u64, _frame: DrawFrame, prims: Vec<DrawPrim>) -> bool {
-        match self.state_mut().mobs.get_mut(&mob_id) {
-            Some(mob) => {
-                mob.drawn = prims.len();
-                true
-            }
-            None => false,
-        }
+    fn set_mob_draw(&self, mob_id: u64, _frame: DrawFrame, _prims: Vec<DrawPrim>) -> bool {
+        self.state().mobs.contains_key(&mob_id)
     }
 
     fn container_get(&self, at: ContainerAddress) -> Option<Vec<Option<ItemStackData>>> {

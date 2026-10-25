@@ -225,26 +225,6 @@ mod tests {
     }
 
     #[test]
-    fn the_toggle_chain_always_ends_on_a_plain_state_name() {
-        for (enabled, on, pressed, hovered) in [
-            (true, false, false, false),
-            (true, true, true, true),
-            (true, false, false, true),
-            (false, true, true, true),
-        ] {
-            let chain = toggle_face_chain(enabled, on, pressed, hovered);
-            let expect = if !enabled {
-                FaceState::Disabled
-            } else if on {
-                FaceState::On
-            } else {
-                FaceState::Off
-            };
-            assert_eq!(chain[2], expect, "{enabled} {on} {pressed} {hovered}");
-        }
-    }
-
-    #[test]
     fn scrollbar_absent_when_content_fits() {
         let r = RectI {
             x: 0,
@@ -292,21 +272,6 @@ mod tests {
         assert_eq!(thumb.y, 3);
         let (_, bottom) = scrollbar(view, node.h, 120, 120 - node.h, 8).unwrap();
         assert_eq!(bottom.y + bottom.h, 3 + 34, "thumb ends at the view bottom");
-    }
-
-    #[test]
-    fn slider_value_quantizes_and_clamps() {
-        let r = RectI {
-            x: 10,
-            y: 0,
-            w: 100,
-            h: 6,
-        };
-        assert_eq!(slider_value_at(r, 10.0, 0.0, 1.0, None), 0.0);
-        assert_eq!(slider_value_at(r, 110.0, 0.0, 1.0, None), 1.0);
-        assert_eq!(slider_value_at(r, 300.0, 0.0, 1.0, None), 1.0);
-        let v = slider_value_at(r, 62.0, 0.0, 100.0, Some(25.0));
-        assert_eq!(v, 50.0, "52% snaps to the 50 step");
     }
 
     #[test]

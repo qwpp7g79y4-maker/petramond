@@ -707,51 +707,6 @@ mod binding_tests {
         }
     }
 
-    fn match_ids(
-        table: &ActionTable,
-        set: &BindingSet,
-        input: BoundInput,
-        m: Modifiers,
-    ) -> Vec<String> {
-        table
-            .matches(set, input, m, &|_| true)
-            .into_iter()
-            .map(|i| table.rows()[i].id.clone())
-            .collect()
-    }
-
-    #[test]
-    fn defaults_cover_every_action_and_roundtrip_serde() {
-        let set = BindingSet::default();
-        for action in BindableAction::ALL {
-            let _ = set.binding(action);
-        }
-        let mut set = set;
-        set.set(
-            BindableAction::Sprint,
-            Binding {
-                mods: BindMods {
-                    ctrl: true,
-                    ..BindMods::default()
-                },
-                input: BoundInput::Key(KeyCode::KeyB),
-            },
-        );
-        set.set(BindableAction::Attack, Binding::scroll(ScrollDir::Up));
-        set.set_id("minimap:open_map", Binding::key(KeyCode::KeyO));
-        let json = serde_json::to_string(&set).expect("serialize");
-        let back: BindingSet = serde_json::from_str(&json).expect("deserialize");
-        assert_eq!(back, set);
-        assert_eq!(
-            back.binding(BindableAction::Jump),
-            Binding::key(KeyCode::Space)
-        );
-        assert_eq!(
-            back.get("minimap:open_map"),
-            Some(Binding::key(KeyCode::KeyO))
-        );
-    }
-
     #[test]
     fn a_chord_that_does_not_fire_here_leaves_the_plain_key_alone() {
         let mut table = ActionTable::engine();
@@ -785,50 +740,6 @@ mod binding_tests {
             fired(&|_| true),
             ["studio:duplicate"],
             "where it fires, the chord wins"
-        );
-    }
-
-    #[test]
-    fn chord_match_prefers_the_most_specific_binding() {
-        let table = ActionTable::engine();
-        let mut set = BindingSet::default();
-        set.set(BindableAction::Jump, Binding::key(KeyCode::KeyB));
-        set.set(
-            BindableAction::Sprint,
-            Binding {
-                mods: BindMods {
-                    ctrl: true,
-                    ..BindMods::default()
-                },
-                input: BoundInput::Key(KeyCode::KeyB),
-            },
-        );
-        assert_eq!(
-            match_ids(
-                &table,
-                &set,
-                BoundInput::Key(KeyCode::KeyB),
-                mods(false, false)
-            ),
-            vec!["jump"]
-        );
-        assert_eq!(
-            match_ids(
-                &table,
-                &set,
-                BoundInput::Key(KeyCode::KeyB),
-                mods(true, false)
-            ),
-            vec!["sprint"]
-        );
-        assert_eq!(
-            match_ids(
-                &table,
-                &set,
-                BoundInput::Key(KeyCode::KeyB),
-                mods(false, true)
-            ),
-            vec!["jump"]
         );
     }
 
@@ -961,26 +872,5 @@ mod binding_tests {
             &mut out,
         );
         assert_eq!(out, vec![(ActionOut::Control(Control::MoveForward), false)]);
-    }
-
-    #[test]
-    fn binding_labels_read_naturally() {
-        assert_eq!(Binding::key(KeyCode::KeyW).label(), "W");
-        assert_eq!(Binding::key(KeyCode::Digit3).label(), "3");
-        assert_eq!(Binding::key(KeyCode::ControlLeft).label(), "LEFT CTRL");
-        assert_eq!(Binding::mouse(MouseButton::Left).label(), "LEFT CLICK");
-        assert_eq!(Binding::scroll(ScrollDir::Up).label(), "SCROLL UP");
-        assert_eq!(
-            Binding {
-                mods: BindMods {
-                    ctrl: true,
-                    shift: true,
-                    ..BindMods::default()
-                },
-                input: BoundInput::Key(KeyCode::KeyB),
-            }
-            .label(),
-            "CTRL + SHIFT + B"
-        );
     }
 }

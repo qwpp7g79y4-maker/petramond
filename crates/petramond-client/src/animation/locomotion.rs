@@ -179,15 +179,6 @@ pub struct LocomotionTable {
 
 impl LocomotionTable {
     #[cfg(test)]
-    fn empty() -> Self {
-        Self {
-            derived: Box::new([]),
-            requires: vec![Box::<[String]>::default(); Inputs::NAMES.len()].into_boxed_slice(),
-            layers: Box::new([]),
-        }
-    }
-
-    #[cfg(test)]
     pub fn load() -> Result<Self, String> {
         let layers = petramond_world::assets::read_layers(TABLE_ASSET);
         if layers.is_empty() {

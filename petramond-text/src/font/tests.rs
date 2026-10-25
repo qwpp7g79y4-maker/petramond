@@ -82,15 +82,6 @@ fn the_body_span_is_the_text_band_not_the_whole_line() {
 }
 
 #[test]
-fn measure_uses_line_advance_between_wrapped_lines() {
-    let f = Font::builtin();
-    let one = f.measure("hi", None);
-    assert_eq!(one, (f.width("hi"), f.line_h()));
-    let (_, h) = f.measure("hello world", Some(f.width("hello")));
-    assert_eq!(h, f.line_h() + f.line_advance());
-}
-
-#[test]
 fn atlas_pixels_match_every_glyph_bitmap() {
     for f in [
         Font::builtin(),

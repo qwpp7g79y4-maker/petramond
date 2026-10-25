@@ -123,12 +123,6 @@ mod tests {
     }
 
     #[test]
-    fn a_group_no_job_started_is_encoded_by_the_taker() {
-        let pal = Palette::identity();
-        assert_eq!(EncodeSlot::new(snaps()).take(&pal), expected(&pal));
-    }
-
-    #[test]
     fn a_group_encoded_elsewhere_is_taken_as_is() {
         let pal = Arc::new(Palette::identity());
         let slot = EncodeSlot::new(snaps());

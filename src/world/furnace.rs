@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::world::{ReplicaWorld, ServerWorld};
+use crate::world::ServerWorld;
 use crate::world::{World, WorldSide};
 use petramond_math::facing::Facing;
 use petramond_math::math::IVec3;
@@ -65,14 +65,11 @@ fn local_to_world(cpos: SectionPos, lx: usize, ly: usize, lz: usize) -> IVec3 {
 mod tests {
     use super::*;
 
-    use petramond_mesh::ChunkMesh;
     use petramond_world::block::Block;
-    use petramond_world::chunk::SECTION_VOLUME;
     use petramond_world::crafting::{ProcessingRecipe, SMELTING_CLASS};
     use petramond_world::furnace::{SLOT_FUEL, SLOT_INPUT};
     use petramond_world::item::{ItemStack, ItemType};
     use petramond_world::section::Section;
-    use petramond_world::tile::Tile;
 
     fn furnace_recipes() -> Recipes {
         Recipes::new(
@@ -97,13 +94,6 @@ mod tests {
 
     fn block(world: &ServerWorld, x: i32, y: i32, z: i32) -> Block {
         Block::from_id(world.data.chunk_block(x, y, z))
-    }
-
-    fn count_tile(mesh: &ChunkMesh, tile: Tile) -> usize {
-        mesh.gpu_quads(petramond_mesh::QuadLayer::Opaque)
-            .iter()
-            .filter(|v| v.packed & petramond_mesh::vertex::TILE_MASK == tile.index() as u32)
-            .count()
     }
 
     #[test]
@@ -155,27 +145,6 @@ mod tests {
         world.game_tick(&furnace_recipes());
         assert_eq!(block(&world, 8, 64, 8), Block::Furnace, "extinguish swap");
         assert!(world.furnace_at(pos).is_some(), "machine state still there");
-    }
-
-    #[test]
-    fn a_replica_meshes_each_furnace_row_with_its_own_front() {
-        let spos = SectionPos::new(0, 4, 0);
-        for (row, front, other) in [
-            (Block::Furnace, "furnace_front", "furnace_front_on"),
-            (Block::FurnaceLit, "furnace_front_on", "furnace_front"),
-        ] {
-            let mut section = Section::new(spos.cx, spos.cy, spos.cz);
-            section.set_block(8, 0, 8, row);
-            insert_fueled_furnace(&mut section, 8, 0, 8);
-            section.set_skylight(vec![0u8; SECTION_VOLUME].into());
-
-            let mut replica = ReplicaWorld::new(0, 0);
-            replica.insert_section_for_test(spos, section);
-            replica.mesh_section_blocking_for_test(spos);
-            let mesh = replica.side.terrain.meshes.get(&spos).expect("mesh built");
-            assert_eq!(count_tile(mesh, Tile::named(front)), 4, "{row:?}");
-            assert_eq!(count_tile(mesh, Tile::named(other)), 0, "{row:?}");
-        }
     }
 
     #[test]

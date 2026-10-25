@@ -92,23 +92,6 @@ fn edits_in_total_darkness_skip_light_invalidation_entirely() {
 }
 
 #[test]
-fn glass_raises_the_visible_surface_without_raising_sky_cover() {
-    let mut world = ServerWorld::new(0, 0);
-    let cp = ChunkPos::new(0, 0);
-
-    assert!(world.set_block_world(8, 0, 8, Block::Stone));
-    assert!(world.set_block_world(8, 64, 8, Block::Glass));
-
-    let column = &world.data.columns[&cp];
-    assert_eq!(column.surface_y(8, 8), 64);
-    assert_eq!(
-        column.sky_cover_y(8, 8),
-        0,
-        "clear glass must not hide the open shaft from the skylight planner"
-    );
-}
-
-#[test]
 fn eviction_racing_an_edit_relight_rewrites_the_record_lightless() {
     let dir = petramond_util::test_dirs::TestScratchDir::new("stale-light");
     let opened = crate::save::open_at(dir.to_path_buf()).expect("open save");

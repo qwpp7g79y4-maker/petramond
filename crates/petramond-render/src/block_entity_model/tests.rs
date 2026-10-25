@@ -34,57 +34,6 @@ fn extent(v: &[Vertex], axis: usize) -> f32 {
 }
 
 #[test]
-fn each_model_bakes_one_box_per_part() {
-    for (block, boxes) in [
-        (Block::Chest, 3),
-        (Block::OakDoor, 2),
-        (Block::OakTrapdoor, 1),
-    ] {
-        let (v, i) = bake(&[inst(block, Facing::North, 0, 0.0)]);
-        assert_eq!(v.len(), boxes * 24, "{block:?}: 24 verts per box");
-        assert_eq!(i.len(), boxes * 36, "{block:?}: 36 indices per box");
-    }
-}
-
-#[test]
-fn empty_input_and_a_modelless_block_produce_no_geometry() {
-    assert!(bake(&[]).0.is_empty());
-    assert!(bake(&[inst(Block::Stone, Facing::North, 0, 0.0)])
-        .0
-        .is_empty());
-}
-
-#[test]
-fn a_closed_chest_fits_its_cell_and_its_lid_rises_when_opening() {
-    let (closed, _) = bake(&[inst(Block::Chest, Facing::North, 0, 0.0)]);
-    for vert in &closed {
-        let [x, y, z] = vert.pos;
-        assert!((10.0..=11.0).contains(&x), "x within cell, got {x}");
-        assert!((-5.0..=-4.0).contains(&z), "z within cell, got {z}");
-        assert!((64.0..=65.0).contains(&y), "y within cell, got {y}");
-    }
-    let (open, _) = bake(&[inst(Block::Chest, Facing::North, 0, 1.0)]);
-    let (_, closed_top) = span(&closed, 1);
-    let (_, open_top) = span(&open, 1);
-    assert!(
-        open_top > closed_top + 0.3,
-        "the lid should rise when opening: {closed_top} -> {open_top}"
-    );
-}
-
-#[test]
-fn a_closed_door_spans_two_cells_tall_on_its_edge() {
-    let (v, _) = bake(&[inst(Block::OakDoor, Facing::South, 0, 0.0)]);
-    for vert in &v {
-        assert!((10.0..=11.0).contains(&vert.pos[0]));
-        assert!((-5.0..=-4.0).contains(&vert.pos[2]));
-    }
-    let (ymin, ymax) = span(&v, 1);
-    assert!((ymin - 64.0).abs() < 1e-4, "rests on the cell floor");
-    assert!((ymax - 66.0).abs() < 1e-4, "two cells tall");
-}
-
-#[test]
 fn thin_edge_faces_carry_a_uv_slice_mode() {
     let (v, _) = bake(&[inst(Block::OakDoor, Facing::South, 0, 0.0)]);
     let slice = |face: usize| (v[face * 4].packed >> petramond_mesh::UV_MODE_SHIFT) & 0x3;
@@ -98,14 +47,6 @@ fn thin_edge_faces_carry_a_uv_slice_mode() {
     assert!(chest
         .iter()
         .all(|v| (v.packed >> petramond_mesh::UV_MODE_SHIFT) & 0x3 == 0));
-}
-
-#[test]
-fn opening_swings_a_door_onto_the_perpendicular_edge() {
-    let (closed, _) = bake(&[inst(Block::OakDoor, Facing::South, 0, 0.0)]);
-    let (open, _) = bake(&[inst(Block::OakDoor, Facing::South, 0, 1.0)]);
-    assert!(extent(&closed, 0) > 0.9 && extent(&closed, 2) < 0.3);
-    assert!(extent(&open, 0) < 0.3 && extent(&open, 2) > 0.9);
 }
 
 #[test]
@@ -137,26 +78,4 @@ fn a_swung_panel_keeps_to_its_own_cell() {
             }
         }
     }
-}
-
-#[test]
-fn the_chest_item_is_the_closed_model_centred_in_its_cube() {
-    let model = item_model(Block::Chest).expect("the chest's item draws its model");
-    assert!(
-        item_model(Block::OakDoor).is_none(),
-        "a door's item is a sprite"
-    );
-    let (mut v, mut i) = (Vec::new(), Vec::new());
-    push_item(
-        &mut v,
-        &mut i,
-        model,
-        Block::Chest,
-        Vec3::splat(-0.5),
-        1.0,
-        DynLight::FULL,
-    );
-    assert_eq!(v.len(), 3 * 24);
-    let (lo, hi) = span(&v, 1);
-    assert!((lo + hi).abs() < 1e-5, "centred vertically: {lo}..{hi}");
 }

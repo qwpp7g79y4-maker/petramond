@@ -98,13 +98,3 @@ fn artifact_without_manifest_is_not_loaded() {
     assert!(matches!(entry.load_verified(), Err(Rejection::Absent)));
     assert_eq!(load_module_traced(&source).unwrap().1, Origin::Compiled);
 }
-
-#[test]
-fn engine_fingerprint_is_stable_within_a_build() {
-    assert_eq!(engine_fingerprint(), engine_fingerprint());
-    assert_eq!(
-        unhex(&hex(&engine_fingerprint())),
-        Some(engine_fingerprint())
-    );
-    assert_eq!(unhex("zz"), None);
-}

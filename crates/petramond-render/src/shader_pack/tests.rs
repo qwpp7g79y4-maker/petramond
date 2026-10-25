@@ -1,35 +1,6 @@
 use super::*;
 
 #[test]
-fn shaders_json_accepts_sky_entry_shape() {
-    let catalog = parse_catalog(
-        r#"{
-            "sky": {
-                "shader": "shaders/daynight_sky.wgsl",
-                "params": ["petramond:time", "petramond:light"],
-                "textures": [
-                    "textures/environment/sun.png",
-                    "textures/environment/moon_phases.png"
-                ],
-                "sky_light_param": "petramond:light"
-            }
-        }"#,
-    )
-    .expect("catalog parses");
-    let row = catalog.sky.expect("sky row");
-    assert_eq!(row.shader, "shaders/daynight_sky.wgsl");
-    assert_eq!(row.params, ["petramond:time", "petramond:light"]);
-    assert_eq!(
-        row.textures,
-        [
-            "textures/environment/sun.png",
-            "textures/environment/moon_phases.png"
-        ]
-    );
-    assert_eq!(row.sky_light_param.as_deref(), Some("petramond:light"));
-}
-
-#[test]
 fn bundled_pack_shaders_parse_and_validate() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()

@@ -75,11 +75,6 @@ pub(super) fn crop_quads(x: f32, y: f32, z: f32, inset: f32, drop: f32) -> [[[f3
 
 pub(super) const FACES: [Face; 6] = Face::ALL;
 
-#[cfg(test)]
-pub(super) fn vertex_ao(side1: bool, side2: bool, corner: bool) -> u32 {
-    quad_ao(false, side1, side2, corner)
-}
-
 #[inline]
 pub(super) fn quad_ao(q_int: bool, side1: bool, side2: bool, corner: bool) -> u32 {
     if (side1 && side2) || (q_int && corner) {

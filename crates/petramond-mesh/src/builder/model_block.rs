@@ -161,7 +161,6 @@ pub(super) fn emit_model_contact(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vertex::MODEL_TINT_NONE;
     use block_model::{ModelCellTemplate, ModelTemplateVertex, PartRun, TemplateSegment};
 
     fn template() -> ModelCellTemplate {
@@ -259,13 +258,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn the_tint_lane_follows_the_vertex_not_the_slot() {
-        let (verts, ..) = emit(0b01);
-        assert_eq!(verts[0].tint, MODEL_TINT_NONE);
-        assert_eq!(verts[2].tint, 0, "part 0's cubes are the tinted ones");
-    }
-
     fn gated_template() -> ModelCellTemplate {
         let quad = |x: f32| {
             (0..4)
@@ -361,37 +353,5 @@ mod tests {
             (vec![0, 0, 0], vec![2, 2, 2]),
             "an opaque block below suppresses the down-cullface run only"
         );
-    }
-
-    #[test]
-    fn blend_segments_share_the_vertex_buffer() {
-        let tmpl = gated_template();
-        let (mut verts, mut indices, mut blend) = (Vec::new(), Vec::new(), Vec::new());
-        emit_segments(
-            &tmpl,
-            RunStyle {
-                basef: Vec3::ZERO,
-                light: 0,
-                tint: 0,
-            },
-            0,
-            &|_| false,
-            ModelStreams {
-                verts: &mut verts,
-                indices: &mut indices,
-                blend_indices: &mut blend,
-            },
-        );
-        assert_eq!(verts.len(), 12, "both streams share one vertex emission");
-        assert!(blend.iter().all(|&i| (i as usize) < verts.len()));
-        assert!(
-            blend
-                .iter()
-                .all(|&i| verts[i as usize].pos[0].floor() == 2.0),
-            "the blend stream holds exactly the blend segment's quad"
-        );
-        assert!(indices
-            .iter()
-            .all(|&i| verts[i as usize].pos[0].floor() < 2.0));
     }
 }

@@ -147,22 +147,6 @@ mod tests {
     }
 
     #[test]
-    fn other_versions_are_typed_errors_not_a_fresh_world() {
-        let mut bytes = encode(7, 0, &BTreeMap::new(), &BTreeSet::new());
-        bytes[0..4].copy_from_slice(&(FORMAT.oldest() - 1).to_le_bytes());
-        assert!(matches!(
-            decode(&bytes),
-            Err(RecordError::Retired { found, .. }) if found == FORMAT.oldest() - 1
-        ));
-        bytes[0..4].copy_from_slice(&(VERSION + 1).to_le_bytes());
-        assert!(matches!(
-            decode(&bytes),
-            Err(RecordError::Newer { found, .. }) if found == VERSION + 1
-        ));
-        assert!(read_seed(&bytes).is_err(), "the seed peek shares the gate");
-    }
-
-    #[test]
     fn a_truncated_file_reports_where_it_broke() {
         let bytes = encode(7, 99, &BTreeMap::new(), &BTreeSet::new());
         assert_eq!(

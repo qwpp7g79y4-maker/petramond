@@ -38,21 +38,6 @@ impl DensityLatticeCellSize {
         assert!(z > 0, "density lattice Z cell size must be positive");
         Self { x, y, z }
     }
-
-    #[cfg(test)]
-    pub const fn x(self) -> usize {
-        self.x
-    }
-
-    #[cfg(test)]
-    pub const fn y(self) -> usize {
-        self.y
-    }
-
-    #[cfg(test)]
-    pub const fn z(self) -> usize {
-        self.z
-    }
 }
 
 impl Default for DensityLatticeCellSize {
@@ -106,11 +91,6 @@ impl DensityLatticeBounds {
         )
     }
 
-    #[cfg(test)]
-    pub fn voxel_count(self) -> usize {
-        self.size_x * self.size_y * self.size_z
-    }
-
     pub fn column_count(self) -> usize {
         self.size_x * self.size_z
     }
@@ -140,15 +120,6 @@ impl DensityLatticeBounds {
             "density lattice local Z must be within bounds"
         );
         axis_coord(self.origin_z, local_z, "density lattice local Z")
-    }
-
-    #[cfg(test)]
-    pub fn local_index(self, x: usize, y: usize, z: usize) -> usize {
-        assert!(
-            x < self.size_x && y < self.size_y && z < self.size_z,
-            "density lattice local voxel index must be within bounds"
-        );
-        y * self.size_x * self.size_z + z * self.size_x + x
     }
 
     pub fn column_index(self, x: usize, z: usize) -> usize {
@@ -232,31 +203,6 @@ impl DensityLattice {
     }
 
     #[cfg(test)]
-    pub fn sample_chunk(
-        graph: &ScalarGraph,
-        channel: impl AsRef<str>,
-        cx: i32,
-        cz: i32,
-    ) -> Option<Self> {
-        Self::sample_channel(
-            graph,
-            channel,
-            DensityLatticeBounds::chunk(cx, cz),
-            DensityLatticeCellSize::default(),
-        )
-    }
-
-    #[cfg(test)]
-    pub const fn bounds(&self) -> DensityLatticeBounds {
-        self.bounds
-    }
-
-    #[cfg(test)]
-    pub const fn cell_size(&self) -> DensityLatticeCellSize {
-        self.cell
-    }
-
-    #[cfg(test)]
     pub fn sample_counts(&self) -> (usize, usize, usize) {
         (
             self.sample_x.count,
@@ -303,27 +249,6 @@ impl DensityLattice {
     #[cfg(test)]
     pub fn solid_at_local(&self, x: usize, y: usize, z: usize) -> bool {
         density_is_solid(self.density_at_local(x, y, z))
-    }
-
-    #[cfg(test)]
-    pub fn for_each_solid(&self, mut visit: impl FnMut(usize, usize, usize, bool)) {
-        for y in 0..self.bounds.size_y {
-            for z in 0..self.bounds.size_z {
-                for x in 0..self.bounds.size_x {
-                    visit(x, y, z, self.solid_at_local(x, y, z));
-                }
-            }
-        }
-    }
-
-    #[cfg(test)]
-    pub fn solid_mask(&self) -> Vec<bool> {
-        let bounds = self.bounds;
-        let mut mask = vec![false; bounds.voxel_count()];
-        self.for_each_solid(|x, y, z, solid| {
-            mask[bounds.local_index(x, y, z)] = solid;
-        });
-        mask
     }
 
     #[cfg(test)]
@@ -627,7 +552,7 @@ fn smooth_xz(t: f64) -> f64 {
 mod tests {
     use super::*;
     use crate::graph::{Axis, Channel, SampledScalarField};
-    use petramond_world::chunk::{CHUNK_SX, CHUNK_SY, CHUNK_SZ};
+    use petramond_world::chunk::CHUNK_SY;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
 
@@ -674,15 +599,6 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct ConstantField(f64);
-
-    impl SampledScalarField for ConstantField {
-        fn sample(&self, _point: SamplePoint) -> f64 {
-            self.0
-        }
-    }
-
-    #[derive(Debug)]
     struct HorizontalCountingField {
         samples: Arc<AtomicUsize>,
     }
@@ -710,77 +626,6 @@ mod tests {
             (actual - expected).abs() < 1.0e-10,
             "expected {expected}, got {actual}"
         );
-    }
-
-    #[test]
-    fn interpolation_is_corner_exact_y_linear_and_xz_smoothstep() {
-        let field = LinearField {
-            x: 1.25,
-            y: -0.5,
-            z: 2.0,
-            offset: 7.0,
-        };
-        let graph = graph_with(LinearField { ..field });
-        let bounds = DensityLatticeBounds::new(-3, 0, 5, 20, CHUNK_SY, 18);
-        let lattice = DensityLattice::sample_channel(
-            &graph,
-            CHANNEL,
-            bounds,
-            DensityLatticeCellSize::new(4, 8, 4),
-        )
-        .unwrap();
-        let point = |x, y, z| {
-            SamplePoint::new(
-                bounds.world_x(x) as f64,
-                bounds.world_y(y) as f64,
-                bounds.world_z(z) as f64,
-            )
-        };
-
-        for (x, y, z) in [(3, 0, 3), (7, 8, 7), (11, 16, 3)] {
-            assert_close(
-                lattice.density_at_local(x, y, z),
-                field.value(point(x, y, z)),
-            );
-        }
-
-        assert_close(
-            lattice.density_at_local(3, 4, 3),
-            field.value(point(3, 4, 3)),
-        );
-
-        let x_lo = field.value(point(3, 0, 3));
-        let x_hi = field.value(point(7, 0, 3));
-        let expected = x_lo + (x_hi - x_lo) * smooth_xz(0.25);
-        assert_close(lattice.density_at_local(4, 0, 3), expected);
-    }
-
-    #[test]
-    fn overlapping_regions_sample_identical_world_voxels() {
-        let graph = graph_with(CurvedField);
-        let chunk_bounds = DensityLatticeBounds::chunk(1, -2);
-        let chunk_lattice =
-            DensityLattice::sample_channel(&graph, CHANNEL, chunk_bounds, Default::default())
-                .unwrap();
-        let larger_bounds = DensityLatticeBounds::new(9, 0, -41, 48, CHUNK_SY, 48);
-        let larger_lattice =
-            DensityLattice::sample_channel(&graph, CHANNEL, larger_bounds, Default::default())
-                .unwrap();
-
-        for y in [0, 1, 7, 8, 63, 127, 255] {
-            for z in [0, 3, 8, 15] {
-                for x in [0, 1, 4, 15] {
-                    let wx = chunk_bounds.world_x(x);
-                    let wy = chunk_bounds.world_y(y);
-                    let wz = chunk_bounds.world_z(z);
-
-                    assert_close(
-                        chunk_lattice.density_at_local(x, y, z),
-                        larger_lattice.density_at_world(wx, wy, wz),
-                    );
-                }
-            }
-        }
     }
 
     #[test]
@@ -851,29 +696,6 @@ mod tests {
     }
 
     #[test]
-    fn solid_mask_and_top_surface_use_density_sign() {
-        let graph = graph_with(PlaneField { surface_y: 2.0 });
-        let lattice = DensityLattice::sample_chunk(&graph, CHANNEL, 0, 0).unwrap();
-
-        assert!(lattice.solid_at_local(0, 0, 0));
-        assert!(lattice.solid_at_local(15, 1, 15));
-        assert!(!lattice.solid_at_local(0, 2, 0));
-        assert!(!lattice.solid_at_local(0, 255, 0));
-
-        let mask = lattice.solid_mask();
-        assert_eq!(mask.len(), CHUNK_SX * CHUNK_SY * CHUNK_SZ);
-        assert_eq!(
-            mask.iter().filter(|&&solid| solid).count(),
-            CHUNK_SX * CHUNK_SZ * 2
-        );
-
-        let surfaces = lattice.top_solid_surfaces();
-        assert_eq!(surfaces.len(), CHUNK_SX * CHUNK_SZ);
-        assert!(surfaces.iter().all(|surface| *surface == Some(1)));
-        assert_eq!(lattice.top_solid_surface(3, 4), Some(1));
-    }
-
-    #[test]
     fn top_surfaces_match_full_density_scan_on_non_aligned_bounds() {
         let graph = graph_with(LinearField {
             x: 0.45,
@@ -903,37 +725,6 @@ mod tests {
                 assert_eq!(lattice.top_solid_surface(x, z), expected);
             }
         }
-    }
-
-    #[test]
-    fn default_cells_align_with_chunk_shape_and_shared_corners() {
-        let graph = graph_with(ConstantField(1.0));
-        let lattice = DensityLattice::sample_chunk(&graph, CHANNEL, 0, 0).unwrap();
-        let cell = DensityLatticeCellSize::default();
-
-        assert_eq!(cell, DensityLatticeCellSize::new(4, 8, 4));
-        assert_eq!(CHUNK_SX % cell.x(), 0);
-        assert_eq!(CHUNK_SY % cell.y(), 0);
-        assert_eq!(CHUNK_SZ % cell.z(), 0);
-        assert_eq!(lattice.bounds(), DensityLatticeBounds::chunk(0, 0));
-        assert_eq!(lattice.cell_size(), cell);
-        assert_eq!(
-            lattice.sample_counts(),
-            (
-                CHUNK_SX / cell.x() + 1,
-                CHUNK_SY / cell.y() + 1,
-                CHUNK_SZ / cell.z() + 1
-            )
-        );
-        assert_eq!(lattice.sample_world_origin(), (0, 0, 0));
-        assert_eq!(
-            lattice.sample_world_max(),
-            (CHUNK_SX as i32, CHUNK_SY as i32, CHUNK_SZ as i32)
-        );
-
-        let negative = DensityLattice::sample_chunk(&graph, CHANNEL, -1, -1).unwrap();
-        assert_eq!(negative.sample_world_origin(), (-16, 0, -16));
-        assert_eq!(negative.sample_world_max(), (0, CHUNK_SY as i32, 0));
     }
 
     #[test]

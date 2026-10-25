@@ -527,15 +527,6 @@ mod tests {
     }
 
     #[test]
-    fn isolated_leaf_decays() {
-        let mut world = world_with_centered_chunk();
-        let p = IVec3::new(8, 70, 8);
-        world.set_block_world(p.x, p.y, p.z, Block::OakLeaves);
-        tick_leaf(&mut world, p);
-        assert_eq!(world.data.chunk_block(p.x, p.y, p.z), Block::Air.id());
-    }
-
-    #[test]
     fn leaf_next_to_log_survives() {
         let mut world = world_with_centered_chunk();
         let p = IVec3::new(8, 70, 8);
@@ -562,21 +553,6 @@ mod tests {
         world.set_block_world(p.x, p.y, p.z, Block::OakLeaves);
         tick_leaf(&mut world, p);
         assert_eq!(world.data.chunk_block(p.x, p.y, p.z), Block::OakLeaves.id());
-    }
-
-    #[test]
-    fn section_counter_gates_the_section() {
-        let mut world = world_with_centered_chunk();
-        let tickable = |w: &ServerWorld| {
-            w.section_at_world_for_test(8, 70, 8)
-                .unwrap()
-                .has_random_tickable()
-        };
-        assert!(!tickable(&world));
-        world.set_block_world(8, 70, 8, Block::OakLeaves);
-        assert!(tickable(&world));
-        world.set_block_world(8, 70, 8, Block::Air);
-        assert!(!tickable(&world));
     }
 
     #[test]

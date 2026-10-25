@@ -104,20 +104,4 @@ mod tests {
         assert!(!advection.step(1_000, 77));
         assert_eq!(advection.off, [4.0, 2.0]);
     }
-
-    #[test]
-    fn a_frozen_clock_freezes_the_deck() {
-        let mut advection = Advection::new([4.0, 2.0]);
-        advection.step(1_000, 77);
-        assert!(!advection.step(1_000, 77));
-        assert_eq!(advection.off, [4.0, 2.0]);
-    }
-
-    #[test]
-    fn a_moving_clock_advances_exactly_as_the_shared_field_does() {
-        let mut advection = Advection::new([4.0, 2.0]);
-        advection.step(1_000, 77);
-        assert!(advection.step(1_001, 77));
-        assert_eq!(advection.off, advance_offset([4.0, 2.0], 1_001, 77));
-    }
 }

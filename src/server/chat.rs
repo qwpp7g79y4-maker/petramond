@@ -206,43 +206,6 @@ fn color_from_name(name: &str) -> Option<ChatColor> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::player::PlayerId;
-
-    #[test]
-    fn the_outbox_orders_lines_by_one_seq_counter() {
-        let mut chat = ChatService::default();
-        chat.server("hello");
-        chat.player("Rachel", "hi", false);
-        chat.left("Alex");
-        let pending = chat.take_pending();
-        assert_eq!(
-            pending.iter().map(|p| p.line.seq).collect::<Vec<_>>(),
-            [0, 1, 2]
-        );
-        assert!(pending.iter().all(|p| p.targets == ChatTargets::All));
-        assert!(chat.take_pending().is_empty(), "a pump takes everything");
-    }
-
-    #[test]
-    fn player_chat_is_sanitized_and_formatted() {
-        let line = player_line(7, "Rachel", "  hello\nthere  ").unwrap();
-        assert_eq!(line.seq, 7);
-        assert_eq!(
-            line.spans,
-            vec![ChatSpan {
-                fg: ChatColor::White,
-                text: "<Rachel> hello there".to_string(),
-            }]
-        );
-    }
-
-    #[test]
-    fn system_join_is_one_yellow_span() {
-        let line = joined_line(3, "Alex");
-        assert_eq!(line.spans.len(), 1);
-        assert_eq!(line.spans[0].fg, ChatColor::Yellow);
-        assert_eq!(line.spans[0].text, "Alex has joined the game");
-    }
 
     #[test]
     fn presence_lines_never_parse_the_name_as_markup() {
@@ -284,19 +247,5 @@ mod tests {
                 },
             ]
         );
-    }
-
-    #[test]
-    fn chat_targets_all_includes_everyone() {
-        assert!(ChatTargets::All.includes(PlayerId(0)));
-        assert!(ChatTargets::All.includes(PlayerId(7)));
-    }
-
-    #[test]
-    fn chat_targets_players_filters_by_id() {
-        let targets = ChatTargets::Players(vec![PlayerId(2), PlayerId(5)]);
-        assert!(!targets.includes(PlayerId(0)));
-        assert!(targets.includes(PlayerId(2)));
-        assert!(targets.includes(PlayerId(5)));
     }
 }

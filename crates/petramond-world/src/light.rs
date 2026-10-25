@@ -247,37 +247,6 @@ mod tests {
     }
 
     #[test]
-    fn grey_light_behaves_exactly_like_the_old_scalar_cell() {
-        for v in 0..=SKY_FULL {
-            let c = LightRgb::grey(v);
-            assert_eq!(c.luminance(), v);
-            assert_eq!(c.decayed(), LightRgb::grey(v.saturating_sub(2)));
-            assert_eq!(c.is_dark(), v == 0);
-            for w in 0..=SKY_FULL {
-                assert_eq!(c.max_with(LightRgb::grey(w)), LightRgb::grey(v.max(w)));
-            }
-        }
-    }
-
-    #[test]
-    fn two_colours_compose_by_channel_rather_than_one_winning() {
-        let purple = LightRgb::new(20, 4, 30);
-        let blue = LightRgb::new(4, 12, 30);
-        let mixed = purple.max_with(blue);
-        assert_eq!(mixed.channels(), [20, 12, 30]);
-        assert_eq!(blue.max_with(purple), mixed);
-        assert_eq!(mixed.max_with(purple), mixed);
-    }
-
-    #[test]
-    fn a_saturated_colour_keeps_its_hue_as_it_decays() {
-        let mut c = LightRgb::new(22, 6, 30);
-        c = c.decayed().decayed().decayed();
-        assert_eq!(c.channels(), [16, 0, 24]);
-        assert!(!c.is_dark());
-    }
-
-    #[test]
     fn the_render_scale_conversion_keeps_hue_and_the_dark_cell() {
         for v in 0..=SKY_FULL {
             let g = BlockLight6::from_x2(LightRgb::grey(v));

@@ -1,10 +1,5 @@
 use super::state::Player;
-#[cfg(test)]
-use petramond_math::math::IVec3;
 use petramond_world::block::Aabb;
-
-#[cfg(test)]
-const EPS: f64 = 1e-4;
 
 #[cfg(test)]
 const FULL_CUBE: &[Aabb] = &[Aabb {
@@ -76,25 +71,4 @@ impl Player {
         }
         travel.abs() + 1e-6 < delta.abs()
     }
-
-    #[cfg(test)]
-    pub fn intersects_block(&self, b: IVec3) -> bool {
-        let min = self.aabb_min();
-        let max = self.aabb_max();
-        (cell_min(min[0] as f32)..=cell_max(max[0] as f32)).contains(&b.x)
-            && (cell_min(min[1] as f32)..=cell_max(max[1] as f32)).contains(&b.y)
-            && (cell_min(min[2] as f32)..=cell_max(max[2] as f32)).contains(&b.z)
-    }
-}
-
-#[cfg(test)]
-#[inline]
-fn cell_min(edge: f32) -> i32 {
-    (edge.next_up() as f64 + EPS).floor() as i32
-}
-
-#[cfg(test)]
-#[inline]
-fn cell_max(edge: f32) -> i32 {
-    (edge.next_down() as f64 - EPS).floor() as i32
 }

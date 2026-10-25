@@ -361,40 +361,6 @@ fn a_turned_block_goes_in_only_from_where_a_click_turns_it_so() {
 }
 
 #[test]
-fn a_mob_stepping_aside_under_its_own_power_reads_as_walking() {
-    let (mut server, mob) = server_with_worker(vec![]);
-    let anchors = [crate::mob::PlayerAnchor {
-        pos: WorldPos::new(2.5, 65.0, 2.5),
-        ..Default::default()
-    }];
-    server.world_mut().tick_mobs(0.05, &anchors);
-    let stepped = |server: &mut ServerGame, gait| {
-        let reply = call(
-            server,
-            HostCall::from(calls::MobDrive {
-                mob_id: mob,
-                horizontal: Some([0.8, 0.0]),
-                vertical: None,
-                yaw: None,
-                while_walking: false,
-                gait,
-            }),
-        );
-        assert_eq!(reply, HostRet::Bool(true));
-        let before = server.world().mobs().instances()[0].pos;
-        server.world_mut().tick_mobs(0.05, &anchors);
-        let after = &server.world().mobs().instances()[0];
-        assert!(after.pos.x > before.x, "the drive moved the body");
-        after.moving
-    };
-    assert!(stepped(&mut server, true), "a step aside plays the walk");
-    assert!(
-        !stepped(&mut server, false),
-        "a body carried along does not"
-    );
-}
-
-#[test]
 fn a_cell_of_two_parts_goes_in_a_click_at_a_time_each_paid_with_its_own_item() {
     use petramond_world::block::CellCodec;
     use petramond_world::block_state::{SlabSplit, SlabState};

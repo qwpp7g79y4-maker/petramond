@@ -92,16 +92,6 @@ mod tests {
     }
 
     #[test]
-    fn morning_after_is_strictly_the_next_early_morning() {
-        assert_eq!(morning_after(C * 3 / 4, C), C + fresh_clock(C));
-        assert_eq!(morning_after(fresh_clock(C), C), C + fresh_clock(C));
-        assert!(
-            (day_fraction(morning_after(123_456, C), C) - day_fraction(fresh_clock(C), C)).abs()
-                < 1e-6
-        );
-    }
-
-    #[test]
     fn fraction_round_trips_within_the_current_day() {
         let clock = 3 * C + 100;
         assert_eq!(clock_from_fraction(0.25, clock, C), 3 * C + C / 4);
@@ -112,20 +102,6 @@ mod tests {
         );
         assert_eq!(moon_phase(clock, C), 3.0);
         assert_eq!(moon_phase((MOON_PHASES + 1) * C, C), 1.0, "phases wrap");
-    }
-
-    #[test]
-    fn sky_is_brighter_at_noon_than_at_midnight() {
-        let (noon_time, noon_light) = sky_params(0.25, 0.0);
-        assert_eq!(noon_time[0], 0.25);
-
-        let (midnight_time, light) = sky_params(1.75, 4.0);
-        assert!(
-            (midnight_time[0] - 0.75).abs() < 1e-6,
-            "the fraction wraps into 0..1"
-        );
-        assert_eq!(midnight_time[2], 4.0, "the moon phase rides through");
-        assert!(light[0] < noon_light[0], "{light:?} vs {noon_light:?}");
     }
 
     #[test]

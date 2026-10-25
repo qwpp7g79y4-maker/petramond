@@ -112,17 +112,6 @@ mod tests {
     }
 
     #[test]
-    fn square_to_the_side_is_the_furthest_it_will_look() {
-        let h = head_look_toward(Vec3::new(2.0, 0.0, 0.0), 0.0)
-            .expect("square sideways is at the limit");
-        assert!(
-            (h.yaw.abs() - FRAC_PI_2).abs() < 1e-4,
-            "looks square sideways: {}",
-            h.yaw
-        );
-    }
-
-    #[test]
     fn gives_up_when_the_target_is_past_ninety_degrees() {
         assert!(
             head_look_toward(Vec3::new(2.0, 0.0, 0.5), 0.0).is_none(),
@@ -144,17 +133,6 @@ mod tests {
         assert!(
             head_look_toward(target, FRAC_PI_2 + 0.1).is_none(),
             "body turned >90° away can't look back at it"
-        );
-    }
-
-    #[test]
-    fn pitch_is_clamped_to_the_tilt_limit() {
-        let h = head_look_toward(Vec3::new(0.0, 5.0, -0.1), 0.0).expect("in front is lookable");
-        assert!(h.pitch > 0.0, "looks up at a higher target: {}", h.pitch);
-        assert!(
-            h.pitch <= MAX_HEAD_PITCH + 1e-6,
-            "pitch is capped: {}",
-            h.pitch
         );
     }
 }

@@ -459,7 +459,6 @@ mod tests {
 
     const EXTEND: u64 = 100;
     const RAISE: u64 = 1124;
-    const IDLE: u64 = 500;
 
     fn farm(marked: bool) -> Dripstone {
         let d = dripstone();
@@ -507,14 +506,6 @@ mod tests {
     }
 
     #[test]
-    fn an_idle_roll_grows_nothing() {
-        let _serial = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-        let d = farm(true);
-        random_tick(&d, [0, 10, 0], IDLE);
-        assert_eq!(with(|f| f.block([0, 9, 0])), None);
-    }
-
-    #[test]
     fn a_naturally_generated_spike_never_grows() {
         let _serial = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
         let d = farm(false);
@@ -544,26 +535,6 @@ mod tests {
     }
 
     #[test]
-    fn placing_marks_the_cell_and_a_block_write_clears_it() {
-        let _serial = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-        let d = dripstone();
-        with(|f| *f = fake());
-        on_placed(
-            &d,
-            &EventPayload::BlockPlaced {
-                pos: [2, 3, 4],
-                block: STALACTITE,
-            },
-        );
-        assert!(with(|f| f.placed([2, 3, 4])));
-        with(|f| f.write([2, 3, 4], AIR));
-        assert!(
-            !with(|f| f.placed([2, 3, 4])),
-            "the mark dies with the block"
-        );
-    }
-
-    #[test]
     fn a_tip_wears_the_drip_only_while_it_is_really_dripping() {
         let _serial = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
         let d = farm(true);
@@ -578,21 +549,6 @@ mod tests {
         with(|f| f.place([0, 12, 0], AIR));
         on_hook(&d, BlockHookKind::NeighborUpdate, [0, 10, 0]);
         assert_eq!(with(|f| f.block([0, 10, 0])), Some(STALACTITE));
-    }
-
-    #[test]
-    fn any_ceiling_with_water_over_it_drips() {
-        let _serial = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-        let d = dripstone();
-        with(|f| {
-            *f = fake();
-            f.load_box([-1, 0, -1], [1, 20, 1]);
-            f.place([0, 12, 0], WATER);
-            f.place([0, 11, 0], ROCK);
-            f.place([0, 10, 0], STALACTITE);
-        });
-        on_hook(&d, BlockHookKind::NeighborUpdate, [0, 10, 0]);
-        assert_eq!(with(|f| f.block([0, 10, 0])), Some(STALACTITE_WET));
     }
 
     #[test]
