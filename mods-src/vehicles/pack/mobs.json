@@ -62,7 +62,17 @@
         ]
       ],
       "data": {
-        "petramond:loot": "vehicles:boat_drops"
+        "petramond:loot": "vehicles:boat_drops",
+        "vehicles:hull": {
+          "item": "vehicles:boat",
+          "accel": 0.26,
+          "drag": 0.96,
+          "max_forward": 5.5,
+          "max_reverse": 1.8,
+          "turn_accel": 0.012,
+          "turn_drag": 0.85,
+          "oars": true
+        }
       }
     },
     {

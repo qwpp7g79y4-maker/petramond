@@ -2,7 +2,7 @@
   "name": "Vehicles",
   "id": "vehicles",
   "version": "0.1.0",
-  "description": "Rideable vehicles: a craftable wooden boat for water, and minecarts on rails \u2014 plain rails, booster rails, curves and slopes \u2014 for land.",
+  "description": "Rideable vehicles: a craftable wooden rowboat for water, and minecarts on rails \u2014 plain rails, booster rails, curves and slopes \u2014 for land.",
   "summary": "Adds rideable vehicles.",
   "icon": "icon.png",
   "wasm": "mod.wasm"

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use mod_sdk::*;
+use serde::Deserialize;
 
 use crate::keys;
 
@@ -32,12 +33,6 @@ const NUDGE_OFFSETS: [(i32, i32); 25] = [
     (2, 2),
 ];
 
-const ACCEL: f32 = 0.26;
-const DRAG: f32 = 0.96;
-const MAX_FORWARD: f32 = 5.5;
-const MAX_REVERSE: f32 = 1.8;
-const TURN_ACCEL: f32 = 0.012;
-const TURN_DRAG: f32 = 0.85;
 const INPUT_EPS: f32 = 0.1;
 const REST_SPEED: f32 = 0.01;
 const REST_YAW_VEL: f32 = 0.001;
@@ -57,7 +52,30 @@ pub(crate) fn wrap_yaw(yaw: f32) -> f32 {
 const STROKE_SECONDS: f32 = 1.5;
 const SETTLE_RATE: f32 = 0.75;
 
+/// A hull's handling, from its mob row's `vehicles:hull` data: the item that launches it,
+/// how it takes way and turns, and whether it rows.
+#[derive(Deserialize, Clone, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct HullRow {
+    pub item: String,
+    pub accel: f32,
+    pub drag: f32,
+    pub max_forward: f32,
+    pub max_reverse: f32,
+    pub turn_accel: f32,
+    pub turn_drag: f32,
+    #[serde(default)]
+    pub oars: bool,
+}
+
+struct Hull {
+    kind: MobId,
+    item: ItemId,
+    row: HullRow,
+}
+
 struct Boat {
+    kind: MobId,
     riders: Vec<PlayerId>,
     speed: f32,
     yaw: f32,
@@ -67,8 +85,9 @@ struct Boat {
 }
 
 impl Boat {
-    fn new(yaw: f32) -> Self {
+    fn new(kind: MobId, yaw: f32) -> Self {
         Self {
+            kind,
             riders: Vec::new(),
             speed: 0.0,
             yaw: wrap_yaw(yaw),
@@ -81,23 +100,31 @@ impl Boat {
 
 #[derive(Default)]
 pub struct Boats {
-    boat_item: Option<ItemId>,
-    boat_kind: Option<MobId>,
+    hulls: Vec<Hull>,
     water: Option<BlockId>,
     boats: BTreeMap<u64, Boat>,
 }
 
 impl Boats {
     pub fn init(&mut self) {
-        self.boat_item = resolve_item_logged(keys::BOAT_ITEM);
-        self.boat_kind = resolve_mob_logged(keys::BOAT_MOB);
         self.water = resolve_block_logged(keys::WATER);
+        self.hulls = mobs_with_data_as::<HullRow>(keys::HULL_DATA)
+            .into_iter()
+            .filter_map(|(kind, row)| {
+                let item = resolve_item_logged(&row.item)?;
+                Some(Hull { kind, item, row })
+            })
+            .collect();
+    }
+
+    fn hull(&self, kind: MobId) -> Option<&Hull> {
+        self.hulls.iter().find(|h| h.kind == kind)
     }
 
     pub fn on_item_use(&mut self, item: ItemId, target: Option<[i32; 3]>) -> Outcome {
-        if Some(item) != self.boat_item {
+        let Some(hull) = self.hulls.iter().find(|h| h.item == item) else {
             return Outcome::Continue;
-        }
+        };
         let (Some(pos), Some(water)) = (target, self.water) else {
             return Outcome::Continue;
         };
@@ -109,30 +136,33 @@ impl Boats {
         if !consume_held(item, 1) {
             return Outcome::Continue;
         }
+        let mob_key = mob_names(vec![hull.kind]).pop().flatten();
         let player = player_state();
         let yaw = player.yaw + std::f32::consts::PI;
-        let spawned = NUDGE_OFFSETS.iter().find_map(|&(dx, dz)| {
-            let c = [pos[0] + dx, pos[1], pos[2] + dz];
-            if (dx != 0 || dz != 0)
-                && (get_block(c) != Some(water)
-                    || get_block([c[0], c[1] + 1, c[2]]) != Some(BlockId::AIR))
-            {
-                return None;
-            }
-            let feet = [c[0] as f64 + 0.5, c[1] as f64 + 0.9, c[2] as f64 + 0.5];
-            spawn_mob_checked(keys::BOAT_MOB, feet, yaw)
+        let spawned = mob_key.as_deref().and_then(|key| {
+            NUDGE_OFFSETS.iter().find_map(|&(dx, dz)| {
+                let c = [pos[0] + dx, pos[1], pos[2] + dz];
+                if (dx != 0 || dz != 0)
+                    && (get_block(c) != Some(water)
+                        || get_block([c[0], c[1] + 1, c[2]]) != Some(BlockId::AIR))
+                {
+                    return None;
+                }
+                let feet = [c[0] as f64 + 0.5, c[1] as f64 + 0.9, c[2] as f64 + 0.5];
+                spawn_mob_checked(key, feet, yaw)
+            })
         });
         if spawned.is_none() {
-            give_item(keys::BOAT_ITEM, 1);
+            give_item(&hull.row.item, 1);
         }
         Outcome::Cancel
     }
 
     pub fn on_interact_mob(&mut self, mob_id: u64, kind: MobId, player: PlayerId) -> Outcome {
-        if Some(kind) != self.boat_kind {
+        if self.hull(kind).is_none() {
             return Outcome::Continue;
         }
-        if self.board(mob_id, player) {
+        if self.board(mob_id, kind, player) {
             Outcome::Cancel
         } else {
             Outcome::Continue
@@ -147,7 +177,7 @@ impl Boats {
         }
     }
 
-    fn board(&mut self, mob_id: u64, player_id: PlayerId) -> bool {
+    fn board(&mut self, mob_id: u64, kind: MobId, player_id: PlayerId) -> bool {
         let Some(seat) = mob_riders(mob_id).and_then(|seats| seats.first_free_seat()) else {
             return false;
         };
@@ -161,7 +191,7 @@ impl Boats {
                 .find(|m| m.id == mob_id)
                 .map(|m| m.yaw)
                 .unwrap_or(0.0);
-            Boat::new(yaw)
+            Boat::new(kind, yaw)
         });
         boat.riders.push(player_id);
         true
@@ -170,56 +200,31 @@ impl Boats {
     pub fn tick(&mut self) {
         let mut retired: Vec<u64> = Vec::new();
         for (&id, boat) in self.boats.iter_mut() {
+            let Some(row) = self
+                .hulls
+                .iter()
+                .find(|h| h.kind == boat.kind)
+                .map(|h| &h.row)
+            else {
+                retired.push(id);
+                continue;
+            };
             let input = boat.riders.first().and_then(|&driver| player_input(driver));
             let (forward, strafe) = input.map_or((0.0, 0.0), |i| (i.forward, i.strafe));
+            let facing = mob_facing_xz(boat.yaw);
 
-            boat.speed = ((boat.speed + forward * ACCEL) * DRAG).clamp(-MAX_REVERSE, MAX_FORWARD);
-            boat.yaw_vel = (boat.yaw_vel - strafe * TURN_ACCEL) * TURN_DRAG;
+            let speed = boat.speed + forward * row.accel;
+            boat.speed = (speed * row.drag).clamp(-row.max_reverse, row.max_forward);
+            boat.yaw_vel = (boat.yaw_vel - strafe * row.turn_accel) * row.turn_drag;
             boat.yaw = wrap_yaw(boat.yaw + boat.yaw_vel);
 
-            let facing = mob_facing_xz(boat.yaw);
             let vel = [facing[0] * boat.speed, facing[1] * boat.speed];
             if !mob_drive(id, vel, Some(boat.yaw)) {
                 retired.push(id);
                 continue;
             }
-
-            // Oars follow the input. Turning left rows only the right oar, turning right only the
-            // left, forward both, reverse both backwards. Let go and it eases back to rest
-            // (`steer_oar`). The anims are started once and left running, and we steer them purely
-            // through playback.
-            if !boat.oars_active {
-                boat.oars_active = ensure_oars(id);
-            }
-            if boat.oars_active {
-                let (left_held, right_held) = (strafe < -INPUT_EPS, strafe > INPUT_EPS);
-                let forward_held = forward.abs() > INPUT_EPS;
-                let dir = if forward < -INPUT_EPS { -1.0 } else { 1.0 };
-                let right = if left_held || (forward_held && !right_held) {
-                    dir
-                } else {
-                    0.0
-                };
-                let left = if right_held || (forward_held && !left_held) {
-                    dir
-                } else {
-                    0.0
-                };
-                for (slot, (name, desired)) in [("row_left", left), ("row_right", right)]
-                    .into_iter()
-                    .enumerate()
-                {
-                    if boat.oar_steered[slot] == Some(desired) {
-                        continue;
-                    }
-                    if !steer_oar(id, name, desired) {
-                        deactivate_oars(id);
-                        boat.oars_active = false;
-                        boat.oar_steered = [None; 2];
-                        break;
-                    }
-                    boat.oar_steered[slot] = Some(desired);
-                }
+            if row.oars {
+                row_oars(id, boat, forward, strafe);
             }
 
             if boat.riders.is_empty()
@@ -232,6 +237,46 @@ impl Boats {
         for id in retired {
             self.boats.remove(&id);
         }
+    }
+}
+
+/// Oars follow the input. Turning left rows only the right oar, turning right only the left,
+/// forward both, reverse both backwards. Let go and it eases back to rest (`steer_oar`). The
+/// anims are started once and left running, and steered purely through playback.
+fn row_oars(id: u64, boat: &mut Boat, forward: f32, strafe: f32) {
+    if !boat.oars_active {
+        boat.oars_active = ensure_oars(id);
+    }
+    if !boat.oars_active {
+        return;
+    }
+    let (left_held, right_held) = (strafe < -INPUT_EPS, strafe > INPUT_EPS);
+    let forward_held = forward.abs() > INPUT_EPS;
+    let dir = if forward < -INPUT_EPS { -1.0 } else { 1.0 };
+    let right = if left_held || (forward_held && !right_held) {
+        dir
+    } else {
+        0.0
+    };
+    let left = if right_held || (forward_held && !left_held) {
+        dir
+    } else {
+        0.0
+    };
+    for (slot, (name, desired)) in [("row_left", left), ("row_right", right)]
+        .into_iter()
+        .enumerate()
+    {
+        if boat.oar_steered[slot] == Some(desired) {
+            continue;
+        }
+        if !steer_oar(id, name, desired) {
+            deactivate_oars(id);
+            boat.oars_active = false;
+            boat.oar_steered = [None; 2];
+            break;
+        }
+        boat.oar_steered[slot] = Some(desired);
     }
 }
 

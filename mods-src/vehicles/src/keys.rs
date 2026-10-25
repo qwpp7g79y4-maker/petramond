@@ -1,8 +1,7 @@
 use crate::rail::{Axis, Corner, Dir, Form};
 
 mod_sdk::pack_keys! {
-    pub BOAT_ITEM: Item = "vehicles:boat";
-    pub BOAT_MOB: Mob = "vehicles:boat";
+    pub HULL_DATA: Data = "vehicles:hull";
     pub MINECART_ITEM: Item = "vehicles:minecart";
     pub MINECART_MOB: Mob = "vehicles:minecart";
     pub CART_TAG: MobTag = "vehicles:cart";

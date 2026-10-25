@@ -44,6 +44,11 @@ impl FieldFeed {
         self.row.map(|row| row.params)
     }
 
+    /// The wind the weather mod blows, xz blocks/s.
+    pub fn wind(&self) -> Option<[f32; 2]> {
+        self.row.map(|row| row.wind)
+    }
+
     pub fn params_at(&self, clock: u64) -> Option<FieldParams> {
         self.row.map(|row| row.params_at(clock))
     }
