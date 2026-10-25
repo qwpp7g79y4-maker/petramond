@@ -201,7 +201,10 @@ impl ServerWorld {
         want.writes
             .iter()
             .find(|w| w.cell == want.anchor)
-            .is_some_and(|w| self.data.placement_support_ok(w.block, want.anchor))
+            .is_some_and(|w| {
+                self.data
+                    .placement_support_ok(w.block, w.state, want.anchor)
+            })
     }
 
     fn click_outcome(

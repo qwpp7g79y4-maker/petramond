@@ -284,6 +284,7 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::UndergroundBiomeLeaves", &HostCall::from(calls::UndergroundBiomeLeaves {
         lo: [1, -2, 3], hi: [4, 5, -6], biome: 7,
     }));
+    s.pin("HostCall::ResolveSurfaceBiome", &HostCall::from(calls::ResolveSurfaceBiome { key: "m:s".into() }));
     s.pin("HostRet::LeafMask", &HostRet::LeafMask(LeafMask {
         leaf: 8, min: [0, -1, 0], size: [1, 2, 1], bits: vec![0b10],
     }));
@@ -1144,6 +1145,8 @@ pub(super) fn samples() -> Samples {
         None,
     ]));
     s.pin("HostCall::LightAtMany", &HostCall::from(calls::LightAtMany { positions: vec![[1, 2, 3]] }));
+    s.pin("HostCall::SupportedAt", &HostCall::from(calls::SupportedAt { positions: vec![[1, 2, 3]] }));
+    s.pin("HostCall::BreakNaturally", &HostCall::from(calls::BreakNaturally { pos: [1, 2, 3] }));
     s.pin("HostCall::MobTagsGetMany", &HostCall::from(calls::MobTagsGetMany { mob_ids: vec![7] }));
     s.pin("HostCall::MobTagsWrite", &HostCall::from(calls::MobTagsWrite { writes: vec![MobTagOp::Delete { mob_id: 7, key: "m:k".into() }] }));
     s.pin("HostCall::MobDriveMany", &HostCall::from(calls::MobDriveMany { drives: vec![MobDriveData::horizontal(7, [1.0, 2.0], None)] }));

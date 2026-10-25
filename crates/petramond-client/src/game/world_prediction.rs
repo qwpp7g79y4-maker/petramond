@@ -549,12 +549,11 @@ impl Game {
         if !cur.is_replaceable() || cur == write_block {
             return Some(PlacePrediction::No);
         }
-        if !self
-            .replica
-            .world
-            .data()
-            .placement_support_ok(write_block, anchor)
-        {
+        if !self.replica.world.data().placement_support_ok(
+            write_block,
+            petramond_world::block::ShapeState::NONE,
+            anchor,
+        ) {
             return Some(PlacePrediction::No);
         }
         let (sim_boxes, render_boxes) = {

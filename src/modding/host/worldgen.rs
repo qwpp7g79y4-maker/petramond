@@ -8,6 +8,9 @@ pub(super) fn handle_worldgen_call(data: &mut ModStoreData, call: WorldgenCall) 
         WorldgenCall::ResolveUndergroundBiome { key } => {
             HostRet::MaybeByte(petramond_worldgen::data::underground::id_by_name(&key))
         }
+        WorldgenCall::ResolveSurfaceBiome { key } => {
+            HostRet::MaybeByte(petramond_world::biome::Biome::from_name(&key).map(|b| b.id()))
+        }
         WorldgenCall::UndergroundBiomeAt { positions } => {
             match batch_guard("UndergroundBiomeAt position", positions.len()) {
                 Some(err) => err,

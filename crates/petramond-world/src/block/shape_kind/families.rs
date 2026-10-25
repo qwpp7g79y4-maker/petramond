@@ -252,6 +252,7 @@ pub fn box_set_box(
     b.pose = d.pose;
     b.casts_ao = d.casts_ao;
     b.dyeable = d.dyeable;
+    b.self_lit = d.self_lit;
     if !d.occludes {
         b = b.as_face_carrier();
     }

@@ -51,7 +51,7 @@ use crate::vertex::BlockLightVertexExt;
 use glam::IVec3;
 use petramond_world::block::Block;
 
-use super::builder::{boundary_plane, face_axes, CornerLight};
+use super::builder::{boundary_plane, face_axes, self_lit_face, CornerLight};
 use super::face::{quad_ao, should_flip, Face, FaceShading, FACES};
 use super::plane::{cell_uv, FaceUvSpan, PlaneLight};
 use super::vertex::{pack_cell_uv, pack_normal_code, pack_vertex, Vertex, UV_MODE_CELL_LOCAL};
@@ -99,6 +99,8 @@ pub(super) trait BoxWorld {
     fn matter(&self, cell: IVec3, lo: [f32; 3], hi: [f32; 3]) -> bool;
 
     fn face_light(&self, face: Face, front: IVec3, plane: f32, smooth: bool) -> CornerLight;
+    /// The cell's own block emission, what a `self_lit` box lifts toward.
+    fn emission(&self) -> petramond_world::light::BlockLight6;
 }
 
 #[derive(Copy, Clone)]
@@ -286,6 +288,9 @@ pub(super) fn emit_box_set(
                     let (uu, vv) = style.texel_uv((u, v), span.fraction((u, v)));
                     uvs[ci] = (quant_uv(uu), quant_uv(vv));
                 }
+                if b.self_lit > 0.0 {
+                    self_lit_face(world.emission(), b.self_lit, &mut quad_ao, &mut light);
+                }
                 let start = vbuf.len() as u32;
                 let rot = usize::from(should_flip(quad_ao));
                 for k in 0..4usize {
@@ -380,6 +385,9 @@ fn emit_posed_face(
         let [u, v] = cell_uv(face, local[ci]);
         let (uu, vv) = style.texel_uv((u, v), span.fraction((u, v)));
         uvs[ci] = (quant_uv(uu), quant_uv(vv));
+    }
+    if b.self_lit > 0.0 {
+        self_lit_face(world.emission(), b.self_lit, &mut quad_ao, &mut light);
     }
     let start = vbuf.len() as u32;
     let rot = usize::from(should_flip(quad_ao));

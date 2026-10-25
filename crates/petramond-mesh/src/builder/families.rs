@@ -1,6 +1,7 @@
 use glam::IVec3;
 use petramond_world::block::{Block, PlantPlanes, ShapeBox};
 use petramond_world::chunk::SKY_FULL;
+use petramond_world::light::{BlockLight6, LightRgb};
 use petramond_world::tile::Tile;
 
 use super::super::boxset::{emit_box_set, snow_bed_boxes, BoxCell, BoxSetScratch, BoxWorld};
@@ -41,6 +42,11 @@ impl BoxWorld for CellBoxWorld<'_> {
 
     fn face_light(&self, face: Face, front: IVec3, plane: f32, smooth: bool) -> CornerLight {
         face_lighting(self.nb, face, front, plane, smooth)
+    }
+
+    fn emission(&self) -> BlockLight6 {
+        let [r, g, b] = self.block.light_emission_rgb();
+        BlockLight6::from_x2(LightRgb::new(r, g, b))
     }
 }
 

@@ -119,6 +119,15 @@ host_fn! {
 }
 
 host_fn! {
+    pub fn supported_at(positions: Vec<[i32; 3]>) -> Vec<bool>
+        => SupportedAt { positions } => Bools
+}
+
+host_fn! {
+    pub fn break_naturally(pos: [i32; 3]) -> bool => BreakNaturally { pos } => Bool
+}
+
+host_fn! {
     pub fn collision_shape_at(pos: [i32; 3]) -> Option<CollisionShape>
         => CollisionShapeAt { pos } => CollisionShape
 }

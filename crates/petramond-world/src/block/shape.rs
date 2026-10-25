@@ -169,6 +169,8 @@ pub struct ShapeBox {
     /// `false` = the cell's `petramond:tint` never reaches this box: a dyed
     /// flag colours its cloth, not the pole it hangs from.
     pub dyeable: bool,
+    /// `0..=1` lift of this box's faces toward the cell's own emission.
+    pub self_lit: f32,
     pub part: CellPart,
     /// Whether this box is MATTER — part of the block's body — rather than a
     /// bare carrier for a face. Matter shadows, blocks light, buries a
@@ -194,6 +196,7 @@ impl ShapeBox {
         ao_strength: 1.0,
         dyed: false,
         dyeable: true,
+        self_lit: 0.0,
         part: 0,
         occludes: true,
         casts_ao: true,
@@ -231,6 +234,7 @@ impl ShapeBox {
             ao_strength: 1.0,
             dyed: false,
             dyeable: true,
+            self_lit: 0.0,
             part: 0,
             occludes: true,
             casts_ao: true,

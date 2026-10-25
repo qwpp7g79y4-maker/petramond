@@ -35,6 +35,7 @@ impl BoxDef {
             double_sided: self.double_sided,
             casts_ao: self.casts_ao,
             dyeable: self.dyeable,
+            self_lit: self.self_lit,
             art_turns: std::array::from_fn(|i| self.art_turns[FACE_BEFORE_TURN[i]]),
             uv: std::array::from_fn(|i| self.uv[FACE_BEFORE_TURN[i]]),
             uv_turns: std::array::from_fn(|i| self.uv_turns[FACE_BEFORE_TURN[i]]),
@@ -57,6 +58,7 @@ impl BoxDef {
             double_sided: self.double_sided,
             casts_ao: self.casts_ao,
             dyeable: self.dyeable,
+            self_lit: self.self_lit,
             art_turns: std::array::from_fn(|i| self.art_turns[SWAP_Y[i]]),
             uv: std::array::from_fn(|i| self.uv[SWAP_Y[i]]),
             uv_turns: std::array::from_fn(|i| self.uv_turns[SWAP_Y[i]]),
@@ -65,6 +67,7 @@ impl BoxDef {
                 crate::block::BoxPose {
                     rotation: crate::mathh::Quat::from_xyzw(-q.x, q.y, -q.z, q.w),
                     origin: crate::mathh::Vec3::new(p.origin.x, 1.0 - p.origin.y, p.origin.z),
+                    at: crate::mathh::Vec3::new(p.at.x, 1.0 - p.at.y, p.at.z),
                 }
             }),
         }
@@ -202,12 +205,13 @@ mod tests {
             double_sided: true,
             casts_ao: true,
             dyeable: true,
+            self_lit: 0.0,
             art_turns: [0; 6],
             uv: [None; 6],
             uv_turns: [0; 6],
             pose: Some(crate::block::BoxPose::from_euler_degrees(
                 [45.0, 0.0, 0.0],
-                [0.5; 3],
+                [0.5, 0.125, 0.75],
             )),
         };
         let t = b.turned();

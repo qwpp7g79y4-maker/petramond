@@ -463,6 +463,11 @@ impl Block {
     }
 
     #[inline]
+    pub fn stacks(self) -> bool {
+        self.def().stacks
+    }
+
+    #[inline]
     pub fn roots_face(self) -> crate::block::RootsFace {
         self.def().roots_face
     }

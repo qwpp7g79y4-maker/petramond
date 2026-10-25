@@ -28,7 +28,7 @@ pub use cell_class::MeshRegistry;
 pub(super) use cube_face::face_axes;
 #[cfg(test)]
 pub(super) use lighting::corner_cast_probes;
-pub(super) use lighting::{boundary_plane, CornerLight};
+pub(super) use lighting::{boundary_plane, self_lit_face, CornerLight};
 pub use pad::SectionMeshPad;
 
 pub use closure_pad::WorldReads;

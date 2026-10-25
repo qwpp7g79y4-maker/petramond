@@ -16,6 +16,9 @@ host_fn! {
     pub fn current_tick() -> u64 => CurrentTick => U64
 }
 
+/// Seconds one game tick lasts: [`current_tick`] advances twenty times a second.
+pub const TICK_SECONDS: f32 = 0.05;
+
 host_fn! {
     pub fn rng_u64(stream_key: &str) -> u64 => RngU64 { stream_key: stream_key.into() } => U64
 }

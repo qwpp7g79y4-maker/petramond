@@ -78,8 +78,7 @@ fn a_box_set_derives_every_box_from_its_authored_shape() {
         let expect: Vec<_> = set
             .boxes(0, 0)
             .iter()
-            .filter(|d| d.collides)
-            .map(|d| d.aabb)
+            .filter_map(crate::block::shape_kind::BoxDef::collision_volume)
             .collect();
         assert_eq!(collision, expect, "{b:?} collides as its colliding boxes");
         if floor_fully_covered(set.boxes(0, 0)) {
@@ -95,7 +94,8 @@ fn floor_fully_covered(boxes: &[crate::block::shape_kind::BoxDef]) -> bool {
         (0..16).all(|tx| {
             let (x, z) = ((tx as f32 + 0.5) / 16.0, (tz as f32 + 0.5) / 16.0);
             boxes.iter().any(|d| {
-                d.aabb.min[1] <= 0.0
+                d.occludes
+                    && d.aabb.min[1] <= 0.0
                     && d.aabb.min[0] <= x
                     && x <= d.aabb.max[0]
                     && d.aabb.min[2] <= z

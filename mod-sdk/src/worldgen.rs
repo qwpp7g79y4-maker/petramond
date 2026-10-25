@@ -36,6 +36,11 @@ host_fn! {
 }
 
 host_fn! {
+    pub fn resolve_surface_biome(key: &str) -> Option<u8>
+        => ResolveSurfaceBiome { key: key.into() } => MaybeByte
+}
+
+host_fn! {
     pub fn underground_biome_at(positions: Vec<[i32; 3]>) -> Vec<u8>
         => UndergroundBiomeAt { positions } => UndergroundBiomes
 }

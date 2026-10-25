@@ -13,6 +13,7 @@ pub enum PackKeyKind {
     Recipe,
     RecipeClass,
     UndergroundBiome,
+    SurfaceBiome,
     ShaderParam,
     Tag,
     MobTag,

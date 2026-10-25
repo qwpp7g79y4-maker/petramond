@@ -1,6 +1,6 @@
 use super::data::WorldData;
 use crate::block::SupportDir;
-use crate::block::{Aabb, Block, CellPart, ShapeState};
+use crate::block::{Aabb, Block, CellPart, ShapeNeighborhood, ShapeState};
 use crate::block_state::{HeldBlockState, LogAxis, StairHalf};
 use crate::facing::Facing;
 use crate::item::ItemType;
@@ -380,17 +380,62 @@ pub fn validate_custom_plan(
     Some((anchor, write_block))
 }
 
+/// The world with one cell showing the block and state a placement is about to write, so the
+/// survival rule can judge the cell as placed: a wall torch's grip lives in its state.
+struct PlannedCell<'a> {
+    world: &'a WorldData,
+    pos: IVec3,
+    block: Block,
+    state: ShapeState,
+}
+
+impl ShapeNeighborhood for PlannedCell<'_> {
+    fn block(&self, pos: IVec3) -> Block {
+        if pos == self.pos {
+            self.block
+        } else {
+            self.world.physics_block(pos.x, pos.y, pos.z)
+        }
+    }
+
+    fn shape_state(&self, pos: IVec3) -> ShapeState {
+        if pos == self.pos {
+            self.state
+        } else {
+            ShapeNeighborhood::shape_state(self.world, pos)
+        }
+    }
+
+    fn baked(&self, pos: IVec3) -> Option<&[crate::block::ShapeRenderBox]> {
+        (pos != self.pos).then(|| self.world.baked(pos)).flatten()
+    }
+
+    fn baked_collision(&self, pos: IVec3) -> Option<&'static [Aabb]> {
+        (pos != self.pos)
+            .then(|| self.world.baked_collision(pos))
+            .flatten()
+    }
+}
+
 impl WorldData {
     pub fn fragile_supported(&self, pos: IVec3, block: Block) -> bool {
+        self.fragile_supported_in(self, pos, block)
+    }
+
+    /// [`fragile_supported`](Self::fragile_supported) with the cell itself read through `nb`.
+    fn fragile_supported_in(&self, nb: &dyn ShapeNeighborhood, pos: IVec3, block: Block) -> bool {
         // A shape whose support comes from its PLACEMENT answers where it
         // grips; the face-completeness test is then the shared one. No family
         // is named here, so a pack's wall lantern supports itself for free.
         let k = block.shape_kind_def();
-        if let Some(m) = k.sim.mount(&k.params, self, pos, block) {
+        if let Some(m) = k.sim.mount(&k.params, nb, pos, block) {
             return self.mount_face_complete(m.cell, m.normal);
         }
         let dir = block.support_dir();
         let s = dir.support_cell(pos);
+        if block.stacks() && self.physics_block(s.x, s.y, s.z) == block {
+            return true;
+        }
         match dir {
             SupportDir::Below => {
                 let ground = self.physics_block(s.x, s.y, s.z);
@@ -407,7 +452,7 @@ impl WorldData {
                 if block.roots_face() != crate::block::RootsFace::Any {
                     return self.roots_face_ok(block, crate::mathh::IVec3::Y, s, ground);
                 }
-                if crate::block::rests_flat_on_floor(self, pos, block) {
+                if crate::block::rests_flat_on_floor(nb, pos, block) {
                     return super::query::full_unit_cube(self.collision_boxes_at(s.x, s.y, s.z));
                 }
                 ground.is_opaque()
@@ -459,7 +504,7 @@ impl WorldData {
         boxes: &[Aabb],
         occupied: &mut dyn FnMut(IVec3, &[Aabb]) -> bool,
     ) -> Option<PlacementPlan> {
-        if !self.placement_support_ok(block, p) {
+        if !self.placement_support_ok(block, state, p) {
             return None;
         }
         let target = Block::from_id(self.chunk_block(p.x, p.y, p.z));
@@ -471,21 +516,37 @@ impl WorldData {
         }
         Some(PlacementPlan::single(p, block, state))
     }
-    pub fn placement_support_ok(&self, block: Block, p: IVec3) -> bool {
+    /// Whether `block` written at `p` with `state` would stand. A fragile row must pass the very
+    /// rule its block update applies, so a placement that would break at once is refused instead.
+    pub fn placement_support_ok(&self, block: Block, state: ShapeState, p: IVec3) -> bool {
+        // A block that holds a fluid takes it from the cell it replaces, so it
+        // never conjures that fluid in open air.
+        if block
+            .contained_fluid()
+            .is_some_and(|fluid| !self.is_fluid_source_world(p, fluid))
+        {
+            return false;
+        }
         let s = block.support_dir().support_cell(p);
         let ground = self.physics_block(s.x, s.y, s.z);
+        if block.stacks() && ground == block {
+            return true;
+        }
         if !block.can_root_on(ground) {
             return false;
         }
         if !self.roots_face_ok(block, p - s, s, ground) {
             return false;
         }
-        // A fragile row supported by a wall or ceiling has no substrate to gate on, since
-        // `roots_on` only names grounds. The two rules above would accept open air, and the
-        // fragile block update would then shatter the block on dispatch and eat the item.
-        // Gating on the fragile rule itself keeps placement and survival in agreement.
-        !(block.is_fragile()
-            && block.support_dir() != crate::block::SupportDir::Below
-            && !self.fragile_supported(p, block))
+        // The rules above accept grounds the fragile rule refuses (open air under a wall or
+        // ceiling row, water or glass under a plant); its block update would then shatter the
+        // block on dispatch and eat the item.
+        let planned = PlannedCell {
+            world: self,
+            pos: p,
+            block,
+            state,
+        };
+        !block.is_fragile() || self.fragile_supported_in(&planned, p, block)
     }
 }

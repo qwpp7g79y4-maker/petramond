@@ -325,6 +325,36 @@ pub(super) fn handle_block_call(mod_id: &str, call: BlockCall) -> HostRet {
                 }
             }))
         }),
+        BlockCall::SupportedAt { positions } => {
+            if let Some(err) = batch_guard("SupportedAt position", positions.len()) {
+                return err;
+            }
+            sim_read(|ctx| {
+                HostRet::Bools(
+                    positions
+                        .iter()
+                        .map(|&pos| {
+                            let p = IVec3::from(pos);
+                            ctx.world
+                                .block_if_stream_final(p.x, p.y, p.z)
+                                .is_none_or(|b| {
+                                    !b.is_fragile() || ctx.world.data().fragile_supported(p, b)
+                                })
+                        })
+                        .collect(),
+                )
+            })
+        }
+        BlockCall::BreakNaturally { pos } => sim_query(|ctx| {
+            let p = IVec3::from(pos);
+            match stream_final_cell(ctx, p) {
+                Ok(petramond_world::block::Block::Air) | Err(_) => HostRet::Bool(false),
+                Ok(_) => {
+                    ctx.world.break_block_naturally(p);
+                    HostRet::Bool(true)
+                }
+            }
+        }),
         BlockCall::LightAtMany { positions } => {
             if let Some(err) = batch_guard("LightAtMany position", positions.len()) {
                 return err;

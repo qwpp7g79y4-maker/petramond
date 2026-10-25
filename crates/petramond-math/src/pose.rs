@@ -2,10 +2,13 @@ use glam::{Quat, Vec3};
 
 use crate::detmath;
 
+/// An authored box rotated about its pivot `origin`, which lands on `at`. `at` leaves `origin`
+/// when the cell the box belongs to turns: the box swings round the cell's centre, not its pivot.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct BoxPose {
     pub rotation: Quat,
     pub origin: Vec3,
+    pub at: Vec3,
 }
 
 impl BoxPose {
@@ -15,17 +18,18 @@ impl BoxPose {
                 * detmath::quat_rotation_y(deg[1].to_radians())
                 * detmath::quat_rotation_x(deg[0].to_radians()),
             origin: Vec3::from(origin),
+            at: Vec3::from(origin),
         }
     }
 
     #[inline]
     pub fn apply(&self, p: Vec3) -> Vec3 {
-        self.origin + self.rotation * (p - self.origin)
+        self.at + self.rotation * (p - self.origin)
     }
 
     #[inline]
     pub fn unapply(&self, p: Vec3) -> Vec3 {
-        self.origin + self.rotation.inverse() * (p - self.origin)
+        self.origin + self.rotation.inverse() * (p - self.at)
     }
 
     #[inline]
@@ -36,7 +40,8 @@ impl BoxPose {
     pub fn turned(&self) -> Self {
         BoxPose {
             rotation: detmath::QUARTER_TURN_Y * self.rotation,
-            origin: Vec3::new(1.0 - self.origin.z, self.origin.y, self.origin.x),
+            at: Vec3::new(1.0 - self.at.z, self.at.y, self.at.x),
+            ..*self
         }
     }
 
@@ -159,27 +164,29 @@ mod tests {
 
     #[test]
     fn a_turned_pose_matches_turning_the_posed_points() {
-        let pose = BoxPose::from_euler_degrees([45.0, 0.0, 0.0], [0.5, 0.5, 0.5]);
         let turn = |p: Vec3| Vec3::new(1.0 - p.z, p.y, p.x);
-        for p in [
+        let points = [
             Vec3::new(0.1, 0.2, 0.3),
             Vec3::new(0.9, 0.5, 0.05),
             Vec3::new(0.0, 1.0, 1.0),
-        ] {
-            assert!(
-                close(pose.turned().apply(p), turn(pose.apply(p))),
-                "{p:?}: {:?} vs {:?}",
-                pose.turned().apply(p),
-                turn(pose.apply(p))
-            );
+        ];
+        for pivot in [[0.5, 0.5, 0.5], [0.5, 0.125, 0.75], [0.25, 0.5, 0.1]] {
+            let pose = BoxPose::from_euler_degrees([62.0, 30.0, 0.0], pivot);
+            let mut turned = pose;
+            let mut want: Vec<Vec3> = points.iter().map(|&p| pose.apply(p)).collect();
+            for quarter in 1..=4 {
+                turned = turned.turned();
+                want = want.into_iter().map(turn).collect();
+                for (&p, &w) in points.iter().zip(&want) {
+                    let got = turned.apply(p);
+                    assert!(
+                        close(got, w),
+                        "pivot {pivot:?}, {quarter} turns, {p:?}: {got:?} vs {w:?}"
+                    );
+                    assert!(close(turned.unapply(got), p));
+                }
+            }
         }
-        let four = pose.turned().turned().turned().turned();
-        let p = Vec3::new(0.3, 0.6, 0.8);
-        assert!(close(four.apply(p), pose.apply(p)));
-        let pivot = BoxPose::from_euler_degrees([0.0, 30.0, 0.0], [0.25, 0.5, 0.75]);
-        assert_eq!(pivot.turned().origin, Vec3::new(0.25, 0.5, 0.25));
-        let back = pivot.turned().turned().turned().turned();
-        assert_eq!(back.origin, pivot.origin);
     }
 
     #[test]

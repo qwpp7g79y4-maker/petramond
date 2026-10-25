@@ -224,13 +224,19 @@ impl ShapePlacement for ModelFamily {
         } else {
             p
         };
-        if !w.placement_support_ok(block, base) {
+        let footprint = crate::block_model::oriented_footprint_cells(base, kind, facing);
+        let base_state = footprint
+            .iter()
+            .find(|&&(c, _)| c == base)
+            .map_or(ShapeState::NONE, |&(_, offset)| {
+                crate::block_model::ModelCellState { offset, facing }.to_cell()
+            });
+        if !w.placement_support_ok(block, base_state, base) {
             return PlacementOutcome::Refused;
         }
         if !w.model_footprint_clear_facing(base, kind, facing) {
             return PlacementOutcome::Refused;
         }
-        let footprint = crate::block_model::oriented_footprint_cells(base, kind, facing);
         if footprint.iter().any(|&(c, off)| {
             occupied(
                 c,

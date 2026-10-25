@@ -236,6 +236,10 @@ pub struct BoxDef {
     pub double_sided: bool,
     pub casts_ao: bool,
     pub dyeable: bool,
+    /// `0..=1`: how far this box's faces are lifted toward the row's own
+    /// emission (and out of AO). A lantern's panes ARE the light, so their
+    /// recess must not shade them like any other pocket.
+    pub self_lit: f32,
     /// Per face: how many quarter turns the FRAME this face's art was authored
     /// in sits ahead of the box's own frame. `0` everywhere for an authored
     /// box (and for every turn of one, since a turn moves box and art

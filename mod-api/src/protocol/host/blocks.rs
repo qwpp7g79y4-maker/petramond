@@ -87,5 +87,17 @@ host_domain! {
         LightAtMany {
             positions: Vec<[i32; 3]>,
         } => legal(SERVER, Sim, Read),
+        /// Whether each cell's block is held where it stands by the world's support rule: a
+        /// fragile row by its declared support, every other block always. Unreadable cells
+        /// answer `true` (nothing to act on). → [`HostRet::Bools`](crate::HostRet::Bools).
+        SupportedAt {
+            positions: Vec<[i32; 3]>,
+        } => legal(SERVER, Sim, Read),
+        /// Breaks the cell the way the world does when a block loses its support: bare-hand drops,
+        /// and the block's residue (the fluid it held, the fluid it melts to) left in its place.
+        /// `false` = unreadable or empty. → [`HostRet::Bool`](crate::HostRet::Bool).
+        BreakNaturally {
+            pos: [i32; 3],
+        } => legal(SERVER, Sim, Write),
     }
 }

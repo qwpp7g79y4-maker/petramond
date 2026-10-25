@@ -23,6 +23,7 @@ const ROW_FIELDS: &[(&str, &str, PackKeyKind)] = &[
         "underground_biome",
         PackKeyKind::UndergroundBiome,
     ),
+    ("biomes", "biome", PackKeyKind::SurfaceBiome),
 ];
 
 const SKIPPED_DIRS: &[&str] = &[

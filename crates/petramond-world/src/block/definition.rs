@@ -44,6 +44,9 @@ pub(crate) struct BlockDef {
     pub support: SupportDir,
     pub roots_on: &'static [BlockTag],
     pub roots_face: RootsFace,
+    /// Held by a cell of its own row in its support direction (a kelp
+    /// segment standing on the one below), whatever that cell presents.
+    pub stacks: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

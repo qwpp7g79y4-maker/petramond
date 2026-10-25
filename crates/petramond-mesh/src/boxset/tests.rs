@@ -59,6 +59,9 @@ impl BoxWorld for OpenAir {
             [petramond_world::light::BlockLight6::DARK; 4],
         )
     }
+    fn emission(&self) -> petramond_world::light::BlockLight6 {
+        petramond_world::light::BlockLight6::DARK
+    }
 }
 
 fn plain(min: [f32; 3], max: [f32; 3]) -> ShapeBox {

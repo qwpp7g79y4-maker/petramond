@@ -73,5 +73,10 @@ host_domain! {
             hi: [i32; 3],
             biome: u8,
         } => legal(BESIDE_WORLD, Any, Read),
+        /// A surface biome's id by registry key (engine or pack row), as
+        /// [`WorldgenCall::SurfaceBiomeAt`] and dispatch columns report it.
+        ResolveSurfaceBiome {
+            key: String,
+        } => legal(EVERY, Any, Read),
     }
 }

@@ -204,7 +204,11 @@ impl ServerGame {
             Some(cur) if cur.is_replaceable() && cur != write_block => {}
             _ => return Some(None),
         }
-        if !self.world.data().placement_support_ok(write_block, anchor) {
+        if !self.world.data().placement_support_ok(
+            write_block,
+            petramond_world::block::ShapeState::NONE,
+            anchor,
+        ) {
             return Some(None);
         }
         let boxes = {

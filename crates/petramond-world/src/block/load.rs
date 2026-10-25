@@ -72,6 +72,8 @@ pub(super) struct RawBlockDef {
     pub roots_on: Vec<String>,
     #[serde(default, skip_serializing_if = "RootsFace::is_default")]
     pub roots_face: RootsFace,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub stacks: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -954,6 +956,7 @@ fn convert(
                 .collect::<Result<Vec<_>, String>>()?,
         ),
         roots_face: r.roots_face,
+        stacks: r.stacks,
     })
 }
 

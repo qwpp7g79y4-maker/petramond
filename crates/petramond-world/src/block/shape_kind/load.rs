@@ -155,10 +155,16 @@ fn box_list_key(boxes: &[BoxDef]) -> String {
             let pose = b.pose.map_or(String::new(), |p| {
                 let q = p.rotation.to_array().map(t);
                 let o = p.origin.to_array().map(t);
-                format!("@{}|{}", q.join(","), o.join(","))
+                let at = p.at.to_array().map(t);
+                format!("@{}|{}|{}", q.join(","), o.join(","), at.join(","))
             });
+            let self_lit = if b.self_lit > 0.0 {
+                format!("l{}", b.self_lit)
+            } else {
+                String::new()
+            };
             format!(
-                "{},{},{}-{},{},{}:{faces}{}{}{}{}{}{tiles}{uv}{pose}",
+                "{},{},{}-{},{},{}:{faces}{}{}{}{}{}{self_lit}{tiles}{uv}{pose}",
                 t(b.aabb.min[0]),
                 t(b.aabb.min[1]),
                 t(b.aabb.min[2]),
@@ -278,6 +284,8 @@ pub struct RawBox {
     pub casts_ao: bool,
     #[serde(default = "yes")]
     pub dyeable: bool,
+    #[serde(default)]
+    pub self_lit: f32,
 }
 
 fn yes() -> bool {
@@ -412,6 +420,9 @@ impl RawBox {
                 uv_turns[i] = (deg / 90) as u8;
             }
         }
+        if !(0.0..=1.0).contains(&self.self_lit) {
+            return Err(format!("box self_lit {} must be in 0..=1", self.self_lit));
+        }
         Ok(BoxDef {
             aabb: Aabb { min, max },
             faces,
@@ -421,6 +432,7 @@ impl RawBox {
             double_sided: self.double_sided,
             casts_ao: self.casts_ao,
             dyeable: self.dyeable,
+            self_lit: self.self_lit,
             art_turns: [0; 6],
             uv,
             uv_turns,

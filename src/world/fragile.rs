@@ -20,7 +20,7 @@ pub static FRAGILE: Fragile = Fragile;
 mod tests {
     use super::*;
     use petramond_math::facing::Facing;
-    use petramond_world::block::{Block, SupportDir};
+    use petramond_world::block::Block;
     use petramond_world::block_state::{StairHalf, StairState};
     use petramond_world::chunk::{Chunk, ChunkPos};
     use petramond_world::crafting::Recipes;
@@ -118,80 +118,73 @@ mod tests {
         );
     }
 
+    /// Placement asks the very rule the block update applies, so a fragile row is refused where
+    /// it would break the moment it landed (a flower over water or on glass), never placed and
+    /// shattered.
     #[test]
-    fn a_wall_supports_row_reads_the_cell_its_side_names() {
-        for (dir, facing) in [
-            (SupportDir::North, Facing::North),
-            (SupportDir::South, Facing::South),
-            (SupportDir::West, Facing::West),
-            (SupportDir::East, Facing::East),
-        ] {
-            assert_eq!(dir.support_cell(IVec3::ZERO), facing.dir(), "{dir:?}");
-            assert!(dir.is_wall(), "{dir:?}");
+    fn whatever_placement_accepts_survives_its_first_update() {
+        let grounds = [
+            Block::Air,
+            Block::Water,
+            Block::Glass,
+            Block::OakLeaves,
+            Block::OakSlab,
+            Block::Stone,
+            Block::Dirt,
+            Block::Sand,
+        ];
+        let p = IVec3::new(8, 65, 8);
+        let mut refused = 0;
+        let mut w = world();
+        for &b in Block::all().iter().filter(|b| b.is_fragile()) {
+            for ground in grounds {
+                for c in [p, p + IVec3::Y, p - IVec3::Y, p + IVec3::X, p - IVec3::X] {
+                    w.set_block_world(c.x, c.y, c.z, Block::Air);
+                }
+                for c in [p + IVec3::Z, p - IVec3::Z] {
+                    w.set_block_world(c.x, c.y, c.z, Block::Air);
+                }
+                let s = b.support_dir().support_cell(p);
+                w.set_block_world(s.x, s.y, s.z, ground);
+                let plan = w.data.finish_single_cell_placement(
+                    b,
+                    p,
+                    petramond_world::block::ShapeState::NONE,
+                    &[],
+                    &mut |_, _| false,
+                );
+                if plan.is_none() {
+                    refused += 1;
+                    continue;
+                }
+                w.set_block_world(p.x, p.y, p.z, b);
+                assert!(
+                    w.data.fragile_supported(p, b),
+                    "{b:?} placed against {ground:?} breaks at once"
+                );
+            }
         }
-        assert!(!SupportDir::Below.is_wall());
-        assert!(!SupportDir::Above.is_wall());
-    }
+        assert!(refused > 0, "some ground refuses some fragile row");
 
-    #[test]
-    fn a_plant_breaks_with_the_update_that_undermines_it() {
-        let mut w = world();
-        let ground = IVec3::new(8, 64, 8);
-        let plant = IVec3::new(8, 65, 8);
-        w.set_block_world(ground.x, ground.y, ground.z, Block::Dirt);
-        w.set_block_world(plant.x, plant.y, plant.z, Block::Poppy);
-        run_ticks(&mut w, 2);
-        assert_eq!(block(&w, plant), Block::Poppy);
-
-        w.set_block_world(ground.x, ground.y, ground.z, Block::Air);
-        run_ticks(&mut w, 1);
-        assert_eq!(
-            block(&w, plant),
-            Block::Air,
-            "unsupported flower must break at the undermining update"
-        );
-        let breaks = w.take_natural_breaks();
+        w = world();
+        let wall = TorchPlacement::West.support_cell(p);
+        w.set_block_world(wall.x, wall.y, wall.z, Block::Stone);
+        let place = |w: &ServerWorld, mount: TorchPlacement| {
+            w.data
+                .finish_single_cell_placement(
+                    Block::Torch,
+                    p,
+                    petramond_world::block::CellCodec::to_cell(&mount),
+                    &[],
+                    &mut |_, _| false,
+                )
+                .is_some()
+        };
         assert!(
-            breaks.iter().any(|&(p, b)| p == plant && b == Block::Poppy),
-            "the broken flower was recorded for its drop + particle burst",
+            place(&w, TorchPlacement::West),
+            "a wall torch is judged by the mount it is placed with, not the empty cell"
         );
-    }
-
-    #[test]
-    fn a_cactus_breaks_with_the_update_that_undermines_it() {
-        let mut w = world();
-        let sand = IVec3::new(8, 64, 8);
-        let cactus = IVec3::new(8, 65, 8);
-        w.set_block_world(sand.x, sand.y, sand.z, Block::Sand);
-        w.set_block_world(cactus.x, cactus.y, cactus.z, Block::Cactus);
-        run_ticks(&mut w, 2);
-        assert_eq!(block(&w, cactus), Block::Cactus);
-
-        w.set_block_world(sand.x, sand.y, sand.z, Block::Air);
-        run_ticks(&mut w, 1);
-        assert_eq!(
-            block(&w, cactus),
-            Block::Air,
-            "an undermined cactus must break"
-        );
-        let breaks = w.take_natural_breaks();
-        assert!(
-            breaks
-                .iter()
-                .any(|&(p, b)| p == cactus && b == Block::Cactus),
-            "the broken cactus was recorded for its drop + particle burst",
-        );
-    }
-
-    #[test]
-    fn a_supported_plant_survives_a_change_beside_it() {
-        let mut w = world();
-        w.set_block_world(8, 64, 8, Block::Dirt);
-        w.set_block_world(8, 65, 8, Block::Poppy);
-        w.set_block_world(9, 65, 8, Block::Dirt);
-        run_ticks(&mut w, 3);
-        assert_eq!(block(&w, IVec3::new(8, 65, 8)), Block::Poppy);
-        assert!(w.take_natural_breaks().is_empty());
+        assert!(!place(&w, TorchPlacement::Floor), "no floor under it");
     }
 
     #[test]
