@@ -62,6 +62,7 @@ version = "0.1.0"
 dependencies = [
  "mod-sdk",
  "pack-check",
+ "post-marker",
  "serde",
  "serde_json",
 ]

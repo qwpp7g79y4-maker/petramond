@@ -63,11 +63,19 @@ mod_sdk::pack_keys! {
     pub(crate) LIMESTONE: Block = "exploration:limestone";
     pub(crate) STAGHORN_CORAL: Block = "exploration:staghorn_coral";
     pub(crate) ANEMONE: Block = "exploration:anemone";
+    pub(crate) SEA_CAVE_LOOT: Loot = "exploration:sea_cave_cache";
+    pub(crate) WRECK_TREASURE: Loot = "exploration:wreck_treasure";
+    pub(crate) WRECK_SUPPLIES: Loot = "exploration:wreck_supplies";
+    pub(crate) RUIN_OFFERING: Loot = "exploration:ruin_offering";
+    pub(crate) LIGHTHOUSE_KEEPER: Loot = "exploration:lighthouse_keeper";
+    pub(crate) SEA_LANTERN: Block = "exploration:sea_lantern";
     pub(crate) CLAM: Block = "exploration:clam";
     pub(crate) CLAM_OPEN: Block = "exploration:clam_open";
     pub(crate) RIPENS: Behavior = "exploration:ripens";
     pub(crate) TAKE_OUT: Data = "exploration:take_out";
 
+    pub(crate) BEACH: SurfaceBiome = "petramond:beach";
+    pub(crate) SAND: Block = "petramond:sand";
 
     pub(crate) FISHING_ROD: Data = "exploration:fishing_rod";
     pub(crate) ROD_CAST: Sound = "exploration:rod_cast";
@@ -76,6 +84,14 @@ mod_sdk::pack_keys! {
     pub(crate) FISH_CATCH: Sound = "exploration:fish_catch";
     pub(crate) WATER_SPLASH: Emitter = "petramond:water_splash";
 }
+
+/// Corals that overgrow a warm ruin: each coral block with the fan that grows on it.
+pub(crate) const CORALS: [(&str, &str); 4] = [
+    (CORAL_BLOCK_PINK, CORAL_FAN_PINK),
+    (CORAL_BLOCK_ORANGE, CORAL_FAN_ORANGE),
+    (CORAL_BLOCK_PURPLE, CORAL_FAN_PURPLE),
+    (CORAL_BLOCK_BLUE, CORAL_FAN_BLUE),
+];
 
 pub(crate) const GLOWPODS: [&str; 2] = [GLOWPOD_TEAL, GLOWPOD_VIOLET];
 

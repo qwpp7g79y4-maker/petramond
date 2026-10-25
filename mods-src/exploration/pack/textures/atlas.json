@@ -285,6 +285,10 @@
       "file": "bobber.png"
     },
     {
+      "name": "exploration:sea_lantern",
+      "file": "sea_lantern.png"
+    },
+    {
       "name": "exploration:glowpod_amber",
       "file": "glowpod_amber.png"
     },

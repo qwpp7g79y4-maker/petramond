@@ -11,15 +11,20 @@ use mod_sdk::*;
 use crate::keys;
 
 pub mod flora;
+pub mod iceberg;
 pub mod kelp;
+pub mod lighthouse;
 pub mod reef;
 pub mod ripen;
+pub mod ruin;
+pub mod sea_cave;
 pub mod shoal;
 mod sited;
 mod sunken;
 pub mod take_out;
 pub mod trench;
 pub mod undercut;
+pub mod wreck;
 
 /// Resolved ids the ocean code writes and reads.
 pub struct Ocean {

@@ -344,6 +344,29 @@
       }
     },
     {
+      "type": "crafting",
+      "recipe": "exploration:sea_lantern",
+      "station": "petramond:crafting_table",
+      "ingredients": [
+        {
+          "item": "exploration:pearl",
+          "count": 2
+        },
+        {
+          "item": "exploration:glowpod_teal",
+          "count": 1
+        },
+        {
+          "item": "petramond:glass",
+          "count": 4
+        }
+      ],
+      "result": {
+        "item": "exploration:sea_lantern",
+        "count": 2
+      }
+    },
+    {
       "type": "processing",
       "recipe": "exploration:cook_lanternfish",
       "class": "petramond:smelting",

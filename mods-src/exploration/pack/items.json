@@ -919,6 +919,19 @@
       }
     },
     {
+      "item": "exploration:sea_lantern",
+      "key": "exploration:sea_lantern",
+      "name": "Sea Lantern",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:sea_lantern"
+    },
+    {
       "item": "exploration:reef_rock",
       "key": "exploration:reef_rock",
       "name": "Reef Rock",

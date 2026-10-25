@@ -20,6 +20,11 @@ use dripstone::Dripstone;
 const GEN_CAVERN: u32 = 1;
 const GEN_DRIPSTONE: u32 = 2;
 const GEN_OCEAN_FLORA: u32 = 3;
+const GEN_ICEBERG: u32 = 4;
+const GEN_SEA_CAVE: u32 = 5;
+const GEN_WRECK: u32 = 7;
+const GEN_RUIN: u32 = 8;
+const GEN_LIGHTHOUSE: u32 = 9;
 const GEN_SHOAL: u32 = 10;
 const HOOK_DRIPSTONE: u32 = 1;
 const HOOK_KELP: u32 = 2;
@@ -41,7 +46,12 @@ struct Exploration {
     content: Option<Content>,
     dripstone: Option<Dripstone>,
     ocean: Option<ocean::Ocean>,
+    icebergs: Option<ocean::iceberg::Icebergs>,
+    sea_caves: Option<ocean::sea_cave::SeaCaves>,
+    wrecks: Option<ocean::wreck::Wrecks>,
     shoals: Option<ocean::shoal::Shoals>,
+    ruins: Option<ocean::ruin::Ruins>,
+    lighthouses: Option<ocean::lighthouse::Lighthouses>,
     ripening: Option<ocean::ripen::Ripening>,
     taking_out: Option<ocean::take_out::TakingOut>,
     fishing: Option<fishing::Fishing>,
@@ -51,11 +61,43 @@ struct Exploration {
 impl Exploration {
     /// The site-placed sea structures, each registered when its content resolves.
     fn init_sea_structures(&mut self) {
+        if let Some(icebergs) = ocean::iceberg::Icebergs::new(ocean::iceberg::frozen_seas()) {
+            register_worldgen_feature(
+                WorldgenStage::Trees,
+                GEN_ICEBERG,
+                ocean::iceberg::GEN_FILTER,
+            );
+            self.icebergs = Some(icebergs);
+        }
+        if let Some(wrecks) = ocean::wreck::Wrecks::new() {
+            register_worldgen_feature(WorldgenStage::Trees, GEN_WRECK, ocean::wreck::GEN_FILTER);
+            self.wrecks = Some(wrecks);
+        }
         if let Some(shoals) = ocean::shoal::Look::resolve()
             .and_then(|look| ocean::shoal::Shoals::new(ocean::shoal::warm_seas(), look))
         {
             register_worldgen_feature(WorldgenStage::Trees, GEN_SHOAL, ocean::shoal::GEN_FILTER);
             self.shoals = Some(shoals);
+        }
+        if let Some(ruins) = ocean::ruin::Ruins::new() {
+            register_worldgen_feature(WorldgenStage::Trees, GEN_RUIN, ocean::ruin::GEN_FILTER);
+            self.ruins = Some(ruins);
+        }
+        if let Some(lights) = ocean::lighthouse::Lighthouses::new() {
+            register_worldgen_feature(
+                WorldgenStage::Trees,
+                GEN_LIGHTHOUSE,
+                ocean::lighthouse::GEN_FILTER,
+            );
+            self.lighthouses = Some(lights);
+        }
+        if let Some(caves) = ocean::sea_cave::SeaCaves::new() {
+            register_worldgen_feature(
+                WorldgenStage::Trees,
+                GEN_SEA_CAVE,
+                ocean::sea_cave::GEN_FILTER,
+            );
+            self.sea_caves = Some(caves);
         }
     }
 }
@@ -130,10 +172,30 @@ impl Mod for Exploration {
                 .map_or_else(GenOutput::default, |d| {
                     dripstone::gen::generate(d, ctx).into()
                 }),
+            GEN_WRECK => self
+                .wrecks
+                .as_mut()
+                .map_or_else(GenOutput::default, |w| w.generate(ctx)),
             GEN_SHOAL => self
                 .shoals
                 .as_mut()
                 .map_or_else(GenOutput::default, |s| s.generate(ctx)),
+            GEN_RUIN => self
+                .ruins
+                .as_mut()
+                .map_or_else(GenOutput::default, |r| r.generate(ctx)),
+            GEN_LIGHTHOUSE => self
+                .lighthouses
+                .as_mut()
+                .map_or_else(GenOutput::default, |l| l.generate(ctx)),
+            GEN_SEA_CAVE => self
+                .sea_caves
+                .as_mut()
+                .map_or_else(GenOutput::default, |c| c.generate(ctx)),
+            GEN_ICEBERG => self
+                .icebergs
+                .as_mut()
+                .map_or_else(GenOutput::default, |i| i.generate(ctx)),
             GEN_OCEAN_FLORA => self
                 .ocean
                 .as_ref()
