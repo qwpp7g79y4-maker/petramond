@@ -568,7 +568,7 @@ pub(super) fn samples() -> Samples {
             contact_damage: Some(PulseData { amount: 3, interval: 10 }),
             applies: Some(ConditionGrantData { condition: ConditionId(0), stage: 1, ticks: 120 }),
             clears: vec![ConditionId(1)], destroys_items: true,
-        }), replaceable: false, interaction: Some(crate::BlockUse::ToggleDoor),
+        }), medium: Some(BlockId(9)), replaceable: false, interaction: Some(crate::BlockUse::ToggleDoor),
     }))));
     s.pin("HostRet::HeldStack", &HostRet::HeldStack(Some(ItemStackData {
         item: "m:i".into(), count: 1, data: vec![("m:k".into(), vec![7])],
@@ -1161,6 +1161,7 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::MobTagsGetMany", &HostCall::from(calls::MobTagsGetMany { mob_ids: vec![7] }));
     s.pin("HostCall::MobTagsWrite", &HostCall::from(calls::MobTagsWrite { writes: vec![MobTagOp::Delete { mob_id: 7, key: "m:k".into() }] }));
     s.pin("HostCall::MobDriveMany", &HostCall::from(calls::MobDriveMany { drives: vec![MobDriveData::horizontal(7, [1.0, 2.0], None)] }));
+    s.pin("HostCall::MobSwimMany", &HostCall::from(calls::MobSwimMany { swims: vec![MobSwimData { mob_id: 7, to: [1.0, 2.0, 3.0], pace: 1.0 }] }));
     s.pin("HostCall::MobKinematicMany", &HostCall::from(calls::MobKinematicMany { poses: vec![MobKinematicData { mob_id: 7, pos: [1.0, 2.0, 3.0], yaw: 0.0, pitch: 0.0, roll: 0.0 }] }));
     s.pin("HostCall::MobAnimMany", &HostCall::from(calls::MobAnimMany { ops: vec![MobAnimOp::Set { mob_id: 7, anim: "a".into(), active: true }] }));
     s.pin("HostCall::MobRidersMany", &HostCall::from(calls::MobRidersMany { mob_ids: vec![7] }));

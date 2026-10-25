@@ -60,6 +60,16 @@ impl Mobs {
         })
     }
 
+    /// A swim destination for this tick; refused for a body that does not swim.
+    pub fn set_mob_swim(
+        &mut self,
+        id: MobId,
+        to: petramond_math::world_pos::WorldPos,
+        pace: f32,
+    ) -> bool {
+        self.mob_mut(id).is_some_and(|m| m.set_swim_to(to, pace))
+    }
+
     pub fn set_mob_kinematic(
         &mut self,
         id: MobId,

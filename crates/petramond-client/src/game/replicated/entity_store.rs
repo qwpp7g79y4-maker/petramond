@@ -131,8 +131,8 @@ impl AssignFrom for MobStateRow {
             yaw,
             tilt,
             anim_time,
-            moving,
-            idle_anim,
+            gait,
+            lean,
             head_yaw,
             head_pitch,
             hurt_timer,
@@ -152,8 +152,8 @@ impl AssignFrom for MobStateRow {
         self.yaw = *yaw;
         self.tilt.clone_from(tilt);
         self.anim_time = *anim_time;
-        self.moving = *moving;
-        self.idle_anim = *idle_anim;
+        self.gait = *gait;
+        self.lean = *lean;
         self.head_yaw = *head_yaw;
         self.head_pitch = *head_pitch;
         self.hurt_timer = *hurt_timer;

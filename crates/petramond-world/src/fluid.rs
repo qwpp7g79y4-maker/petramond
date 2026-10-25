@@ -19,6 +19,9 @@ pub enum Buoyancy {
     Swim,
     Surface,
     Neutral,
+    /// A heavy body: sinks to the floor and walks it. A drive's vertical speed swims it up or
+    /// down for that tick instead.
+    Sink,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]

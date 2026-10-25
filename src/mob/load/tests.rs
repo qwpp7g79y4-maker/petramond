@@ -81,6 +81,18 @@ fn loader_rejects_geometry_that_is_non_finite_or_unbounded() {
 }
 
 #[test]
+fn a_jump_too_weak_to_clear_a_block_is_rejected() {
+    let with_jump = |speed: f64| {
+        let mut value: serde_json::Value = serde_json::from_str(&base()).unwrap();
+        value["mobs"][0]["jump_speed"] = serde_json::json!(speed);
+        parse_layers(&[&serde_json::to_string(&value).unwrap()]).map(|_| ())
+    };
+    let weak = with_jump(6.0).expect_err("a path would climb a block the body cannot");
+    assert!(weak.contains("jump_speed"), "{weak}");
+    assert!(with_jump(0.0).is_ok(), "a body that never jumps");
+}
+
+#[test]
 fn pack_layer_overrides_rows_by_mob() {
     let layer = r#"{"mobs": [{
             "mob": "petramond:owl", "key": "petramond:owl", "model": "models/owl.bbmodel", "scale": 0.5,

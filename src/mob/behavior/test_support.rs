@@ -31,6 +31,8 @@ pub fn ctx<'a>(world: &'a ServerWorld, rng: &'a mut MobRng) -> AiCtx<'a> {
         in_fluid: None,
         head: 1,
         tolerated: &[],
+        fluid_footing: Default::default(),
+        avoid_fluids: false,
         idle_anims: &[],
         mob_index: None,
         mobs: crate::mob::spatial::MobSnapshot::empty(),

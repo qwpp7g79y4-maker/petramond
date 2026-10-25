@@ -48,9 +48,10 @@ impl Immersion {
     ) -> f32 {
         let motion = self.fluid.motion;
         match buoyancy {
-            Buoyancy::Swim => {
+            Buoyancy::Swim | Buoyancy::Sink => {
                 let current = motion.brake_vertical(current, dt);
-                let target = if ascending { motion.rise } else { -motion.sink };
+                let rising = ascending && buoyancy == Buoyancy::Swim;
+                let target = if rising { motion.rise } else { -motion.sink };
                 current
                     + (target - current)
                         .clamp(-motion.vertical_accel * dt, motion.vertical_accel * dt)

@@ -165,6 +165,47 @@ fn shore_climb_inner() {
     }
 }
 
+#[test]
+fn a_sinking_body_walks_the_bed_up_and_out_of_deep_fluid() {
+    fluid_fixture::with_content("bed-walk", bed_walk_inner);
+}
+
+fn bed_walk_inner() {
+    use fluid_fixture::FLOOR_Y;
+    // Deeper than a body looks for the surface above its feet, so only the bed can start a route.
+    const TOP: i32 = FLOOR_Y + 9;
+    let mut world = fluid_fixture::pool(fluid_fixture::block(fluid_fixture::BRINE), TOP);
+    for (rise, x) in (4..16).enumerate() {
+        let top = (FLOOR_Y + rise as i32).min(TOP + 1);
+        for z in 0..16 {
+            for y in FLOOR_Y..=top {
+                world.set_block_world(x, y, z, Block::Stone);
+            }
+        }
+    }
+    let bank_y = TOP + 2;
+    let anchors = [PlayerAnchor {
+        pos: WorldPos::new(8.5, f64::from(bank_y), 8.5),
+        ..Default::default()
+    }];
+    // A tall body pokes out of the fluid cell it stands in; a short one sits wholly inside it.
+    for key in ["bodyfluid:sink", "bodyfluid:crawler"] {
+        let kind = crate::mob::by_key(key).unwrap();
+        let mut mob = Instance::new(kind, WorldPos::new(2.5, f64::from(FLOOR_Y), 8.5), 0.0, 1);
+        mob.mind.brain = Brain::new().with_boxed(0, Box::new(Goal(IVec3::new(15, bank_y, 8))));
+        let mut regions = confined::RegionCache::default();
+        let ashore = (0..600).any(|_| {
+            tick(&mut mob, &world, &anchors, &mut regions);
+            mob.motion.on_ground && mob.pos.x > 14.0 && mob.pos.y >= f64::from(bank_y) - 1e-3
+        });
+        assert!(
+            ashore,
+            "{key} walks up the bed and onto the bank: {:?}",
+            mob.pos
+        );
+    }
+}
+
 fn world() -> ServerWorld {
     let mut chunk = Chunk::new(0, 0);
     for x in 0..16 {

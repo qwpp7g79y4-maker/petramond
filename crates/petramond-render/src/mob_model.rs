@@ -30,7 +30,7 @@ use super::MobRenderInstance;
 use petramond_math::face::Face;
 use petramond_mesh::face::FaceShading;
 use petramond_mesh::SHADES;
-use petramond_world::bbmodel::{clips, euler_quat, face_corners, Animation, Model};
+use petramond_world::bbmodel::{euler_quat, face_corners, Animation, Model};
 
 const NO_TINT: [f32; 3] = [1.0, 1.0, 1.0];
 const HURT_RED: [f32; 3] = [1.0, 0.25, 0.25];
@@ -175,7 +175,6 @@ pub(crate) fn pose_mob_instances<'i, 'm>(
     } = species;
     let first = batch.next_instance();
     let slots = bone_slots(model);
-    let walk = model.animation(clips::WALK);
     let MobPoseCache {
         clips: anim_clips,
         layers,
@@ -201,13 +200,7 @@ pub(crate) fn pose_mob_instances<'i, 'm>(
                 })
                 .collect()
         } else {
-            let base: Option<&Animation> = if inst.moving {
-                walk
-            } else if let Some(i) = inst.idle_anim {
-                model.idle_animation(i as usize)
-            } else {
-                None
-            };
+            let base = inst.gait.and_then(|gait| model.gait_animation(gait));
             layers.clear();
             layers.extend(base.map(|a| (a, inst.anim_time, inst.gait_weight)));
             layers.extend(
@@ -215,11 +208,9 @@ pub(crate) fn pose_mob_instances<'i, 'm>(
                     .of(&frame.arena.gait_fades)
                     .iter()
                     .filter_map(|fade| {
-                        let anim = match fade.clip {
-                            crate::GaitClip::Walk => walk,
-                            crate::GaitClip::Idle(i) => model.idle_animation(i as usize),
-                        };
-                        anim.map(|a| (a, fade.phase, fade.weight))
+                        model
+                            .gait_animation(fade.clip)
+                            .map(|a| (a, fade.phase, fade.weight))
                     }),
             );
             layers.extend(
@@ -233,7 +224,13 @@ pub(crate) fn pose_mob_instances<'i, 'm>(
                             .map(|a| (a, layer.phase, layer.weight))
                     }),
             );
-            model.pose_mob_layers(layers, inst.head_yaw, inst.head_pitch, inst.hurt)
+            model.pose_mob_layers(
+                layers,
+                inst.head_yaw,
+                inst.head_pitch,
+                inst.hurt,
+                petramond::mob::def(inst.kind).body_lean(inst.lean),
+            )
         };
 
         // Place the posed model: scale to metres, into the body frame (yaw to

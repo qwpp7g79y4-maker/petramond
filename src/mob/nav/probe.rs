@@ -56,8 +56,7 @@ pub fn mob_can_reach(world: &ServerWorld, mob: &Instance, dest: IVec3) -> bool {
     let fluid = nav_fluid_fn(&cursor);
     let start = path::navigation_cell_with(
         mob.pos,
-        d.size.half_width,
-        d.size.head_cells(),
+        params,
         fluid_footing(&cursor, mob.pos).is_some(),
         &solid,
         &support,

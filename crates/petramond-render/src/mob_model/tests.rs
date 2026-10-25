@@ -2,6 +2,7 @@ use super::*;
 use crate::skinned::skin_positions;
 use petramond::mob::Mob;
 use petramond_math::world_pos::WorldPos;
+use petramond_world::bbmodel::clips::{self, Gait};
 
 fn owl_model() -> Model {
     let src = include_str!(concat!(
@@ -18,8 +19,8 @@ fn instance(anim_time: f32, moving: bool) -> MobRenderInstance {
         yaw: 0.0,
         tilt: petramond_math::math::Tilt::LEVEL,
         anim_time,
-        moving,
-        idle_anim: None,
+        gait: moving.then_some(Gait::Walk),
+        lean: 0.0,
         gait_weight: 1.0,
         gait_fades: crate::ArenaRange::default(),
         head_yaw: 0.0,
@@ -162,7 +163,7 @@ fn arena_ranges_pose_each_instance_from_its_own_layers() {
     assert_eq!(interner.intern(clips::WALK), walk, "a name interns once");
     let arena = crate::MobArena {
         gait_fades: vec![crate::GaitFade {
-            clip: crate::GaitClip::Walk,
+            clip: Gait::Walk,
             phase: 0.25,
             weight: 1.0,
         }],

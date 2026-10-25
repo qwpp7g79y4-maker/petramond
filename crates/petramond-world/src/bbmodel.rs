@@ -17,6 +17,8 @@ mod self_ao;
 pub(crate) mod tests;
 mod texture;
 
+pub use pose::BodyLean;
+
 pub use anim::{
     display_euler_quat, euler_quat, Animation, BezierHandles, Channel, Interpolation, Keyframe,
     Marker, MarkerKind, Track,
@@ -103,6 +105,18 @@ impl Model {
     pub fn idle_animation(&self, index: usize) -> Option<&Animation> {
         let name = self.idle_anim_names.get(index)?;
         self.animations.get(name)
+    }
+
+    /// The clip a gait plays. A model without a `tread` clip treads with its `swim` clip.
+    pub fn gait_animation(&self, gait: clips::Gait) -> Option<&Animation> {
+        match gait {
+            clips::Gait::Walk => self.animation(clips::WALK),
+            clips::Gait::Swim => self.animation(clips::SWIM),
+            clips::Gait::Tread => self
+                .animation(clips::TREAD)
+                .or_else(|| self.animation(clips::SWIM)),
+            clips::Gait::Idle(i) => self.idle_animation(i as usize),
+        }
     }
 
     pub fn apply_head_look(&self, pose: &mut [Mat4], head_bone: usize, yaw: f32, pitch: f32) {

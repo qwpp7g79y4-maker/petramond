@@ -16,8 +16,17 @@ fn mob(id: u64, step: u32) -> MobStateRow {
         } else {
             s * 0.05
         },
-        moving: step % 5 < 2,
-        idle_anim: step.is_multiple_of(7).then_some(1),
+        gait: if step % 5 < 2 {
+            Some(petramond_world::bbmodel::clips::Gait::Walk)
+        } else {
+            step.is_multiple_of(7)
+                .then_some(petramond_world::bbmodel::clips::Gait::Idle(1))
+        },
+        lean: if step.is_multiple_of(3) {
+            0.0
+        } else {
+            0.1 * step as f32
+        },
         head_yaw: 0.1,
         head_pitch: 0.0,
         hurt_timer: 0.0,

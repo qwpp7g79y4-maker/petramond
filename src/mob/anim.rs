@@ -1,14 +1,21 @@
 use mod_api::{MAX_MOB_ANIM_NAME_BYTES, MAX_MOB_ANIM_PHASE_MAGNITUDE, MAX_MOB_ANIM_RATE_MAGNITUDE};
-use petramond_world::bbmodel::clips;
+use petramond_world::bbmodel::clips::{self, Gait};
 
 use super::brain::{BehaviorOutput, HeadLook};
 use super::instance::Instance;
 use super::kinematics::turn_toward;
+use super::model_meta::NamedAnimMeta;
 use super::MobDef;
+
+mod swim;
 
 const HEAD_TURN_RATE: f32 = 9.0;
 const HEAD_SMOOTH_TIME: f32 = 0.16;
 const HEAD_SETTLED: f32 = 1.0e-3;
+const LEAN_TURN_RATE: f32 = 4.0;
+const LEAN_SMOOTH_TIME: f32 = 0.3;
+/// How far (radians) a leaning body lifts its head against the lean to keep its gaze.
+const LEAN_GAZE_LIFT: f32 = 0.9;
 
 fn smooth_step(to: f32, vel: &mut f32, smooth_time: f32, max_speed: f32, dt: f32) -> f32 {
     let omega = 2.0 / smooth_time;
@@ -41,13 +48,6 @@ impl From<BehaviorOutput> for Expression {
             head_look: decision.head_look,
         }
     }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub(super) enum AnimKind {
-    Walk,
-    Idle(u8),
-    Rest,
 }
 
 #[derive(Clone, Debug)]
@@ -202,7 +202,7 @@ impl Instance {
         &mut self,
         dt: f32,
         d: &MobDef,
-        named_anims: &[super::model_meta::NamedAnimMeta],
+        named_anims: &[NamedAnimMeta],
         decision: &Expression,
     ) {
         if let Ok(at) = named_anims.binary_search_by(|m| m.name.as_str().cmp(clips::AMBIENT)) {
@@ -224,16 +224,20 @@ impl Instance {
             decision.idle_anim
         };
 
-        // Pick the active animation and reset its phase whenever it changes.
-        let kind = if self.moving {
-            AnimKind::Walk
-        } else if let Some(i) = self.idle_anim {
-            AnimKind::Idle(i)
-        } else {
-            AnimKind::Rest
+        // Pick the gait and reset its phase whenever it changes.
+        let has = |name: &str| {
+            named_anims
+                .binary_search_by(|m| m.name.as_str().cmp(name))
+                .is_ok()
         };
-        if kind != self.presentation.anim_kind {
-            self.presentation.anim_kind = kind;
+        let swim = self.motion.swim.filter(|_| has(clips::SWIM));
+        let gait = match swim {
+            Some(own) => Some(swim::gait(own, self.presentation.gait, has(clips::TREAD))),
+            None if self.moving => Some(Gait::Walk),
+            None => self.idle_anim.map(Gait::Idle),
+        };
+        if gait != self.presentation.gait {
+            self.presentation.gait = gait;
             self.anim_time = 0.0;
             self.interp.anim_time = 0.0;
         }
@@ -242,8 +246,8 @@ impl Instance {
         // into anti-phase, tucking legs at takeoff and kicking at landing.
         // Never reset to 0: the replica interpolates raw prev→curr snapshots, so a backward jump
         // would sweep the clip in reverse for a frame on clients.
-        // A walk's first launch already starts at phase 0 from the kind-change reset above.
-        if std::mem::take(&mut self.motion.walk_launch) && kind == AnimKind::Walk {
+        // A walk's first launch already starts at phase 0 from the gait-change reset above.
+        if std::mem::take(&mut self.motion.walk_launch) && gait == Some(Gait::Walk) {
             let walk_len = named_anims
                 .binary_search_by(|m| m.name.as_str().cmp(clips::WALK))
                 .ok()
@@ -256,14 +260,26 @@ impl Instance {
                 }
             }
         }
-        match kind {
-            AnimKind::Walk => {
+        match gait {
+            Some(Gait::Walk) => {
                 self.anim_time +=
                     d.walk_anim_rate * self.motion.walk_speed_scale * self.motion.gait_pace * dt
             }
-            AnimKind::Idle(_) => self.anim_time += dt,
-            AnimKind::Rest => {}
+            Some(Gait::Swim) => {
+                let own = swim.unwrap_or_default();
+                self.anim_time += d.walk_anim_rate * swim::pace(d, own) * dt;
+            }
+            Some(Gait::Tread | Gait::Idle(_)) => self.anim_time += dt,
+            None => {}
         }
+        let lean_to = self.motion.swim.map_or(0.0, |own| swim::lean(d, own));
+        self.presentation.lean += smooth_step(
+            lean_to - self.presentation.lean,
+            &mut self.presentation.lean_vel,
+            LEAN_SMOOTH_TIME,
+            LEAN_TURN_RATE,
+            dt,
+        );
         for layer in &mut self.presentation.active_anims {
             step_anim_layer(layer, dt);
         }
@@ -285,6 +301,7 @@ impl Instance {
             Some(h) => (h.yaw, h.pitch),
             None => (0.0, 0.0),
         };
+        let target_pitch = target_pitch + self.presentation.lean.min(LEAN_GAZE_LIFT);
         let yaw_left = turn_toward(self.head_yaw, target_yaw, std::f32::consts::PI) - self.head_yaw;
         self.head_yaw += smooth_step(
             yaw_left,

@@ -2,6 +2,7 @@ use rustc_hash::FxHashMap;
 
 use petramond_math::math::IVec3;
 use petramond_world::block::Block;
+use petramond_world::fluid::Buoyancy;
 
 mod box_memo;
 mod reach;
@@ -18,6 +19,24 @@ const COST_JUMP: u32 = 14;
 const COST_DIAG: u32 = 14;
 const COST_DROP_PER_BLOCK: u32 = 1;
 
+/// Where a route stands a body in fluid: on the surface (it floats there) or on the bed under it
+/// (it sinks and walks the floor, so fluid around the body is no obstacle).
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub enum FluidFooting {
+    #[default]
+    Surface,
+    Bed,
+}
+
+impl FluidFooting {
+    pub fn of(buoyancy: Buoyancy) -> Self {
+        match buoyancy {
+            Buoyancy::Sink => FluidFooting::Bed,
+            Buoyancy::Swim | Buoyancy::Surface | Buoyancy::Neutral => FluidFooting::Surface,
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct PathParams {
     pub head: i32,
@@ -25,6 +44,7 @@ pub struct PathParams {
     pub max_drop: i32,
     pub max_nodes: usize,
     pub tolerated: &'static [Block],
+    pub fluid_footing: FluidFooting,
 }
 
 impl Default for PathParams {
@@ -35,6 +55,7 @@ impl Default for PathParams {
             max_drop: 3,
             max_nodes: 4000,
             tolerated: &[],
+            fluid_footing: FluidFooting::Surface,
         }
     }
 }
@@ -51,6 +72,13 @@ impl PathParams {
     pub fn tolerating(self, blocks: &'static [Block]) -> Self {
         PathParams {
             tolerated: blocks,
+            ..self
+        }
+    }
+
+    pub fn with_fluid_footing(self, fluid_footing: FluidFooting) -> Self {
+        PathParams {
+            fluid_footing,
             ..self
         }
     }
@@ -123,8 +151,14 @@ pub fn is_navigation_foothold_with(
     support: &impl Fn(IVec3) -> bool,
     fluid: &impl Fn(IVec3) -> bool,
 ) -> bool {
-    let bearing = |p: IVec3| support(p) || fluid(p);
-    supported_foothold(cell, params, &bearing, solid) && body_layer_clear(cell, params, fluid)
+    match params.fluid_footing {
+        FluidFooting::Surface => {
+            let bearing = |p: IVec3| support(p) || fluid(p);
+            supported_foothold(cell, params, &bearing, solid)
+                && body_layer_clear(cell, params, fluid)
+        }
+        FluidFooting::Bed => supported_foothold(cell, params, support, solid),
+    }
 }
 
 #[cfg(test)]
@@ -227,35 +261,33 @@ pub fn swimming_cell_with(
 }
 
 /// The cell a mob paths from: standing foothold on dry ground, or the fluid-surface cell above the
-/// feet while its body is in fluid.
+/// feet while a floating body is in fluid. A body footed on the bed stands on the floor wet or dry.
 /// Don't conflate the two. In one-deep fluid the solid bed is right under the feet, so a solid-only
 /// probe grabs the submerged feet cell instead. [`find_path_nav`] rejects fluid cells as a start,
 /// so the mob ends up goalless, bobbing in place forever.
 #[cfg(test)]
 fn navigation_cell(
     pos: petramond_math::world_pos::WorldPos,
-    half_width: f32,
-    head: i32,
+    params: PathParams,
     in_fluid: bool,
     solid: &impl Fn(IVec3) -> bool,
     fluid: &impl Fn(IVec3) -> bool,
 ) -> Option<IVec3> {
-    navigation_cell_with(pos, half_width, head, in_fluid, solid, solid, fluid)
+    navigation_cell_with(pos, params, in_fluid, solid, solid, fluid)
 }
 
 pub fn navigation_cell_with(
     pos: petramond_math::world_pos::WorldPos,
-    half_width: f32,
-    head: i32,
+    params: PathParams,
     in_fluid: bool,
     solid: &impl Fn(IVec3) -> bool,
     support: &impl Fn(IVec3) -> bool,
     fluid: &impl Fn(IVec3) -> bool,
 ) -> Option<IVec3> {
-    if in_fluid {
-        swimming_cell_with(pos, half_width, head, solid, support, fluid)
+    if in_fluid && params.fluid_footing == FluidFooting::Surface {
+        swimming_cell_with(pos, params.half_width, params.head, solid, support, fluid)
     } else {
-        standing_cell_with(pos, half_width, head, solid, support)
+        standing_cell_with(pos, params.half_width, params.head, solid, support)
     }
 }
 

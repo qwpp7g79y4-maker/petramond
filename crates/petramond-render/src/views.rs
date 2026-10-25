@@ -100,8 +100,9 @@ pub struct MobPresentation {
     pub tilt: Tilt,
     pub prev_anim_time: f32,
     pub anim_time: f32,
-    pub moving: bool,
-    pub idle_anim: Option<u8>,
+    pub gait: Option<petramond_world::bbmodel::clips::Gait>,
+    pub prev_lean: f32,
+    pub lean: f32,
     pub gait_weight: f32,
     pub gait_fades: crate::ArenaRange,
     pub prev_head_yaw: f32,
@@ -171,7 +172,7 @@ impl AnimInterner {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct GaitFade {
-    pub clip: crate::GaitClip,
+    pub clip: petramond_world::bbmodel::clips::Gait,
     pub phase: f32,
     pub weight: f32,
 }

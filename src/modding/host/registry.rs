@@ -204,6 +204,7 @@ fn block_info_data(block: mod_api::BlockId) -> Option<mod_api::BlockInfoData> {
         },
         collision: b.collision_boxes().iter().map(|a| (a.min, a.max)).collect(),
         fluid: b.fluid_def().map(fluid_info),
+        medium: b.fluid().map(|f| mod_api::BlockId(f.id())),
         replaceable: b.is_replaceable(),
         interaction: match b.interaction() {
             petramond_world::block::BlockInteraction::None => None,

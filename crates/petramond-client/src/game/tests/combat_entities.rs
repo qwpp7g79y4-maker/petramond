@@ -398,8 +398,8 @@ fn closest_mob_targets_in_front_within_reach_skips_block_occluded_and_corpses() 
                 yaw: 0.0,
                 tilt: petramond_math::math::Tilt::LEVEL,
                 anim_time: 0.0,
-                moving: false,
-                idle_anim: None,
+                gait: None,
+                lean: 0.0,
                 head_yaw: 0.0,
                 head_pitch: 0.0,
                 hurt_timer: 0.0,
@@ -467,8 +467,8 @@ fn closest_mob_targets_the_interpolated_render_pose_not_the_future_row() {
             yaw: 0.0,
             tilt: petramond_math::math::Tilt::LEVEL,
             anim_time: 0.0,
-            moving: true,
-            idle_anim: None,
+            gait: Some(petramond_world::bbmodel::clips::Gait::Walk),
+            lean: 0.0,
             head_yaw: 0.0,
             head_pitch: 0.0,
             hurt_timer: 0.0,
@@ -513,7 +513,7 @@ fn closest_mob_targets_the_interpolated_render_pose_not_the_future_row() {
 #[test]
 fn a_mob_eases_into_and_out_of_its_gait() {
     use petramond::net::protocol::MobStateRow;
-    use petramond_render::GaitClip;
+    use petramond_world::bbmodel::clips::Gait;
 
     fn row(moving: bool, anim_time: f32) -> MobStateRow {
         MobStateRow {
@@ -523,8 +523,8 @@ fn a_mob_eases_into_and_out_of_its_gait() {
             yaw: 0.0,
             tilt: petramond_math::math::Tilt::LEVEL,
             anim_time,
-            moving,
-            idle_anim: None,
+            gait: moving.then_some(Gait::Walk),
+            lean: 0.0,
             head_yaw: 0.0,
             head_pitch: 0.0,
             hurt_timer: 0.0,
@@ -544,7 +544,7 @@ fn a_mob_eases_into_and_out_of_its_gait() {
         entry
             .gait_blend
             .iter()
-            .find(|(clip, _, _)| *clip == GaitClip::Walk)
+            .find(|(clip, _, _)| *clip == Gait::Walk)
             .map(|(_, weight, phase)| (*weight, *phase))
     };
 

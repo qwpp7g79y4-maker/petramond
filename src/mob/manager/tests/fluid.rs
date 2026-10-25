@@ -43,6 +43,8 @@ fn fluid_bodies_inner() {
         let world = pool(block(name), 75);
         equal_intent_gets_equal_response(name, &world);
         swimmers_bob_and_floaters_settle(name, &world);
+        swimmers_dive_when_driven(name, &world);
+        sinkers_walk_the_floor_and_swim_only_when_driven(name, &world);
     }
     a_current_carries_an_idle_mob();
     contact_respects_species_tolerance();
@@ -154,6 +156,61 @@ fn swimmers_bob_and_floaters_settle(name: &str, world: &ServerWorld) {
     assert!(
         dropped.instances()[0].vel().y < falling,
         "a floating body out of its fluid falls under gravity"
+    );
+}
+
+fn swimmers_dive_when_driven(name: &str, world: &ServerWorld) {
+    let mut mobs = body("swim", WorldPos::new(8.5, 74.5, 8.5));
+    for _ in 0..100 {
+        step(&mut mobs, world, [0.0, 0.0]);
+    }
+    let id = mobs.instances()[0].id();
+    let afloat = mobs.instances()[0].pos.y;
+    for _ in 0..60 {
+        assert!(mobs.set_mob_drive(id, None, Some(-2.0), None, false, false));
+        mobs.tick(0.05, world, &[PlayerAnchor::default()], false);
+    }
+    let dived = afloat - mobs.instances()[0].pos.y;
+    assert!(
+        dived > 1.6,
+        "{name}: a driven swimmer dives without stroking against it: {dived}"
+    );
+    for _ in 0..200 {
+        step(&mut mobs, world, [0.0, 0.0]);
+    }
+    assert!(
+        mobs.instances()[0].pos.y > 73.0,
+        "{name}: undriven, it strokes back up to the surface"
+    );
+}
+
+fn sinkers_walk_the_floor_and_swim_only_when_driven(name: &str, world: &ServerWorld) {
+    let mut mobs = body("sink", WorldPos::new(8.5, 66.0, 8.5));
+    for _ in 0..200 {
+        step(&mut mobs, world, [0.0, 0.0]);
+    }
+    let floor = mobs.instances()[0].pos.y;
+    assert!(
+        (floor - f64::from(FLOOR_Y)).abs() < 0.05,
+        "{name}: a sinking body settles on the floor, not the surface: {floor}"
+    );
+
+    let id = mobs.instances()[0].id();
+    for _ in 0..20 {
+        assert!(mobs.set_mob_drive(id, None, Some(2.0), None, false, false));
+        mobs.tick(0.05, world, &[PlayerAnchor::default()], false);
+    }
+    let lifted = mobs.instances()[0].pos.y;
+    assert!(
+        lifted > floor + 0.5,
+        "{name}: a vertical drive swims it up: {floor} -> {lifted}"
+    );
+    for _ in 0..200 {
+        step(&mut mobs, world, [0.0, 0.0]);
+    }
+    assert!(
+        (mobs.instances()[0].pos.y - floor).abs() < 0.05,
+        "{name}: undriven, it sinks back down"
     );
 }
 

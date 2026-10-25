@@ -181,7 +181,7 @@ fn a_wading_mob_in_one_deep_fluid_paths_from_the_fluid_surface_cell() {
         "the submerged feet cell is rejected as a path start"
     );
 
-    let cell = navigation_cell(wading, 0.25, 1, true, &solid, &fluid)
+    let cell = navigation_cell(wading, PathParams::for_body(1, 0.25), true, &solid, &fluid)
         .expect("a wading mob still has a navigation cell");
     assert_eq!(cell, IVec3::new(1, 1, 0), "starts at the fluid surface");
     let path = find_path(cell, IVec3::new(4, 1, 0), params(), solid, fluid);

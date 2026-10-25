@@ -193,5 +193,10 @@ host_domain! {
             offsets: Vec<[f32; 2]>,
             max_drop: f32,
         } => legal(SERVER, Sim, Read),
+        /// Swim destinations for this tick, one per swimmer: the engine's stroke carries each
+        /// there unless a drive or its brain's lock moves it. Replies one boolean per entry.
+        MobSwimMany {
+            swims: Vec<crate::MobSwimData>,
+        } => legal(SERVER, Sim, Write),
     }
 }

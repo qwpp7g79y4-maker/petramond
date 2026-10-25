@@ -8,6 +8,7 @@ use super::nav::Navigator;
 use super::{def, EntityRef, Mob, MobRng, MobTagValue, DEFAULT_DAMAGE_FLASH_SECS};
 
 mod parts;
+mod swim;
 pub(super) mod tick;
 
 use parts::{Combat, Confinement, Interp, Mind, Motion, Presentation};
@@ -84,6 +85,8 @@ impl Instance {
                 brain: super::build_brain(d),
                 nav: Navigator::new(d.size.head_cells(), d.size.half_width, d.size.height)
                     .tolerating(d.tolerates.blocks)
+                    .with_fluid_footing(super::path::FluidFooting::of(d.buoyancy))
+                    .avoiding_fluids(d.avoid_fluids)
                     .with_tuning(d.nav),
                 unstick: Default::default(),
                 current_target: None,
@@ -178,6 +181,18 @@ impl Instance {
     #[inline]
     pub fn contacts(&self) -> &[EntityRef] {
         &self.mind.contacts
+    }
+
+    /// The locomotion loop the body plays.
+    #[inline]
+    pub fn gait(&self) -> Option<petramond_world::bbmodel::clips::Gait> {
+        self.presentation.gait
+    }
+
+    /// Radians the body leans forward into a swim.
+    #[inline]
+    pub fn lean(&self) -> f32 {
+        self.presentation.lean
     }
 
     #[inline]

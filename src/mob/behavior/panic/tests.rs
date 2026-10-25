@@ -2,6 +2,7 @@ use super::*;
 use crate::mob::{MobRng, PlayerAnchor};
 use crate::player::PlayerId;
 use crate::world::ServerWorld;
+use petramond_math::math::IVec3;
 use petramond_math::world_pos::WorldPos;
 use petramond_world::block::Block;
 use petramond_world::chunk::{Chunk, ChunkPos, CHUNK_SX, CHUNK_SZ};
@@ -117,5 +118,59 @@ fn boxed_in_panic_does_not_choose_an_unreachable_escape() {
     assert!(
         out.claims.contains(DecisionChannel::Goal),
         "boxed in, the mob stands: no lower node hands it a destination"
+    );
+}
+
+#[test]
+fn a_fluid_averse_body_flees_over_dry_ground_and_into_fluid_only_when_all_is_wet() {
+    let channel = |x: i32, z: i32| x >= 9 && (6..=10).contains(&z);
+    let flee = |wet: &dyn Fn(i32, i32) -> bool, avoid_fluids: bool| {
+        let mut chunk = Chunk::new(0, 0);
+        for z in 0..CHUNK_SZ {
+            for x in 0..CHUNK_SX {
+                if wet(x as i32, z as i32) {
+                    chunk.set_block(x, 62, z, Block::Stone);
+                    chunk.set_fluid(x, 63, z, Block::Water, 0);
+                } else {
+                    chunk.set_block(x, 63, z, Block::Grass);
+                }
+            }
+        }
+        let mut world = ServerWorld::new(0, 1);
+        world.insert_chunk_for_test(ChunkPos::new(0, 0), chunk);
+        let mut rng = MobRng::new(5);
+        let players = [PlayerAnchor {
+            id: PlayerId(7),
+            pos: WorldPos::new(2.5, 64.9, 8.5),
+            ..Default::default()
+        }];
+        let mut ai = PanicAi::from_params(&serde_json::json!({})).unwrap();
+        let mut ctx = crate::mob::behavior::test_support::ctx_at(
+            &world,
+            &mut rng,
+            WorldPos::new(8.5, 64.0, 8.5),
+        );
+        ctx.players = &players;
+        ctx.attacker = Some((EntityRef::Player(PlayerId(7)), 0));
+        ctx.avoid_fluids = avoid_fluids;
+        let fluid = |c: IVec3| world.data().fluid_cell_at(c.x, c.y, c.z);
+        (0..24)
+            .map(|_| {
+                let goal = ai.tick(&mut ctx).goal.expect("an escape leg");
+                crate::mob::path::body_or_floor_touches(goal, ctx.path_params(), &fluid)
+            })
+            .collect::<Vec<bool>>()
+    };
+    assert!(
+        flee(&channel, false).contains(&true),
+        "the channel lies across the escape legs"
+    );
+    assert!(
+        !flee(&channel, true).contains(&true),
+        "a fluid-averse body takes the dry legs"
+    );
+    assert!(
+        flee(&|_, _| true, true).iter().all(|&wet| wet),
+        "with only fluid around it still flees"
     );
 }

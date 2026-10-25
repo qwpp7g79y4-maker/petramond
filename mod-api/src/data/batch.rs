@@ -13,6 +13,15 @@ pub struct MobDriveData {
     pub gait: bool,
 }
 
+/// A swimmer's destination for one tick: in a fluid, the engine strokes it toward `to` (its
+/// mid-body) at `pace` × its row's swim speed, turning and gathering speed as the row says.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+pub struct MobSwimData {
+    pub mob_id: u64,
+    pub to: [f64; 3],
+    pub pace: f32,
+}
+
 impl MobDriveData {
     pub fn horizontal(mob_id: u64, vel: [f32; 2], yaw: Option<f32>) -> Self {
         Self {

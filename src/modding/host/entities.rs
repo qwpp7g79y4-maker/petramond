@@ -603,6 +603,22 @@ pub(super) fn handle_entity_call(mod_id: &str, call: EntityCall) -> HostRet {
                 )
             })
         }
+        EntityCall::MobSwimMany { swims } => {
+            if let Some(err) = batch_guard("MobSwimMany swim", swims.len()) {
+                return err;
+            }
+            if let Some(err) = swims.iter().find_map(|s| intents::swim_guard(s).err()) {
+                return err;
+            }
+            sim_query(|ctx| {
+                HostRet::Bools(
+                    swims
+                        .into_iter()
+                        .map(|s| intents::apply_swim(ctx, s))
+                        .collect(),
+                )
+            })
+        }
         EntityCall::MobKinematicMany { poses } => {
             if let Some(err) = batch_guard("MobKinematicMany pose", poses.len()) {
                 return err;

@@ -114,8 +114,8 @@ impl DeltaRow for MobStateRow {
         f.f32(5, self.tilt.pitch, base.tilt.pitch);
         f.f32(6, self.tilt.roll, base.tilt.roll);
         f.f32(7, self.anim_time, base.anim_time);
-        f.value(8, &self.moving, &base.moving);
-        f.value(9, &self.idle_anim, &base.idle_anim);
+        f.value(8, &self.gait, &base.gait);
+        f.f32(9, self.lean, base.lean);
         f.f32(10, self.head_yaw, base.head_yaw);
         f.f32(11, self.head_pitch, base.head_pitch);
         f.f32(12, self.hurt_timer, base.hurt_timer);
@@ -157,8 +157,8 @@ impl DeltaRow for MobStateRow {
         p.f32(5, &mut row.tilt.pitch)?;
         p.f32(6, &mut row.tilt.roll)?;
         p.f32(7, &mut row.anim_time)?;
-        p.value(8, &mut row.moving)?;
-        p.value(9, &mut row.idle_anim)?;
+        p.value(8, &mut row.gait)?;
+        p.f32(9, &mut row.lean)?;
         p.f32(10, &mut row.head_yaw)?;
         p.f32(11, &mut row.head_pitch)?;
         p.f32(12, &mut row.hurt_timer)?;

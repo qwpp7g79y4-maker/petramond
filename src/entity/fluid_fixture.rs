@@ -58,6 +58,8 @@ pub fn stage(tag: &str) -> TestScratchDir {
             body_row("swim", "swim", serde_json::json!({})),
             body_row("surface", "surface", serde_json::json!({})),
             body_row("neutral", "neutral", serde_json::json!({})),
+            body_row("sink", "sink", serde_json::json!({})),
+            short(body_row("crawler", "sink", serde_json::json!({}))),
             body_row("dweller", "swim", serde_json::json!({"blocks": [SYRUP]})),
             body_row("fireproof", "swim", serde_json::json!({"conditions": ["petramond:burning"]})),
             breathing(body_row("lunged", "swim", serde_json::json!({})), &["petramond:air"]),
@@ -151,6 +153,11 @@ fn body_row(name: &str, buoyancy: &str, tolerates: serde_json::Value) -> serde_j
         "avoid_fluids": false, "buoyancy": buoyancy, "tolerates": tolerates,
         "brain": []
     })
+}
+
+fn short(mut row: serde_json::Value) -> serde_json::Value {
+    row["size"] = serde_json::json!({"half_width": 0.15, "height": 0.2});
+    row
 }
 
 pub const BREATH_TICKS: u32 = 20;

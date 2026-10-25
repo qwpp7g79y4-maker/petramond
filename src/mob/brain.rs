@@ -94,6 +94,9 @@ pub struct AiCtx<'a> {
     pub in_fluid: Option<petramond_world::block::Block>,
     pub head: i32,
     pub tolerated: &'static [petramond_world::block::Block],
+    pub fluid_footing: super::path::FluidFooting,
+    /// Row `avoid_fluids`: cell-picking policies prefer dry destinations.
+    pub avoid_fluids: bool,
     pub idle_anims: &'a [IdleAnimMeta],
     pub mob_index: Option<usize>,
     pub mobs: &'a super::spatial::MobSnapshot,
@@ -120,7 +123,9 @@ impl<'a> ScriptedReplies<'a> {
 
 impl AiCtx<'_> {
     pub fn path_params(&self) -> super::path::PathParams {
-        super::path::PathParams::for_body(self.head, self.half_width).tolerating(self.tolerated)
+        super::path::PathParams::for_body(self.head, self.half_width)
+            .tolerating(self.tolerated)
+            .with_fluid_footing(self.fluid_footing)
     }
 
     pub fn entity_alive(&self, who: EntityRef) -> bool {

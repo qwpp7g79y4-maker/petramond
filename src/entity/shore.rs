@@ -1,7 +1,7 @@
 use petramond_math::math::Vec3;
 use petramond_math::world_pos::WorldPos;
 use petramond_world::block::Aabb;
-use petramond_world::collision::DynBox;
+use petramond_world::collision::{DynBox, SUPPORT_PROBE_MARGIN};
 use petramond_world::fluid::{FluidClimb, Immersion};
 
 use crate::entity::VELOCITY_SLACK;
@@ -38,14 +38,17 @@ impl Swimmer {
         obstacles: &[DynBox],
     ) -> Option<ShoreClimb> {
         let dir = Vec3::new(wish.x, 0.0, wish.z).normalize_or_zero();
-        if self.vel_y < 0.0
-            || dir == Vec3::ZERO
-            || self.pos.y + f64::from(self.height) <= f64::from(immersion.surface_y)
-        {
+        if self.vel_y < 0.0 || dir == Vec3::ZERO {
             return None;
         }
-        let reach = (immersion.surface_y - EPS).floor() + 1.0 + CLIMB_CELLS as f32;
-        let rise = (self.ledge_top(dir, f64::from(reach), boxes, obstacles)? - self.pos.y) as f32;
+        // A body reaching past the fluid in its probe cell climbs onto a bank a cell above that
+        // cell; a short one wholly inside it (walking the floor) climbs a step above its feet.
+        let reach = if self.pos.y + f64::from(self.height) > f64::from(immersion.surface_y) {
+            f64::from((immersion.surface_y - EPS).floor() + 1.0 + CLIMB_CELLS as f32)
+        } else {
+            (self.pos.y + f64::from(SUPPORT_PROBE_MARGIN)).floor() + f64::from(CLIMB_CELLS)
+        };
+        let rise = (self.ledge_top(dir, reach, boxes, obstacles)? - self.pos.y) as f32;
         Some(match immersion.fluid.motion.climb {
             FluidClimb::Jump => ShoreClimb::Launch(
                 (2.0 * self.gravity * (rise + CLEARANCE))

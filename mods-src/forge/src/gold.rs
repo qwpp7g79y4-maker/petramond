@@ -155,6 +155,7 @@ mod tests {
             item: item.map(ItemId),
             collision: vec![([0.0; 3], [1.0; 3])],
             fluid: None,
+            medium: None,
             replaceable: false,
             interaction: None,
         }

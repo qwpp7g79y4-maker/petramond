@@ -478,6 +478,9 @@ pub struct BlockInfoData {
     pub item: Option<ItemId>,
     pub collision: Vec<([f32; 3], [f32; 3])>,
     pub fluid: Option<FluidInfoData>,
+    /// The fluid a body in this block is immersed in: the block itself for a fluid, the fluid it
+    /// holds for a block that holds one (seagrass in water).
+    pub medium: Option<BlockId>,
     pub replaceable: bool,
     pub interaction: Option<BlockUse>,
 }

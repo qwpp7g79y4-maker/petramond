@@ -1,5 +1,5 @@
 use mod_api::{
-    HostRet, MobAnimOp, MobDriveData, MobKinematicData, MobRiderData, MobRidersData,
+    HostRet, MobAnimOp, MobDriveData, MobKinematicData, MobRiderData, MobRidersData, MobSwimData,
     MAX_MOB_ANIM_NAME_BYTES, MAX_MOB_ANIM_PHASE_MAGNITUDE, MAX_MOB_ANIM_RATE_MAGNITUDE,
 };
 
@@ -61,6 +61,24 @@ pub(super) fn drive_guard(d: &MobDriveData) -> Result<(), HostRet> {
         )));
     }
     Ok(())
+}
+
+pub(super) fn swim_guard(s: &MobSwimData) -> Result<(), HostRet> {
+    if !s.to.iter().all(|c| c.is_finite())
+        || !s.pace.is_finite()
+        || !(0.0..=mod_api::MAX_MOB_SPEED_SCALE).contains(&s.pace)
+    {
+        return Err(HostRet::invalid(format!(
+            "MobSwim: destination must be finite and pace inside [0, {}]",
+            mod_api::MAX_MOB_SPEED_SCALE
+        )));
+    }
+    Ok(())
+}
+
+pub(super) fn apply_swim(ctx: &mut SimCtx<'_>, s: MobSwimData) -> bool {
+    let to = petramond_math::world_pos::WorldPos::from_array(s.to);
+    ctx.world.mobs_mut().set_mob_swim(s.mob_id, to, s.pace)
 }
 
 pub(super) fn apply_drive(ctx: &mut SimCtx<'_>, d: MobDriveData) -> bool {

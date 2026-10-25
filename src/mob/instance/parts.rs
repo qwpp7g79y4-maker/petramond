@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use petramond_math::math::{IVec3, Tilt, Vec3};
 use petramond_math::world_pos::WorldPos;
+use petramond_world::bbmodel::clips::Gait;
 
-use super::super::anim::{AnimKind, AnimLayer};
+use super::super::anim::AnimLayer;
 use super::super::brain::{AttackIntent, BehaviorOutput, Brain, HeadLook};
 use super::super::confined::{self, ConfinedRegion, ReadBox, RegionCache, Verdict};
 use super::super::damage::DeathState;
@@ -50,7 +51,13 @@ pub(in crate::mob) struct Motion {
     pub push: Vec3,
     pub walk_launch: bool,
     pub air_walk: bool,
+    /// While immersed off the floor: the velocity the body swims under its own power (a fluid's
+    /// passive lift or sink left out).
+    pub swim: Option<Vec3>,
     pub drive: Option<DriveIntent>,
+    /// A mod's swim destination for this tick.
+    pub swim_to: Option<crate::mob::kinematics::SwimGoal>,
+    pub stroke: crate::mob::kinematics::Stroke,
     pub kinematic: Option<KinematicPose>,
     pub escape: petramond_world::collision::EscapeRoute,
 }
@@ -70,7 +77,10 @@ impl Motion {
             push: Vec3::ZERO,
             walk_launch: false,
             air_walk: false,
+            swim: None,
             drive: None,
+            swim_to: None,
+            stroke: Default::default(),
             kinematic: None,
             escape: Default::default(),
         }
@@ -258,8 +268,11 @@ impl Confinement {
 pub(in crate::mob) struct Presentation {
     pub active_emitters: Vec<u8>,
     pub active_anims: Vec<AnimLayer>,
-    pub anim_kind: AnimKind,
+    pub gait: Option<Gait>,
     pub head_vel: [f32; 2],
+    /// Radians the body leans forward (see `BodyLean`), and how fast that is changing.
+    pub lean: f32,
+    pub lean_vel: f32,
     pub held: [Option<petramond_world::item::ItemType>; 2],
     pub draw: crate::world::draw::BodyDraw,
 }
@@ -269,8 +282,10 @@ impl Default for Presentation {
         Presentation {
             active_emitters: Vec::new(),
             active_anims: Vec::new(),
-            anim_kind: AnimKind::Rest,
+            gait: None,
             head_vel: [0.0; 2],
+            lean: 0.0,
+            lean_vel: 0.0,
             held: [None; 2],
             draw: Default::default(),
         }

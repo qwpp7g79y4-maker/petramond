@@ -95,6 +95,8 @@ fn ai_ctx<'a>(
         in_fluid: footing.fluid,
         head: d.size.head_cells(),
         tolerated: d.tolerates.blocks,
+        fluid_footing: crate::mob::path::FluidFooting::of(d.buoyancy),
+        avoid_fluids: d.avoid_fluids,
         idle_anims: &ctx.meta.idle_anims,
         mob_index: inputs.mobs.by_id(me.id).map(|(i, _)| i),
         mobs: inputs.mobs,
@@ -184,8 +186,7 @@ impl Instance {
         let on_fluid = footing_fluid.is_some();
         let cell = path::navigation_cell_with(
             self.pos,
-            d.size.half_width,
-            d.size.head_cells(),
+            d.path_params(),
             on_fluid,
             &solid,
             &support,
@@ -360,8 +361,17 @@ impl Instance {
         let cursor = world.cursor();
         let boxes = |x: i32, y: i32, z: i32| cursor.collision_boxes_xyz(x, y, z);
         let can_repath = self.motion.on_ground || on_fluid;
+        let immersion = world.data().body_fluid(self.pos, d.size.height, d.buoyancy);
+        self.swim_under_power(dt, d, inputs, immersion.is_some());
+        // Footing reads the feet cell, which a body resting on a floor can sit a hair below;
+        // a neutral swimmer there is neither grounded nor falling, so only its immersion
+        // keeps it steerable.
         let can_steer = d.air_control
-            || route_steering_supported(self.motion.on_ground, on_fluid, self.motion.vel.y);
+            || route_steering_supported(
+                self.motion.on_ground,
+                on_fluid || immersion.is_some(),
+                self.motion.vel.y,
+            );
         let nav_inputs = nav::NavInputs {
             self_id: self.id,
             target: self.mind.current_target,
@@ -400,7 +410,6 @@ impl Instance {
                 inputs.players,
             )
         };
-        let immersion = world.data().body_fluid(self.pos, d.size.height, d.buoyancy);
         let driven = self
             .motion
             .drive

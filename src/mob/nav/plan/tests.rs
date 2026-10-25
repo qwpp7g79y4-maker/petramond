@@ -187,3 +187,49 @@ fn entity_costs_price_only_nearby_bodies_through_the_spatial_index() {
         "the map is reset"
     );
 }
+
+#[test]
+fn a_fluid_averse_route_goes_round_water_and_crosses_only_when_it_must() {
+    let pond = |span: std::ops::RangeInclusive<usize>| {
+        let mut chunk = Chunk::new(0, 0);
+        for z in 0..CHUNK_SZ {
+            for x in 0..CHUNK_SX {
+                if (5..=7).contains(&x) && span.contains(&z) {
+                    chunk.set_block(x, 62, z, Block::Stone);
+                    chunk.set_fluid(x, 63, z, Block::Water, 0);
+                } else {
+                    chunk.set_block(x, 63, z, Block::Grass);
+                }
+            }
+        }
+        let mut world = ServerWorld::new(0, 1);
+        world.insert_chunk_for_test(ChunkPos::new(0, 0), chunk);
+        world
+    };
+    let route = |world: &ServerWorld, avoid: bool| {
+        let mut nav = Navigator::new(1, 0.25, 0.9).avoiding_fluids(avoid);
+        let goal = IVec3::new(12, 64, 5);
+        nav.update_goal_when_supported(
+            Some(goal),
+            IVec3::new(1, 64, 5),
+            world,
+            true,
+            &NavInputs::none(),
+        );
+        assert_eq!(nav.path().last(), Some(&goal));
+        let fluid = |c: IVec3| world.data().fluid_cell_at(c.x, c.y, c.z);
+        nav.path()
+            .iter()
+            .any(|&c| path::body_or_floor_touches(c, PathParams::for_body(1, 0.25), &fluid))
+    };
+    let narrow = pond(3..=7);
+    assert!(
+        route(&narrow, false),
+        "the pond lies across the straight way"
+    );
+    assert!(!route(&narrow, true), "a dry way round is taken");
+    assert!(
+        route(&pond(0..=15), true),
+        "a pond with no way round is crossed"
+    );
+}

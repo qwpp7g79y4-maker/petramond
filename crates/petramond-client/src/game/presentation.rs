@@ -446,8 +446,7 @@ impl GamePresentationScratch {
         let arena = &mut self.mob_arena;
         for entry in game.replica.entities.mobs().iter() {
             let (prev, curr) = (&entry.prev, &entry.curr);
-            let c = lit_cell(world, (curr.pos + Vec3::new(0.0, 0.3, 0.0)).block());
-            let gait = crate::game::replicated::gait_of(curr);
+            let gait = curr.gait;
             let fades_start = arena.gait_fades.len();
             arena.gait_fades.extend(
                 entry
@@ -500,8 +499,9 @@ impl GamePresentationScratch {
                 tilt: curr.tilt,
                 prev_anim_time: prev.anim_time,
                 anim_time: curr.anim_time,
-                moving: curr.moving,
-                idle_anim: curr.idle_anim,
+                gait,
+                prev_lean: prev.lean,
+                lean: curr.lean,
                 gait_weight: entry
                     .gait_blend
                     .iter()
@@ -575,7 +575,8 @@ impl GamePresentationScratch {
             if curr.dead || !petramond::mob::def(Mob(curr.kind_id)).footsteps {
                 continue;
             }
-            let walking = curr.moving && (curr.pos.y - prev.pos.y).abs() < MOB_STEP_RISE;
+            let walking = curr.gait == Some(petramond_world::bbmodel::clips::Gait::Walk)
+                && (curr.pos.y - prev.pos.y).abs() < MOB_STEP_RISE;
             let pos = prev.pos.lerp(curr.pos, tick_alpha);
             self.footsteps.push(FootstepSource {
                 id: MOB_FOOTSTEP_IDS | curr.id,

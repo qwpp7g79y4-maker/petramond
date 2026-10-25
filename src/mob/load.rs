@@ -80,6 +80,8 @@ struct RawMobDef {
     walk_speed: f64,
     jump_speed: f64,
     turn_rate: f64,
+    #[serde(default)]
+    gait_facings: Option<Vec<f64>>,
     walk_anim_rate: f64,
     category: MobCategory,
     #[serde(default)]
@@ -110,6 +112,10 @@ struct RawMobDef {
     breath: Option<petramond_world::breath::RawRespiration>,
     #[serde(default = "default_gravity_scale")]
     gravity_scale: f32,
+    #[serde(default)]
+    swim_lean: f32,
+    #[serde(default)]
+    swim: Option<super::kinematics::SwimSpec>,
     #[serde(default)]
     air_control: bool,
     #[serde(default)]
@@ -356,6 +362,9 @@ fn parse_layers_labeled(layers: &[(&str, String)]) -> Result<LoadedMobs, String>
     })
 }
 
+/// The least a jump rises: a whole block plus room for the body to clear the ledge.
+const MIN_JUMP_PEAK: f32 = 1.1;
+
 fn convert(
     r: RawMobDef,
     mob: Mob,
@@ -366,6 +375,21 @@ fn convert(
     r.nav.validate()?;
     if !(0.0..=4.0).contains(&r.gravity_scale) {
         return Err("gravity_scale must be finite and inside [0, 4]".into());
+    }
+    // Paths climb whole blocks, so a body that jumps at all must clear one with room to spare.
+    let peak = super::kinematics::jump_peak(r.jump_speed as f32, r.gravity_scale);
+    if r.jump_speed != 0.0 && peak < MIN_JUMP_PEAK {
+        return Err(format!(
+            "jump_speed {} rises {peak:.2} blocks; a path climbs a whole block, so a jump must \
+             rise at least {MIN_JUMP_PEAK} (0 = never jumps)",
+            r.jump_speed
+        ));
+    }
+    if !(0.0..=90.0).contains(&r.swim_lean) {
+        return Err("swim_lean must be finite degrees inside [0, 90]".into());
+    }
+    if let Some(swim) = &r.swim {
+        swim.validate()?;
     }
     let cohesion = match r.wander.cohesion {
         Some(c) => Some(WanderCohesion {
@@ -434,6 +458,22 @@ fn convert(
             "eye_height must lie within the body height, got {eye_height}"
         ));
     }
+    let gait_facings = r.gait_facings.unwrap_or_else(|| vec![0.0]);
+    if gait_facings.is_empty()
+        || gait_facings.len() > super::MAX_GAIT_FACINGS
+        || !gait_facings
+            .iter()
+            .all(|a| a.is_finite() && (-180.0..=180.0).contains(a))
+    {
+        return Err(format!(
+            "gait_facings must hold 1..={} angles within -180..=180, got {gait_facings:?}",
+            super::MAX_GAIT_FACINGS
+        ));
+    }
+    let gait_facings: Vec<f32> = gait_facings
+        .iter()
+        .map(|a| (*a as f32).to_radians())
+        .collect();
     let data = petramond_world::registry::compile_data_map(&r.mob, &r.data, patches)?;
     let loot = petramond_world::registry::engine_data::<String>(data, "petramond:loot")?;
     if let Some(key) = &loot {
@@ -454,6 +494,7 @@ fn convert(
         walk_speed: r.walk_speed as f32,
         jump_speed: r.jump_speed as f32,
         turn_rate: r.turn_rate as f32,
+        gait_facings: Box::leak(gait_facings.into_boxed_slice()),
         walk_anim_rate: r.walk_anim_rate as f32,
         category: r.category,
         despawn,
@@ -480,6 +521,8 @@ fn convert(
         tolerates: convert_tolerance(r.tolerates)?,
         breath: r.breath.map(|b| b.resolve()).transpose()?,
         gravity_scale: r.gravity_scale,
+        swim_lean: r.swim_lean.to_radians(),
+        swim: r.swim,
         air_control: r.air_control,
         collision: r.collision,
         shear: r.shear,

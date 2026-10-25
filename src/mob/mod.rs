@@ -207,6 +207,7 @@ impl Mob {
     }
 }
 
+pub const MAX_GAIT_FACINGS: usize = 8;
 pub const DEFAULT_HOSTILE_DESPAWN_RADIUS: f32 = 128.0;
 
 /// When a mob far from every player leaves the world: always past `radius`, and, unless the row
@@ -600,6 +601,9 @@ pub struct MobDef {
     pub walk_speed: f32,
     pub jump_speed: f32,
     pub turn_rate: f32,
+    /// Where the body faces while it walks, as angles off its heading (radians): it takes the one
+    /// nearest its current yaw. `[0]` walks forward; a crab's `±90°` scuttles sideways.
+    pub gait_facings: &'static [f32],
     pub walk_anim_rate: f32,
     pub category: MobCategory,
     pub despawn: Option<Despawn>,
@@ -619,6 +623,11 @@ pub struct MobDef {
     /// `None` = never needs to breathe (undead, constructs).
     pub breath: Option<petramond_world::breath::Respiration>,
     pub gravity_scale: f32,
+    /// How far (radians) the body pitches forward swimming level at speed; a dive leans further.
+    pub swim_lean: f32,
+    /// Swims under its own power: in a fluid, its brain's lock or a mod's destination strokes it
+    /// there.
+    pub swim: Option<kinematics::SwimSpec>,
     pub air_control: bool,
     pub collision: MobCollision,
     pub shear: Option<ShearSpec>,
@@ -640,6 +649,14 @@ pub struct MobHands {
 }
 
 impl MobDef {
+    /// A lean of `pitch` radians in this body's model: it pivots at the middle of its height.
+    pub fn body_lean(&self, pitch: f32) -> petramond_world::bbmodel::BodyLean {
+        petramond_world::bbmodel::BodyLean {
+            pitch,
+            pivot_y: 0.5 * self.size.height / self.scale.max(1e-6),
+        }
+    }
+
     pub fn data_value(&self, key: &str) -> Option<&'static str> {
         self.data
             .iter()
@@ -737,6 +754,7 @@ impl MobDef {
     pub fn path_params(&self) -> path::PathParams {
         path::PathParams::for_body(self.size.head_cells(), self.size.half_width)
             .tolerating(self.tolerates.blocks)
+            .with_fluid_footing(path::FluidFooting::of(self.buoyancy))
     }
 }
 

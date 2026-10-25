@@ -1,7 +1,6 @@
 use glam::Mat4;
-use petramond_world::bbmodel::clips;
 
-use crate::mob::{model, Instance};
+use crate::mob::{def, model, Instance};
 
 #[cfg(test)]
 mod tests;
@@ -9,12 +8,7 @@ mod tests;
 impl Instance {
     pub(super) fn death_pose(&self) -> Vec<Mat4> {
         let model = model(self.kind);
-        let base = if self.moving {
-            model.animation(clips::WALK)
-        } else {
-            self.idle_anim
-                .and_then(|i| model.idle_animation(i as usize))
-        };
+        let base = self.gait().and_then(|gait| model.gait_animation(gait));
         let mut layers = Vec::with_capacity(self.active_anims().len() + 2);
         layers.extend(base.map(|a| (a, self.anim_time, 1.0)));
         layers.extend(
@@ -27,6 +21,7 @@ impl Instance {
             self.head_yaw,
             self.head_pitch,
             self.hurt_flash(1.0),
+            def(self.kind).body_lean(self.lean()),
         );
         posed
             .into_iter()

@@ -19,7 +19,8 @@
 use std::sync::Arc;
 
 use glam::{Quat, Vec3};
-use petramond_render::{AnimId, AnimInterner, AnimNames, GaitClip};
+use petramond_render::{AnimId, AnimInterner, AnimNames};
+use petramond_world::bbmodel::clips::Gait;
 
 use petramond_world::gui_state::ContainerView;
 
@@ -106,7 +107,7 @@ pub struct ReplicatedMob {
     prev_anims: Vec<(AnimId, f32)>,
     curr_anims: Vec<(AnimId, f32)>,
     pub anim_blend: Vec<(AnimId, f32, f32)>,
-    pub gait_blend: Vec<(GaitClip, f32, f32)>,
+    pub gait_blend: Vec<(Gait, f32, f32)>,
     pub draw: Option<petramond::world::draw::BlockDraw>,
     emitters: BodyEmitters,
 }
@@ -140,14 +141,6 @@ fn intern_anims(
         };
         (id, *phase)
     }));
-}
-
-pub fn gait_of(row: &MobStateRow) -> Option<GaitClip> {
-    if row.moving {
-        Some(GaitClip::Walk)
-    } else {
-        row.idle_anim.map(GaitClip::Idle)
-    }
 }
 
 impl Replica<MobStateRow> for ReplicatedMob {
@@ -207,7 +200,7 @@ impl ReplicatedMob {
             .extend(self.curr_anims.iter().map(|&(id, phase)| (id, 1.0, phase)));
         self.gait_blend.clear();
         self.gait_blend
-            .extend(gait_of(&self.curr).map(|clip| (clip, 1.0, self.curr.anim_time)));
+            .extend(self.curr.gait.map(|clip| (clip, 1.0, self.curr.anim_time)));
     }
 
     pub fn prev_anims(&self) -> &[(AnimId, f32)] {
@@ -287,7 +280,7 @@ impl ReplicatedMobs {
                 }
             }
             entry.anim_blend.retain(|(_, w, _)| *w > 0.0);
-            let gait = gait_of(&entry.curr);
+            let gait = entry.curr.gait;
             if let Some(clip) = gait {
                 if !entry.gait_blend.iter().any(|(c, _, _)| *c == clip) {
                     entry.gait_blend.push((clip, 0.0, entry.curr.anim_time));

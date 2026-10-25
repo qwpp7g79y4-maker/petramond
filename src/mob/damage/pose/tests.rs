@@ -6,7 +6,7 @@ use petramond_math::world_pos::WorldPos;
 #[test]
 fn death_freezes_the_live_pose_before_feedback_and_keeps_it_through_physics_init() {
     let mut mob = Instance::new(Mob::Owl, WorldPos::ZERO, 0.0, 7);
-    mob.moving = true;
+    mob.presentation.gait = Some(petramond_world::bbmodel::clips::Gait::Walk);
     mob.anim_time = 0.17;
     mob.head_yaw = 0.6;
     mob.head_pitch = 0.3;

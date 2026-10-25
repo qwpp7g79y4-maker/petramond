@@ -9,7 +9,22 @@ use petramond_world::block::Aabb;
 use petramond_world::collision::{self, DynBox};
 use petramond_world::fluid::{Buoyancy, FluidCurrent, Immersion};
 
+mod swim;
+
+pub(in crate::mob) use swim::{
+    heading as swim_heading, level_with, Stroke, StrokeInput, ARRIVE_GAP,
+};
+pub(super) use swim::{SwimGoal, SwimSpec};
+
 const GRAVITY: f32 = -22.0;
+
+/// How high a jump at `jump_speed` rises under `gravity_scale`.
+pub(super) fn jump_peak(jump_speed: f32, gravity_scale: f32) -> f32 {
+    if gravity_scale <= 0.0 {
+        return f32::INFINITY;
+    }
+    jump_speed * jump_speed / (2.0 * -GRAVITY * gravity_scale)
+}
 const KNOCKBACK_DAMP: f32 = 0.75;
 const GAIT_MIN_SPEED: f32 = 0.15;
 const GAIT_MIN_PACE: f32 = 0.35;
@@ -79,6 +94,7 @@ impl Instance {
         self.moving = false;
         self.motion.air_walk = false;
         self.motion.walk_launch = false;
+        self.motion.swim = None;
         self.motion.knockback = Vec3::ZERO;
         self.combat.stagger_timer = 0.0;
         self.motion.push = Vec3::ZERO;
@@ -103,6 +119,18 @@ impl Instance {
             return false;
         }
         self.motion.drive = Some(intent);
+        true
+    }
+
+    pub(super) fn set_swim_to(
+        &mut self,
+        to: petramond_math::world_pos::WorldPos,
+        pace: f32,
+    ) -> bool {
+        if self.combat.death.is_dead() || super::def(self.kind).swim.is_none() {
+            return false;
+        }
+        self.motion.swim_to = Some(SwimGoal { to, pace });
         true
     }
 
@@ -200,6 +228,7 @@ impl Instance {
         let requested_yaw = self.steer_horizontal(dt, d, loco, drive, nav_jumped);
         let premise_holds = drive.is_none_or(|dr| !dr.while_walking || self.moving);
         let drive_steers = premise_holds && loco.can_steer && self.combat.stagger_timer <= 0.0;
+        let swum = !nav_jumped && drive_steers && drive.is_some_and(|dr| dr.vertical.is_some());
         if !nav_jumped && drive_steers {
             self.drive_vertical(drive);
         }
@@ -226,8 +255,13 @@ impl Instance {
                 .then_some([self.motion.vel.x, self.motion.vel.z]);
         let heading = Vec3::new(self.motion.vel.x, 0.0, self.motion.vel.z);
         self.resist_and_push(dt, incoming, env);
-        let shore = self.vertical_velocity(dt, d, loco.can_steer, heading, env);
-        self.resolve_motion(dt, d, shore, carried, env)
+        let shore = self.vertical_velocity(dt, d, loco.can_steer, heading, swum, env);
+        let moved = self.resolve_motion(dt, d, shore, carried, env);
+        self.motion.swim = (env.immersion.is_some() && !self.motion.on_ground).then(|| {
+            let v = self.motion.vel;
+            Vec3::new(v.x, if swum { v.y } else { 0.0 }, v.z)
+        });
+        moved
     }
 
     /// Edge guard for `"edge_guard"` species. A grounded body won't step off a drop bigger than
@@ -300,7 +334,7 @@ impl Instance {
             let mut speed = d.walk_speed * self.motion.walk_speed_scale;
             let mut requested_yaw = None;
             if self.moving {
-                let target = heading_yaw(wish);
+                let target = gait_facing(heading_yaw(wish), self.yaw, d.gait_facings);
                 let turned = turn_toward(self.yaw, target, d.turn_rate * dt);
                 requested_yaw = Some(turned);
                 // Walk only as fast as the body faces the wish: a reversal
@@ -361,13 +395,19 @@ impl Instance {
         d: &MobDef,
         can_steer: bool,
         heading: Vec3,
+        swum: bool,
         env: &Surroundings<'_>,
     ) -> Option<ShoreClimb> {
         let Some(sample) = env.immersion else {
             self.motion.vel.y += GRAVITY * d.gravity_scale * dt;
             return None;
         };
-        let shore = (d.buoyancy == Buoyancy::Swim && can_steer && self.combat.stagger_timer <= 0.0)
+        let buoyancy = match d.buoyancy {
+            Buoyancy::Swim | Buoyancy::Sink if swum => Buoyancy::Neutral,
+            b => b,
+        };
+        let swims = matches!(d.buoyancy, Buoyancy::Swim | Buoyancy::Sink);
+        let shore = (swims && can_steer && self.combat.stagger_timer <= 0.0)
             .then(|| {
                 Swimmer {
                     pos: self.pos,
@@ -383,13 +423,8 @@ impl Instance {
         if let Some(ShoreClimb::Launch(speed)) = shore {
             self.motion.vel.y = self.motion.vel.y.max(speed);
         } else {
-            self.motion.vel.y = sample.vertical_velocity(
-                self.motion.vel.y,
-                self.pos.y as f32,
-                d.buoyancy,
-                true,
-                dt,
-            );
+            self.motion.vel.y =
+                sample.vertical_velocity(self.motion.vel.y, self.pos.y as f32, buoyancy, true, dt);
         }
         shore
     }
@@ -488,6 +523,20 @@ impl Instance {
 
 fn heading_yaw(v: Vec3) -> f32 {
     (-v.x).atan2(-v.z)
+}
+
+/// The body yaw for walking toward `heading`: of the row's facings off the heading, the one
+/// nearest the body's current `yaw`.
+fn gait_facing(heading: f32, yaw: f32, facings: &[f32]) -> f32 {
+    facings
+        .iter()
+        .map(|off| wrap_angle(heading + off))
+        .min_by(|a, b| {
+            wrap_angle(a - yaw)
+                .abs()
+                .total_cmp(&wrap_angle(b - yaw).abs())
+        })
+        .unwrap_or(heading)
 }
 
 fn facing_speed_factor(delta: f32) -> f32 {

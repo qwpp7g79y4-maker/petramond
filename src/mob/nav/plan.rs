@@ -4,7 +4,9 @@ use serde::Deserialize;
 use crate::world::ServerWorld;
 use petramond_math::math::IVec3;
 
-use super::super::path::{NavSearch, PathParams, SearchPoll, SearchProbes};
+use super::super::path::{
+    self as path, body_or_floor_touches, NavSearch, PathParams, SearchPoll, SearchProbes,
+};
 use super::super::spatial::MobSnapshot;
 use super::super::{def, EntityRef, PlayerAnchor};
 use super::budget::PathBudget;
@@ -270,12 +272,21 @@ impl Navigator {
         let fluid = nav_fluid_fn(&cursor);
         let step_allowed = navigation_step_gate(&cursor, self.params, self.height);
         let escape_cost = hazards::escape_cost(&cursor, self.params, origin);
+        let wet = path::CellMemo::<1024>::default();
+        let wet_cost = |c: IVec3| {
+            if self.avoid_fluids && wet.get(c, |c| body_or_floor_touches(c, self.params, &fluid)) {
+                WET_CELL_COST
+            } else {
+                0
+            }
+        };
         let mut owned = FxHashMap::default();
         let mut shared = inputs.budget.map(PathBudget::costs);
         let costs = shared.as_deref_mut().unwrap_or(&mut owned);
         entity_cell_costs(inputs, origin, costs);
         let costs = &*costs;
-        let cell_cost = |c: IVec3| costs.get(&c).copied().unwrap_or(0) + escape_cost(c);
+        let cell_cost =
+            |c: IVec3| costs.get(&c).copied().unwrap_or(0) + escape_cost(c) + wet_cost(c);
         f(
             self.params,
             &SearchProbes {
@@ -373,6 +384,7 @@ fn next_repath_backoff(current: u32, base: u32) -> u32 {
 }
 
 const ENTITY_CELL_COST: u32 = 200;
+const WET_CELL_COST: u32 = path::COST_FLAT * 4;
 const ENTITY_AVOID_RANGE: f32 = 32.0;
 
 fn entity_cell_costs(avoid: &NavInputs, start: IVec3, costs: &mut FxHashMap<IVec3, u32>) {

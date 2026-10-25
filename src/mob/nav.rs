@@ -22,7 +22,7 @@ use petramond_math::math::{IVec3, Vec3};
 use petramond_world::block::{Aabb, Block};
 use petramond_world::collision;
 
-use super::path::PathParams;
+use super::path::{FluidFooting, PathParams};
 use super::spatial::MobSnapshot;
 use super::{def, EntityRef, PlayerAnchor};
 
@@ -67,6 +67,7 @@ pub struct Navigator {
     goal: Option<IVec3>,
     path_reaches_goal: bool,
     params: PathParams,
+    avoid_fluids: bool,
     half_width: f32,
     height: f32,
     stuck: u32,
@@ -90,6 +91,7 @@ impl Navigator {
             goal: None,
             path_reaches_goal: false,
             params: PathParams::for_body(head, half_width),
+            avoid_fluids: false,
             half_width,
             height,
             stuck: 0,
@@ -108,6 +110,17 @@ impl Navigator {
 
     pub fn tolerating(mut self, blocks: &'static [Block]) -> Self {
         self.params = self.params.tolerating(blocks);
+        self
+    }
+
+    pub fn with_fluid_footing(mut self, footing: FluidFooting) -> Self {
+        self.params = self.params.with_fluid_footing(footing);
+        self
+    }
+
+    /// Routes price wet cells, so they go round fluid where a dry way exists.
+    pub fn avoiding_fluids(mut self, avoid: bool) -> Self {
+        self.avoid_fluids = avoid;
         self
     }
 

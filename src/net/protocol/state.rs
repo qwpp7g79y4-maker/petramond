@@ -15,8 +15,9 @@ pub struct MobStateRow {
     pub yaw: f32,
     pub tilt: Tilt,
     pub anim_time: f32,
-    pub moving: bool,
-    pub idle_anim: Option<u8>,
+    pub gait: Option<petramond_world::bbmodel::clips::Gait>,
+    /// Radians the body leans forward into a swim.
+    pub lean: f32,
     pub head_yaw: f32,
     pub head_pitch: f32,
     pub hurt_timer: f32,

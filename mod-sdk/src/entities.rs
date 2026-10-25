@@ -1,6 +1,6 @@
 use mod_api::{
     ConditionOp, EntityRef, Facing, MobAnimOp, MobAnimStateData, MobDriveData, MobId,
-    MobKinematicData, MobRidersData, MobSnapshot, PlayerId,
+    MobKinematicData, MobRidersData, MobSnapshot, MobSwimData, PlayerId,
 };
 
 use crate::__rt::host_fn;
@@ -37,6 +37,11 @@ host_fn! {
 }
 
 host_fn! {
+    pub fn mob_swim_many(swims: Vec<MobSwimData>) -> Vec<bool>
+        => MobSwimMany { swims } => Bools
+}
+
+host_fn! {
     pub fn mob_kinematic_many(poses: Vec<MobKinematicData>) -> Vec<bool>
         => MobKinematicMany { poses } => Bools
 }
@@ -59,6 +64,11 @@ host_fn! {
 pub fn mob_facing_xz(yaw: f32) -> [f32; 2] {
     let (s, c) = yaw.sin_cos();
     [-s, -c]
+}
+
+/// The yaw that faces a mob along horizontal `dir` (the inverse of [`mob_facing_xz`]).
+pub fn mob_yaw_facing(dir: [f32; 2]) -> f32 {
+    (-dir[0]).atan2(-dir[1])
 }
 
 host_fn! {

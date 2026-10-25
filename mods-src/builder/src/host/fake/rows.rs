@@ -43,6 +43,7 @@ fn block(name: &'static str, collision: Vec<([f32; 3], [f32; 3])>) -> BlockRow {
             item: None,
             collision,
             fluid: None,
+            medium: None,
             replaceable: false,
             interaction: None,
         },

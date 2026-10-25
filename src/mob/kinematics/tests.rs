@@ -800,3 +800,18 @@ fn an_edge_guarded_body_stops_at_a_tall_ledge_but_steps_down_a_short_one() {
         sheep.pos
     );
 }
+
+#[test]
+fn a_sideways_gait_keeps_to_the_side_its_body_already_faces() {
+    use std::f32::consts::FRAC_PI_2;
+    let sides = [FRAC_PI_2, -FRAC_PI_2];
+    let heading = 0.3;
+    let near_left = heading + FRAC_PI_2 - 0.2;
+    assert!((gait_facing(heading, near_left, &sides) - (heading + FRAC_PI_2)).abs() < 1e-5);
+    let near_right = heading - FRAC_PI_2 + 0.4;
+    assert!((gait_facing(heading, near_right, &sides) - (heading - FRAC_PI_2)).abs() < 1e-5);
+    assert!(
+        (gait_facing(heading, 2.0, &[0.0]) - heading).abs() < 1e-5,
+        "a forward gait faces its heading"
+    );
+}

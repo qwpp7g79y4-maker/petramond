@@ -2,7 +2,7 @@ use petramond_math::math::IVec3;
 
 use super::super::brain::{AiCtx, ChannelClaims, DecisionChannel};
 use super::super::nav;
-use super::super::path::is_navigation_foothold_with;
+use super::super::path::{body_or_floor_touches, is_navigation_foothold_with};
 
 const DEFAULT_RADIUS: u32 = 7;
 const RADIUS_BOUNDS: std::ops::RangeInclusive<u32> = 3..=16;
@@ -109,6 +109,7 @@ impl EscapeRoute {
         let support = nav::nav_support_fn(&cursor, params.half_width);
         let fluid = nav::nav_fluid_fn(&cursor);
         let mut probes = 0;
+        let mut wet_leg = None;
         for attempt in 0..LEG_ATTEMPTS {
             let sign = if self.side ^ (attempt % 2 == 1) {
                 1.0
@@ -135,21 +136,13 @@ impl EscapeRoute {
                 {
                     continue;
                 }
-                match nav::destination_reachable(
-                    ctx.world,
-                    ctx.cell,
-                    goal,
-                    params,
-                    ctx.head_height,
-                    ctx.reach,
-                ) {
+                if ctx.avoid_fluids && body_or_floor_touches(goal, params, &fluid) {
+                    wet_leg.get_or_insert(goal);
+                    break;
+                }
+                match reachable(ctx, goal) {
                     None => return None,
-                    Some(true) => {
-                        self.goal = Some(goal);
-                        self.ticks =
-                            HOLD_TICKS_MIN + (ctx.rng.next_f32() * HOLD_TICKS_JITTER as f32) as u32;
-                        return self.goal;
-                    }
+                    Some(true) => return self.take(ctx, goal),
                     Some(false) => probes += 1,
                 }
                 if probes >= MAX_UNREACHABLE_PROBES {
@@ -159,9 +152,31 @@ impl EscapeRoute {
                 break;
             }
         }
+        if let Some(goal) = wet_leg {
+            if reachable(ctx, goal) == Some(true) {
+                return self.take(ctx, goal);
+            }
+        }
         self.ticks = RETRY_TICKS;
         None
     }
+
+    fn take(&mut self, ctx: &mut AiCtx, goal: IVec3) -> Option<IVec3> {
+        self.goal = Some(goal);
+        self.ticks = HOLD_TICKS_MIN + (ctx.rng.next_f32() * HOLD_TICKS_JITTER as f32) as u32;
+        self.goal
+    }
+}
+
+fn reachable(ctx: &AiCtx, goal: IVec3) -> Option<bool> {
+    nav::destination_reachable(
+        ctx.world,
+        ctx.cell,
+        goal,
+        ctx.path_params(),
+        ctx.head_height,
+        ctx.reach,
+    )
 }
 
 fn horizontal_distance(
