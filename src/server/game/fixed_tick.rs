@@ -143,6 +143,7 @@ impl ServerGame {
             .map(|sess| crate::mob::PlayerAnchor {
                 id: sess.id,
                 pos: sess.player.body_center(),
+                eye: sess.player.eye(),
                 yaw: sess.player.yaw,
                 alive: sess.player.health() > 0,
                 body: (!sess.player.is_spectator() && sess.sim.mount.is_none())

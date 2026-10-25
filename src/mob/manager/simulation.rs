@@ -14,7 +14,9 @@ use super::{lod, nearest_anchor, Mobs};
 #[derive(Copy, Clone, Debug)]
 pub struct PlayerAnchor {
     pub id: crate::player::PlayerId,
+    /// The body's centre.
     pub pos: petramond_math::world_pos::WorldPos,
+    pub eye: petramond_math::world_pos::WorldPos,
     pub body: Option<Body>,
     pub sneaking: bool,
     pub held: Option<petramond_world::item::ItemType>,
@@ -28,6 +30,7 @@ impl Default for PlayerAnchor {
         PlayerAnchor {
             id: Default::default(),
             pos: petramond_math::world_pos::WorldPos::ZERO,
+            eye: petramond_math::world_pos::WorldPos::ZERO,
             body: None,
             sneaking: false,
             held: None,

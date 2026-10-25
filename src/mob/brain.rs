@@ -69,12 +69,20 @@ pub struct AiCtx<'a> {
     pub pos: petramond_math::world_pos::WorldPos,
     pub cell: IVec3,
     pub yaw: f32,
+    /// Where the head turns from the body's facing (radians).
+    pub head_yaw: f32,
     pub head_height: f32,
+    /// Eyes above the feet.
+    pub eye_height: f32,
     pub half_width: f32,
+    /// How far the body's front reaches ahead of its centre.
+    pub half_length: f32,
     pub world: &'a ServerWorld,
     pub reach: Option<&'a super::nav::ReachBudget>,
     pub player_id: crate::player::PlayerId,
+    /// The nearest player's body centre.
     pub player_pos: petramond_math::world_pos::WorldPos,
+    pub player_eye: petramond_math::world_pos::WorldPos,
     pub player_sneaking: bool,
     pub player_held: Option<petramond_world::item::ItemType>,
     pub players: &'a [PlayerAnchor],

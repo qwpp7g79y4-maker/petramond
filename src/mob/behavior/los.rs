@@ -1,3 +1,4 @@
+use super::super::brain::AiCtx;
 use crate::world::ServerWorld;
 use petramond_math::math::{IVec3, Vec3};
 use petramond_math::world_pos::WorldPos;
@@ -6,6 +7,13 @@ const LOS_EPS: f32 = 0.001;
 
 pub(super) fn line_clear(world: &ServerWorld, from: WorldPos, to: WorldPos) -> bool {
     line_clear_skipping(world, from, to, &[])
+}
+
+/// Whether the mob's eyes have a clear line to the nearest player's eyes or body: a fence or a
+/// waist-high wall hides neither, a wall over the head hides both.
+pub(super) fn sees_player(ctx: &AiCtx) -> bool {
+    let eye = ctx.pos + Vec3::new(0.0, ctx.eye_height, 0.0);
+    line_clear(ctx.world, eye, ctx.player_eye) || line_clear(ctx.world, eye, ctx.player_pos)
 }
 
 pub(crate) fn line_clear_skipping(

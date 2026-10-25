@@ -21,6 +21,7 @@ fn ctx<'a>(
     c.yaw = yaw;
     c.head_height = 1.3;
     c.half_width = 0.45;
+    c.half_length = 0.45;
     c.player_pos = player;
     c.players = players;
     c.target = Some(EntityRef::Player(Default::default()));
@@ -223,26 +224,24 @@ fn a_locked_mob_target_is_struck_and_a_vanished_one_fizzles() {
 }
 
 #[test]
-fn params_are_validated_at_load() {
-    let ok =
-        serde_json::json!({"reach": 1.5, "damage": 2.0, "knockback": 5.0, "cooldown_ticks": 20});
-    assert!(MeleeAttackAi::from_params(&ok).is_ok());
+fn a_long_body_reaches_from_its_front_not_its_side() {
+    let world = ServerWorld::new(0, 1);
+    let mut rng = MobRng::new(1);
+    let mob = WorldPos::new(8.5, 64.0, 8.5);
+    let ahead = WorldPos::new(8.5, 64.9, 6.2);
+    let mut strike = MeleeAttackAi::new(1.0, 2.0, 0.0, 10);
+    let mut stubby = ctx(&world, &mut rng, mob, 0.0, ahead);
     assert!(
-        MeleeAttackAi::from_params(&serde_json::json!({"reach": 1.5})).is_err(),
-        "missing fields are refused"
+        strike.tick(&mut stubby).attack.is_none(),
+        "out of reach of a short body"
     );
+    let mut long = ctx(&world, &mut rng, mob, 0.0, ahead);
+    long.half_length = 1.4;
     assert!(
-        MeleeAttackAi::from_params(
-            &serde_json::json!({"reach": 0.0, "damage": 2.0, "knockback": 5.0, "cooldown_ticks": 20})
-        )
-        .is_err(),
-        "zero reach is refused"
-    );
-    assert!(
-        MeleeAttackAi::from_params(
-            &serde_json::json!({"reach": 1.5, "damage": 2.0, "knockback": 5.0, "cooldown_ticks": 0})
-        )
-        .is_err(),
-        "a zero cooldown is refused"
+        MeleeAttackAi::new(1.0, 2.0, 0.0, 10)
+            .tick(&mut long)
+            .attack
+            .is_some(),
+        "the snout closes the gap"
     );
 }

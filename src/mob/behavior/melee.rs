@@ -121,7 +121,7 @@ impl AiBehavior for MeleeAttackAi {
             }
         };
         let centre = ctx.pos + Vec3::new(0.0, ctx.head_height * 0.5, 0.0);
-        let gap = (target_pos - centre).length() - ctx.half_width - pad;
+        let gap = (target_pos - centre).length() - ctx.half_length - pad;
         if gap > self.reach
             || !facing_target(ctx.yaw, ctx.pos, target_pos)
             || !los::line_clear(ctx.world, centre, target_pos)
