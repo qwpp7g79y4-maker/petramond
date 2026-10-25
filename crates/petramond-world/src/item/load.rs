@@ -96,6 +96,8 @@ pub(super) struct RawFood {
     pub eat_ticks: u32,
     #[serde(default)]
     pub effects: Vec<RawFoodEffect>,
+    #[serde(default)]
+    pub clears: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -391,9 +393,20 @@ fn convert(
                         .ok_or_else(|| format!("unknown food effect '{}'", e.effect))
                 })
                 .collect::<Result<_, String>>()?;
+            let mut clears = f
+                .clears
+                .iter()
+                .map(|key| {
+                    crate::condition::by_name(key)
+                        .ok_or_else(|| format!("food clears unknown condition '{key}'"))
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            clears.sort();
+            clears.dedup();
             Some(super::FoodDef {
                 eat_ticks: f.eat_ticks,
                 effects: Box::leak(effects.into_boxed_slice()),
+                clears: Box::leak(clears.into_boxed_slice()),
             })
         }
         None => None,

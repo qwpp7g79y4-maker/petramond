@@ -79,6 +79,10 @@ impl BodyExposure {
         self.conditions.cool(condition, ticks);
     }
 
+    pub fn clear_condition(&mut self, condition: ConditionId) {
+        self.conditions.clear(condition);
+    }
+
     pub fn tick(
         &mut self,
         touched: Option<&[&'static FluidDef]>,

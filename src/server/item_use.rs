@@ -130,6 +130,9 @@ impl ServerGame {
         for &(effect, ticks) in food.effects {
             sess.player.apply_effect(effect, ticks);
         }
+        for &condition in food.clears {
+            sess.player.exposure_mut().clear_condition(condition);
+        }
         self.mods.emit(PostEvent::ItemUsed {
             player: self.sessions[s].id,
             item: eat.item,
