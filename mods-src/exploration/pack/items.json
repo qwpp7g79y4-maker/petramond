@@ -588,6 +588,78 @@
       "block": "exploration:glowpod_violet"
     },
     {
+      "item": "exploration:diving_helmet",
+      "key": "exploration:diving_helmet",
+      "name": "Diving Helmet",
+      "info": "Worn on the head, it makes a breath last four times as long under water",
+      "max_stack_size": 1,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+      },
+      "sprite": "exploration:diving_helmet",
+      "tags": [],
+      "wear": {
+        "slot": "head",
+        "attributes": {
+          "breath_drain": 0.25
+        },
+        "overlay": "textures/diving_helmet_overlay.png",
+        "model": "exploration:diving_helmet"
+      }
+    },
+    {
+      "item": "exploration:pearl",
+      "key": "exploration:pearl",
+      "name": "Pearl",
+      "info": "Found in open clams and sunken caches",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:pearl",
+      "tags": []
+    },
+    {
+      "item": "exploration:salt",
+      "key": "exploration:salt",
+      "name": "Salt",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:salt",
+      "tags": []
+    },
+    {
+      "item": "exploration:bubble_tonic",
+      "key": "exploration:bubble_tonic",
+      "name": "Bubble Tonic",
+      "info": "Breathe under water for three minutes",
+      "max_stack_size": 16,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+      },
+      "sprite": "exploration:bubble_tonic",
+      "tags": [],
+      "food": {
+        "eat_ticks": 32,
+        "effects": [
+          {
+            "effect": "exploration:water_breathing",
+            "ticks": 3600
+          }
+        ]
+      }
+    },
+    {
       "item": "exploration:clam",
       "key": "exploration:clam",
       "name": "Clam",
@@ -599,6 +671,252 @@
       },
       "tags": [],
       "block": "exploration:clam"
+    },
+    {
+      "item": "exploration:raw_sardine",
+      "key": "exploration:raw_sardine",
+      "name": "Raw Sardine",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:raw_sardine",
+      "tags": [
+        "smeltable",
+        "kitchen:cookable"
+      ]
+    },
+    {
+      "item": "exploration:cooked_sardine",
+      "key": "exploration:cooked_sardine",
+      "name": "Cooked Sardine",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:cooked_sardine",
+      "tags": [],
+      "food": {
+        "eat_ticks": 20,
+        "effects": [
+          {
+            "effect": "petramond:regeneration",
+            "ticks": 600
+          }
+        ]
+      }
+    },
+    {
+      "item": "exploration:raw_glimmerfin",
+      "key": "exploration:raw_glimmerfin",
+      "name": "Raw Glimmerfin",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:raw_glimmerfin",
+      "tags": [
+        "smeltable",
+        "kitchen:cookable"
+      ]
+    },
+    {
+      "item": "exploration:cooked_glimmerfin",
+      "key": "exploration:cooked_glimmerfin",
+      "name": "Cooked Glimmerfin",
+      "info": "Its glimmer lingers: a short spell of water breathing",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:cooked_glimmerfin",
+      "tags": [],
+      "food": {
+        "eat_ticks": 24,
+        "effects": [
+          {
+            "effect": "petramond:regeneration",
+            "ticks": 900
+          },
+          {
+            "effect": "exploration:water_breathing",
+            "ticks": 600
+          }
+        ]
+      }
+    },
+    {
+      "item": "exploration:dried_kelp",
+      "key": "exploration:dried_kelp",
+      "name": "Dried Kelp",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:dried_kelp",
+      "tags": [],
+      "food": {
+        "eat_ticks": 12,
+        "effects": [
+          {
+            "effect": "petramond:regeneration",
+            "ticks": 240
+          }
+        ]
+      }
+    },
+    {
+      "item": "exploration:fishing_rod",
+      "key": "exploration:fishing_rod",
+      "name": "Fishing Rod",
+      "info": "Cast into open water, wait for the bite, then reel in",
+      "max_stack_size": 1,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:fishing_rod",
+      "tags": [],
+      "data": {
+        "exploration:fishing_rod": {
+          "bobber": "exploration:bobber",
+          "bobber_look": [
+            {
+              "min": [
+                -0.09375,
+                0.0,
+                -0.09375
+              ],
+              "max": [
+                0.09375,
+                0.0625,
+                0.09375
+              ],
+              "tile": "wool_block",
+              "tint": [
+                196,
+                32,
+                32
+              ]
+            },
+            {
+              "min": [
+                -0.09375,
+                0.0625,
+                -0.09375
+              ],
+              "max": [
+                0.09375,
+                0.125,
+                0.09375
+              ],
+              "tile": "wool_block",
+              "tint": [
+                244,
+                242,
+                236
+              ]
+            },
+            {
+              "min": [
+                -0.09375,
+                0.125,
+                -0.09375
+              ],
+              "max": [
+                0.09375,
+                0.1875,
+                0.09375
+              ],
+              "tile": "wool_block",
+              "tint": [
+                196,
+                32,
+                32
+              ]
+            },
+            {
+              "min": [
+                -0.03125,
+                0.1875,
+                -0.03125
+              ],
+              "max": [
+                0.03125,
+                0.25,
+                0.03125
+              ],
+              "tile": "wool_block",
+              "tint": [
+                70,
+                66,
+                62
+              ]
+            }
+          ],
+          "cast_display": "exploration:fishing_rod_cast",
+          "loot": "exploration:fishing",
+          "launch_speed": 15.0,
+          "reach": 30.0,
+          "bite_after": [
+            160,
+            600
+          ],
+          "bite_window": 24
+        }
+      }
+    },
+    {
+      "item": "exploration:fishing_rod_cast",
+      "key": "exploration:fishing_rod_cast",
+      "name": "Fishing Rod",
+      "max_stack_size": 1,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:fishing_rod_cast",
+      "tags": [],
+      "data": {
+        "petramond:creative": {
+          "visible": false
+        }
+      }
+    },
+    {
+      "item": "exploration:bobber",
+      "key": "exploration:bobber",
+      "name": "Bobber",
+      "max_stack_size": 1,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+      },
+      "sprite": "exploration:bobber",
+      "tags": [],
+      "data": {
+        "petramond:creative": {
+          "visible": false
+        },
+        "petramond:projectile": {
+          "gravity": 14.0,
+          "drag": 0.01,
+          "sticks": false
+        }
+      }
     },
     {
       "item": "exploration:reef_rock",
@@ -1262,6 +1580,45 @@
       },
       "tags": [],
       "block": "exploration:sea_whip_pink"
+    },
+    {
+      "item": "exploration:raw_lanternfish",
+      "key": "exploration:raw_lanternfish",
+      "name": "Raw Lanternfish",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:raw_lanternfish",
+      "tags": [
+        "smeltable",
+        "kitchen:cookable"
+      ]
+    },
+    {
+      "item": "exploration:cooked_lanternfish",
+      "key": "exploration:cooked_lanternfish",
+      "name": "Cooked Lanternfish",
+      "info": "Rich deep-water oil: a long, slow mend",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:cooked_lanternfish",
+      "tags": [],
+      "food": {
+        "eat_ticks": 24,
+        "effects": [
+          {
+            "effect": "petramond:regeneration",
+            "ticks": 1500
+          }
+        ]
+      }
     },
     {
       "item": "exploration:plate_coral_red",

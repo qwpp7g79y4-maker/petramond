@@ -13,9 +13,11 @@ use crate::keys;
 pub mod flora;
 pub mod kelp;
 pub mod reef;
+pub mod ripen;
 pub mod shoal;
 mod sited;
 mod sunken;
+pub mod take_out;
 pub mod trench;
 pub mod undercut;
 

@@ -65,7 +65,16 @@ mod_sdk::pack_keys! {
     pub(crate) ANEMONE: Block = "exploration:anemone";
     pub(crate) CLAM: Block = "exploration:clam";
     pub(crate) CLAM_OPEN: Block = "exploration:clam_open";
+    pub(crate) RIPENS: Behavior = "exploration:ripens";
+    pub(crate) TAKE_OUT: Data = "exploration:take_out";
 
+
+    pub(crate) FISHING_ROD: Data = "exploration:fishing_rod";
+    pub(crate) ROD_CAST: Sound = "exploration:rod_cast";
+    pub(crate) ROD_REEL: Sound = "exploration:rod_reel";
+    pub(crate) FISH_BITE: Sound = "exploration:fish_bite";
+    pub(crate) FISH_CATCH: Sound = "exploration:fish_catch";
+    pub(crate) WATER_SPLASH: Emitter = "petramond:water_splash";
 }
 
 pub(crate) const GLOWPODS: [&str; 2] = [GLOWPOD_TEAL, GLOWPOD_VIOLET];

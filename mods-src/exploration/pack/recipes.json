@@ -255,6 +255,100 @@
         "item": "exploration:limestone_bricks_slab",
         "count": 6
       }
+    },
+    {
+      "type": "crafting",
+      "recipe": "exploration:salt",
+      "station": "petramond:crafting_table",
+      "ingredients": [
+        {
+          "item": "petramond:water_bucket",
+          "count": 1,
+          "remainder": "petramond:wooden_bucket"
+        },
+        {
+          "item": "petramond:coal",
+          "count": 1
+        }
+      ],
+      "result": {
+        "item": "exploration:salt",
+        "count": 4
+      }
+    },
+    {
+      "type": "crafting",
+      "recipe": "exploration:bubble_tonic",
+      "station": "petramond:crafting_table",
+      "ingredients": [
+        {
+          "item": "exploration:pearl",
+          "count": 1
+        },
+        {
+          "item": "exploration:kelp",
+          "count": 2
+        },
+        {
+          "item": "exploration:salt",
+          "count": 1
+        },
+        {
+          "item": "petramond:glass",
+          "count": 1
+        }
+      ],
+      "result": {
+        "item": "exploration:bubble_tonic",
+        "count": 2
+      }
+    },
+    {
+      "type": "processing",
+      "recipe": "exploration:cook_sardine",
+      "class": "petramond:smelting",
+      "ingredient": "exploration:raw_sardine",
+      "result": "exploration:cooked_sardine"
+    },
+    {
+      "type": "processing",
+      "recipe": "exploration:cook_glimmerfin",
+      "class": "petramond:smelting",
+      "ingredient": "exploration:raw_glimmerfin",
+      "result": "exploration:cooked_glimmerfin"
+    },
+    {
+      "type": "processing",
+      "recipe": "exploration:dry_kelp",
+      "class": "petramond:smelting",
+      "ingredient": "exploration:kelp",
+      "result": "exploration:dried_kelp"
+    },
+    {
+      "type": "crafting",
+      "recipe": "exploration:fishing_rod",
+      "station": "petramond:crafting_table",
+      "ingredients": [
+        {
+          "item": "petramond:stick",
+          "count": 3
+        },
+        {
+          "item": "petramond:rope",
+          "count": 2
+        }
+      ],
+      "result": {
+        "item": "exploration:fishing_rod",
+        "count": 1
+      }
+    },
+    {
+      "type": "processing",
+      "recipe": "exploration:cook_lanternfish",
+      "class": "petramond:smelting",
+      "ingredient": "exploration:raw_lanternfish",
+      "result": "exploration:cooked_lanternfish"
     }
   ]
 }

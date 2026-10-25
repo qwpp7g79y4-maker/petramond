@@ -221,6 +221,46 @@
       "file": "glowpod_violet.png"
     },
     {
+      "name": "exploration:pearl",
+      "file": "pearl.png"
+    },
+    {
+      "name": "exploration:salt",
+      "file": "salt.png"
+    },
+    {
+      "name": "exploration:bubble_tonic",
+      "file": "bubble_tonic.png"
+    },
+    {
+      "name": "exploration:water_breathing",
+      "file": "water_breathing.png"
+    },
+    {
+      "name": "exploration:diving_helmet",
+      "file": "diving_helmet.png"
+    },
+    {
+      "name": "exploration:raw_sardine",
+      "file": "raw_sardine.png"
+    },
+    {
+      "name": "exploration:cooked_sardine",
+      "file": "cooked_sardine.png"
+    },
+    {
+      "name": "exploration:raw_glimmerfin",
+      "file": "raw_glimmerfin.png"
+    },
+    {
+      "name": "exploration:cooked_glimmerfin",
+      "file": "cooked_glimmerfin.png"
+    },
+    {
+      "name": "exploration:dried_kelp",
+      "file": "dried_kelp.png"
+    },
+    {
       "name": "exploration:clam_shell",
       "file": "clam_shell.png"
     },
@@ -231,6 +271,18 @@
     {
       "name": "exploration:clam_inside",
       "file": "clam_inside.png"
+    },
+    {
+      "name": "exploration:fishing_rod",
+      "file": "fishing_rod.png"
+    },
+    {
+      "name": "exploration:fishing_rod_cast",
+      "file": "fishing_rod_cast.png"
+    },
+    {
+      "name": "exploration:bobber",
+      "file": "bobber.png"
     },
     {
       "name": "exploration:glowpod_amber",
@@ -1241,6 +1293,14 @@
           173
         ]
       }
+    },
+    {
+      "name": "exploration:raw_lanternfish",
+      "file": "raw_lanternfish.png"
+    },
+    {
+      "name": "exploration:cooked_lanternfish",
+      "file": "cooked_lanternfish.png"
     },
     {
       "name": "exploration:limestone",

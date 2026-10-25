@@ -1,0 +1,94 @@
+{
+  "loot_tables": [
+    {
+      "loot": "exploration:fishing",
+      "pools": [
+        {
+          "rolls": [
+            1,
+            1
+          ],
+          "entries": [
+            {
+              "weight": 60,
+              "result": {
+                "type": "item",
+                "item": "exploration:raw_sardine",
+                "count": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "weight": 16,
+              "result": {
+                "type": "item",
+                "item": "exploration:raw_glimmerfin",
+                "count": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "weight": 9,
+              "result": {
+                "type": "item",
+                "item": "exploration:kelp",
+                "count": [
+                  1,
+                  2
+                ]
+              }
+            },
+            {
+              "weight": 5,
+              "result": {
+                "type": "item",
+                "item": "exploration:clam",
+                "count": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "weight": 4,
+              "result": {
+                "type": "item",
+                "item": "petramond:stick",
+                "count": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "weight": 2,
+              "result": {
+                "type": "item",
+                "item": "exploration:pearl",
+                "count": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "weight": 1,
+              "result": {
+                "type": "item",
+                "item": "exploration:shark_tooth",
+                "count": [
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

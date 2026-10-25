@@ -1,0 +1,25 @@
+{
+  "recipes": [
+    {
+      "type": "processing",
+      "recipe": "exploration:oven_sardine",
+      "class": "kitchen:cooking",
+      "ingredient": "exploration:raw_sardine",
+      "result": "exploration:cooked_sardine"
+    },
+    {
+      "type": "processing",
+      "recipe": "exploration:oven_glimmerfin",
+      "class": "kitchen:cooking",
+      "ingredient": "exploration:raw_glimmerfin",
+      "result": "exploration:cooked_glimmerfin"
+    },
+    {
+      "type": "processing",
+      "recipe": "exploration:oven_lanternfish",
+      "class": "kitchen:cooking",
+      "ingredient": "exploration:raw_lanternfish",
+      "result": "exploration:cooked_lanternfish"
+    }
+  ]
+}

@@ -1,3 +1,14 @@
 {
-  "models": []
+  "models": [
+    {
+      "key": "exploration:diving_helmet",
+      "model_file": "models/diving_helmet.bbmodel",
+      "cells": [
+        1,
+        1,
+        1
+      ],
+      "fit": "native"
+    }
+  ]
 }

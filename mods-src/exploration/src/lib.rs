@@ -6,6 +6,7 @@ mod cascade;
 mod cavern;
 mod content;
 mod dripstone;
+mod fishing;
 mod fluids;
 mod keys;
 mod ocean;
@@ -22,10 +23,14 @@ const GEN_OCEAN_FLORA: u32 = 3;
 const GEN_SHOAL: u32 = 10;
 const HOOK_DRIPSTONE: u32 = 1;
 const HOOK_KELP: u32 = 2;
+const HOOK_RIPEN: u32 = 3;
+const TICK_FISHING: u32 = 2;
 const HANDLER_PROJECTILE: u32 = 1;
 const HANDLER_PLAYER_DAMAGE: u32 = 2;
 const HANDLER_MOB_DAMAGE: u32 = 3;
 const HANDLER_PLACED: u32 = 4;
+const HANDLER_USE: u32 = 5;
+const HANDLER_INTERACT: u32 = 6;
 
 pub(crate) use keys::MUSHROOM_CAVERN as BIOME_KEY;
 
@@ -37,6 +42,9 @@ struct Exploration {
     dripstone: Option<Dripstone>,
     ocean: Option<ocean::Ocean>,
     shoals: Option<ocean::shoal::Shoals>,
+    ripening: Option<ocean::ripen::Ripening>,
+    taking_out: Option<ocean::take_out::TakingOut>,
+    fishing: Option<fishing::Fishing>,
     spores: spores::Spores,
 }
 
@@ -54,6 +62,10 @@ impl Exploration {
 
 impl Mod for Exploration {
     fn init(&mut self) {
+        self.taking_out = ocean::take_out::TakingOut::resolve();
+        if self.taking_out.is_some() {
+            register_event_handler(EventKind::InteractAttempt, 0, HANDLER_INTERACT);
+        }
         if runtime_side() == RuntimeSide::Client {
             self.spores.init();
             return;
@@ -89,9 +101,18 @@ impl Mod for Exploration {
                     ocean.gen_filter(),
                 );
                 register_block_behavior(keys::KELP_HOOK, HOOK_KELP);
+                self.ripening = ocean::ripen::Ripening::resolve();
+                if self.ripening.is_some() {
+                    register_block_behavior(keys::RIPENS, HOOK_RIPEN);
+                }
                 self.ocean = Some(ocean);
             }
             None => log("exploration: ocean content failed to resolve; seafloor bare"),
+        }
+        self.fishing = resolve_block_logged(keys::WATER).and_then(fishing::Fishing::resolve);
+        if self.fishing.is_some() {
+            register_event_handler(EventKind::UseUnclaimed, 0, HANDLER_USE);
+            register_tick_system(Stage::ItemPhysics, AttachSide::Before, 0, TICK_FISHING);
         }
         self.init_sea_structures();
     }
@@ -125,11 +146,31 @@ impl Mod for Exploration {
         match (callback_id, &self.dripstone, &self.ocean) {
             (HOOK_DRIPSTONE, Some(d), _) => dripstone::behavior::on_hook(d, kind, pos),
             (HOOK_KELP, _, Some(o)) => ocean::kelp::on_hook(o, kind, pos),
+            (HOOK_RIPEN, _, _) => {
+                if let Some(ripening) = &self.ripening {
+                    ripening.on_hook(kind, pos);
+                }
+            }
             _ => {}
         }
     }
 
     fn handle_event(&mut self, handler_id: u32, payload: &mut EventPayload) -> Outcome {
+        if let (
+            HANDLER_INTERACT,
+            Some(taking_out),
+            EventPayload::InteractAttempt {
+                block: Some(pos), ..
+            },
+        ) = (handler_id, &self.taking_out, &*payload)
+        {
+            return taking_out.on_interact(SideWorld::current(), *pos);
+        }
+        if let (HANDLER_USE, Some(fishing), EventPayload::UseUnclaimed { player, .. }) =
+            (handler_id, &mut self.fishing, &*payload)
+        {
+            return fishing.on_use(*player);
+        }
         let Some(d) = &self.dripstone else {
             return Outcome::Continue;
         };
@@ -139,6 +180,17 @@ impl Mod for Exploration {
             HANDLER_MOB_DAMAGE => dripstone::hazard::on_mob_damage(d, payload),
             HANDLER_PLACED => dripstone::behavior::on_placed(d, payload),
             _ => Outcome::Continue,
+        }
+    }
+
+    fn tick_system(&mut self, system_id: u32) {
+        match system_id {
+            TICK_FISHING => {
+                if let Some(fishing) = &mut self.fishing {
+                    fishing.tick();
+                }
+            }
+            _ => {}
         }
     }
 

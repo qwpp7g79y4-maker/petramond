@@ -1,0 +1,50 @@
+{
+  "sounds": [
+    {
+      "sound": "exploration:rod_cast",
+      "variants": [
+        "sounds/rod_cast1.ogg",
+        "sounds/rod_cast2.ogg"
+      ],
+      "gain": 0.7,
+      "pitch_variation": 0.08,
+      "attenuation_distance": 12.0,
+      "category": "block"
+    },
+    {
+      "sound": "exploration:rod_reel",
+      "variants": [
+        "sounds/rod_reel1.ogg",
+        "sounds/rod_reel2.ogg",
+        "sounds/rod_reel3.ogg"
+      ],
+      "gain": 0.6,
+      "pitch_variation": 0.08,
+      "attenuation_distance": 12.0,
+      "category": "block"
+    },
+    {
+      "sound": "exploration:fish_bite",
+      "variants": [
+        "sounds/fish_bite1.ogg",
+        "sounds/fish_bite2.ogg",
+        "sounds/fish_bite3.ogg"
+      ],
+      "gain": 0.8,
+      "pitch_variation": 0.1,
+      "attenuation_distance": 16.0,
+      "category": "block"
+    },
+    {
+      "sound": "exploration:fish_catch",
+      "variants": [
+        "sounds/fish_catch1.ogg",
+        "sounds/fish_catch2.ogg"
+      ],
+      "gain": 0.8,
+      "pitch_variation": 0.1,
+      "attenuation_distance": 12.0,
+      "category": "block"
+    }
+  ]
+}
