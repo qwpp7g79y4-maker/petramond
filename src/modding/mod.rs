@@ -931,7 +931,11 @@ fn mob_damage_feedback_component(
         }
         mod_api::MobDamageFeedbackComponent::Knockback { scale, duration } => {
             MobDamageFeedbackComponent::Knockback {
-                scale: finite_nonnegative(scale, 0.0).clamp(0.0, 8.0),
+                scale: if scale.is_finite() {
+                    scale.clamp(-8.0, 8.0)
+                } else {
+                    0.0
+                },
                 duration: finite_nonnegative(duration, 0.0),
             }
         }

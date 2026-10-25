@@ -1,5 +1,5 @@
 use super::*;
-use crate::mob::{def, Mob, MobDamageFeedback};
+use crate::mob::{def, Mob, MobDamageFeedback, MobDamageFeedbackComponent};
 use petramond_math::math::IVec3;
 use petramond_math::world_pos::WorldPos;
 use petramond_world::block::Block;
@@ -405,6 +405,28 @@ fn knockback_pushes_away_and_overrides_the_wish() {
         owl.pos.x
     );
     assert!(!owl.moving, "a staggered mob doesn't read as walking");
+}
+
+#[test]
+fn a_negative_knockback_pulls_toward_the_origin() {
+    let mut owl = Instance::new(Mob::Owl, WorldPos::new(0.5, 0.0, 0.5), 0.0, 1);
+    owl.integrate(0.05, owl_def(), Vec3::ZERO, false, &floor_at_zero);
+    let x0 = owl.pos.x;
+    let pull = MobDamageFeedback {
+        components: vec![MobDamageFeedbackComponent::Knockback {
+            scale: -1.0,
+            duration: 0.3,
+        }],
+    };
+    owl.damage(1.0, Some(WorldPos::new(5.0, 0.0, 0.5)), true, None, &pull);
+    for _ in 0..4 {
+        owl.integrate(0.05, owl_def(), Vec3::ZERO, false, &floor_at_zero);
+    }
+    assert!(
+        owl.pos.x > x0 + 0.05,
+        "pulled +X toward the origin: {x0} -> {}",
+        owl.pos.x
+    );
 }
 
 /// A hop is just a vertical drive on top of normal walking. The engine has no gait concept, so

@@ -88,13 +88,14 @@ impl Instance {
                     self.combat.hurt_timer = self.combat.hurt_timer.max(duration.max(0.0));
                 }
                 MobDamageFeedbackComponent::Knockback { scale, duration } => {
-                    if !lethal && attack && scale > 0.0 {
+                    // A negative scale pulls toward the origin instead of shoving away.
+                    if !lethal && attack && scale != 0.0 {
                         if let Some(from) = origin {
                             let mut away = self.pos - from;
                             away.y = 0.0;
                             self.motion.knockback =
                                 away.normalize_or_zero() * KNOCKBACK_SPEED * scale;
-                            self.motion.vel.y = KNOCKBACK_UP * scale;
+                            self.motion.vel.y = KNOCKBACK_UP * scale.abs();
                             self.combat.stagger_timer =
                                 self.combat.stagger_timer.max(duration.max(0.0));
                             self.motion.on_ground = false;

@@ -152,6 +152,7 @@ pub enum MobDamageFeedbackComponent {
         duration: f32,
     },
     Knockback {
+        /// Shoves away from the hit's origin; negative pulls toward it (-8..=8).
         scale: f32,
         duration: f32,
     },
