@@ -5,7 +5,6 @@
 use mod_sdk::*;
 
 use super::super::geometry::{gap, within_arc};
-use super::super::keys::SKELETON;
 use super::super::kit::Swing;
 use super::super::presence::Play;
 use super::super::Skeletons;
@@ -140,7 +139,7 @@ pub fn on_player_damage(sk: &mut Skeletons, payload: &EventPayload) -> Outcome {
     else {
         return Outcome::Continue;
     };
-    if key != SKELETON || *amount <= 0 {
+    if !sk.guards.values().any(|(_, guard)| guard == key) || *amount <= 0 {
         return Outcome::Continue;
     }
     let Some(victim) = player_state().id else {

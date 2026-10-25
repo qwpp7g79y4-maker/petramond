@@ -17,6 +17,7 @@ mod combat;
 mod garrison;
 mod geometry;
 mod guard;
+mod guards;
 mod keys;
 mod kit;
 mod leash;
@@ -30,7 +31,7 @@ mod tests;
 use mod_sdk::*;
 
 use combat::Fight;
-use kit::Kits;
+use kit::Armouries;
 use posts::Posts;
 use presence::Presence;
 use standards::Standards;
@@ -38,8 +39,12 @@ use standards::Standards;
 use crate::routes::{AiNode, Handler, TickSystem};
 
 pub struct Skeletons {
-    kind: MobId,
-    kits: Kits,
+    /// Every garrisoned kind: rows whose `monsters:post_roles` data names the posts they fill.
+    kinds: Vec<MobId>,
+    /// The kind sent to each post role (and its key, to spawn it), by role code.
+    guards: FxHashMap<u8, (MobId, String)>,
+    /// Each garrisoned kind's own loadouts.
+    kits: Armouries,
     posts: Posts,
     /// `None` without the flags pack: every camp keeps its garrison.
     standards: Option<Standards>,
@@ -50,6 +55,8 @@ pub struct Skeletons {
 
 /// One skeleton as this session knows it.
 pub struct Body {
+    kind: MobId,
+    /// Into its kind's loadouts.
     loadout: Option<usize>,
     post: Option<[i32; 3]>,
     watch: bool,
@@ -63,8 +70,12 @@ impl Skeletons {
         if runtime_side() != RuntimeSide::Server {
             return None;
         }
-        let kind = resolve_mob_logged(keys::SKELETON)?;
-        let kits = Kits::load(kind);
+        resolve_mob_logged(keys::SKELETON)?;
+        let (kinds, guards) = guards::load();
+        let kits = Armouries::load(&kinds);
+        if guards.is_empty() {
+            log("skeletons: no mob row fills any post role; camps stay empty");
+        }
         register_tick_system(
             Stage::Mobs,
             AttachSide::After,
@@ -90,7 +101,7 @@ impl Skeletons {
         );
         register_event_handler(EventKind::SectionLoaded, 0, Handler::SectionLoaded.id());
         let only_skeletons = EventFilter {
-            mobs: vec![kind],
+            mobs: kinds.clone(),
             ..EventFilter::default()
         };
         register_event_handler_filtered(
@@ -114,7 +125,8 @@ impl Skeletons {
         register_ai_node(keys::POST_NODE, AiNode::SkeletonPost.id());
         let standards = Standards::init();
         Some(Skeletons {
-            kind,
+            kinds,
+            guards,
             kits,
             posts: Posts::default(),
             standards,
@@ -125,7 +137,7 @@ impl Skeletons {
 
     /// Dresses the skeletons near players this session has not met yet, then runs their fight.
     pub fn tick_combat(&mut self) {
-        let engagement = combat::Engagement::now(self.kind);
+        let engagement = combat::Engagement::now(&self.kinds);
         let strangers = engagement.strangers(&self.bodies);
         garrison::enlist(self, strangers);
         combat::tick(self, &engagement);

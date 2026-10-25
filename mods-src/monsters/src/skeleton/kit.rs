@@ -9,7 +9,7 @@ use mod_sdk::*;
 use serde::Deserialize;
 
 use super::aim::Flight;
-use super::keys::{LOADOUTS_DATA, PROJECTILE_DATA, SKELETON, UNARMED_DATA, WIELD_DATA};
+use super::keys::{LOADOUTS_DATA, PROJECTILE_DATA, UNARMED_DATA, WIELD_DATA};
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -367,20 +367,21 @@ impl Kits {
             .map_or(&self.bare, |loadout| &loadout.kit)
     }
 
-    pub fn load(skeleton: MobId) -> Kits {
+    /// The loadouts and bare hands on the mob row `kind` (named `name` in logs).
+    pub fn load(kind: MobId, name: &str) -> Kits {
         let wields = wield_rows();
         let unarmed =
-            row_data::<Melee>(skeleton, UNARMED_DATA).filter(|melee| match melee.check() {
+            row_data::<Melee>(kind, name, UNARMED_DATA).filter(|melee| match melee.check() {
                 Ok(()) => true,
                 Err(reason) => {
-                    log(&row_error(UNARMED_DATA, SKELETON, &reason));
+                    log(&row_error(UNARMED_DATA, name, &reason));
                     false
                 }
             });
-        let specs = row_data::<Vec<LoadoutSpec>>(skeleton, LOADOUTS_DATA).unwrap_or_default();
+        let specs = row_data::<Vec<LoadoutSpec>>(kind, name, LOADOUTS_DATA).unwrap_or_default();
         let (specs, dropped) = admit(specs, |item| resolve_item(item).is_some());
         for reason in dropped {
-            log(&format!("skeleton {reason}; left out"));
+            log(&format!("{name} {reason}; left out"));
         }
         let wield = |item: &str| {
             wields
@@ -418,12 +419,39 @@ impl Kits {
     }
 }
 
-fn row_data<T: serde::de::DeserializeOwned>(mob: MobId, key: &str) -> Option<T> {
+/// Every garrisoned kind's own kits, from its own row: a drowned crew carries what the drowned
+/// row lists, a camp skeleton what the skeleton row lists.
+#[derive(Default)]
+pub struct Armouries {
+    by_kind: FxHashMap<MobId, Kits>,
+    none: Kits,
+}
+
+impl Armouries {
+    pub fn load(kinds: &[MobId]) -> Armouries {
+        let names = mob_names(kinds.to_vec());
+        let by_kind = kinds
+            .iter()
+            .zip(names)
+            .map(|(&kind, name)| (kind, Kits::load(kind, name.as_deref().unwrap_or("?"))))
+            .collect();
+        Armouries {
+            by_kind,
+            none: Kits::default(),
+        }
+    }
+
+    pub fn of(&self, kind: MobId) -> &Kits {
+        self.by_kind.get(&kind).unwrap_or(&self.none)
+    }
+}
+
+fn row_data<T: serde::de::DeserializeOwned>(mob: MobId, name: &str, key: &str) -> Option<T> {
     let raw = mob_data(mob, key)?;
     match parse_row_data::<T>(&String::from_utf8_lossy(&raw)) {
         Ok(value) => Some(value),
         Err(reason) => {
-            log(&row_error(key, SKELETON, &reason));
+            log(&row_error(key, name, &reason));
             None
         }
     }

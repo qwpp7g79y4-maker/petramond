@@ -7,7 +7,7 @@
 use mod_sdk::*;
 
 use super::combat::{clear_line, wanted, Fight};
-use super::keys::{FACING_TAG, LOADOUT_TAG, POST_TAG, ROLE_TAG, SKELETON};
+use super::keys::{FACING_TAG, LOADOUT_TAG, POST_TAG, ROLE_TAG};
 use super::kit::pick;
 use super::posts::{may_fill, role_tag, standing_point, tagged_role, Scan};
 use super::presence::{self, Presence};
@@ -30,8 +30,8 @@ pub fn tick(sk: &mut Skeletons) {
     sk.bodies.retain(|id, _| ids.contains(id));
     let strangers = live
         .iter()
-        .map(|m| m.id)
-        .filter(|id| !sk.bodies.contains_key(id))
+        .filter(|m| !sk.bodies.contains_key(&m.id))
+        .map(|m| (m.id, m.kind))
         .collect();
     enlist(sk, strangers);
     let manned: FxHashSet<[i32; 3]> = sk.bodies.values().filter_map(|b| b.post).collect();
@@ -76,11 +76,15 @@ fn refill(sk: &mut Skeletons, now: u64, eyes: &[[f64; 3]]) {
         } else {
             may_fill(watched, eyes, clear_line)
         };
+        let Some((kind, guard)) = sk.guards.get(&marker.role.code()).cloned() else {
+            continue;
+        };
         if !allowed
-            || sk
-                .standards
-                .as_mut()
-                .is_some_and(|s| !s.flies(marker.camp, now))
+            || (marker.role.answers_standard()
+                && sk
+                    .standards
+                    .as_mut()
+                    .is_some_and(|s| !s.flies(marker.camp, now)))
         {
             continue;
         }
@@ -89,11 +93,12 @@ fn refill(sk: &mut Skeletons, now: u64, eyes: &[[f64; 3]]) {
             .facing
             .map(Facing::yaw)
             .unwrap_or_else(|| (roll >> 40) as f32 / (1u64 << 24) as f32 * std::f32::consts::TAU);
-        let Some(id) = spawn_mob_checked(SKELETON, feet, yaw) else {
+        let Some(id) = spawn_mob_checked(&guard, feet, yaw) else {
             continue;
         };
-        let loadout = pick(&sk.kits.loadouts, marker.watch(), splitmix64_mix(roll));
-        let name = loadout.map_or("", |i| sk.kits.loadouts[i].name.as_str());
+        let kits = sk.kits.of(kind);
+        let loadout = pick(&kits.loadouts, marker.watch(), splitmix64_mix(roll));
+        let name = loadout.map_or("", |i| kits.loadouts[i].name.as_str());
         let mut writes = vec![
             set(id, LOADOUT_TAG, MobTagValue::Str(name.to_owned())),
             set(id, POST_TAG, cell.to_tag()),
@@ -108,6 +113,7 @@ fn refill(sk: &mut Skeletons, now: u64, eyes: &[[f64; 3]]) {
         }
         mob_tags_write(writes);
         let body = Body {
+            kind,
             loadout,
             post: Some(cell),
             watch: marker.watch(),
@@ -121,12 +127,12 @@ fn refill(sk: &mut Skeletons, now: u64, eyes: &[[f64; 3]]) {
 
 /// Takes on skeletons this session has not met yet: reads what their tags say they are, gives one
 /// with no loadout it knows a fresh one, and dresses it.
-pub fn enlist(sk: &mut Skeletons, ids: Vec<u64>) {
-    if ids.is_empty() {
+pub fn enlist(sk: &mut Skeletons, strangers: Vec<(u64, MobId)>) {
+    if strangers.is_empty() {
         return;
     }
-    let tags = paged(ids.clone(), mob_tags_get_many);
-    for (id, tags) in ids.into_iter().zip(tags) {
+    let tags = paged(strangers.iter().map(|s| s.0).collect(), mob_tags_get_many);
+    for ((id, kind), tags) in strangers.into_iter().zip(tags) {
         let Some(tags) = tags else {
             continue;
         };
@@ -136,21 +142,23 @@ pub fn enlist(sk: &mut Skeletons, ids: Vec<u64>) {
             || get(ROLE_TAG).and_then(tagged_role) == Some(PostRole::Watch),
             |p| p.marker.watch(),
         );
+        let kits = sk.kits.of(kind);
         let known = match get(LOADOUT_TAG) {
-            Some(MobTagValue::Str(name)) => sk.kits.index_of(name),
+            Some(MobTagValue::Str(name)) => kits.index_of(name),
             _ => None,
         };
         let loadout = known.or_else(|| {
             let fresh = pick(
-                &sk.kits.loadouts,
+                &kits.loadouts,
                 watch,
                 splitmix64_mix(rng_u64("skeleton_loadout") ^ id),
             );
-            let name = fresh.map_or("", |i| sk.kits.loadouts[i].name.as_str());
+            let name = fresh.map_or("", |i| kits.loadouts[i].name.as_str());
             mob_tag_set(id, LOADOUT_TAG, MobTagValue::Str(name.to_owned()));
             fresh
         });
         let body = Body {
+            kind,
             loadout,
             post,
             watch,
@@ -162,7 +170,7 @@ pub fn enlist(sk: &mut Skeletons, ids: Vec<u64>) {
 }
 
 fn dress(sk: &mut Skeletons, id: u64, mut body: Body) {
-    let kit = sk.kits.kit(body.loadout);
+    let kit = sk.kits.of(body.kind).kit(body.loadout);
     if let Some([main, off]) = body
         .presence
         .display(kit.held.each_ref().map(|v| v.as_deref()))

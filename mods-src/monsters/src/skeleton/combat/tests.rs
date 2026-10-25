@@ -94,6 +94,7 @@ fn the_brain_lock_drives_mob_hits_mobile_archery_and_cornered_melee() {
     };
     let mut me = mob(1, [0.0; 3]);
     let mut body = Body {
+        kind: MobId(1),
         loadout: None,
         post: None,
         watch: false,

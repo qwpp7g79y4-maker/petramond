@@ -177,7 +177,7 @@ pub struct Engagement {
 }
 
 impl Engagement {
-    pub fn now(kind: MobId) -> Engagement {
+    pub fn now(kinds: &[MobId]) -> Engagement {
         let roster: Vec<PlayerListEntry> = players()
             .into_iter()
             .filter(|p| !p.state.spectator && p.state.health > 0)
@@ -186,17 +186,17 @@ impl Engagement {
         let near = if anchors.is_empty() {
             Vec::new()
         } else {
-            mobs_near_any_of(&anchors, ENGAGE_RADIUS, &[kind])
+            mobs_near_any_of(&anchors, ENGAGE_RADIUS, kinds)
         };
         Engagement { roster, near }
     }
 
-    /// The engaged skeletons missing from `bodies`.
-    pub fn strangers(&self, bodies: &FxHashMap<u64, Body>) -> Vec<u64> {
+    /// The engaged skeletons missing from `bodies`, with their kinds.
+    pub fn strangers(&self, bodies: &FxHashMap<u64, Body>) -> Vec<(u64, MobId)> {
         self.near
             .iter()
-            .map(|m| m.id)
-            .filter(|id| !bodies.contains_key(id))
+            .filter(|m| !bodies.contains_key(&m.id))
+            .map(|m| (m.id, m.kind))
             .collect()
     }
 }
@@ -218,7 +218,7 @@ pub fn tick(sk: &mut Skeletons, engagement: &Engagement) {
         let Some(body) = bodies.get_mut(&me.id) else {
             continue;
         };
-        let kit = kits.kit(body.loadout);
+        let kit = kits.of(body.kind).kit(body.loadout);
         let mut turn = Turn {
             now,
             me,
@@ -253,7 +253,7 @@ pub fn tick(sk: &mut Skeletons, engagement: &Engagement) {
     for (id, body) in bodies.iter_mut() {
         if !nearby_ids.contains(id) {
             body.fight = Fight::default();
-            let kit = kits.kit(body.loadout);
+            let kit = kits.of(body.kind).kit(body.loadout);
             if let Some([main, off]) = body.presence.display(held_display(kit, &body.fight, now)) {
                 mob_held_display(*id, main, off);
             }

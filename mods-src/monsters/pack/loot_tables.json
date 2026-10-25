@@ -421,6 +421,55 @@
           ]
         }
       ]
+    },
+    {
+      "loot": "monsters:drowned_drops",
+      "pools": [
+        {
+          "rolls": [
+            1,
+            1
+          ],
+          "entries": [
+            {
+              "weight": 1,
+              "result": {
+                "type": "item",
+                "item": "monsters:bone",
+                "count": [
+                  1,
+                  2
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "rolls": [
+            1,
+            1
+          ],
+          "entries": [
+            {
+              "weight": 1,
+              "result": {
+                "type": "item",
+                "item": "petramond:rope",
+                "count": [
+                  1,
+                  2
+                ]
+              }
+            },
+            {
+              "weight": 2,
+              "result": {
+                "type": "empty"
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

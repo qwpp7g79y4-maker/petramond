@@ -107,13 +107,22 @@ pub fn built_mod_wasm(krate: &str) -> Option<PathBuf> {
     Some(wasm)
 }
 
+/// Stages the shipped packs `ids` as a mods dir, building each one's wasm; a content-only pack
+/// (no crate beside its `pack/`) is copied as is.
 pub fn stage_mods_fixture(
     tag: &str,
     ids: &[&str],
 ) -> Option<petramond_util::test_dirs::TestScratchDir> {
-    let wasms: Vec<PathBuf> = ids
+    let mods_src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("mods-src");
+    let wasms: Vec<Option<PathBuf>> = ids
         .iter()
-        .map(|id| built_mod_wasm(id))
+        .map(|id| {
+            if mods_src.join(id).join("Cargo.toml").exists() {
+                built_mod_wasm(id).map(Some)
+            } else {
+                Some(None)
+            }
+        })
         .collect::<Option<_>>()?;
     fn copy_tree(src: &std::path::Path, dst: &std::path::Path) {
         std::fs::create_dir_all(dst).unwrap();
@@ -130,12 +139,10 @@ pub fn stage_mods_fixture(
     let root = petramond_util::test_dirs::TestScratchDir::new(&format!("fixture-{tag}"));
     for (id, wasm) in ids.iter().zip(&wasms) {
         let dst = root.join("mods").join(id);
-        let src = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("mods-src")
-            .join(id)
-            .join("pack");
-        copy_tree(&src, &dst);
-        std::fs::copy(wasm, dst.join("mod.wasm")).unwrap();
+        copy_tree(&mods_src.join(id).join("pack"), &dst);
+        if let Some(wasm) = wasm {
+            std::fs::copy(wasm, dst.join("mod.wasm")).unwrap();
+        }
     }
     Some(root)
 }

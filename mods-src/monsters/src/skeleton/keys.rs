@@ -2,6 +2,7 @@ mod_sdk::pack_keys! {
     pub SKELETON: Mob = "monsters:skeleton";
     pub POST_NODE: AiNode = "monsters:skeleton_post";
     pub LOADOUTS_DATA: Data = "monsters:loadouts";
+    pub POST_ROLES_DATA: Data = "monsters:post_roles";
     pub UNARMED_DATA: Data = "monsters:unarmed";
     pub WIELD_DATA: Data = "monsters:wield";
     pub DROPS: Loot = "monsters:skeleton_drops";

@@ -63,13 +63,13 @@ pub fn on_damage(sk: &mut Skeletons, payload: &EventPayload) -> Outcome {
     else {
         return Outcome::Continue;
     };
-    if *kind != sk.kind {
+    if !sk.kinds.contains(kind) {
         return Outcome::Continue;
     }
     let Some(body) = sk.bodies.get_mut(mob_id) else {
         return Outcome::Continue;
     };
-    let kit = sk.kits.kit(body.loadout);
+    let kit = sk.kits.of(body.kind).kit(body.loadout);
     let (Some(shield), Some(origin)) = (&kit.shield, origin) else {
         return Outcome::Continue;
     };
