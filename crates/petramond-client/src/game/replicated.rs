@@ -705,6 +705,9 @@ impl Game {
                 ServerToClient::ChatLine(line) => {
                     self.replica.chat_lines.push(line);
                 }
+                ServerToClient::Commands(commands) => {
+                    self.replica.commands = Some(commands);
+                }
                 ServerToClient::RecipesUnlocked { recipes } => {
                     for recipe in recipes {
                         self.local.player.progression.unlock(&recipe);

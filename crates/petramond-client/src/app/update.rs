@@ -191,5 +191,8 @@ impl App {
         for line in session.game.take_chat_lines() {
             session.chat.push(line, now);
         }
+        if let Some(commands) = session.game.take_commands() {
+            session.chat.set_commands(commands);
+        }
     }
 }

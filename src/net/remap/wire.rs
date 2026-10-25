@@ -32,7 +32,8 @@ impl Remap for ServerToClient {
             | ServerToClient::StreamBatchEnd { .. }
             | ServerToClient::ServerClosing
             | ServerToClient::KeepAlive
-            | ServerToClient::Disconnect { .. } => true,
+            | ServerToClient::Disconnect { .. }
+            | ServerToClient::Commands(_) => true,
         }
     }
 }

@@ -1,6 +1,10 @@
 use std::collections::VecDeque;
 
-use petramond::net::protocol::{ChatColor, ChatLine, ChatSpan, MAX_CHAT_CHARS};
+use petramond::net::protocol::{ChatColor, ChatLine, ChatSpan, CommandNode, MAX_CHAT_CHARS};
+
+mod complete;
+
+use complete::Completion;
 
 const MAX_HISTORY: usize = 256;
 const MAX_SENT: usize = 64;
@@ -11,6 +15,7 @@ const CHAT_W: i32 = 360;
 const OPEN_HISTORY_H: i32 = 118;
 const PAD: i32 = 4;
 const INPUT_PREFIX: &str = "> ";
+const MAX_SUGGESTIONS_SHOWN: usize = 8;
 
 struct TimedLine {
     line: ChatLine,
@@ -37,6 +42,16 @@ pub(super) struct ChatUi {
     visual_lines: usize,
     input_layout: Option<InputLayout>,
     drag_anchor: Option<usize>,
+    commands: Vec<CommandNode>,
+    suggestions: Suggestions,
+}
+
+/// Completions for the current draft, recomputed whenever the draft changes.
+#[derive(Default)]
+struct Suggestions {
+    for_draft: Option<String>,
+    list: Vec<Completion>,
+    selected: usize,
 }
 
 impl Default for ChatUi {
@@ -52,11 +67,48 @@ impl Default for ChatUi {
             visual_lines: 0,
             input_layout: None,
             drag_anchor: None,
+            commands: Vec::new(),
+            suggestions: Suggestions::default(),
         }
     }
 }
 
 impl ChatUi {
+    pub(super) fn set_commands(&mut self, commands: Vec<CommandNode>) {
+        self.commands = commands;
+        self.suggestions = Suggestions::default();
+    }
+
+    /// Suggestions are offered for typed drafts only, so Up/Down keep walking a recalled line's
+    /// history.
+    fn refresh_suggestions(&mut self) -> &[Completion] {
+        let draft = self.editor.text();
+        if self.history_cursor.is_some() {
+            self.suggestions = Suggestions::default();
+        } else if self.suggestions.for_draft.as_deref() != Some(draft) {
+            self.suggestions = Suggestions {
+                for_draft: Some(draft.to_owned()),
+                list: complete::complete(&self.commands, draft),
+                selected: 0,
+            };
+        }
+        &self.suggestions.list
+    }
+
+    fn take_suggestion(&mut self, visible: usize, now: f64) {
+        let Some(chosen) = self.suggestions.list.get(self.suggestions.selected) else {
+            return;
+        };
+        let line = chosen.line.clone();
+        self.set_draft(&line, visible, now);
+    }
+
+    fn step_suggestion(&mut self, delta: isize) {
+        let n = self.suggestions.list.len() as isize;
+        self.suggestions.selected =
+            (self.suggestions.selected as isize + delta).rem_euclid(n) as usize;
+    }
+
     pub(super) fn push(&mut self, line: ChatLine, now: f64) {
         if self.history.len() == MAX_HISTORY {
             if let Some(dropped) = self.history.pop_front() {
@@ -101,6 +153,14 @@ impl ChatUi {
         now: f64,
     ) {
         let visible = self.input_visible_chars();
+        if !self.refresh_suggestions().is_empty() {
+            match key {
+                petramond_ui::NavKey::Tab => return self.take_suggestion(visible, now),
+                petramond_ui::NavKey::Up => return self.step_suggestion(-1),
+                petramond_ui::NavKey::Down => return self.step_suggestion(1),
+                _ => {}
+            }
+        }
         match (key, ctrl) {
             (petramond_ui::NavKey::Left, true) => {
                 self.editor.move_word_left(shift, visible, now);
@@ -370,6 +430,8 @@ impl ChatUi {
             [0.24, 0.46, 0.92, 0.7],
             Some(input),
         );
+        self.refresh_suggestions();
+        draw_suggestions(p, &self.suggestions, text_x, input_y, logical.0);
     }
 
     fn visual_history(&self) -> impl Iterator<Item = &Vec<ColoredText>> {
@@ -401,6 +463,56 @@ struct ColoredGlyph {
 struct ColoredText {
     fg: ChatColor,
     text: String,
+}
+
+/// The suggestion list, stacked upward from the input under the word it completes, scrolled
+/// to keep the selected row in view.
+fn draw_suggestions(
+    p: &mut petramond_ui::Painter<'_>,
+    suggestions: &Suggestions,
+    text_x: i32,
+    input_y: i32,
+    screen_w: i32,
+) {
+    let list = &suggestions.list;
+    let Some(first) = list.first() else {
+        return;
+    };
+    let shown = list.len().min(MAX_SUGGESTIONS_SHOWN);
+    let top = suggestions
+        .selected
+        .saturating_sub(shown - 1)
+        .min(list.len() - shown);
+    let row_h = p.font.line_advance() + 2;
+    let w = list
+        .iter()
+        .map(|c| p.font.width(&c.word))
+        .max()
+        .unwrap_or(0)
+        + PAD * 2;
+    let lead: String = first.line.chars().take(first.word_start).collect();
+    let x = (text_x + p.font.width(&lead) - PAD).clamp(0, (screen_w - w).max(0));
+    let panel = petramond_ui::RectI {
+        x,
+        y: input_y - 2 - row_h * shown as i32,
+        w,
+        h: row_h * shown as i32,
+    };
+    p.solid(panel, [0.0, 0.0, 0.0, 0.82], None);
+    for (row, (i, c)) in list.iter().enumerate().skip(top).take(shown).enumerate() {
+        let fg = if i == suggestions.selected {
+            [1.0, 0.88, 0.18, 1.0]
+        } else {
+            [0.72, 0.72, 0.72, 1.0]
+        };
+        p.text(
+            &c.word,
+            x + PAD,
+            panel.y + 1 + row_h * row as i32,
+            fg,
+            Some(panel),
+        );
+    }
 }
 
 fn chars_for_width(w: i32) -> usize {
@@ -622,6 +734,48 @@ mod tests {
         chat.insert_text("partial", 0.0);
         press(&mut chat, petramond_ui::NavKey::Up);
         assert_eq!(chat.editor.text(), "partial");
+    }
+
+    fn with_time_command() -> ChatUi {
+        let leaf = |w: &str| CommandNode::literal(w, Vec::new());
+        let mut chat = ChatUi::default();
+        chat.set_commands(vec![CommandNode::literal(
+            "time",
+            vec![
+                leaf("freeze"),
+                CommandNode::literal("set", vec![leaf("day"), leaf("night")]),
+                leaf("unfreeze"),
+            ],
+        )]);
+        chat
+    }
+
+    #[test]
+    fn arrows_pick_a_suggestion_and_tab_takes_it() {
+        let mut chat = with_time_command();
+        chat.insert_text("/time ", 0.0);
+        press(&mut chat, petramond_ui::NavKey::Down);
+        press(&mut chat, petramond_ui::NavKey::Tab);
+        assert_eq!(chat.editor.text(), "/time set");
+        press(&mut chat, petramond_ui::NavKey::Up);
+        press(&mut chat, petramond_ui::NavKey::Tab);
+        assert_eq!(
+            chat.editor.text(),
+            "/time set night",
+            "Up wraps to the last"
+        );
+    }
+
+    #[test]
+    fn a_recalled_command_keeps_the_arrows_on_history() {
+        let mut chat = with_time_command();
+        send(&mut chat, "/time");
+        send(&mut chat, "hello");
+        press(&mut chat, petramond_ui::NavKey::Up);
+        press(&mut chat, petramond_ui::NavKey::Up);
+        assert_eq!(chat.editor.text(), "/time");
+        press(&mut chat, petramond_ui::NavKey::Down);
+        assert_eq!(chat.editor.text(), "hello");
     }
 
     #[test]

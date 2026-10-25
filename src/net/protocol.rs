@@ -198,4 +198,6 @@ pub enum ServerToClient {
     Disconnect {
         reason: String,
     },
+    /// The commands this player may run, sent on join and whenever their operator status changes.
+    Commands(Vec<CommandNode>),
 }

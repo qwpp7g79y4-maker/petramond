@@ -67,9 +67,10 @@ fn starved_sessions_pause_streaming_and_resume_without_losing_any() {
         local_terrain += count_terrain(&out.msgs);
         for (id, msgs) in &out.remote {
             assert_eq!(*id, remote_id);
-            assert!(
-                msgs.iter().all(|m| matches!(m, ServerToClient::Tick(_))),
-                "a zero-headroom session receives only tick updates"
+            assert_eq!(
+                count_terrain(msgs),
+                0,
+                "a zero-headroom session receives no terrain"
             );
         }
     }

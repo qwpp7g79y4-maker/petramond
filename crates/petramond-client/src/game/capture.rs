@@ -130,7 +130,8 @@ fn world_only(msg: &ServerToClient) -> Option<ServerToClient> {
         | ServerToClient::ModsDisabled { .. }
         | ServerToClient::ServerClosing
         | ServerToClient::KeepAlive
-        | ServerToClient::Disconnect { .. } => None,
+        | ServerToClient::Disconnect { .. }
+        | ServerToClient::Commands(_) => None,
     }
 }
 

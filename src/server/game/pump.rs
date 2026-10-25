@@ -80,6 +80,16 @@ impl ServerGame {
                 sess.replication.sent_disabled_mods = disabled_mods;
             }
         }
+        for (s, out) in per_session.iter_mut().enumerate() {
+            let operator = self.is_operator(s);
+            let sess = &mut self.sessions[s];
+            if sess.replication.sent_commands_operator != Some(operator) {
+                out.push(ServerToClient::Commands(
+                    crate::server::commands::player_commands(operator),
+                ));
+                sess.replication.sent_commands_operator = Some(operator);
+            }
+        }
         let queue_room: Vec<usize> = self
             .sessions
             .iter()

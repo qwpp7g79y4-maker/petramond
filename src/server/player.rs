@@ -111,6 +111,8 @@ pub struct SessionReplication {
     pub last_obtained_scan: Option<u64>,
     pub sent_unlock_count: usize,
     pub sent_disabled_mods: usize,
+    /// The operator status the player's command list was last sent for.
+    pub sent_commands_operator: Option<bool>,
     pub last_menu_sync: Option<crate::net::protocol::MenuSyncMsg>,
     pub last_sent_gui_state: Option<std::sync::Arc<petramond_world::gui_state::GuiStateMap>>,
     pub last_reported_transform: Option<crate::net::protocol::SelfTransform>,
@@ -187,6 +189,7 @@ impl ConnectedPlayer {
                 last_obtained_scan: None,
                 sent_unlock_count: 0,
                 sent_disabled_mods: 0,
+                sent_commands_operator: None,
                 last_menu_sync: None,
                 last_sent_gui_state: None,
                 last_reported_transform: None,

@@ -4,6 +4,10 @@ use crate::player::PlayerId;
 use crate::server::chat::ChatTargets;
 use crate::server::game::ServerGame;
 
+mod grammar;
+
+pub(crate) use grammar::player_commands;
+
 #[derive(Copy, Clone)]
 enum CommandSource {
     Console,
@@ -61,11 +65,15 @@ impl ServerGame {
             "op" => self.set_operator(source, args, true),
             "deop" => self.set_operator(source, args, false),
             "time" => self.execute_time(source, args),
+            "summon" => self.execute_summon(source, args),
             "" => {}
             _ => self.command_reply(
                 source,
                 ChatColor::Red,
-                "Unknown command (commands: say, op, deop, time).",
+                &format!(
+                    "Unknown command (commands: {}).",
+                    grammar::command_names().join(", ")
+                ),
             ),
         }
     }
@@ -209,6 +217,36 @@ impl ServerGame {
         log::info!("server command: time {args}");
     }
 
+    fn execute_summon(&mut self, source: CommandSource, args: &str) {
+        let CommandSource::Player(id) = source else {
+            self.command_reply(
+                source,
+                ChatColor::Red,
+                "Only a player can summon (at their feet).",
+            );
+            return;
+        };
+        let mut words = args.split_whitespace();
+        let (Some(key), None) = (words.next(), words.next()) else {
+            self.command_reply(source, ChatColor::Red, "Usage: summon <mob>");
+            return;
+        };
+        let Some(kind) = crate::mob::by_key(key) else {
+            self.command_reply(source, ChatColor::Red, &format!("Unknown mob '{key}'."));
+            return;
+        };
+        let Some(s) = self.sessions.index_of(id) else {
+            return;
+        };
+        let (pos, yaw) = (self.sessions[s].player.pos, self.sessions[s].player.yaw);
+        if self.world.spawn_mob(kind, pos, yaw).is_none() {
+            self.command_reply(source, ChatColor::Red, &format!("Could not summon {key}."));
+            return;
+        }
+        self.command_reply(source, ChatColor::Yellow, &format!("Summoned {key}."));
+        log::info!("server command: summon {key}");
+    }
+
     fn command_reply(&mut self, source: CommandSource, color: ChatColor, text: &str) {
         match source {
             CommandSource::Console => match color {
@@ -344,6 +382,88 @@ mod tests {
         let hex = PlayerKey([0xEE; 32]);
         server.execute_console_command(&format!("op {hex}"));
         assert!(server.operators.contains(&hex), "a literal key pre-grants");
+    }
+
+    fn replies_to(server: &mut ServerGame, guest: usize, line: &str) -> Vec<String> {
+        let id = server.sessions[guest].id;
+        server.chat.take_pending();
+        server.apply_message(guest, ClientToServer::ChatSend { text: line.into() });
+        server
+            .chat
+            .take_pending()
+            .iter()
+            .filter(|pending| pending.targets.includes(id))
+            .map(|pending| crate::server::chat::display_text(&pending.line))
+            .collect()
+    }
+
+    #[test]
+    fn every_command_offered_to_players_is_one_the_server_runs() {
+        let (mut server, guest) = server_with_guest();
+        let name = server.sessions[guest].name.clone();
+        server.execute_console_command(&format!("op {name}"));
+        for command in grammar::command_names() {
+            let replies = replies_to(&mut server, guest, &format!("/{command}"));
+            assert!(
+                !replies.iter().any(|r| r.contains("Unknown command")),
+                "/{command} is offered but not run"
+            );
+        }
+    }
+
+    #[test]
+    fn summon_spawns_the_named_mob_at_an_operator_only() {
+        let (mut server, guest) = server_with_guest();
+        let key = crate::mob::def(crate::mob::Mob::all()[0]).key;
+        let before = server.world.mobs().len();
+
+        replies_to(&mut server, guest, &format!("/summon {key}"));
+        assert_eq!(
+            server.world.mobs().len(),
+            before,
+            "a non-operator summons nothing"
+        );
+
+        let name = server.sessions[guest].name.clone();
+        server.execute_console_command(&format!("op {name}"));
+        let replies = replies_to(&mut server, guest, &format!("/summon {key}"));
+        assert_eq!(server.world.mobs().len(), before + 1, "{replies:?}");
+
+        let replies = replies_to(&mut server, guest, "/summon nowhere:nothing");
+        assert!(replies.iter().any(|r| r.contains("Unknown mob")));
+        assert_eq!(server.world.mobs().len(), before + 1);
+    }
+
+    #[test]
+    fn a_players_command_list_follows_their_operator_status() {
+        let (mut server, guest) = server_with_guest();
+        let id = server.sessions[guest].id;
+        let sent =
+            |out: crate::server::game::PumpOutput| -> Vec<Vec<crate::net::protocol::CommandNode>> {
+                out.remote
+                    .into_iter()
+                    .filter(|(to, _)| *to == id)
+                    .flat_map(|(_, msgs)| msgs)
+                    .filter_map(|m| match m {
+                        crate::net::protocol::ServerToClient::Commands(c) => Some(c),
+                        _ => None,
+                    })
+                    .collect()
+            };
+        assert_eq!(sent(server.pump(0.0, &mut Vec::new())), [Vec::new()]);
+        assert!(
+            sent(server.pump(0.0, &mut Vec::new())).is_empty(),
+            "sent once"
+        );
+
+        let name = server.sessions[guest].name.clone();
+        server.execute_console_command(&format!("op {name}"));
+        assert_eq!(
+            sent(server.pump(0.0, &mut Vec::new())),
+            [player_commands(true)]
+        );
+        server.execute_console_command(&format!("deop {name}"));
+        assert_eq!(sent(server.pump(0.0, &mut Vec::new())), [Vec::new()]);
     }
 
     #[test]

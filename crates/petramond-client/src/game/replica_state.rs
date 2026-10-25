@@ -1,5 +1,5 @@
 use petramond::mob;
-use petramond::net::protocol::{ChatLine, PlayerMount};
+use petramond::net::protocol::{ChatLine, CommandNode, PlayerMount};
 use petramond::player;
 use petramond::world::ReplicaWorld;
 use petramond_math::math::{IVec3, Vec3};
@@ -23,6 +23,7 @@ pub(super) struct ReplicaState {
     pub(super) fallback_world: SurfaceDensitySystem,
     pub(super) events: ClientEvents,
     pub(super) chat_lines: Vec<ChatLine>,
+    pub(super) commands: Option<Vec<CommandNode>>,
     pub(super) section_installs: Vec<SectionPos>,
     pub(super) section_cache: SectionCache,
 }
@@ -45,6 +46,7 @@ impl ReplicaState {
             fallback_world,
             events: ClientEvents::default(),
             chat_lines: Vec::new(),
+            commands: None,
             section_installs: Vec::new(),
             section_cache: SectionCache::default(),
         }

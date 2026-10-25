@@ -46,6 +46,11 @@ impl Game {
         std::mem::take(&mut self.replica.chat_lines)
     }
 
+    /// The command list the server last sent, once.
+    pub fn take_commands(&mut self) -> Option<Vec<petramond::net::protocol::CommandNode>> {
+        self.replica.commands.take()
+    }
+
     #[inline]
     pub fn is_remote(&self) -> bool {
         self.net.is_remote()
