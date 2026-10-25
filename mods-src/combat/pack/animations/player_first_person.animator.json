@@ -1,15 +1,32 @@
 {
   "libraries": [
-    "boomerang_fp.animation.json"
+    "boomerang_fp.animation.json",
+    "harpoon_fp.animation.json"
   ],
   "params": {
-    "combat.boomerang_claim": 0
+    "combat.boomerang_claim": 0,
+    "combat.harpoon_claim": 0,
+    "main.item": "none"
   },
   "gates": [
     {
       "id": "combat_boomerang_equip",
       "on": "main.equip",
       "when": "!combat.boomerang_claim"
+    },
+    {
+      "id": "combat_harpoon_equip",
+      "on": "main.equip",
+      "when": "!combat.harpoon_claim"
+    }
+  ],
+  "layers": [
+    {
+      "name": "combat_harpoon_hold",
+      "before": "walk",
+      "mask": "main",
+      "weight": "smooth(main.item == \"combat:harpoon\" && !swimming && !climbing, 0.1)",
+      "clip": "combat:fp_harpoon_hold"
     }
   ]
 }

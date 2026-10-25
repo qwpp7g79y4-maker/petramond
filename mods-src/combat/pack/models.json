@@ -11,6 +11,13 @@
       "model_file": "models/weapons_workbench.bbmodel",
       "cells": [2, 2, 1],
       "orientation": "left_to_right"
+    },
+    {
+      "key": "combat:harpoon",
+      "model_file": "models/harpoon.bbmodel",
+      "cells": [1, 1, 1],
+      "orientation": "left_to_right",
+      "ground_pose": true
     }
   ]
 }

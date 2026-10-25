@@ -1,5 +1,6 @@
 use crate::charge::Draw;
 use crate::keys::BOOMERANG_KEY;
+use crate::throw::Thrown;
 use mod_sdk::*;
 use serde::Deserialize;
 
@@ -33,62 +34,7 @@ pub(super) struct Row {
     pub motion: Motion,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(super) struct Clips {
-    pub first_person: [String; 2],
-    pub body: [String; 2],
-}
-
-#[derive(Clone, Debug)]
-pub(super) struct Motion {
-    pub first_person: [String; 2],
-    pub body: [String; 2],
-    pub length: f32,
-    pub fp_length: f32,
-    pub fp_release: f32,
-}
-
-impl Motion {
-    fn resolve(clips: Clips) -> Result<Self, &'static str> {
-        let release = |rig: &str, names: &[String; 2]| {
-            animation_clip(rig, &names[0]).ok_or("missing draw clip")?;
-            let clip = animation_clip(rig, &names[1]).ok_or("missing throw clip")?;
-            let at = clip
-                .markers
-                .iter()
-                .find(|(name, _)| name == "release")
-                .map(|(_, at)| *at)
-                .ok_or("throw clip needs a release marker")?;
-            if !clip.length.is_finite() || !at.is_finite() || at <= 0.0 || at >= clip.length {
-                return Err("release marker must be inside the throw");
-            }
-            Ok((clip.length, at))
-        };
-        let (length, _) = release(rig::PLAYER_BODY, &clips.body)?;
-        let (fp_length, fp_release) = release(rig::PLAYER_FIRST_PERSON, &clips.first_person)?;
-        Ok(Self {
-            first_person: clips.first_person,
-            body: clips.body,
-            length,
-            fp_length,
-            fp_release,
-        })
-    }
-
-    pub fn release_time(&self) -> f32 {
-        self.fp_release
-    }
-
-    pub fn throw_length(&self) -> f32 {
-        self.length.max(self.fp_length)
-    }
-
-    pub fn throw_times(&self, elapsed: f32) -> [Option<f32>; 2] {
-        [self.fp_length, self.length]
-            .map(|length| (elapsed < length).then_some((elapsed / length).clamp(0.0, 1.0)))
-    }
-}
+pub(super) use crate::throw::{Clips, Motion};
 
 impl Row {
     pub fn from_spec(id: ItemId, name: String, spec: Spec) -> Result<Self, &'static str> {
@@ -146,4 +92,18 @@ pub(super) fn load() -> Vec<Row> {
                 .ok()
         })
         .collect()
+}
+
+impl Thrown for Row {
+    fn id(&self) -> ItemId {
+        self.id
+    }
+
+    fn draw(&self) -> &Draw {
+        &self.draw
+    }
+
+    fn motion(&self) -> &Motion {
+        &self.motion
+    }
 }

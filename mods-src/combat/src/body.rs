@@ -27,6 +27,16 @@ pub struct BodyClocks {
     pub swing: swing::Clock,
     pub draw: bow::Clock,
     pub throwing: boomerang::motion::Clock,
+    pub harpoon: crate::throw::Clock,
+    /// The harpoon is out on its line: the server's word, told to the thrower's client.
+    pub harpoon_line: bool,
+    pub harpoon_pressed: bool,
+    /// The line out now has been reeled in.
+    pub harpoon_reeled: bool,
+    /// Seconds into the reel's tug on the line, while it plays.
+    pub harpoon_reel: Option<f32>,
+    /// Seconds since the hand closed on the reeled-in harpoon, while the catch plays.
+    pub harpoon_catch: Option<f32>,
     pub recoil: guard::Recoil,
     last: Option<Claims>,
 }

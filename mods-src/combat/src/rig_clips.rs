@@ -79,15 +79,22 @@ fn every_clip_the_pack_plays_is_on_its_rig() {
         played.push((rig, clip.to_string()));
     }
 
-    for (_, entry) in pack_rows_with_data(
+    let thrown = pack_rows_with_data(
         include_str!("../pack/items.json"),
         "items",
         crate::keys::BOOMERANG_KEY,
-    ) {
-        let entry = json::Value::parse(&entry).expect("boomerang data JSON");
+    )
+    .into_iter()
+    .chain(pack_rows_with_data(
+        include_str!("../pack/integrations/exploration/items.json"),
+        "items",
+        crate::keys::HARPOON_KEY,
+    ));
+    for (_, entry) in thrown {
+        let entry = json::Value::parse(&entry).expect("thrown weapon data JSON");
         let clips = entry
             .get("animations")
-            .expect("boomerang animation bindings");
+            .expect("thrown weapon animation bindings");
         for (rig, key) in [
             (rig::PLAYER_FIRST_PERSON, "first_person"),
             (rig::PLAYER_BODY, "body"),
@@ -98,6 +105,14 @@ fn every_clip_the_pack_plays_is_on_its_rig() {
                 .expect("draw and throw")
             {
                 played.push((rig, clip.as_str().expect("clip name").to_owned()));
+            }
+            let gestures = entry
+                .get("line_animations")
+                .and_then(json::Value::as_object);
+            for (_, gesture) in gestures.into_iter().flatten() {
+                if let Some(clip) = gesture.get(key).and_then(json::Value::as_str) {
+                    played.push((rig, clip.to_owned()));
+                }
             }
         }
     }

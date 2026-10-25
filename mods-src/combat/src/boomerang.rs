@@ -9,7 +9,9 @@ use crate::body::BodyClocks;
 use crate::claims::{Body, Claims, Rule};
 use crate::strike;
 use mod_sdk::*;
-use motion::{Clock, Pose};
+use motion::Clock;
+#[cfg(test)]
+use motion::Pose;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
@@ -216,59 +218,5 @@ impl Rule for ThrowRule {
 }
 
 fn throw_claims(row: Option<&Row>, clock: &Clock) -> Claims {
-    let (Some(row), Some(pose)) = (row, clock.pose()) else {
-        return Claims::default();
-    };
-    let mut params = Vec::new();
-    let times = match pose {
-        Pose::Draw(ticks) => [Some((ticks / row.draw.full_ticks as f32).clamp(0.0, 1.0)); 2],
-        Pose::Throw(elapsed) => row.motion.throw_times(elapsed),
-    };
-    if matches!(pose, Pose::Throw(elapsed) if elapsed >= row.motion.release_time()) {
-        params.extend(
-            [rig::PLAYER_FIRST_PERSON, rig::PLAYER_BODY]
-                .into_iter()
-                .map(|rig| AnimatorParam {
-                    rig: rig.into(),
-                    param: "main.item_visible".into(),
-                    value: AnimatorValue::Number(0.0),
-                }),
-        );
-    }
-    let plays = [rig::PLAYER_FIRST_PERSON, rig::PLAYER_BODY]
-        .into_iter()
-        .zip([&row.motion.first_person, &row.motion.body])
-        .zip(times)
-        .filter_map(|((rig, clips), progress)| {
-            let progress = progress?;
-            for param in ["main.swing_claim", "main.jab_claim"] {
-                params.push(AnimatorParam {
-                    rig: rig.into(),
-                    param: param.into(),
-                    value: AnimatorValue::Number(1.0),
-                });
-            }
-            if rig == rig::PLAYER_FIRST_PERSON {
-                params.push(AnimatorParam {
-                    rig: rig.into(),
-                    param: "combat.boomerang_claim".into(),
-                    value: AnimatorValue::Number(1.0),
-                });
-            }
-            let clip = &clips[usize::from(matches!(pose, Pose::Throw(_)))];
-            Some(AnimatorPlay::scrubbed(rig, "main_claim", clip, progress))
-        })
-        .collect();
-    Claims {
-        holds_press: true,
-        speed: if matches!(pose, Pose::Draw(_)) {
-            row.draw.speed_scale
-        } else {
-            1.0
-        },
-        denied: vec![BodyAction::Attack, BodyAction::Mine],
-        params,
-        plays,
-        ..Default::default()
-    }
+    crate::throw::claims(row, clock, "combat.boomerang_claim", true)
 }

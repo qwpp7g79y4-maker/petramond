@@ -63,10 +63,12 @@ mod charge;
 mod claims;
 mod families;
 mod guard;
+mod harpoon;
 mod keys;
 mod projectile_aim;
 mod strike;
 mod swing;
+mod throw;
 
 #[cfg(test)]
 mod rig_clips;
@@ -95,6 +97,7 @@ struct Combat {
     rules: Vec<Box<dyn Rule>>,
     bow: Option<Rc<bow::Rows>>,
     boomerangs: Option<Rc<boomerang::Boomerangs>>,
+    harpoons: Option<Rc<harpoon::Harpoons>>,
     tools: Tools,
     combo_mobs: Vec<MobId>,
     authority: bool,
@@ -168,6 +171,16 @@ impl Combat {
         else {
             return Outcome::Continue;
         };
+        if let Some(harpoons) = self.harpoons.clone() {
+            if harpoons.on_hit(*entity, target, *pos, *vel, fate, |victim, origin| {
+                players()
+                    .into_iter()
+                    .find(|p| p.id == victim)
+                    .is_some_and(|p| self.block(victim, &p.state, Some(origin)))
+            }) {
+                return Outcome::Continue;
+            }
+        }
         if let Some(boomerangs) = self.boomerangs.clone() {
             if boomerangs.on_hit(*entity, target, *pos, *vel, fate, |victim, origin| {
                 players()
@@ -234,6 +247,7 @@ impl Combat {
 
     fn on_mob_damage(&self, payload: &mut EventPayload) -> Outcome {
         let EventPayload::MobDamagePre {
+            mob_id,
             kind,
             source,
             feedback,
@@ -242,6 +256,9 @@ impl Combat {
         else {
             return Outcome::Continue;
         };
+        if let (Some(harpoons), DamageSource::PlayerAttack { id }) = (&self.harpoons, &*source) {
+            harpoons.on_mob_damage(*id, *mob_id, feedback);
+        }
         if !self.combo_mobs.contains(kind) {
             return Outcome::Continue;
         }
@@ -293,6 +310,12 @@ impl Mod for Combat {
                 .push(Box::new(boomerang::ThrowRule::new(boomerangs.clone())));
             self.boomerangs = Some(boomerangs);
         }
+        if let Some(harpoons) = harpoon::Harpoons::load() {
+            let harpoons = Rc::new(harpoons);
+            self.rules
+                .push(Box::new(harpoon::HarpoonRule::new(harpoons.clone())));
+            self.harpoons = Some(harpoons);
+        }
         if let Some(shield) = guard::ShieldRule::resolve() {
             self.rules.push(Box::new(shield));
         }
@@ -320,8 +343,12 @@ impl Mod for Combat {
 
     fn tick_system(&mut self, system: u32) {
         if system == FLIGHT_SYSTEM {
+            let roster = players();
             if let Some(boomerangs) = &self.boomerangs {
-                boomerangs.step(&players());
+                boomerangs.step(&roster);
+            }
+            if let Some(harpoons) = &self.harpoons {
+                harpoons.step(&roster);
             }
             return;
         }
@@ -354,8 +381,14 @@ impl Mod for Combat {
             DAMAGE_HANDLER => self.on_damage(payload),
             RAISE_HANDLER => self.on_raise(),
             IMPACT_HANDLER => {
-                if matches!(payload, EventPayload::ModEvent { key, .. } if key == IMPACT_EVENT) {
-                    self.local.recoil.start();
+                match payload {
+                    EventPayload::ModEvent { key, .. } if key == IMPACT_EVENT => {
+                        self.local.recoil.start();
+                    }
+                    EventPayload::ModEvent { key, data } if key == harpoon::LINE_EVENT => {
+                        self.local.harpoon_line = data.first() == Some(&1);
+                    }
+                    _ => {}
                 }
                 Outcome::Continue
             }

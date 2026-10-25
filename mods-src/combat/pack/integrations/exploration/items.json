@@ -1,0 +1,89 @@
+{
+  "items": [
+    {
+      "item": "combat:harpoon",
+      "key": "combat:harpoon",
+      "name": "Harpoon",
+      "info": "Charge and throw it on a rope; use again to reel it back",
+      "max_stack_size": 1,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+      },
+      "sprite": "combat:harpoon",
+      "model": "combat:harpoon",
+      "tags": [],
+      "data": {
+        "petramond:projectile": {
+          "gravity": 9,
+          "drag": 0.02,
+          "sticks": true
+        },
+        "combat:harpoon": {
+          "draw_ticks": 16,
+          "strain_ticks": 30,
+          "draw_speed_scale": 0.6,
+          "launch_speed": [
+            12,
+            28
+          ],
+          "damage_weak": [
+            2,
+            3
+          ],
+          "damage_full": [
+            6,
+            8
+          ],
+          "reel_damage": [
+            1,
+            2
+          ],
+          "pull": 1.4,
+          "reach": 28,
+          "reel_speed": 22,
+          "lead": 1.3,
+          "rope": {
+            "tile": "combat:harpoon_rope",
+            "tint": [
+              255,
+              255,
+              255
+            ],
+            "width": 1.25
+          },
+          "sounds": {
+            "throw": "combat:harpoon_throw",
+            "hit": "combat:harpoon_hit",
+            "reel": "combat:harpoon_reel",
+            "catch": "combat:harpoon_catch"
+          },
+          "animations": {
+            "first_person": [
+              "combat:fp_harpoon_draw",
+              "combat:fp_harpoon_throw"
+            ],
+            "body": [
+              "combat:body_harpoon_draw",
+              "combat:body_harpoon_throw"
+            ]
+          },
+          "line_animations": {
+            "hold": {
+              "body": "combat:body_harpoon_line"
+            },
+            "reel": {
+              "first_person": "combat:fp_harpoon_reel",
+              "body": "combat:body_harpoon_reel"
+            },
+            "catch": {
+              "first_person": "combat:fp_harpoon_catch",
+              "body": "combat:body_harpoon_catch"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

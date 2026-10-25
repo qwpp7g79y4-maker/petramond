@@ -35,6 +35,14 @@
         {
             "name": "combat:bone_boomerang",
             "file": "bone_boomerang.png"
+        },
+        {
+            "name": "combat:harpoon",
+            "file": "harpoon.png"
+        },
+        {
+            "name": "combat:harpoon_rope",
+            "file": "harpoon_rope.png"
         }
     ]
 }

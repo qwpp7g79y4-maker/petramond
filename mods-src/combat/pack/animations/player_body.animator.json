@@ -1,5 +1,23 @@
 {
   "libraries": [
-    "boomerang_body.animation.json"
+    "boomerang_body.animation.json",
+    "harpoon_body.animation.json"
+  ],
+  "params": {
+    "main.item": "none"
+  },
+  "masks": {
+    "combat_main_arm": {
+      "leftArm": 1
+    }
+  },
+  "layers": [
+    {
+      "name": "combat_harpoon_hold",
+      "before": "main_action",
+      "mask": "combat_main_arm",
+      "weight": "smooth(main.item == \"combat:harpoon\" && !sleeping && swim < 0.5, 0.15)",
+      "clip": "combat:body_harpoon_hold"
+    }
   ]
 }
