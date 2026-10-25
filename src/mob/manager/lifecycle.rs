@@ -42,9 +42,10 @@ impl Mobs {
         &mut self,
         world: &ServerWorld,
         player_pos: petramond_math::world_pos::WorldPos,
+        category: crate::mob::MobCategory,
     ) -> Vec<(u64, Mob, petramond_math::world_pos::WorldPos)> {
         let list = &self.list;
-        let chosen = spawn::attempt(world, player_pos, &mut self.rng, |kind| {
+        let chosen = spawn::attempt(world, player_pos, category, &mut self.rng, |kind| {
             spawn::room_for(list, kind)
         });
         let mut spawned = Vec::new();

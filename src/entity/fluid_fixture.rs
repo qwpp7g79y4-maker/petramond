@@ -64,6 +64,7 @@ pub fn stage(tag: &str) -> TestScratchDir {
             body_row("fireproof", "swim", serde_json::json!({"conditions": ["petramond:burning"]})),
             breathing(body_row("lunged", "swim", serde_json::json!({})), &["petramond:air"]),
             aquatic(breathing(body_row("gilled", "neutral", serde_json::json!({})), &[BRINE])),
+            schooling(aquatic(body_row("minnow", "neutral", serde_json::json!({})))),
         ]}),
     );
     root
@@ -163,6 +164,24 @@ fn short(mut row: serde_json::Value) -> serde_json::Value {
 pub const BREATH_TICKS: u32 = 20;
 pub const BREATH_PULSE: u32 = 10;
 
+fn aquatic(mut row: serde_json::Value) -> serde_json::Value {
+    row["category"] = serde_json::json!("aquatic");
+    row["cap"] = serde_json::json!(60);
+    row
+}
+
+/// Spawns naturally in schools through deep brine in the engine ocean.
+fn schooling(mut row: serde_json::Value) -> serde_json::Value {
+    row["spawn"] = serde_json::json!({
+        "chance": 1.0, "biomes": ["petramond:ocean"], "ground": [],
+        "y": SCHOOL_BAND, "space": [BRINE]
+    });
+    row["spawn_group"] = serde_json::json!({"min": 2, "max": 3});
+    row
+}
+
+pub const SCHOOL_BAND: [i32; 2] = [FLOOR_Y + 2, FLOOR_Y + 8];
+
 fn breathing(mut row: serde_json::Value, breathes: &[&str]) -> serde_json::Value {
     row["breath"] = serde_json::json!({
         "capacity": BREATH_TICKS, "breathes": breathes,
@@ -173,6 +192,27 @@ fn breathing(mut row: serde_json::Value, breathes: &[&str]) -> serde_json::Value
 
 pub fn block(name: &str) -> Block {
     serde_json::from_value(serde_json::json!(name)).expect("fixture block registered")
+}
+
+/// Open ocean `radius` chunks around the origin: a stone floor under `fluid` up to `top`.
+pub fn ocean(fluid: Block, top: i32, radius: i32) -> ServerWorld {
+    let mut world = ServerWorld::new(0, radius);
+    for cz in -radius..=radius {
+        for cx in -radius..=radius {
+            let mut chunk = Chunk::new(cx, cz);
+            for z in 0..16 {
+                for x in 0..16 {
+                    chunk.set_biome(x, z, petramond_world::biome::Biome::OCEAN.id());
+                    chunk.set_block(x, (FLOOR_Y - 1) as usize, z, Block::Stone);
+                    for y in FLOOR_Y..=top {
+                        chunk.set_block(x, y as usize, z, fluid);
+                    }
+                }
+            }
+            world.insert_chunk_for_test(ChunkPos::new(cx, cz), chunk);
+        }
+    }
+    world
 }
 
 pub fn pool(fluid: Block, top: i32) -> ServerWorld {

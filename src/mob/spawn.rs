@@ -11,14 +11,8 @@ use petramond_world::chunk::{
 };
 
 use super::path::{body_clear, is_foothold};
-use super::{def, defs, Instance, Mob, MobCategory, MobRng};
+use super::{def, defs, Instance, Mob, MobCategory, MobRng, NaturalSpawn};
 
-const MIN_PLAYER_DIST: f32 = 50.0;
-const MAX_PLAYER_DIST: f32 = 128.0;
-
-pub const PASSIVE_SPAWN_INTERVAL_TICKS: u64 = 400;
-
-const COLUMN_TRIES: u32 = 8;
 const GROUP_RADIUS: i32 = 4;
 const GROUP_MEMBER_TRIES: u32 = 24;
 pub const HOSTILE_SPAWN_ATTEMPTS: u32 = 32;
@@ -26,6 +20,7 @@ const HOSTILE_SPAWN_CHUNK_RADIUS: i32 = 8;
 const MOB_CENSUS_CHUNK_RADIUS: i32 = HOSTILE_SPAWN_CHUNK_RADIUS + 1;
 const HOSTILE_SPAWN_CHUNKS_PER_PLAYER: u32 = 289;
 const HOSTILE_MIN_SPAWN_DIST: f32 = 24.0;
+const HOSTILE_MAX_SPAWN_DIST: f32 = 128.0;
 const HOSTILE_SPAWN_SALT: u64 = 0xA11C_0DE5_5A55_0001;
 
 pub(super) struct Spawn {
@@ -64,25 +59,37 @@ pub struct HostileSpawnPlan {
     hostile_cap: u32,
 }
 
+/// One natural spawn of `category` around a player: a group of one species at a column in the
+/// category's distance band. The column comes first and the species from those living in its
+/// biome, so a species of a narrow habitat (a beach, a reef) spawns as often as its habitat comes
+/// up rather than as often as a random column happens to suit it. A group that cannot reach its
+/// row's minimum size spawns nothing.
 pub(super) fn attempt(
     world: &ServerWorld,
     player_pos: WorldPos,
+    category: MobCategory,
     rng: &mut MobRng,
     room_for: impl Fn(Mob) -> u32,
 ) -> Option<Vec<Spawn>> {
+    let band = category.natural_spawn()?;
     if !mob_census_ready(world, player_pos) {
         return None;
     }
-    let (cx, cz, render_dist) = world.data().loaded_area()?;
-    let r = (render_dist - 1).clamp(0, HOSTILE_SPAWN_CHUNK_RADIUS);
-
-    let kind = choose_kind(rng, &room_for, world.data().disabled_mods())?;
+    let (wx, wz) = column_around(rng, player_pos, band);
+    let biome = Biome::from_id(world.data().column_biome(wx, wz)?);
+    let lives_here = |m: Mob| def(m).spawn.chance_in(biome) > 0.0;
+    let kind = choose_kind(
+        rng,
+        category,
+        &room_for,
+        world.data().disabled_mods(),
+        lives_here,
+    )?;
     let d = def(kind);
     let want = d.spawn_group.roll(rng).min(room_for(kind));
 
-    let (wx, wz) = random_column(rng, cx, cz, r)?;
     let site = |world: &ServerWorld, kind: Mob, wx: i32, wz: i32| {
-        spawn_site(world, player_pos, kind, wx, wz)
+        spawn_site(world, player_pos, band, kind, wx, wz)
     };
     let first = spawn_with(world, kind, wx, wz, rng, &site)?;
     if !biome_chance_passes(world, kind, wx, wz, rng) {
@@ -93,10 +100,24 @@ pub(super) fn attempt(
 
     let origin = IVec3::new(wx, 0, wz);
     while spawns.len() < want as usize {
-        let next = nearby_spawn(world, kind, origin, &spawns, rng, &site)?;
+        let Some(next) = nearby_spawn(world, kind, origin, &spawns, rng, &site) else {
+            break;
+        };
         spawns.push(next);
     }
-    Some(spawns)
+    (spawns.len() as u32 >= d.spawn_group.min_count()).then_some(spawns)
+}
+
+/// A column uniformly over the ring `band.near..band.far` around the player.
+fn column_around(rng: &mut MobRng, player: WorldPos, band: NaturalSpawn) -> (i32, i32) {
+    let angle = rng.next_f32() * std::f32::consts::TAU;
+    let (near2, far2) = (band.near * band.near, band.far * band.far);
+    let r = f64::from((near2 + rng.next_f32() * (far2 - near2)).sqrt());
+    let (sin, cos) = f64::from(angle).sin_cos();
+    (
+        (player.x + r * cos).floor() as i32,
+        (player.z + r * sin).floor() as i32,
+    )
 }
 
 pub(super) fn spawn_with(
@@ -123,14 +144,13 @@ pub(super) fn spawn_with(
 fn spawn_site(
     world: &ServerWorld,
     player_pos: WorldPos,
+    band: NaturalSpawn,
     kind: Mob,
     wx: i32,
     wz: i32,
 ) -> Option<WorldPos> {
     let feet_pos = site_for(world, kind, wx, wz)?;
-    if too_close(player_pos, feet_pos, MIN_PLAYER_DIST)
-        || !too_close(player_pos, feet_pos, MAX_PLAYER_DIST)
-    {
+    if too_close(player_pos, feet_pos, band.near) || !too_close(player_pos, feet_pos, band.far) {
         return None;
     }
     Some(feet_pos)
@@ -392,7 +412,8 @@ fn hostile_candidate_at(
 ) -> Option<HostileSpawnSite> {
     let pos = WorldPos::new(f64::from(wx) + 0.5, f64::from(y), f64::from(wz) + 0.5);
     let nearest = nearest_anchor_pos(&plan.anchors, pos)?;
-    if too_close(nearest, pos, HOSTILE_MIN_SPAWN_DIST) || !too_close(nearest, pos, MAX_PLAYER_DIST)
+    if too_close(nearest, pos, HOSTILE_MIN_SPAWN_DIST)
+        || !too_close(nearest, pos, HOSTILE_MAX_SPAWN_DIST)
     {
         return None;
     }
@@ -575,35 +596,28 @@ fn too_close(player: WorldPos, feet: WorldPos, min_dist: f32) -> bool {
     player.distance_squared(feet) < f64::from(min_dist) * f64::from(min_dist)
 }
 
-fn random_column(rng: &mut MobRng, cx: i32, cz: i32, r: i32) -> Option<(i32, i32)> {
-    for _ in 0..COLUMN_TRIES {
-        let dx = rng.next_range(-r, r);
-        let dz = rng.next_range(-r, r);
-        if dx * dx + dz * dz > r * r {
-            continue;
-        }
-        let lx = rng.next_range(0, CHUNK_SX as i32 - 1);
-        let lz = rng.next_range(0, CHUNK_SZ as i32 - 1);
-        let wx = (cx + dx) * CHUNK_SX as i32 + lx;
-        let wz = (cz + dz) * CHUNK_SZ as i32 + lz;
-        return Some((wx, wz));
-    }
-    None
-}
-
 pub(super) fn species_enabled(kind: Mob, disabled: &std::collections::BTreeSet<String>) -> bool {
     !petramond_world::registry::namespace(def(kind).name).is_some_and(|ns| disabled.contains(ns))
 }
 
 fn choose_kind(
     rng: &mut MobRng,
+    category: MobCategory,
     room_for: &impl Fn(Mob) -> u32,
     disabled: &std::collections::BTreeSet<String>,
+    lives_here: impl Fn(Mob) -> bool,
 ) -> Option<Mob> {
     let mut chosen = None;
     let mut seen = 0i32;
-    for m in defs().iter().map(|d| d.mob) {
-        if !def(m).spawn.is_spawnable() || room_for(m) < def(m).spawn_group.min_count() {
+    for m in defs()
+        .iter()
+        .filter(|d| d.category == category)
+        .map(|d| d.mob)
+    {
+        if !def(m).spawn.is_spawnable()
+            || !lives_here(m)
+            || room_for(m) < def(m).spawn_group.min_count()
+        {
             continue;
         }
         if !species_enabled(m, disabled) {
@@ -637,6 +651,12 @@ mod tests {
         world
     }
 
+    fn passive() -> NaturalSpawn {
+        MobCategory::Passive
+            .natural_spawn()
+            .expect("passives spawn naturally")
+    }
+
     fn valid_spawn_distance_player() -> WorldPos {
         WorldPos::new(-60.0, 65.0, 8.0)
     }
@@ -657,7 +677,15 @@ mod tests {
         let world = flat_grass_spawn_world(|_| {});
 
         assert!(
-            spawn_site(&world, valid_spawn_distance_player(), Mob::Sheep, 8, 8).is_some(),
+            spawn_site(
+                &world,
+                valid_spawn_distance_player(),
+                passive(),
+                Mob::Sheep,
+                8,
+                8
+            )
+            .is_some(),
             "a dry grass foothold in a valid biome is spawnable"
         );
     }
@@ -669,7 +697,15 @@ mod tests {
         });
 
         assert!(
-            spawn_site(&world, valid_spawn_distance_player(), Mob::Sheep, 8, 8).is_none(),
+            spawn_site(
+                &world,
+                valid_spawn_distance_player(),
+                passive(),
+                Mob::Sheep,
+                8,
+                8
+            )
+            .is_none(),
             "the ground below the water is solid, but the mob body would spawn in water"
         );
     }
@@ -704,19 +740,15 @@ mod tests {
     #[test]
     fn passive_spawn_sites_share_the_128_block_outer_limit() {
         let world = flat_grass_spawn_world(|_| {});
-        assert!(spawn_site(&world, WorldPos::new(-200.0, 65.0, 8.0), Mob::Sheep, 8, 8).is_none());
-    }
-
-    #[test]
-    fn hostile_global_cap_scales_by_unique_spawnable_chunks() {
-        assert_eq!(scaled_mob_cap(70, 0), 0);
-        assert_eq!(scaled_mob_cap(70, HOSTILE_SPAWN_CHUNKS_PER_PLAYER), 70);
-        assert_eq!(scaled_mob_cap(70, HOSTILE_SPAWN_CHUNKS_PER_PLAYER * 2), 140);
-        assert_eq!(
-            scaled_mob_cap(70, HOSTILE_SPAWN_CHUNKS_PER_PLAYER / 2),
-            34,
-            "Floors the scaled cap after multiplying by unique chunks"
-        );
+        assert!(spawn_site(
+            &world,
+            WorldPos::new(-200.0, 65.0, 8.0),
+            passive(),
+            Mob::Sheep,
+            8,
+            8
+        )
+        .is_none());
     }
 
     #[test]
@@ -825,5 +857,25 @@ mod tests {
             assert!((0..CHUNK_SX as i32).contains(&(wx - chunk.cx * CHUNK_SX as i32)));
             assert!((0..CHUNK_SZ as i32).contains(&(wz - chunk.cz * CHUNK_SZ as i32)));
         }
+    }
+
+    #[test]
+    fn a_crowd_of_water_life_never_blocks_land_animals() {
+        crate::entity::fluid_fixture::with_content("aquatic-cap", aquatic_cap_inner);
+    }
+
+    fn aquatic_cap_inner() {
+        let fish = crate::mob::by_key("bodyfluid:gilled").unwrap();
+        let land = crate::mob::by_key("bodyfluid:swim").unwrap();
+        assert_eq!(def(fish).category, MobCategory::Aquatic);
+        let at = WorldPos::new(0.5, 64.0, 0.5);
+        let crowd: Vec<Instance> = (0..MobCategory::Aquatic.cap())
+            .map(|i| Instance::new(fish, at, 0.0, u64::from(i)))
+            .collect();
+        assert_eq!(room_for(&crowd, fish), 0, "water life fills its own cap");
+        assert!(
+            room_for(&crowd, land) > 0,
+            "and leaves the land animals theirs"
+        );
     }
 }

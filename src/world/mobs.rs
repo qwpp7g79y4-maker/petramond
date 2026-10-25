@@ -140,9 +140,10 @@ impl ServerWorld {
     pub fn spawn_mobs_tick(
         &mut self,
         player_pos: petramond_math::world_pos::WorldPos,
+        category: crate::mob::MobCategory,
     ) -> Vec<(u64, crate::mob::Mob, petramond_math::world_pos::WorldPos)> {
         let mut mobs = std::mem::take(&mut self.side.entities.mobs);
-        let spawned = mobs.spawn_tick(self, player_pos);
+        let spawned = mobs.spawn_tick(self, player_pos, category);
         self.side.entities.mobs = mobs;
         spawned
     }

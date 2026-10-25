@@ -1,5 +1,7 @@
 use super::*;
-use crate::entity::fluid_fixture::{self, block, flowing_brine, pool, BRINE, FLOOR_Y, SYRUP};
+use crate::entity::fluid_fixture::{
+    self, block, flowing_brine, pool, BRINE, FLOOR_Y, SCHOOL_BAND, SYRUP,
+};
 use petramond_math::world_pos::WorldPos;
 use petramond_world::block::Block;
 use petramond_world::exposure::ExposureSource;
@@ -47,8 +49,36 @@ fn fluid_bodies_inner() {
         sinkers_walk_the_floor_and_swim_only_when_driven(name, &world);
     }
     a_current_carries_an_idle_mob();
+    sea_life_schools_in_open_water_around_a_player();
     contact_respects_species_tolerance();
     tolerated_hazards_stay_routable();
+}
+
+fn sea_life_schools_in_open_water_around_a_player() {
+    let world = fluid_fixture::ocean(block(BRINE), FLOOR_Y + 12, 5);
+    let player = WorldPos::new(8.5, f64::from(FLOOR_Y + 12), 8.5);
+    let minnow = crate::mob::by_key("bodyfluid:minnow").unwrap();
+    let band = crate::mob::MobCategory::Aquatic.natural_spawn().unwrap();
+    let mut mobs = Mobs::new(0);
+    let mut schools = 0;
+    for _ in 0..40 {
+        let spawned = mobs.spawn_tick(&world, player, crate::mob::MobCategory::Aquatic);
+        schools += usize::from(spawned.len() >= 2);
+        for (_, kind, pos) in spawned {
+            assert_eq!(kind, minnow);
+            let d = pos.distance(player) as f32;
+            assert!((band.near..=band.far).contains(&d), "spawned {d} away");
+            let y = pos.y.floor() as i32;
+            assert!(
+                (SCHOOL_BAND[0]..=SCHOOL_BAND[1]).contains(&y),
+                "spawned at {y}"
+            );
+        }
+    }
+    assert!(
+        schools >= 10,
+        "open water around a player fills with schools: {schools} of 40 attempts"
+    );
 }
 
 fn a_current_carries_an_idle_mob() {

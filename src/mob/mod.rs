@@ -61,7 +61,7 @@ pub use noise::{player_steps_are_audible, Noise, NoiseField, NoiseKind};
 pub use petramond_world::ai_vocab::validate_brain_extensions;
 pub use spawn::{
     body_fits_at as spawn_body_fits_at, hostile_attempt_sites, hostile_kind_has_room,
-    hostile_spawn_plan, HostileSpawnCache, HOSTILE_SPAWN_ATTEMPTS, PASSIVE_SPAWN_INTERVAL_TICKS,
+    hostile_spawn_plan, HostileSpawnCache, HOSTILE_SPAWN_ATTEMPTS,
 };
 
 use petramond_world::bbmodel::Model;
@@ -209,6 +209,7 @@ impl Mob {
 
 pub const MAX_GAIT_FACINGS: usize = 8;
 pub const DEFAULT_HOSTILE_DESPAWN_RADIUS: f32 = 128.0;
+pub const DEFAULT_AQUATIC_DESPAWN_RADIUS: f32 = 96.0;
 
 /// When a mob far from every player leaves the world: always past `radius`, and, unless the row
 /// opts out, at random once it is beyond [`PLAYER_REACTIVE_RANGE`].
@@ -225,13 +226,50 @@ pub const PLAYER_REACTIVE_RANGE: f32 = 32.0;
 pub enum MobCategory {
     Passive,
     Hostile,
+    /// Water life: its own cap, so schools of fish never crowd land animals out of theirs.
+    Aquatic,
+}
+
+/// How a category tops up the world around each player: one attempt every `every` ticks, at a
+/// column `near..far` blocks away.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct NaturalSpawn {
+    pub every: u64,
+    pub near: f32,
+    pub far: f32,
 }
 
 impl MobCategory {
+    pub const ALL: [MobCategory; 3] = [
+        MobCategory::Passive,
+        MobCategory::Hostile,
+        MobCategory::Aquatic,
+    ];
+
+    /// `None` for hostiles, which have their own spawner.
+    pub fn natural_spawn(self) -> Option<NaturalSpawn> {
+        match self {
+            MobCategory::Passive => Some(NaturalSpawn {
+                every: 400,
+                near: 50.0,
+                far: 128.0,
+            }),
+            // Water life is seen only through a short fog, swims only near players and leaves
+            // behind them, so it is topped up often and close.
+            MobCategory::Aquatic => Some(NaturalSpawn {
+                every: 40,
+                near: 24.0,
+                far: 64.0,
+            }),
+            MobCategory::Hostile => None,
+        }
+    }
+
     pub fn cap(self) -> u32 {
         match self {
             MobCategory::Passive => 25,
             MobCategory::Hostile => 70,
+            MobCategory::Aquatic => 72,
         }
     }
 
@@ -239,6 +277,7 @@ impl MobCategory {
         match self {
             MobCategory::Passive => None,
             MobCategory::Hostile => Some(DEFAULT_HOSTILE_DESPAWN_RADIUS),
+            MobCategory::Aquatic => Some(DEFAULT_AQUATIC_DESPAWN_RADIUS),
         }
     }
 }

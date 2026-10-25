@@ -199,13 +199,16 @@ impl ServerGame {
                 self.mods.emit(PostEvent::MobSpawned { id, kind, pos });
             }
         }
-        if self
-            .world
-            .current_tick()
-            .is_multiple_of(crate::mob::PASSIVE_SPAWN_INTERVAL_TICKS)
-        {
+        let now = self.world.current_tick();
+        for category in crate::mob::MobCategory::ALL {
+            let due = category
+                .natural_spawn()
+                .is_some_and(|natural| now.is_multiple_of(natural.every));
+            if !due {
+                continue;
+            }
             for anchor in anchors {
-                for (id, kind, pos) in self.world.spawn_mobs_tick(anchor.pos) {
+                for (id, kind, pos) in self.world.spawn_mobs_tick(anchor.pos, category) {
                     self.mods.emit(PostEvent::MobSpawned { id, kind, pos });
                 }
             }
