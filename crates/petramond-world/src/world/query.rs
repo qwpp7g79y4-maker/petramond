@@ -50,8 +50,7 @@ impl WorldData {
     }
 
     pub fn skylight6_at_world(&self, wx: i32, wy: i32, wz: i32) -> u8 {
-        let l = self.skylight_at_world(wx, wy, wz) as u32;
-        ((l * 63 + SKY_FULL as u32 / 2) / SKY_FULL as u32).min(63) as u8
+        crate::light::level6(self.skylight_at_world(wx, wy, wz))
     }
 
     pub fn blocklight_rgb_at_world(&self, wx: i32, wy: i32, wz: i32) -> crate::light::LightRgb {
@@ -66,8 +65,7 @@ impl WorldData {
     }
 
     pub fn blocklight6_at_world(&self, wx: i32, wy: i32, wz: i32) -> u8 {
-        let l = self.blocklight_at_world(wx, wy, wz) as u32;
-        ((l * 63 + SKY_FULL as u32 / 2) / SKY_FULL as u32).min(63) as u8
+        crate::light::level6(self.blocklight_at_world(wx, wy, wz))
     }
 
     pub fn blocklight6_rgb_at_world(&self, wx: i32, wy: i32, wz: i32) -> [u8; 3] {
@@ -81,16 +79,54 @@ impl WorldData {
             .max(self.blocklight6_at_world(wx, wy, wz))
     }
 
+    /// The light a thing in the world is drawn with. A dark cell in deep open water presents
+    /// [`crate::light::DEEP_WATER_SKY`], as the terrain meshed around it does.
     pub fn dynamic_light_at_world(
         &self,
         wx: i32,
         wy: i32,
         wz: i32,
     ) -> (u8, crate::light::BlockLight6) {
+        let mut sky = self.skylight_at_world(wx, wy, wz);
+        if sky == 0 && self.in_deep_open_water(wx, wy, wz) {
+            sky = crate::light::DEEP_WATER_SKY;
+        }
         (
-            self.skylight6_at_world(wx, wy, wz),
+            crate::light::level6(sky),
             crate::light::BlockLight6::from_x2(self.blocklight_rgb_at_world(wx, wy, wz)),
         )
+    }
+
+    /// Walks the cell's column from the top of the section above its own: the cells a mesh of
+    /// its section sees, so a lit thing agrees with the terrain beside it.
+    fn in_deep_open_water(&self, wx: i32, wy: i32, wz: i32) -> bool {
+        let cur = self.cursor();
+        let cell = |y: i32| {
+            cur.section_at(IVec3::new(wx, y, wz))
+                .map(|(s, lx, ly, lz)| {
+                    (
+                        s.skylight_at(lx, ly, lz),
+                        crate::light::blocks_light(s.block_raw(lx, ly, lz)),
+                        s.cell_fluid(lx, ly, lz).is_some(),
+                    )
+                })
+        };
+        if !cell(wy).is_some_and(|(_, _, fluid)| fluid) {
+            return false;
+        }
+        let top = (wy.div_euclid(chunk::SECTION_SIZE as i32) + 2) * chunk::SECTION_SIZE as i32 - 1;
+        let mut walk = crate::light::DeepWaterColumn::default();
+        let mut deep = false;
+        for y in (wy..=top).rev() {
+            deep = match cell(y) {
+                Some((sky, blocks, fluid)) => walk.step(sky, blocks, fluid),
+                None => {
+                    walk.lose_sight();
+                    false
+                }
+            };
+        }
+        deep
     }
 
     pub fn column_biome(&self, wx: i32, wz: i32) -> Option<u8> {

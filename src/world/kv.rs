@@ -81,6 +81,7 @@ impl<S: WorldSide> World<S> {
             return false;
         }
         self.queue_dirty_meshes_sampling_cell(x, y, z);
+        self.queue_dirty_meshes_walking_fluid(pos);
         self.notify_light_equivalent_change_nav(x, y, z, true);
         true
     }

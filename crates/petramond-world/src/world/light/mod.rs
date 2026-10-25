@@ -10,6 +10,8 @@ pub mod skylight;
 #[cfg(test)]
 mod bake_agreement_tests;
 #[cfg(test)]
+mod deep_water_tests;
+#[cfg(test)]
 mod test_fixture;
 
 use crate::chunk::SECTION_SIZE;

@@ -85,6 +85,7 @@ impl<S: WorldSide> World<S> {
         for (c, &new) in changes.iter().zip(&news) {
             let IVec3 { x, y, z } = c.pos;
             self.queue_dirty_meshes_sampling_cell(x, y, z);
+            self.queue_dirty_meshes_walking_cell(c.pos, c.old, new);
             self.mark_custom_bake_edit(x, y, z, new);
             if c.kind != ChangeKind::Remote {
                 self.refine_shape_states_around(x, y, z);

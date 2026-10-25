@@ -2,6 +2,8 @@ use crate::world::WorldData;
 use crate::world::{ServerWorld, World, WorldSide};
 use rustc_hash::FxHashSet;
 
+use petramond_math::math::IVec3;
+use petramond_world::block::Block;
 use petramond_world::chunk::{self, ChunkPos, SectionPos, SECTION_MIN_CY, SECTION_SIZE};
 
 use super::store::SkyCoverChange;
@@ -242,6 +244,49 @@ impl<S: WorldSide> World<S> {
                         center.cz + dz,
                     ));
                 }
+            }
+        }
+    }
+
+    /// A mesh walks each column up through the section above its own to find deep open water,
+    /// past the sampling halo. A cell over water that starts or stops blocking light or holding
+    /// water re-meshes the sections below whose walks cross it.
+    pub(super) fn queue_dirty_meshes_walking_cell(&mut self, cell: IVec3, old: Block, new: Block) {
+        use petramond_world::light::blocks_light;
+        // A block that may hold a fluid says nothing by its id alone about holding one.
+        let unknown = old.flags().floodable() || new.flags().floodable();
+        if !unknown
+            && blocks_light(old.id()) == blocks_light(new.id())
+            && old.fluid().is_some() == new.fluid().is_some()
+        {
+            return;
+        }
+        self.queue_dirty_meshes_walking_fluid(cell);
+    }
+
+    /// [`queue_dirty_meshes_walking_cell`](Self::queue_dirty_meshes_walking_cell) for a cell that
+    /// started or stopped holding a fluid.
+    pub(in crate::world) fn queue_dirty_meshes_walking_fluid(&mut self, cell: IVec3) {
+        if self.data.cell_fluid(cell.x, cell.y - 1, cell.z).is_none() {
+            return;
+        }
+        let Some((center, lx, _, lz)) = WorldData::split_world(cell.x, cell.y, cell.z) else {
+            return;
+        };
+        let across = |l: usize| -> &'static [i32] {
+            match l {
+                0 => &[0, -1],
+                l if l == SECTION_SIZE - 1 => &[0, 1],
+                _ => &[0],
+            }
+        };
+        for &dz in across(lz) {
+            for &dx in across(lx) {
+                self.queue_dirty_mesh(SectionPos::new(
+                    center.cx + dx,
+                    center.cy - 1,
+                    center.cz + dz,
+                ));
             }
         }
     }

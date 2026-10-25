@@ -4,6 +4,20 @@ const CANONICAL: u16 = (1 << (3 * CH_BITS)) - 1;
 
 pub const DECAY: u8 = 2;
 
+/// A light level on the x2 scale as the 6-bit level rendering samples.
+pub const fn level6(level: u8) -> u8 {
+    let full = crate::chunk::SKY_FULL as u32;
+    let l = (level as u32 * 63 + full / 2) / full;
+    if l > 63 {
+        63
+    } else {
+        l as u8
+    }
+}
+
+mod deep_water;
+pub use deep_water::{blocks_light, DeepWaterColumn, DEEP_WATER_SKY};
+
 #[derive(Copy, Clone, Default, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct LightRgb(u16);

@@ -453,6 +453,50 @@ fn assemble_pad(pos: SectionPos, nbhd: &[Option<NeighborSnap>; 27], pad: &mut Pa
     }
 }
 
+/// Dark fluid cells in deep open water present `DEEP_WATER_SKY` to the mesher (see
+/// [`petramond_world::light::DeepWaterColumn`]): each pad column is walked down from the top of
+/// the section above, the highest layer the neighbourhood holds.
+fn mark_deep_open_water(nbhd: &[Option<NeighborSnap>; 27], pad: &mut Pad) {
+    use petramond_world::light::{blocks_light, DeepWaterColumn, DEEP_WATER_SKY};
+    let table = petramond_world::block::BlockTable::current();
+    let fluid_at = |i: usize| table.fluid(pad.blocks[i]).is_some() || pad.held[i] != 0;
+    let any_dark_fluid = (0..PAD_VOL).any(|i| pad.skylight[i] == 0 && fluid_at(i));
+    if !any_dark_fluid {
+        return;
+    }
+    for pz in 0..PAD {
+        let (ddz, lz) = pad_axis(pz);
+        for px in 0..PAD {
+            let (ddx, lx) = pad_axis(px);
+            let mut walk = DeepWaterColumn::default();
+            // The section above's layer 0 is the pad's top row; walk its layers over that first.
+            if let Some(s) = nbhd[nbhd_idx27(ddx, 1, ddz)].as_ref() {
+                for ly in (1..SECTION_SIZE).rev() {
+                    let i = petramond_world::chunk::section_idx(lx, ly, lz);
+                    let id = s.blocks.get(i);
+                    let fluid = table.fluid(id).is_some()
+                        || s.held_fluids.iter().any(|&(k, _)| k as usize == i);
+                    walk.step(
+                        s.skylight.as_ref().map_or(SKY_FULL, |sk| sk[i]),
+                        blocks_light(id),
+                        fluid,
+                    );
+                }
+            }
+            for py in (0..PAD).rev() {
+                let i = pad_idx(px, py, pz);
+                if !pad.loaded[i] {
+                    walk.lose_sight();
+                    continue;
+                }
+                if walk.step(pad.skylight[i], blocks_light(pad.blocks[i]), fluid_at(i)) {
+                    pad.skylight[i] = DEEP_WATER_SKY;
+                }
+            }
+        }
+    }
+}
+
 fn scatter_border_states<T: Copy>(
     states: &[(u16, T)],
     (dx, dy, dz): (i32, i32, i32),
@@ -491,6 +535,7 @@ fn build(job: MeshJob, cancel: &crate::worker::JobCancel) -> Option<ChunkMesh> {
     let mesh = PAD_SCRATCH.with(|pad| {
         let mut pad = pad.borrow_mut();
         assemble_pad(pos, &nbhd, &mut pad);
+        mark_deep_open_water(&nbhd, &mut pad);
         if cancel.is_cancelled() {
             return None;
         }
