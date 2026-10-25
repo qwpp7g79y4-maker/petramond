@@ -224,6 +224,7 @@ fn bake_particles(
                 stretch: p.stretch,
                 skylight: p.skylight,
                 blocklight: p.blocklight,
+                submerged: p.submerged,
                 look,
             });
             continue;

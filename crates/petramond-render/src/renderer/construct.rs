@@ -312,6 +312,10 @@ fn create_uniform_buffer(device: &wgpu::Device, (fog_start, fog_end): (f32, f32)
             sky_color: [1.0, 1.0, 1.0, 0.0],
             sun_dir: super::frame_state::sun_uniform(None),
             volume_tint: [1.0, 1.0, 1.0, 0.0],
+            water_absorb: [0.0; 4],
+            water_glow: [0.0; 4],
+            water_fog: [0.0; 4],
+            waterline: [0.0; 4],
         }]),
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     })

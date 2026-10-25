@@ -127,6 +127,10 @@ fn packed_vertex_pipeline_validates() {
         let _ = ghost.get(1);
     }
 
+    let _ = resources.opaque_pipe.get(1);
+    let _ = resources.translucent_pipe.get(1);
+    let _ = resources.transparent_pipe.get(1);
+    let _ = resources.transparent_two_sided_pipe.get(1);
     let _ = resources.model_break_pipe.get(1);
     let _ = resources.skinned_pipe.get(1);
     let _ = resources.particle_pipe.get(1);

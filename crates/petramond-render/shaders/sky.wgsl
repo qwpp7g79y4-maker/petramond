@@ -32,15 +32,16 @@ fn vs_sky(@builtin(vertex_index) vertex_index: u32) -> VsOut {
 
 @fragment
 fn fs_sky(in: VsOut) -> @location(0) vec4<f32> {
-    if (u.fog.w > 0.5) {
-        return vec4<f32>(u.fog_color.rgb, 1.0);
-    }
-
     let near = u.inv_view_proj * vec4<f32>(in.ndc, 0.0, 1.0);
     let far = u.inv_view_proj * vec4<f32>(in.ndc, 1.0, 1.0);
     let near_world = near.xyz / near.w;
     let far_world = far.xyz / far.w;
     let ray = normalize(far_world - near_world);
+
+    // In a murky fluid the background is its fog; water shows the sky through it (below).
+    if (u.fog.w > 0.5 && u.fog.w < 1.5) {
+        return vec4<f32>(u.fog_color.rgb, 1.0);
+    }
 
     // The horizon is the fog colour, which the CPU already dims by the sky
     // scale AND tints by the sky colour (game::environment); the zenith dims/
@@ -53,5 +54,9 @@ fn fs_sky(in: VsOut) -> @location(0) vec4<f32> {
     let up = clamp(ray.y, 0.0, 1.0);
     let t = smoothstep(0.0, 0.85, pow(up, 0.72));
     let color = mix(horizon, zenith, t);
+    if (underwater_ray(u.waterline, ray)) {
+        let w = underwater(u.water_absorb, u.water_glow, u.water_fog);
+        return vec4<f32>(underwater_sky(w, color, ray, u.sun_dir.xyz, u.sun_dir.w), 1.0);
+    }
     return vec4<f32>(color, 1.0);
 }

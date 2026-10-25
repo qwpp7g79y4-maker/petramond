@@ -225,6 +225,7 @@ impl GamePresentationScratch {
         self.item_entities
             .extend(game.replica.entities.items().iter().map(|entry| {
                 let c = entry.curr.pos.block();
+                let (skylight, blocklight) = world.data().dynamic_light_at_world(c.x, c.y, c.z);
                 DroppedItemPresentation {
                     tether: entry.curr.tether.and_then(tether),
                     drawn_top: entry
@@ -245,19 +246,19 @@ impl GamePresentationScratch {
                     spin: entry.curr.spin,
                     prev_flight: entry.prev.flight,
                     flight: entry.curr.flight,
-                    skylight: world.data().skylight6_at_world(c.x, c.y, c.z),
-                    blocklight: petramond_world::light::BlockLight6::from_x2(
-                        world.data().blocklight_rgb_at_world(c.x, c.y, c.z),
-                    ),
+                    skylight,
+                    blocklight,
                 }
             }));
     }
 
     fn collect_particles(&mut self, game: &Game) {
+        let world = game.replica.world.data();
         self.particles.clear();
         self.particles
             .extend(game.fx.particles.particles().iter().map(|particle| {
                 let (uv_min, uv_size) = particle.atlas_uv();
+                let solid = particle.source == crate::particle::ParticleSource::Solid;
                 ParticlePresentation {
                     quad_axes: None,
                     atlas: match particle.source {
@@ -276,6 +277,10 @@ impl GamePresentationScratch {
                     stretch: 1.0,
                     skylight: particle.skylight,
                     blocklight: particle.blocklight,
+                    submerged: solid && {
+                        let c = particle.pos.block();
+                        world.fluid_cell_at(c.x, c.y, c.z)
+                    },
                 }
             }));
     }
@@ -552,6 +557,7 @@ impl GamePresentationScratch {
             // A ragdoll is lit where its body lies, not where it died.
             let lit_at = ragdoll_span.map_or(curr.pos + Vec3::new(0.0, 0.3, 0.0), |s| s.centre());
             let c = lit_cell(world, lit_at.block());
+            let (skylight, blocklight) = world.data().dynamic_light_at_world(c.x, c.y, c.z);
             let emitters = entry.emitters();
             self.mobs.push(MobPresentation {
                 id: curr.id,
@@ -577,10 +583,8 @@ impl GamePresentationScratch {
                 head_yaw: curr.head_yaw,
                 prev_head_pitch: prev.head_pitch,
                 head_pitch: curr.head_pitch,
-                skylight: world.data().skylight6_at_world(c.x, c.y, c.z),
-                blocklight: petramond_world::light::BlockLight6::from_x2(
-                    world.data().blocklight_rgb_at_world(c.x, c.y, c.z),
-                ),
+                skylight,
+                blocklight,
                 hurt_flash: petramond::mob::hurt_flash01(
                     prev.hurt_timer,
                     curr.hurt_timer,
@@ -692,6 +696,7 @@ impl GamePresentationScratch {
                 pos -= Vec3::new(body_yaw.sin(), 0.0, body_yaw.cos()) * 0.925;
             }
             let c = (pos + Vec3::new(0.0, 0.9, 0.0)).block();
+            let (skylight, blocklight) = world.data().dynamic_light_at_world(c.x, c.y, c.z);
             let emitters = p.emitters();
             let frame = &mut self.animation.frame;
             let animator = frame.push_animator(&p.curr.animator, &p.plays, &p.events);
@@ -699,10 +704,8 @@ impl GamePresentationScratch {
                 pos,
                 emitter_tint: emitters.tint(),
                 emitter_self_lit: emitters.self_lit(),
-                skylight: world.data().skylight6_at_world(c.x, c.y, c.z),
-                blocklight: petramond_world::light::BlockLight6::from_x2(
-                    world.data().blocklight_rgb_at_world(c.x, c.y, c.z),
-                ),
+                skylight,
+                blocklight,
                 state: BodyState {
                     body_yaw,
                     head_yaw,

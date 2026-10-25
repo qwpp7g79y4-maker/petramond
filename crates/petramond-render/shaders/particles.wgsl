@@ -117,10 +117,12 @@ fn fs_particle(in: VsOut) -> @location(0) vec4<f32> {
     // Inside a fluid with the player: the eye medium's tint + murk fog to match the
     // murky terrain; in air, the same atmosphere as the terrain, so a break
     // burst hazes out with the surrounding blocks instead of staying crisp.
-    if (u.fog.w > 0.5) {
-        color = color * u.volume_tint.rgb;
-        let f = clamp((length(in.view) - u.fog.x) / (u.fog.y - u.fog.x), 0.0, 1.0);
-        return vec4<f32>(mix(color, u.fog_color.rgb, f), 1.0);
+    if (in_fluid_ray(u.fog, u.waterline, in.view)) {
+        let seen = in_fluid_apply(
+            color, u.volume_tint.rgb, in.view, in.world_y, u.cam_pos.y + f32(u.render_origin.y),
+            u.fog, u.fog_color.rgb, u.water_absorb, u.water_glow, u.water_fog, u.waterline, u.sun_dir,
+        );
+        return vec4<f32>(seen, 1.0);
     }
     color = atmosphere_apply(
         color,

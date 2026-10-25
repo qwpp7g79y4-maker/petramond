@@ -48,6 +48,7 @@ fn emitter_inst() -> ParticleEmitterInstance {
         skylight: 0,
         blocklight: petramond_world::light::BlockLight6::DARK,
         floor_y: f32::NEG_INFINITY,
+        submerged: false,
         ceiling_y: f32::INFINITY,
         trail: petramond::world::TrailSpan::default(),
     }
@@ -196,6 +197,7 @@ fn block_emitter_particles_rise_shrink_and_fade() {
         f32::MAX,
         LightEnv::IDENTITY,
         1.0,
+        false,
         &mut young,
         &mut scratch,
     );
@@ -209,11 +211,16 @@ fn block_emitter_particles_rise_shrink_and_fade() {
         f32::MAX,
         LightEnv::IDENTITY,
         1.0,
+        false,
         &mut old,
         &mut scratch,
     );
 
-    assert_eq!((young_n, old_n), (1, 1), "one live particle, one row");
+    assert_eq!(
+        (young_n, old_n),
+        ((1, 0), (1, 0)),
+        "one live particle, one row"
+    );
     let (young, old) = (expand(&young), expand(&old));
     assert_eq!(young.len(), VERTS_PER_CUBE);
     assert!(
@@ -248,6 +255,7 @@ fn spiral_emitter_particles_orbit_the_vertical_axis_as_they_age() {
         f32::MAX,
         LightEnv::IDENTITY,
         1.0,
+        false,
         &mut early,
         &mut scratch,
     );
@@ -261,6 +269,7 @@ fn spiral_emitter_particles_orbit_the_vertical_axis_as_they_age() {
         f32::MAX,
         LightEnv::IDENTITY,
         1.0,
+        false,
         &mut late,
         &mut scratch,
     );
@@ -311,6 +320,7 @@ fn ramp_emitter_particles_cool_through_the_ramp_as_they_age() {
         f32::MAX,
         LightEnv::IDENTITY,
         1.0,
+        false,
         &mut young,
         &mut scratch,
     );
@@ -324,6 +334,7 @@ fn ramp_emitter_particles_cool_through_the_ramp_as_they_age() {
         f32::MAX,
         LightEnv::IDENTITY,
         1.0,
+        false,
         &mut old,
         &mut scratch,
     );
@@ -400,6 +411,7 @@ fn landing_particles_fall_and_vanish_at_their_floor() {
             f32::MAX,
             LightEnv::IDENTITY,
             1.0,
+            false,
             &mut rows,
             &mut scratch,
         );
@@ -415,6 +427,45 @@ fn landing_particles_fall_and_vanish_at_their_floor() {
         }
     }
     assert!(fell, "gravity carried a particle down before it landed");
+}
+
+#[test]
+fn particles_across_the_eyes_fluid_surface_lead_the_rows() {
+    let mut bubble = emitter_inst();
+    bubble.submerged = true;
+    let mut rain = emitter_inst();
+    rain.origin = WorldPos::new(1.0, 2.0, 40.0);
+    let time = one_live_emitter_time(&bubble, 0.25);
+    let emitters = [bubble, rain];
+    let build = |eye_in_fluid| {
+        let (mut rows, mut scratch) = (Vec::new(), Vec::new());
+        let counts = build_transparent_emitter_particles(
+            &emitters,
+            &[],
+            &[],
+            time,
+            petramond_math::math::IVec3::ZERO,
+            Vec3::ZERO,
+            f32::MAX,
+            LightEnv::IDENTITY,
+            1.0,
+            eye_in_fluid,
+            &mut rows,
+            &mut scratch,
+        );
+        let far: Vec<bool> = rows.iter().map(|row| row.center[2] > 20.0).collect();
+        (counts, far)
+    };
+    assert_eq!(
+        build(false),
+        ((2, 1), vec![false, true]),
+        "from the air, the nearer bubble goes first: it lies under the surface"
+    );
+    assert_eq!(
+        build(true),
+        ((2, 1), vec![true, false]),
+        "from under water, the farther rain goes first: it lies above the surface"
+    );
 }
 
 fn solid(pos: WorldPos, size: f32, stretch: f32, speck: bool) -> crate::SolidParticleInstance {

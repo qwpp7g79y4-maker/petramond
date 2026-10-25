@@ -453,10 +453,7 @@ impl<S: WorldSide> World<S> {
                 if !view.aabb_visible(mn, mx) {
                     continue;
                 }
-                let sky = self.data.skylight6_at_world(pos.x, pos.y, pos.z);
-                let block = petramond_world::light::BlockLight6::from_x2(
-                    self.data.blocklight_rgb_at_world(pos.x, pos.y, pos.z),
-                );
+                let (sky, block) = self.data.dynamic_light_at_world(pos.x, pos.y, pos.z);
                 out.push(BlockDrawInstance {
                     pos,
                     set: Arc::clone(&placed.set),

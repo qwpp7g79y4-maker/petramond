@@ -42,7 +42,8 @@ struct VsIn {
 struct VsOut {
     @builtin(position) clip: vec4<f32>,
     @location(0) uv: vec2<f32>,
-    @location(1) dist: f32,
+    // Fragment − camera, for the fog fade.
+    @location(1) view: vec3<f32>,
     // Absolute world height, for the atmosphere's altitude thinning.
     @location(2) world_y: f32,
 };
@@ -69,9 +70,8 @@ fn vs_break(in: VsIn) -> VsOut {
     } else {
         out.uv = corner_uv(r, corner);
     }
-    // World-space camera distance, for the fog fade in the fragment stage (matches
-    // block.wgsl so the crack fades on the same curve as the surface it sits on).
-    out.dist = length(u.cam_pos.xyz - local_pos);
+    // Matches block.wgsl so the crack fades on the same curve as the surface it sits on.
+    out.view = local_pos - u.cam_pos.xyz;
     out.world_y = in.pos.y + f32(u.render_origin.y);
     return out;
 }
@@ -91,11 +91,11 @@ fn fs_break(in: VsOut) -> @location(0) vec4<f32> {
     // melts into the haze with the surface instead of staying a hard dark
     // pattern floating in fog.
     var f: f32;
-    if (u.fog.w > 0.5) {
-        f = clamp((in.dist - u.fog.x) / (u.fog.y - u.fog.x), 0.0, 1.0);
+    if (in_fluid_ray(u.fog, u.waterline, in.view)) {
+        f = in_fluid_amount(in.view, u.fog, u.water_absorb, u.water_glow, u.water_fog, u.waterline);
     } else {
         f = atmosphere_amount(
-            in.dist,
+            length(in.view),
             u.fog.x,
             u.fog.y,
             in.world_y,

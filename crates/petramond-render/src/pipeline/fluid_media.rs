@@ -58,6 +58,7 @@ mod tests {
             sheen,
             self_lit: 0.0,
             eye_margin: None,
+            optics: None,
         }
     }
 

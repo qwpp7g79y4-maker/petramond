@@ -1,5 +1,6 @@
 use super::upload_queue::{FrameDrain, UploadPriority};
 use super::*;
+use crate::waterline::Waterline;
 
 const MESH_COLUMN_UPLOAD_TIME_BUDGET: std::time::Duration = std::time::Duration::from_micros(1_750);
 const RENDER_ORIGIN_GRID: i32 = 16;
@@ -55,17 +56,97 @@ fn relative_view_proj(
         * glam::Mat4::look_at_rh(local_pos, local_pos + cam.forward(), cam.up())
 }
 
+/// The fluid at the eye, for the frame: the one the eye is inside, or the one whose surface it is
+/// just over (`inside` false); how far below its surface the eye sits, and the local biome's
+/// water colour around the eye.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct EyeFluid {
+    pub block: petramond_world::block::Block,
+    /// The eye is inside it (`WorldData::eye_fluid`), not only near its surface.
+    pub inside: bool,
+    /// How far below its open surface the eye sits: the highest over its column, past any air
+    /// pocket sealed inside the water.
+    pub depth: f32,
+    /// The absolute height of the surface drawn at the eye's column, when that is close enough to
+    /// the eye to be found (`WorldData::eye_surface`): the waterline the near plane can straddle,
+    /// an air pocket's floor included.
+    pub surface: Option<f64>,
+    pub water: [f32; 3],
+    /// The biome's water clarity at the eye: fog distance × clarity, absorption and the daylight
+    /// lost with depth ÷ clarity.
+    pub clarity: f32,
+}
+
+/// The water's glow at night, as a fraction of its daylight level.
+const NIGHT_GLOW: f32 = 0.06;
+const LUMA: [f32; 3] = [0.2126, 0.7152, 0.0722];
+
+fn luma(c: [f32; 3]) -> f32 {
+    c[0] * LUMA[0] + c[1] * LUMA[1] + c[2] * LUMA[2]
+}
+
+/// The water's absorption per block as the eye's biome sees it: clearer water takes longer to
+/// swallow colour.
+fn clear_absorption(optics: &petramond_world::fluid::FluidOptics, eye: &EyeFluid) -> [f32; 3] {
+    let clarity = eye.clarity.max(0.05);
+    optics.absorption.map(|a| a / clarity)
+}
+
+/// The share of daylight lost per block of depth as the eye's biome sees it: clearer water lets
+/// it reach deeper.
+fn clear_depth_dim(optics: &petramond_world::fluid::FluidOptics, eye: &EyeFluid) -> f32 {
+    optics.depth_dim / eye.clarity.max(0.05)
+}
+
+/// A height as the terrain mesh draws it, on its vertex grid: the waterline must meet the surface
+/// face exactly, or the rays between the two heights see neither it nor the water.
+fn drawn_height(y: f64) -> f64 {
+    let grid = f64::from(petramond_mesh::vertex::TERRAIN_POS_SCALE);
+    (y * grid).round() / grid
+}
+
+/// The frame's two water lanes for a medium with optics: (absorption, depth shift) and
+/// (glow, eye depth). The glow takes the biome's water hue at its own brightness, then dims
+/// with the eye's depth and the night, and follows the sky's tint.
+fn water_lanes(
+    optics: &petramond_world::fluid::FluidOptics,
+    eye: &EyeFluid,
+    sky_scale: f32,
+    sky_color: [f32; 3],
+) -> ([f32; 4], [f32; 4]) {
+    let mut glow = optics.glow;
+    let water_luma = luma(eye.water);
+    if water_luma > 1e-3 {
+        let k = luma(glow) / water_luma;
+        glow = std::array::from_fn(|i| glow[i] + (eye.water[i] * k - glow[i]) * optics.biome_tint);
+    }
+    let depth = eye.depth.max(0.0);
+    let dim = (-clear_depth_dim(optics, eye) * depth).exp()
+        * (NIGHT_GLOW + (1.0 - NIGHT_GLOW) * sky_scale);
+    let [a, b, c] = clear_absorption(optics, eye);
+    (
+        [a, b, c, optics.depth_shift],
+        [
+            glow[0] * dim * sky_color[0],
+            glow[1] * dim * sky_color[1],
+            glow[2] * dim * sky_color[2],
+            depth,
+        ],
+    )
+}
+
 impl Renderer {
     pub fn update_uniforms(
         &mut self,
         cam: &Camera,
         fog_color: [f32; 3],
         time: f32,
-        eye_fluid: Option<petramond_world::block::Block>,
+        eye: Option<EyeFluid>,
         shader_params: Option<&petramond::world::environment::ShaderParamMap>,
     ) {
-        let eye_medium = eye_fluid
-            .and_then(petramond_world::block::Block::fluid_def)
+        let eye_medium = eye
+            .filter(|eye| eye.inside)
+            .and_then(|eye| eye.block.fluid_def())
             .map(|def| &def.medium);
         let render_origin = render_origin_for_camera(cam.pos);
         let local_cam = cam.pos.relative_to(render_origin);
@@ -98,7 +179,9 @@ impl Renderer {
                 shader_light_overrode_identity = true;
             }
         }
-        let effective_fog_color = if shader_light_overrode_identity && eye_medium.is_none() {
+        // Water with optics keeps the air's fog: it hazes what lies above the surface.
+        let in_air = eye_medium.is_none_or(|m| m.optics.is_some());
+        let effective_fog_color = if shader_light_overrode_identity && in_air {
             [
                 fog_color[0] * effective_sky_scale * effective_sky_color[0],
                 fog_color[1] * effective_sky_scale * effective_sky_color[1],
@@ -111,9 +194,51 @@ impl Renderer {
         self.sky.scale = effective_sky_scale;
         self.sky.color = effective_sky_color;
         let (fog_start, fog_end, in_fluid, volume_tint) = match eye_medium {
-            Some(m) => (m.fog_start, m.fog_end, 1.0, m.volume_tint),
-            None => (self.sky.fog_start, self.sky.fog_end, 0.0, [1.0; 3]),
+            Some(m) if m.optics.is_none() => (m.fog_start, m.fog_end, 1.0, m.volume_tint),
+            _ => (self.sky.fog_start, self.sky.fog_end, 0.0, [1.0; 3]),
         };
+        let water = eye.and_then(|eye| {
+            let medium = &eye.block.fluid_def()?.medium;
+            Some((eye, medium, medium.optics?))
+        });
+        let (in_fluid, water_absorb, water_glow, water_fog, waterline) = match water {
+            Some((eye, medium, optics)) => {
+                let surface = eye.surface.map(drawn_height);
+                let level = surface.map(|y| (y - cam.pos.y) as f32);
+                let waterline = match (level, eye.inside) {
+                    (None, false) => Waterline::NONE,
+                    _ => Waterline::new(view_proj, cam.near, level),
+                };
+                self.sky.water = Some(crate::lighting::WaterLight {
+                    surface_y: cam.pos.y + f64::from(eye.depth.max(0.0)),
+                    absorb: clear_absorption(&optics, &eye),
+                    shift: optics.depth_shift,
+                    depth_dim: clear_depth_dim(&optics, &eye),
+                    eye: cam.pos,
+                    rays: Some(waterline),
+                });
+                let (absorb, glow) =
+                    water_lanes(&optics, &eye, effective_sky_scale, effective_sky_color);
+                let clarity = eye.clarity.max(0.05);
+                (
+                    if eye.inside { 2.0 } else { in_fluid },
+                    absorb,
+                    glow,
+                    [
+                        medium.fog_start * clarity,
+                        medium.fog_end * clarity,
+                        clear_depth_dim(&optics, &eye),
+                        0.0,
+                    ],
+                    waterline,
+                )
+            }
+            None => {
+                self.sky.water = None;
+                (in_fluid, [0.0; 4], [0.0; 4], [0.0; 4], Waterline::NONE)
+            }
+        };
+        self.view.eye_in_fluid = in_fluid > 0.5;
         self.terrain.view_key = TerrainViewKey {
             view_proj: view_proj.to_cols_array().map(f32::to_bits),
             cam: cam.pos.to_array().map(f64::to_bits),
@@ -140,6 +265,10 @@ impl Renderer {
             ],
             sun_dir: sun_uniform(shader_params),
             volume_tint: [volume_tint[0], volume_tint[1], volume_tint[2], 0.0],
+            water_absorb,
+            water_glow,
+            water_fog,
+            waterline: waterline.lane(),
         };
         self.ghosts.camera(&self.queue, &u);
         self.selection.camera(&self.queue, &u);
@@ -490,5 +619,72 @@ mod tests {
                 "yaw {yaw} pitch {pitch}: camera right drew left of centre"
             );
         }
+    }
+
+    /// The biome only hues the water's glow, never brightens or darkens it; depth and night
+    /// only dim it.
+    #[test]
+    fn the_water_glow_takes_the_biome_hue_at_its_own_brightness_and_dims_with_depth_and_night() {
+        let optics = petramond_world::fluid::FluidOptics {
+            absorption: [0.13, 0.06, 0.05],
+            glow: [0.08, 0.3, 0.42],
+            depth_shift: 0.5,
+            depth_dim: 0.05,
+            biome_tint: 1.0,
+        };
+        let eye = |depth, water| EyeFluid {
+            block: petramond_world::block::Block::Water,
+            inside: true,
+            depth,
+            surface: None,
+            water,
+            clarity: 1.0,
+        };
+        let glow = |e: &EyeFluid, day| {
+            let (_, g) = water_lanes(&optics, e, day, [1.0; 3]);
+            [g[0], g[1], g[2]]
+        };
+        let green = glow(&eye(0.0, [0.05, 0.6, 0.3]), 1.0);
+        let blue = glow(&eye(0.0, [0.05, 0.2, 0.9]), 1.0);
+        assert!((luma(green) - luma(optics.glow)).abs() < 1e-4);
+        assert!((luma(blue) - luma(optics.glow)).abs() < 1e-4);
+        assert!(
+            green[1] > blue[1] && blue[2] > green[2],
+            "{green:?} vs {blue:?}"
+        );
+
+        let shallow = luma(glow(&eye(1.0, [0.05, 0.3, 0.6]), 1.0));
+        let deep = luma(glow(&eye(20.0, [0.05, 0.3, 0.6]), 1.0));
+        let night = luma(glow(&eye(1.0, [0.05, 0.3, 0.6]), 0.0));
+        assert!(
+            deep < shallow * 0.5 && night < shallow * 0.1,
+            "{shallow} {deep} {night}"
+        );
+    }
+
+    /// Clearer water (a warm sea's) keeps colour over a longer path and fogs out farther.
+    #[test]
+    fn clearer_water_absorbs_less_and_fogs_farther() {
+        let optics = petramond_world::fluid::FluidOptics {
+            absorption: [0.13, 0.06, 0.05],
+            glow: [0.08, 0.3, 0.42],
+            depth_shift: 0.5,
+            depth_dim: 0.05,
+            biome_tint: 1.0,
+        };
+        let eye = |clarity| EyeFluid {
+            block: petramond_world::block::Block::Water,
+            inside: true,
+            depth: 4.0,
+            surface: None,
+            water: [0.05, 0.4, 0.6],
+            clarity,
+        };
+        let plain = clear_absorption(&optics, &eye(1.0));
+        let clear = clear_absorption(&optics, &eye(1.6));
+        assert_eq!(plain, optics.absorption);
+        assert!(clear.iter().zip(plain).all(|(c, p)| *c < p), "{clear:?}");
+        let (lanes, _) = water_lanes(&optics, &eye(1.6), 1.0, [1.0; 3]);
+        assert_eq!(&lanes[..3], &clear[..]);
     }
 }

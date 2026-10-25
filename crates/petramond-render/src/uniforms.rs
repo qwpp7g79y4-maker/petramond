@@ -45,9 +45,20 @@ pub struct Uniforms {
     pub sky_color: [f32; 4],
     pub sun_dir: [f32; 4],
     pub volume_tint: [f32; 4],
+    /// The eye inside a medium with optics (`fog.w` = 2): rgb = absorption per block,
+    /// w = hue shift per block of depth of the light reaching a surface.
+    pub water_absorb: [f32; 4],
+    /// rgb = the medium's glow with the biome, the eye's depth and the daylight folded in,
+    /// w = the eye's depth below the surface in blocks.
+    pub water_glow: [f32; 4],
+    /// x, y = the medium's own fog band (the `fog` lane stays the air's above the surface).
+    pub water_fog: [f32; 4],
+    /// Which view rays set out under the water (`crate::waterline::Waterline`): xyz = the
+    /// camera's forward over the near distance, w = the water's surface over the eye.
+    pub waterline: [f32; 4],
 }
 
-pub(crate) const UNIFORM_FIELDS: [(&str, &str, usize); 10] = [
+pub(crate) const UNIFORM_FIELDS: [(&str, &str, usize); 14] = [
     (
         "view_proj",
         "mat4x4<f32>",
@@ -94,9 +105,29 @@ pub(crate) const UNIFORM_FIELDS: [(&str, &str, usize); 10] = [
         "vec4<f32>",
         std::mem::offset_of!(Uniforms, volume_tint),
     ),
+    (
+        "water_absorb",
+        "vec4<f32>",
+        std::mem::offset_of!(Uniforms, water_absorb),
+    ),
+    (
+        "water_glow",
+        "vec4<f32>",
+        std::mem::offset_of!(Uniforms, water_glow),
+    ),
+    (
+        "water_fog",
+        "vec4<f32>",
+        std::mem::offset_of!(Uniforms, water_fog),
+    ),
+    (
+        "waterline",
+        "vec4<f32>",
+        std::mem::offset_of!(Uniforms, waterline),
+    ),
 ];
 
-pub(crate) const FRAME_ABI_VERSION: u32 = 1;
+pub(crate) const FRAME_ABI_VERSION: u32 = 3;
 
 pub(crate) fn frame_wgsl() -> String {
     let mut text = format!(

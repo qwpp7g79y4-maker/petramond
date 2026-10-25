@@ -65,12 +65,13 @@ const SKIN_VERTEX_ATTRS: [wgpu::VertexAttribute; 5] = wgpu::vertex_attr_array![
     4 => Uint32,
 ];
 
-const SKIN_INSTANCE_ATTRS: [wgpu::VertexAttribute; 5] = wgpu::vertex_attr_array![
+const SKIN_INSTANCE_ATTRS: [wgpu::VertexAttribute; 6] = wgpu::vertex_attr_array![
     5 => Float32x3,
     6 => Float32,
     7 => Float32x4,
     8 => Uint32,
     9 => Uint32,
+    10 => Float32,
 ];
 
 pub(super) fn create_bone_palette_bgl(device: &wgpu::Device) -> wgpu::BindGroupLayout {

@@ -30,6 +30,10 @@ pub(super) enum Node {
     ModelBreak,
     BreakOverlay,
     Particles,
+    BeyondEnvDownsample,
+    BeyondEnvironment,
+    BeyondEnvComposite,
+    BeyondParticles,
     Fluid,
     EnvDownsample,
     Environment,
@@ -54,10 +58,25 @@ pub(super) fn frame_graph() -> Result<FrameGraph<Node>, GraphError> {
             .color(World, Load)
             .depth(Depth, Load)
     };
+    // The half-res volumetric chain. From under a fluid it runs in `Beyond` so the surface covers
+    // it; in air, after the fluid so a cloud paints in front of a lake.
+    let env_chain = |nodes: [Node; 3], labels: [&'static str; 3], phase: Phase| {
+        [
+            PassNode::new(nodes[0], labels[0], phase)
+                .depth(EnvDepth, Clear)
+                .sampling(&[Sampled::Depth]),
+            PassNode::new(nodes[1], labels[1], phase)
+                .color(EnvColor, Clear)
+                .sampling(&[Sampled::EnvDepth]),
+            PassNode::new(nodes[2], labels[2], phase)
+                .color(World, Load)
+                .sampling(&[Sampled::EnvColor, Sampled::EnvDepth, Sampled::Depth]),
+        ]
+    };
     let screen = |id: Node, label: &'static str| {
         PassNode::new(id, label, Phase::Screen).color(Swapchain, Load)
     };
-    FrameGraph::new(vec![
+    let mut nodes = vec![
         PassNode::new(Node::Opaque, "opaque pass", Phase::Opaque)
             .color(World, Clear)
             .depth(Depth, Clear),
@@ -82,20 +101,38 @@ pub(super) fn frame_graph() -> Result<FrameGraph<Node>, GraphError> {
         world(Node::ModelBreak, "model break pass", Phase::BreakDecal),
         world(Node::BreakOverlay, "break overlay pass", Phase::BreakDecal),
         world(Node::Particles, "particle pass", Phase::Cutout),
+    ];
+    nodes.extend(env_chain(
+        [
+            Node::BeyondEnvDownsample,
+            Node::BeyondEnvironment,
+            Node::BeyondEnvComposite,
+        ],
+        [
+            "submerged env depth downsample",
+            "submerged environment pass",
+            "submerged env composite pass",
+        ],
+        Phase::Beyond,
+    ));
+    nodes.extend([
+        world(
+            Node::BeyondParticles,
+            "beyond-surface particle pass",
+            Phase::Beyond,
+        ),
         world(Node::Fluid, "transparent pass", Phase::Fluid),
-        PassNode::new(
-            Node::EnvDownsample,
+    ]);
+    nodes.extend(env_chain(
+        [Node::EnvDownsample, Node::Environment, Node::EnvComposite],
+        [
             "env depth downsample",
-            Phase::Environment,
-        )
-        .depth(EnvDepth, Clear)
-        .sampling(&[Sampled::Depth]),
-        PassNode::new(Node::Environment, "environment pass", Phase::Environment)
-            .color(EnvColor, Clear)
-            .sampling(&[Sampled::EnvDepth]),
-        PassNode::new(Node::EnvComposite, "env composite pass", Phase::Environment)
-            .color(World, Load)
-            .sampling(&[Sampled::EnvColor, Sampled::EnvDepth, Sampled::Depth]),
+            "environment pass",
+            "env composite pass",
+        ],
+        Phase::Environment,
+    ));
+    nodes.extend([
         world(
             Node::EmitterParticles,
             "emitter particle pass",
@@ -115,7 +152,8 @@ pub(super) fn frame_graph() -> Result<FrameGraph<Node>, GraphError> {
         screen(Node::Crosshair, "crosshair pass"),
         screen(Node::Ui, "ui pass"),
         screen(Node::UiOverlay, "ui overlay / drag pass"),
-    ])
+    ]);
+    FrameGraph::new(nodes)
 }
 
 pub(super) struct PassCtx<'a> {
@@ -140,8 +178,12 @@ impl Renderer {
             Node::ModelBreak => self.model_break.active(),
             Node::BreakOverlay => self.hand.break_overlay_active(),
             Node::Particles => self.particle.cutout_active(),
+            Node::BeyondEnvDownsample | Node::BeyondEnvironment | Node::BeyondEnvComposite => {
+                self.view.eye_in_fluid && self.sky.environment_active()
+            }
+            Node::BeyondParticles => self.particle.beyond_active(),
             Node::EnvDownsample | Node::Environment | Node::EnvComposite => {
-                self.sky.environment_active()
+                !self.view.eye_in_fluid && self.sky.environment_active()
             }
             Node::EmitterParticles => self.particle.emitters_active(),
             Node::Outline => self.chrome.outline_active(),
@@ -180,9 +222,14 @@ impl Renderer {
             Node::BreakOverlay => self.hand.record_break_overlay(pass, ctx),
             Node::Particles => self.particle.record_cutout(pass, ctx),
             Node::Fluid => self.terrain.record_fluid(pass, ctx, stats),
-            Node::EnvDownsample => self.sky.record_env_downsample(pass, ctx),
-            Node::Environment => self.sky.record_environment(pass),
-            Node::EnvComposite => self.sky.record_env_composite(pass, ctx),
+            Node::EnvDownsample | Node::BeyondEnvDownsample => {
+                self.sky.record_env_downsample(pass, ctx)
+            }
+            Node::Environment | Node::BeyondEnvironment => self.sky.record_environment(pass),
+            Node::EnvComposite | Node::BeyondEnvComposite => {
+                self.sky.record_env_composite(pass, ctx)
+            }
+            Node::BeyondParticles => self.particle.record_beyond(pass, ctx),
             Node::EmitterParticles => self.particle.record_emitters(pass, ctx),
             Node::Outline => self.chrome.record_outline(pass, ctx),
             Node::Ghosts => {

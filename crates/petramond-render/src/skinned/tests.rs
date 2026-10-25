@@ -44,6 +44,7 @@ fn vertex_and_instance_strides_match_their_declared_layouts() {
     assert_eq!(std::mem::offset_of!(SkinInstance, light), 16);
     assert_eq!(std::mem::offset_of!(SkinInstance, bone_base), 32);
     assert_eq!(std::mem::offset_of!(SkinInstance, hidden), 36);
+    assert_eq!(std::mem::offset_of!(SkinInstance, light_y), 40);
 }
 
 #[test]
@@ -121,10 +122,12 @@ fn instance_light_reproduces_the_baked_body_tint() {
         LightEnv {
             sky_scale: 0.0,
             sky_color: [0.6, 0.7, 1.0],
+            water: None,
         },
         LightEnv {
             sky_scale: 0.4,
             sky_color: [1.0, 0.8, 0.7],
+            water: None,
         },
     ];
     let lights = [
@@ -161,7 +164,9 @@ fn instance_light_reproduces_the_baked_body_tint() {
 fn the_skinned_shader_lights_bodies_with_the_shared_curve() {
     let src = include_str!("../../shaders/skinned.wgsl");
     for term in [
-        "SKY_MIN + (1.0 - SKY_MIN) * (x * x * x * clamp(u.fog_color.w, 0.0, 1.0))",
+        "pow(in.light.x, SKY_GAMMA)",
+        "water_sky_curve(in.light.x, in.light_y)",
+        "SKY_MIN + (1.0 - SKY_MIN) * (curve * clamp(u.fog_color.w, 0.0, 1.0))",
         "mix(vec3<f32>(SKY_MIN), vec3<f32>(1.0), blk * blk * blk)",
         "max(max(sky_term, block_term), vec3<f32>(FINAL_MIN))",
         "lit + (vec3<f32>(1.0) - lit) * self_lit",

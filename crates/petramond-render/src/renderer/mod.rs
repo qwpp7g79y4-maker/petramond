@@ -30,6 +30,7 @@ mod dynamic_bake;
 pub(crate) mod dynamic_draw;
 mod frame;
 mod frame_state;
+pub use frame_state::EyeFluid;
 mod hand_pass;
 mod selection;
 mod skinned_draw;
@@ -148,6 +149,8 @@ struct ParticlePass {
     emitter_trails: Vec<petramond::world::TrailPoint>,
     density: f32,
     block_count: u32,
+    /// Leading `emitter_draw` rows beyond the eye's fluid surface, drawn before the fluid.
+    beyond_count: u32,
     rows: Vec<super::particles::ParticleRow>,
     emitter_rows: Vec<super::particles::ParticleRow>,
     emitter_scratch: Vec<super::particles::TransparentParticleCube>,
@@ -158,6 +161,7 @@ impl ParticlePass {
         self.draw.instance_count = 0;
         self.emitter_draw.instance_count = 0;
         self.block_count = 0;
+        self.beyond_count = 0;
         self.instances.clear();
         self.model_instances.clear();
         self.solid_instances.clear();
@@ -395,6 +399,8 @@ struct SkyPass {
     scale: f32,
     color: [f32; 3],
     clear_color: [f32; 3],
+    /// The eye's water this frame, lighting what lies below its surface.
+    water: Option<crate::lighting::WaterLight>,
 }
 
 struct ChromePass {
@@ -453,6 +459,7 @@ struct ViewState {
     render_origin: glam::IVec3,
     visual_time: f32,
     proj_y_scale: f32,
+    eye_in_fluid: bool,
 }
 
 pub struct Renderer {

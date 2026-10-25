@@ -774,12 +774,10 @@ fn spawn_item_stacks(
     variant: petramond_world::item::VariantId,
 ) {
     let cell = pos.block();
-    let sky = ctx.world.data().skylight6_at_world(cell.x, cell.y, cell.z);
-    let block = petramond_world::light::BlockLight6::from_x2(
-        ctx.world
-            .data()
-            .blocklight_rgb_at_world(cell.x, cell.y, cell.z),
-    );
+    let (sky, block) = ctx
+        .world
+        .data()
+        .dynamic_light_at_world(cell.x, cell.y, cell.z);
     let mut remaining = count;
     let mut i = 0u32;
     while remaining > 0 {
@@ -835,10 +833,8 @@ fn drop_leftovers(
         let seed = drop_seed(world.current_tick(), at, i as u32);
         let cell = at.block();
         let mut drop = DroppedItem::new(at, leftover, seed);
-        drop.skylight = world.data().skylight6_at_world(cell.x, cell.y, cell.z);
-        drop.blocklight = petramond_world::light::BlockLight6::from_x2(
-            world.data().blocklight_rgb_at_world(cell.x, cell.y, cell.z),
-        );
+        (drop.skylight, drop.blocklight) =
+            world.data().dynamic_light_at_world(cell.x, cell.y, cell.z);
         world.spawn_item(drop);
     }
 }

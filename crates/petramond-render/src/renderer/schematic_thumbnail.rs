@@ -54,6 +54,10 @@ impl SchematicThumbnailer {
             sky_color: [1.0; 4],
             sun_dir: [0.3, 0.9, 0.3, 1.0],
             volume_tint: [1.0; 4],
+            water_absorb: [0.0; 4],
+            water_glow: [0.0; 4],
+            water_fog: [0.0; 4],
+            waterline: [0.0; 4],
         };
         let buffer = |label, bytes: &[u8], usage| {
             self.device

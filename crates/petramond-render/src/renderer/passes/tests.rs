@@ -83,6 +83,21 @@ fn ordering_contracts_hold() {
         "a fluid surface writes no depth; paint order keeps clouds in front of lakes",
     );
     assert_before(
+        Particles,
+        BeyondEnvDownsample,
+        "the submerged volumetrics sample the depth the particle cubes wrote",
+    );
+    assert_before(
+        BeyondEnvComposite,
+        BeyondParticles,
+        "rain above the surface falls in front of the cloud deck",
+    );
+    assert_before(
+        BeyondParticles,
+        Fluid,
+        "the fluid surface paints over what lies beyond it",
+    );
+    assert_before(
         EnvDownsample,
         Environment,
         "the march reads the downsampled depth",
@@ -167,6 +182,9 @@ fn every_activity_combination_plans_validly() {
                 Node::Opaque | Node::Sky => true,
                 Node::Grade => shape.route == SceneRoute::PostProcess,
                 Node::Environment | Node::EnvComposite => bit(Node::EnvDownsample),
+                Node::BeyondEnvironment | Node::BeyondEnvComposite => {
+                    bit(Node::BeyondEnvDownsample)
+                }
                 _ => bit(n),
             };
             let p = plan(shape, active);

@@ -113,8 +113,8 @@ fn fs_model_break(in: MbOut) -> @location(0) vec4<f32> {
     // surface under it already took, so the crack melts into fog with the model.
     let dist = length(in.view);
     var f: f32;
-    if (u.fog.w > 0.5) {
-        f = clamp((dist - u.fog.x) / (u.fog.y - u.fog.x), 0.0, 1.0);
+    if (in_fluid_ray(u.fog, u.waterline, in.view)) {
+        f = in_fluid_amount(in.view, u.fog, u.water_absorb, u.water_glow, u.water_fog, u.waterline);
     } else {
         f = atmosphere_amount(
             dist,

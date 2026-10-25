@@ -346,7 +346,7 @@ fn drawn_kind(inst: &ItemEntityInstance) -> ItemRenderKind {
 
 #[inline]
 fn inst_light(inst: &ItemEntityInstance) -> DynLight {
-    DynLight::new(inst.skylight, inst.blocklight)
+    DynLight::at(inst.skylight, inst.blocklight, inst.pos)
 }
 
 #[inline]

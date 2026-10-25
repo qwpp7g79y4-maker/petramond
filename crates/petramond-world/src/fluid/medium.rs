@@ -7,6 +7,22 @@ pub struct AlbedoMix {
     pub amount: f32,
 }
 
+/// How the eye sees from inside a medium that has optics, instead of through a linear murk:
+/// light loses each channel to `absorption` per block it travels while the medium's own `glow`
+/// scatters in. Light reaching a surface already crossed the medium above it, so its hue shifts
+/// by `depth_shift` of the absorption per block of depth. Daylight loses `depth_dim` per block
+/// of depth: the glow at the eye's depth, the light reaching a surface at its own. The glow takes
+/// `biome_tint` of the local biome's water colour.
+#[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FluidOptics {
+    pub absorption: [f32; 3],
+    pub glow: [f32; 3],
+    pub depth_shift: f32,
+    pub depth_dim: f32,
+    pub biome_tint: f32,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FluidMedium {
@@ -24,6 +40,8 @@ pub struct FluidMedium {
     pub self_lit: f32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub eye_margin: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub optics: Option<FluidOptics>,
 }
 
 impl FluidMedium {
@@ -72,6 +90,19 @@ impl FluidMedium {
         unit("self_lit", self.self_lit)?;
         if let Some(margin) = self.eye_margin {
             unit("eye_margin", margin)?;
+        }
+        if let Some(optics) = self.optics {
+            for v in optics.absorption {
+                if !(v.is_finite() && v > 0.0 && v <= 2.0) {
+                    return Err("fluid medium optics.absorption must be in (0, 2]".into());
+                }
+            }
+            for v in optics.glow {
+                unit("optics.glow", v)?;
+            }
+            unit("optics.depth_shift", optics.depth_shift)?;
+            unit("optics.depth_dim", optics.depth_dim)?;
+            unit("optics.biome_tint", optics.biome_tint)?;
         }
         Ok(())
     }

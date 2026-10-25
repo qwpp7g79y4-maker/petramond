@@ -11,9 +11,12 @@
 // dissolves late into a luminous haze — the haze is the biome fog colour with
 // its chroma pushed UP, so distance glows like painted air instead of washing
 // out to milk (Firewatch/Sable-style authored fog, not scattering). Underwater
-// keeps the tight linear murk — callers branch on the eye-fluid flag before
+// keeps the tight linear murk — callers branch on `in_fluid_ray` before
 // calling in here.
 //
+// A ray that sets out under water (a medium with optics) fogs through petramond::underwater.
+#import petramond::underwater
+
 // CONTRACT: atmosphere_amount() returns exactly 1.0 for dist >= fog_end. Terrain
 // visibility is fog-distance culled (TERRAIN_FOG_CULL_PAD), so a pixel that is
 // not fully hazed at fog_end would pop at the cull boundary. The terminal
@@ -177,4 +180,65 @@ fn atmosphere_apply_dir(
     let f = atmosphere_amount(dist, fog_start, fog_end, world_y, cam_y);
     let haze = atmosphere_haze_color(dir, base_haze, sun_dir, daylight);
     return mix(color, haze, f);
+}
+
+// Whether the ray toward `view` sets out inside a fluid: under the water's surface
+// (`underwater_ray`), or anywhere with the eye in a murk (fog.w 1, whose `fog` lanes are its own).
+fn in_fluid_ray(fog: vec4<f32>, waterline: vec4<f32>, view: vec3<f32>) -> bool {
+    return (fog.w > 0.5 && fog.w < 1.5) || underwater_ray(waterline, view);
+}
+
+// A ray that sets out inside a fluid (`in_fluid_ray`). In water (a medium with optics) it is seen
+// through petramond::underwater; what lies above the surface takes the air's haze (the `fog`
+// lanes stay the air's) and then only the water between the eye and the surface. In a murk it is
+// seen through `murk_tint` and the murk's linear fog. A sky term lit along a water ray already
+// carries `underwater_hue_at`.
+// `view` = fragment − camera; `world_y`/`cam_y` absolute heights; the rest are the frame's lanes.
+fn in_fluid_apply(
+    color: vec3<f32>,
+    murk_tint: vec3<f32>,
+    view: vec3<f32>,
+    world_y: f32,
+    cam_y: f32,
+    fog: vec4<f32>,
+    fog_color: vec3<f32>,
+    water_absorb: vec4<f32>,
+    water_glow: vec4<f32>,
+    water_fog: vec4<f32>,
+    waterline: vec4<f32>,
+    sun: vec4<f32>,
+) -> vec3<f32> {
+    let dist = length(view);
+    if (underwater_ray(waterline, view)) {
+        let w = underwater(water_absorb, water_glow, water_fog);
+        let dir = view / max(dist, 1e-4);
+        if (world_y > cam_y + w.eye_depth && dir.y > 1e-3) {
+            let aired = atmosphere_apply_dir(
+                color, dist, dir, world_y, cam_y, fog.x, fog.y, fog_color, sun.xyz, sun.w,
+            );
+            let path = min(dist, w.eye_depth / dir.y);
+            return underwater_through(w, aired, path, dir, sun.xyz, sun.w);
+        }
+        return underwater_through(w, color, dist, dir, sun.xyz, sun.w);
+    }
+    let f = clamp((dist - fog.x) / (fog.y - fog.x), 0.0, 1.0);
+    return mix(color * murk_tint, fog_color, f);
+}
+
+// How far into the fluid's fog a surface at `view` has gone along a ray that sets out inside it
+// (`in_fluid_ray`), 0..1, for multiplicative effects (shadows, cracks) that fade to identity with
+// the surface under them.
+fn in_fluid_amount(
+    view: vec3<f32>,
+    fog: vec4<f32>,
+    water_absorb: vec4<f32>,
+    water_glow: vec4<f32>,
+    water_fog: vec4<f32>,
+    waterline: vec4<f32>,
+) -> f32 {
+    let dist = length(view);
+    if (underwater_ray(waterline, view)) {
+        return underwater_amount(underwater(water_absorb, water_glow, water_fog), dist);
+    }
+    return clamp((dist - fog.x) / (fog.y - fog.x), 0.0, 1.0);
 }

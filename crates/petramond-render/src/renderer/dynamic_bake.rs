@@ -6,12 +6,23 @@ impl Renderer {
         crate::lighting::LightEnv {
             sky_scale: self.sky.scale,
             sky_color: self.sky.color,
+            water: self.sky.water,
         }
+    }
+
+    /// The light env of the first-person hand and what it holds, at the eye.
+    #[inline]
+    pub(super) fn hand_light_env(&self) -> crate::lighting::LightEnv {
+        self.light_env().held()
     }
 
     #[inline]
     pub(super) fn held_item_light(&self) -> crate::lighting::DynLight {
-        crate::lighting::DynLight::new(self.hand.held_item_skylight, self.hand.held_item_blocklight)
+        crate::lighting::DynLight::at(
+            self.hand.held_item_skylight,
+            self.hand.held_item_blocklight,
+            self.view.cam_pos,
+        )
     }
 
     pub(super) fn refresh_overlay_buffers(&mut self) {
@@ -448,13 +459,15 @@ impl Renderer {
         let solids = &self.particle.solid_instances;
         let time = self.view.visual_time;
         let density = self.particle.density;
+        let eye_in_fluid = self.view.eye_in_fluid;
         let pixel_scale = self.pixel_scale();
+        let mut beyond_rows = 0u32;
         self.particle.emitter_draw.bake(
             &self.device,
             &self.queue,
             &mut self.particle.emitter_rows,
             |rows| {
-                build_transparent_emitter_particles(
+                let (total, beyond) = build_transparent_emitter_particles(
                     emitters,
                     trails,
                     solids,
@@ -464,11 +477,19 @@ impl Renderer {
                     pixel_scale,
                     env,
                     density,
+                    eye_in_fluid,
                     rows,
                     &mut self.particle.emitter_scratch,
-                )
+                );
+                beyond_rows = beyond;
+                total
             },
         );
+        self.particle.beyond_count = if self.particle.emitter_draw.instance_count == 0 {
+            0
+        } else {
+            beyond_rows
+        };
 
         let shadows = std::mem::take(&mut self.shadow.instances);
         self.shadow

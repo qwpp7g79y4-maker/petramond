@@ -317,7 +317,14 @@
             "amount": 0.6
           },
           "sheen": true,
-          "eye_margin": 0.03
+          "eye_margin": 0.03,
+          "optics": {
+            "absorption": [0.13, 0.06, 0.05],
+            "glow": [0.08, 0.3, 0.42],
+            "depth_shift": 0.5,
+            "depth_dim": 0.1,
+            "biome_tint": 0.6
+          }
         }
       },
       "shape": "cube",

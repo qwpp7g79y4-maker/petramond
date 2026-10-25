@@ -52,10 +52,7 @@ impl Mobs {
         if let Some(spawns) = chosen {
             for s in spawns {
                 let c = (s.pos + Vec3::new(0.0, 0.3, 0.0)).block();
-                let sky = world.data().skylight6_at_world(c.x, c.y, c.z);
-                let block = petramond_world::light::BlockLight6::from_x2(
-                    world.data().blocklight_rgb_at_world(c.x, c.y, c.z),
-                );
+                let (sky, block) = world.data().dynamic_light_at_world(c.x, c.y, c.z);
                 if let Some(id) = self.spawn_lit(s.kind, s.pos, s.yaw, sky, block) {
                     spawned.push((id, s.kind, s.pos));
                 }
@@ -79,10 +76,7 @@ impl Mobs {
             let mut any = false;
             for s in herd.spawns {
                 let c = (s.pos + Vec3::new(0.0, 0.3, 0.0)).block();
-                let sky = world.data().skylight6_at_world(c.x, c.y, c.z);
-                let block = petramond_world::light::BlockLight6::from_x2(
-                    world.data().blocklight_rgb_at_world(c.x, c.y, c.z),
-                );
+                let (sky, block) = world.data().dynamic_light_at_world(c.x, c.y, c.z);
                 if let Some(id) = self.spawn_lit(s.kind, s.pos, s.yaw, sky, block) {
                     spawned.push((id, s.kind, s.pos));
                     any = true;

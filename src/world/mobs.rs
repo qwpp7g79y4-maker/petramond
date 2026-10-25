@@ -73,11 +73,7 @@ impl ServerWorld {
         pos: petramond_math::world_pos::WorldPos,
     ) -> (u8, petramond_world::light::BlockLight6) {
         let c = (pos + Vec3::new(0.0, 0.3, 0.0)).block();
-        let sky = self.data.skylight6_at_world(c.x, c.y, c.z);
-        let block = petramond_world::light::BlockLight6::from_x2(
-            self.data.blocklight_rgb_at_world(c.x, c.y, c.z),
-        );
-        (sky, block)
+        self.data.dynamic_light_at_world(c.x, c.y, c.z)
     }
 
     pub fn push_noise(&mut self, noise: crate::mob::Noise) {

@@ -147,6 +147,7 @@ pub struct TransparentParticleCube {
     size: f32,
     stretch: f32,
     dist_sq: f32,
+    beyond: bool,
     look: ParticleLook,
 }
 
@@ -197,7 +198,12 @@ struct EmitterSchedule {
 /// `solids` are droplets the particle sim already placed. Folded in here so splashes and flames
 /// sort together.
 ///
-/// Rows and `cam_pos` are relative to `render_origin`. Returns row count.
+/// A particle in the other medium than the eye (rain seen from under water, bubbles seen from a
+/// boat) lies beyond a fluid surface. Those rows come first, so the surface can paint over them
+/// like everything else behind it; each group sorts far-to-near.
+///
+/// Rows and `cam_pos` are relative to `render_origin`. `pixel_scale` is pixels per block at a
+/// distance of one block. Returns (row count, rows beyond).
 #[allow(clippy::too_many_arguments)]
 pub fn build_transparent_emitter_particles(
     emitters: &[ParticleEmitterInstance],
@@ -209,9 +215,10 @@ pub fn build_transparent_emitter_particles(
     pixel_scale: f32,
     env: LightEnv,
     density: f32,
+    eye_in_fluid: bool,
     rows: &mut Vec<ParticleRow>,
     scratch: &mut Vec<TransparentParticleCube>,
-) -> u32 {
+) -> (u32, u32) {
     rows.clear();
     scratch.clear();
     for s in solids {
@@ -221,16 +228,28 @@ pub fn build_transparent_emitter_particles(
         let pos = s.pos.relative_to(render_origin);
         scratch.push(TransparentParticleCube {
             pos,
-            color: lighting::fold_tint(s.color, DynLight::new(s.skylight, s.blocklight), env),
+            color: lighting::fold_tint(s.color, DynLight::at(s.skylight, s.blocklight, s.pos), env),
             alpha: s.alpha,
             size: s.size,
             stretch: s.stretch,
             dist_sq: (cam_pos - pos).length_squared(),
+            beyond: s.submerged != eye_in_fluid,
             look: s.look,
         });
     }
     for inst in emitters {
-        append_emitter_particles(inst, time, render_origin, cam_pos, env, density, scratch);
+        let beyond = inst.submerged != eye_in_fluid;
+        append_emitter_particles(
+            inst,
+            inst.trail.of(trails),
+            time,
+            render_origin,
+            cam_pos,
+            env,
+            density,
+            beyond,
+            scratch,
+        );
     }
     for cube in scratch.iter_mut() {
         cube.fade_near_eye();
@@ -260,6 +279,7 @@ fn append_emitter_particles(
     cam_pos: Vec3,
     env: LightEnv,
     density: f32,
+    beyond: bool,
     out: &mut Vec<TransparentParticleCube>,
 ) {
     let e = inst.emitter;
@@ -273,7 +293,10 @@ fn append_emitter_particles(
     let pulse_phase = rand01(inst.seed ^ 0x5157_E0A1_9C3B_7D21) * period;
     let ceiling = inst.ceiling_y - render_origin.y as f32;
     let light = lighting::fold_self_lit(
-        lighting::light_rgb(DynLight::new(inst.skylight, inst.blocklight), env),
+        lighting::light_rgb(
+            DynLight::at(inst.skylight, inst.blocklight, inst.origin),
+            env,
+        ),
         e.self_lit,
     );
     for back in 0..active {
@@ -357,6 +380,7 @@ fn append_emitter_particles(
             size,
             stretch: 1.0,
             dist_sq: (cam_pos - pos).length_squared(),
+            beyond,
             look: e.look,
         });
     }
@@ -386,7 +410,7 @@ fn particle_row(inst: &ParticleInstance, env: LightEnv, render_origin: glam::IVe
     let [u0, v0] = inst.uv_min;
     let tint = lighting::fold_tint(
         inst.tint,
-        DynLight::new(inst.skylight, inst.blocklight),
+        DynLight::at(inst.skylight, inst.blocklight, inst.pos),
         env,
     );
     let (right, up, quad) = match inst.quad_axes {

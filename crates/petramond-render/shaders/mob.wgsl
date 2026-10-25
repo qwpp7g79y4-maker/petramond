@@ -41,6 +41,9 @@ struct VsOut {
     @location(3) view:  vec3<f32>,
     // Absolute world height, for the atmosphere's altitude thinning.
     @location(4) world_y: f32,
+    // `tint` as a water ray (`underwater_ray`) sees it: a skinned body lights both
+    // media, since one triangle can hold rays of each; CPU-baked geometry has one.
+    @location(5) water_tint: vec3<f32>,
 };
 
 @vertex
@@ -52,6 +55,7 @@ fn vs_mob(in: VsIn) -> VsOut {
     out.uv = in.uv;
     out.shade = in.shade;
     out.tint = in.tint;
+    out.water_tint = in.tint;
     out.view = local_pos - u.cam_pos.xyz;
     out.world_y = in.pos.y + f32(u.render_origin.y);
     return out;
@@ -63,13 +67,15 @@ fn fs_mob(in: VsOut) -> @location(0) vec4<f32> {
     // Cutout: drop transparent texels so the silhouette stays crisp and the
     // zero-area faces never paint stray pixels.
     if (tex_color.a < 0.5) { discard; }
-    var color = tex_color.rgb * in.shade * in.tint;
+    var color = tex_color.rgb * in.shade * select(in.tint, in.water_tint, underwater_ray(u.waterline, in.view));
     // Inside a fluid: the eye medium's volume tint + linear murk the world
     // applies, so a submerged mob doesn't stay vividly lit against the murk.
-    if (u.fog.w > 0.5) {
-        color = color * u.volume_tint.rgb;
-        let f = clamp((length(in.view) - u.fog.x) / (u.fog.y - u.fog.x), 0.0, 1.0);
-        return vec4<f32>(mix(color, u.fog_color.rgb, f), 1.0);
+    if (in_fluid_ray(u.fog, u.waterline, in.view)) {
+        let seen = in_fluid_apply(
+            color, u.volume_tint.rgb, in.view, in.world_y, u.cam_pos.y + f32(u.render_origin.y),
+            u.fog, u.fog_color.rgb, u.water_absorb, u.water_glow, u.water_fog, u.waterline, u.sun_dir,
+        );
+        return vec4<f32>(seen, 1.0);
     }
     // The same atmosphere as the terrain, so a mob hazes out with the blocks
     // behind it.
@@ -164,17 +170,20 @@ fn world_model_color(in: WmOut, cutout: f32) -> vec4<f32> {
     if (tex_color.a < cutout) { discard; }
     // The same two-term light as block.wgsl: sky scaled + tinted by the sim's
     // day/night state, block light night-invariant and COLOURED, max of the two.
-    let sky_term = mix(SKY_MIN, 1.0, pow(in.light.x, SKY_GAMMA) * u.fog_color.w) * u.sky_color.rgb;
+    let sky_term = mix(SKY_MIN, 1.0, lit_sky_curve(in.light.x, in.world_y, in.view) * u.fog_color.w)
+        * u.sky_color.rgb * lit_sky_hue(in.world_y, in.view);
     // Per channel, each riding its own SKY_MIN floor (see block.wgsl).
     let blk = in.light.yzw;
     let block_term = mix(vec3<f32>(SKY_MIN), vec3<f32>(1.0), blk * blk * blk);
     let lit = max(max(sky_term, block_term), vec3<f32>(FINAL_MIN));
     var color = tex_color.rgb * in.tint * in.shade * lit;
     color = selection_brighten(color, in.view + u.cam_pos.xyz, normal, u.render_origin.xyz);
-    if (u.fog.w > 0.5) {
-        color = color * u.volume_tint.rgb;
-        let f = clamp((length(in.view) - u.fog.x) / (u.fog.y - u.fog.x), 0.0, 1.0);
-        return vec4<f32>(mix(color, u.fog_color.rgb, f), 1.0);
+    if (in_fluid_ray(u.fog, u.waterline, in.view)) {
+        let seen = in_fluid_apply(
+            color, u.volume_tint.rgb, in.view, in.world_y, u.cam_pos.y + f32(u.render_origin.y),
+            u.fog, u.fog_color.rgb, u.water_absorb, u.water_glow, u.water_fog, u.waterline, u.sun_dir,
+        );
+        return vec4<f32>(seen, 1.0);
     }
     let out = atmosphere_apply(
         color,
@@ -210,16 +219,19 @@ fn fs_world_model_blend(in: WmOut) -> @location(0) vec4<f32> {
     let normal = selection_model_normal(in.view);
     let tex_color = sample_model_texture(in.uv, in.animation);
     if (tex_color.a < 0.004) { discard; }
-    let sky_term = mix(SKY_MIN, 1.0, pow(in.light.x, SKY_GAMMA) * u.fog_color.w) * u.sky_color.rgb;
+    let sky_term = mix(SKY_MIN, 1.0, lit_sky_curve(in.light.x, in.world_y, in.view) * u.fog_color.w)
+        * u.sky_color.rgb * lit_sky_hue(in.world_y, in.view);
     let blk = in.light.yzw;
     let block_term = mix(vec3<f32>(SKY_MIN), vec3<f32>(1.0), blk * blk * blk);
     let lit = max(max(sky_term, block_term), vec3<f32>(FINAL_MIN));
     var color = tex_color.rgb * in.tint * in.shade * lit;
     color = selection_brighten(color, in.view + u.cam_pos.xyz, normal, u.render_origin.xyz);
-    if (u.fog.w > 0.5) {
-        color = color * u.volume_tint.rgb;
-        let f = clamp((length(in.view) - u.fog.x) / (u.fog.y - u.fog.x), 0.0, 1.0);
-        return vec4<f32>(mix(color, u.fog_color.rgb, f), tex_color.a);
+    if (in_fluid_ray(u.fog, u.waterline, in.view)) {
+        let seen = in_fluid_apply(
+            color, u.volume_tint.rgb, in.view, in.world_y, u.cam_pos.y + f32(u.render_origin.y),
+            u.fog, u.fog_color.rgb, u.water_absorb, u.water_glow, u.water_fog, u.waterline, u.sun_dir,
+        );
+        return vec4<f32>(seen, tex_color.a);
     }
     let out = atmosphere_apply(
         color,
@@ -243,4 +255,40 @@ fn sample_model_texture(uv: vec2<f32>, animation: vec3<f32>) -> vec4<f32> {
     if (animation.z == 0.0) { return color; }
     let next = textureSampleGrad(tex, samp, uv + vec2<f32>(0.0, animation.y), dx, dy);
     return mix(color, next, animation.z);
+}
+
+// The light curve of skylight `sky` at absolute height `world_y`, seen along `view`: the
+// terrain's, including its underwater correction (petramond::underwater).
+fn lit_sky_curve(sky: f32, world_y: f32, view: vec3<f32>) -> f32 {
+    if (underwater_ray(u.waterline, view)) {
+        return water_sky_curve(sky, world_y);
+    }
+    return pow(sky, SKY_GAMMA);
+}
+
+// The tint of skylight reaching absolute height `world_y`, seen along `view`: the water's above
+// it along a water ray.
+fn lit_sky_hue(world_y: f32, view: vec3<f32>) -> vec3<f32> {
+    if (underwater_ray(u.waterline, view)) {
+        return water_sky_hue(world_y);
+    }
+    return vec3<f32>(1.0);
+}
+
+fn eye_water() -> Underwater {
+    return underwater(u.water_absorb, u.water_glow, u.water_fog);
+}
+
+// `lit_sky_curve` along a water ray.
+fn water_sky_curve(sky: f32, world_y: f32) -> f32 {
+    let depth = u.water_glow.w + u.cam_pos.y + f32(u.render_origin.y) - world_y;
+    if (depth > 0.0) {
+        return underwater_sky_curve(eye_water(), sky, depth);
+    }
+    return pow(sky, SKY_GAMMA);
+}
+
+// `lit_sky_hue` along a water ray.
+fn water_sky_hue(world_y: f32) -> vec3<f32> {
+    return underwater_hue_at(eye_water(), u.cam_pos.y + f32(u.render_origin.y), world_y);
 }

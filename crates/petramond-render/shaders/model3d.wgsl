@@ -36,6 +36,7 @@ struct MvpUniform {
 // (u0,v0,u1,v1 per tile, SELECT only) and the vertex lane decoders are the
 // same modules block.wgsl reads.
 #import petramond::frame
+#import petramond::underwater
 #import petramond::uv_rects
 #import petramond::vertex
 
@@ -173,8 +174,8 @@ fn vs_model(in: VsIn) -> VsOut {
     var ao_lut = array<f32, 4>(0.25, 0.45, 0.70, 1.0);
     let sky = f32(sky6) / 63.0;
     let blk = block_light_rgb(in.packed, in.packed2, in.tint.a);
-    let sky_term =
-        mix(SKY_MIN, 1.0, pow(sky, SKY_GAMMA) * frame.fog_color.w) * frame.sky_color.rgb;
+    let sky_term = mix(SKY_MIN, 1.0, held_sky_curve(sky) * frame.fog_color.w)
+        * frame.sky_color.rgb * held_sky_hue();
     // Per channel, each riding its own SKY_MIN floor (see block.wgsl).
     let block_term = mix(vec3<f32>(SKY_MIN), vec3<f32>(1.0), blk * blk * blk);
     out.light = max(
@@ -185,6 +186,25 @@ fn vs_model(in: VsIn) -> VsOut {
     out.flag = vtx_overlay_flag(in.packed);
     out.overlay_tile = overlay_tile;
     return out;
+}
+
+// The held model sits at the eye: under water with optics it takes the terrain's light at the
+// eye's depth, its sky term tinted by the water above (petramond::underwater), as the arm baked
+// beside it does (render::lighting::LightEnv::held).
+fn held_sky_curve(sky: f32) -> f32 {
+    if (frame.fog.w > 1.5) {
+        let w = underwater(frame.water_absorb, frame.water_glow, frame.water_fog);
+        return underwater_sky_curve(w, sky, frame.water_glow.w);
+    }
+    return pow(sky, SKY_GAMMA);
+}
+
+fn held_sky_hue() -> vec3<f32> {
+    if (frame.fog.w > 1.5) {
+        let w = underwater(frame.water_absorb, frame.water_glow, frame.water_fog);
+        return underwater_hue(w, frame.water_glow.w);
+    }
+    return vec3<f32>(1.0);
 }
 
 @fragment

@@ -18,6 +18,7 @@ use glam::Vec3;
 use super::item_cube::{orient_faces_to_block, push_box_faces_lit_mirrored, thin_face_slice_modes};
 use super::lighting::DynLight;
 use super::BlockEntityInstance;
+use petramond_math::world_pos::WorldPos;
 use petramond_mesh::Vertex;
 use petramond_world::animated_model::{AnimatedModelDef, ModelPart};
 use petramond_world::block::Block;
@@ -68,7 +69,11 @@ fn push_block_entity_world(
     let Some(model) = inst.block.animated_model() else {
         return;
     };
-    let light = DynLight::new(inst.skylight, inst.blocklight);
+    let light = DynLight::at(
+        inst.skylight,
+        inst.blocklight,
+        WorldPos::block_center(inst.pos),
+    );
     let start = verts.len();
     for part in model.variant(inst.variant).parts {
         let part_start = verts.len();

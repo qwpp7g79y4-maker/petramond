@@ -143,12 +143,8 @@ impl DroppedItems {
             }
             let after = it.pos.block();
             if before != after {
-                it.skylight = world.data.skylight6_at_world(after.x, after.y, after.z);
-                it.blocklight = petramond_world::light::BlockLight6::from_x2(
-                    world
-                        .data
-                        .blocklight_rgb_at_world(after.x, after.y, after.z),
-                );
+                (it.skylight, it.blocklight) =
+                    world.data.dynamic_light_at_world(after.x, after.y, after.z);
             }
             let immersion = world
                 .block_if_stream_final(after.x, after.y, after.z)

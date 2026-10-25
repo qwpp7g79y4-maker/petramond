@@ -34,7 +34,7 @@ impl Renderer {
         };
         let shake = self.hand_shake_mat();
         let light = self.held_item_light();
-        let env = self.light_env();
+        let env = self.hand_light_env();
 
         let mut hv = std::mem::take(&mut self.hand.verts);
         let mut hi = std::mem::take(&mut self.hand.indices);

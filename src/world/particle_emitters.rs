@@ -21,6 +21,9 @@ pub struct PlacedEmitter {
     pub skylight: u8,
     pub blocklight: BlockLight6,
     pub floor_y: f32,
+    /// The origin is in a fluid cell, so a fluid surface separates these particles from an eye
+    /// on the other side.
+    pub submerged: bool,
     /// Where a moving emitter has been, in the frame's trail arena. Empty for one that stays put.
     pub trail: TrailSpan,
 }
@@ -226,6 +229,7 @@ impl<S: WorldSide> World<S> {
                         skylight: sky,
                         blocklight: block_light,
                         floor_y,
+                        submerged: self.data.fluid_cell_at(sample.x, sample.y, sample.z),
                         trail: TrailSpan::default(),
                     });
                 }

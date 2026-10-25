@@ -769,6 +769,14 @@ fn derive_volume(
                 }
             }
         }
+        let submerged = match spec.kill {
+            AmbientKill::Dry => true,
+            AmbientKill::Interior => {
+                let (cx, cy, cz) = cell();
+                world.data().fluid_cell_at(cx, cy, cz)
+            }
+            AmbientKill::Ceiling => false,
+        };
         let mut alpha = drop.alpha;
         alpha *= (t_band / EDGE_FADE).min(1.0);
         alpha *= ((1.0 - t_band) / EDGE_FADE).min(1.0);
@@ -791,6 +799,7 @@ fn derive_volume(
             stretch: spec.stretch,
             skylight,
             blocklight,
+            submerged,
         });
     }
 }
@@ -838,6 +847,7 @@ fn derive_splash(
             stretch: 1.0,
             skylight: light.0,
             blocklight: light.1,
+            submerged: false,
         });
     }
 }

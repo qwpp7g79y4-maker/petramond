@@ -40,7 +40,16 @@ pub fn build_cloths(
             SheetPoint {
                 pos: offset + p.pos,
                 shade: shade(du.cross(dv)),
-                light: fold_tint([1.0; 3], DynLight::new(p.skylight, p.blocklight), env).into(),
+                light: fold_tint(
+                    [1.0; 3],
+                    DynLight::at(
+                        p.skylight,
+                        p.blocklight,
+                        petramond_math::world_pos::WorldPos::block_min(cloth.cell) + p.pos,
+                    ),
+                    env,
+                )
+                .into(),
             }
         };
         let grid_points = (0..rows).flat_map(|v| (0..cols).map(move |u| (u, v)));

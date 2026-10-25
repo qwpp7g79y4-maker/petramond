@@ -273,6 +273,10 @@ fn append(
             skylight: body.skylight,
             blocklight: body.blocklight,
             floor_y: f32::NEG_INFINITY,
+            submerged: {
+                let cell = origin.block();
+                world.fluid_cell_at(cell.x, cell.y, cell.z)
+            },
             ceiling_y: petramond::world::emitter_ceiling_y(world, origin, &emitter),
             trail: TrailSpan {
                 start: start as u32,

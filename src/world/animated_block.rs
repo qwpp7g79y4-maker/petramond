@@ -30,14 +30,13 @@ impl<S: WorldSide> World<S> {
                     continue;
                 };
                 let pos = IVec3::new(ox + lx as i32, oy + ly as i32, oz + lz as i32);
+                let (skylight, blocklight) = self.data.dynamic_light_at_world(pos.x, pos.y, pos.z);
                 out.push(AnimatedBlock {
                     pos,
                     block,
                     pose,
-                    skylight: self.data.skylight6_at_world(pos.x, pos.y, pos.z),
-                    blocklight: BlockLight6::from_x2(
-                        self.data.blocklight_rgb_at_world(pos.x, pos.y, pos.z),
-                    ),
+                    skylight,
+                    blocklight,
                 });
             }
         }

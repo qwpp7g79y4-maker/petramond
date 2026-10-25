@@ -18,6 +18,7 @@
 // = night-dimmed haze + sky scale; sun_dir.w = daylight) and param slots.
 #import petramond::frame
 #import petramond::shader_params
+#import petramond::underwater
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
 @group(0) @binding(1) var<uniform> params: ShaderParams;
@@ -260,7 +261,9 @@ fn vs_env(@builtin(vertex_index) vi: u32) -> VsOut {
 
 @fragment
 fn fs_env(in: VsOut) -> @location(0) vec4<f32> {
-    if (u.fog.w > 0.5) { return vec4<f32>(0.0); } // underwater: no sky at all
+    // A murky fluid hides the sky. Under optical water the deck still renders, seen through the
+    // water to the surface like the sky behind it (the engine draws this pass before the surface).
+    if (u.fog.w > 0.5 && u.fog.w < 1.5) { return vec4<f32>(0.0); }
     // Params not published (the engine normally skips the whole pass then;
     // this is defense in depth): a zero feature size would divide the
     // lattice math into NaNs.
@@ -433,5 +436,9 @@ fn fs_env(in: VsOut) -> @location(0) vec4<f32> {
     alpha *= 1.0 - haze * haze;
     // March cap fade: the deck thins out rather than ending on a line.
     alpha *= 1.0 - smoothstep(CLOUD_FAR * 0.72, CLOUD_FAR, mean_dist);
+    if (underwater_ray(u.waterline, dir)) {
+        let w = underwater(u.water_absorb, u.water_glow, u.water_fog);
+        color = underwater_sky(w, color, dir, u.sun_dir.xyz, u.sun_dir.w);
+    }
     return vec4<f32>(color * alpha, alpha);
 }

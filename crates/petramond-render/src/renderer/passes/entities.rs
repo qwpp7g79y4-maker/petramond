@@ -118,8 +118,12 @@ impl ParticlePass {
         self.draw.instance_count > 0
     }
 
+    pub(super) fn beyond_active(&self) -> bool {
+        self.beyond_count > 0
+    }
+
     pub(super) fn emitters_active(&self) -> bool {
-        self.emitter_draw.instance_count > 0
+        self.emitter_draw.instance_count > self.beyond_count
     }
 
     pub(super) fn record_cutout(&self, pass: &mut wgpu::RenderPass<'_>, ctx: &PassCtx<'_>) {
@@ -136,10 +140,21 @@ impl ParticlePass {
         }
     }
 
-    pub(super) fn record_emitters(&self, pass: &mut wgpu::RenderPass<'_>, ctx: &PassCtx<'_>) {
+    /// The blended particles across the eye's fluid surface, before the fluid paints over them.
+    pub(super) fn record_beyond(&self, pass: &mut wgpu::RenderPass<'_>, ctx: &PassCtx<'_>) {
         pass.set_bind_group(0, &ctx.binds.uniform, &[]);
         pass.set_bind_group(1, &ctx.binds.atlas, &[]);
         self.emitter_draw
-            .draw(pass, ctx.samples, 0..self.emitter_draw.instance_count);
+            .draw(pass, ctx.samples, 0..self.beyond_count);
+    }
+
+    pub(super) fn record_emitters(&self, pass: &mut wgpu::RenderPass<'_>, ctx: &PassCtx<'_>) {
+        pass.set_bind_group(0, &ctx.binds.uniform, &[]);
+        pass.set_bind_group(1, &ctx.binds.atlas, &[]);
+        self.emitter_draw.draw(
+            pass,
+            ctx.samples,
+            self.beyond_count..self.emitter_draw.instance_count,
+        );
     }
 }

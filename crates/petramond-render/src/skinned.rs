@@ -48,7 +48,9 @@ pub(crate) struct SkinInstance {
     pub light: [f32; 4],
     pub bone_base: u32,
     pub hidden: u32,
-    pub _pad: [u32; 2],
+    /// The absolute height `light` was sampled at, for the underwater correction.
+    pub light_y: f32,
+    pub _pad: u32,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -75,7 +77,9 @@ impl SkinLook {
             ],
             bone_base,
             hidden: self.hidden,
-            _pad: [0; 2],
+            // A worldless body sits above any water.
+            light_y: self.light.at.map_or(f32::MAX, |at| at.y as f32),
+            _pad: 0,
         }
     }
 }

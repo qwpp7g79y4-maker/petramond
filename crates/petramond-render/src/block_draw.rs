@@ -18,6 +18,7 @@ use glam::{Mat4, Vec3};
 use crate::BlockDrawInstance;
 use petramond::world::draw::BlockDrawPrim;
 use petramond_math::face::Face;
+use petramond_math::world_pos::WorldPos;
 use petramond_mesh::Vertex;
 use petramond_world::item::ItemRenderKind;
 
@@ -45,7 +46,11 @@ fn prim_light(inst: &BlockDrawInstance, emissive: bool) -> DynLight {
     if emissive {
         DynLight::FULL
     } else {
-        DynLight::new(inst.skylight, inst.blocklight)
+        DynLight::at(
+            inst.skylight,
+            inst.blocklight,
+            WorldPos::block_center(inst.pos),
+        )
     }
 }
 

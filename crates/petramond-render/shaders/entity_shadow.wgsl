@@ -60,9 +60,9 @@ fn fs_entity_shadow(in: ShadowOut) -> @location(0) vec4<f32> {
     var m = 1.0 - in.strength * fall;
     let dist = length(in.view);
     var fade: f32;
-    if (u.fog.w > 0.5) {
-        // Underwater: the same tight linear murk band the world uses.
-        fade = clamp((dist - u.fog.x) / (u.fog.y - u.fog.x), 0.0, 1.0);
+    if (in_fluid_ray(u.fog, u.waterline, in.view)) {
+        // In a fluid: the same fog the surface under it took.
+        fade = in_fluid_amount(in.view, u.fog, u.water_absorb, u.water_glow, u.water_fog, u.waterline);
     } else {
         // atmosphere_amount() is exactly 1.0 at fog_end — the identity contract.
         fade = atmosphere_amount(dist, u.fog.x, u.fog.y, in.world_y, u.cam_pos.y + f32(u.render_origin.y));

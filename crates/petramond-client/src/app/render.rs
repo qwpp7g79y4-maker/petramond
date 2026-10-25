@@ -230,7 +230,7 @@ impl App {
                 &cam,
                 frame.environment.fog,
                 frame.environment.time,
-                frame.environment.eye_fluid,
+                frame.environment.eye,
                 Some(&frame.environment.shader_params),
             );
             self.presented_view = mod_api::ClientViewStateData {

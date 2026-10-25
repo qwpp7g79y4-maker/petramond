@@ -20,11 +20,12 @@ impl std::fmt::Display for ImportError {
 
 impl std::error::Error for ImportError {}
 
-const MODULES: [&str; 4] = [
+const MODULES: [&str; 5] = [
     "petramond::frame",
     "petramond::shader_params",
     "petramond::vertex",
     "petramond::uv_rects",
+    "petramond::underwater",
 ];
 
 fn module_source(name: &str) -> Option<String> {
@@ -33,6 +34,7 @@ fn module_source(name: &str) -> Option<String> {
         "petramond::shader_params" => crate::uniforms::shader_params_wgsl(),
         "petramond::vertex" => petramond_mesh::vertex::wgsl::layout(),
         "petramond::uv_rects" => crate::uniforms::UV_RECTS_WGSL.to_owned(),
+        "petramond::underwater" => include_str!("../../shaders/underwater.wgsl").to_owned(),
         _ => return None,
     })
 }

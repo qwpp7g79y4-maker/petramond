@@ -9,7 +9,7 @@ pub mod medium;
 mod motion;
 mod query;
 pub use contact::{ConditionGrant, FluidContact};
-pub use medium::{AlbedoMix, FluidMedium};
+pub use medium::{AlbedoMix, FluidMedium, FluidOptics};
 pub use query::sample_body_current;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Deserialize)]

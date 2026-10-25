@@ -40,6 +40,7 @@ pub(crate) mod tether;
 pub mod texture_mips;
 pub mod ui;
 pub mod uniforms;
+pub(crate) mod waterline;
 
 pub use held_view::HeldItemEase;
 pub use renderer::new_offscreen_renderer;
@@ -47,7 +48,7 @@ pub use renderer::new_renderer_from_target;
 #[allow(unused_imports)]
 pub use renderer::TerrainMemory;
 pub use renderer::{
-    CaptureRequest, CaptureSource, Captured, GhostPiece, RenderFailure, RenderInitError,
+    CaptureRequest, CaptureSource, Captured, EyeFluid, GhostPiece, RenderFailure, RenderInitError,
     RenderedFrame, Renderer, SchematicThumbnailer,
 };
 pub use views::BreakOverlayView;
@@ -338,6 +339,13 @@ pub struct MobRenderInstance {
     pub held: [Option<petramond_world::item::ItemType>; 2],
 }
 
+impl MobRenderInstance {
+    /// Where the instance's light was sampled: a ragdoll's body, else its feet.
+    pub fn light_at(&self) -> petramond_math::world_pos::WorldPos {
+        self.ragdoll_span.map_or(self.pos, |s| s.centre())
+    }
+}
+
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct ArenaRange {
     pub start: u32,
@@ -422,6 +430,7 @@ pub struct SolidParticleInstance {
     pub stretch: f32,
     pub skylight: u8,
     pub blocklight: petramond_world::light::BlockLight6,
+    pub submerged: bool,
     pub look: petramond_world::block::ParticleLook,
 }
 

@@ -1,4 +1,5 @@
 #import petramond::frame
+#import petramond::underwater
 #import petramond::shader_params
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
@@ -76,7 +77,8 @@ fn keyed_sprite_alpha(sample: vec4<f32>, low: f32, high: f32) -> f32 {
 
 @fragment
 fn fs_sky(in: VsOut) -> @location(0) vec4<f32> {
-    if (u.fog.w > 0.5) {
+    // In a murky fluid the background is its fog; water shows the sky through it (below).
+    if (u.fog.w > 0.5 && u.fog.w < 1.5) {
         return vec4<f32>(u.fog_color.rgb, 1.0);
     }
 
@@ -157,5 +159,9 @@ fn fs_sky(in: VsOut) -> @location(0) vec4<f32> {
         color += moon_sample.rgb * moon_alpha * 0.95;
     }
 
+    if (underwater_ray(u.waterline, ray)) {
+        let w = underwater(u.water_absorb, u.water_glow, u.water_fog);
+        return vec4<f32>(underwater_sky(w, color, ray, u.sun_dir.xyz, u.sun_dir.w), 1.0);
+    }
     return vec4<f32>(color, 1.0);
 }

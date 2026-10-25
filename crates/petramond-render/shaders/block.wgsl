@@ -71,8 +71,14 @@ struct VsOut {
     // UV inside the plane so REPEAT cannot wrap a crop's opaque bottom row to its top.
     @location(0) @interpolate(perspective, centroid) uv: vec2<f32>,
     // Per-channel light: the sky term is tinted by the sim's sky colour, the
-    // block term is not, so the two can differ per channel at night.
+    // block term is not, so the two can differ per channel at night. `light`
+    // is what an air ray sees; a water ray (`underwater_ray`) keeps its sky and
+    // block terms apart, since only skylight crossed the water above
+    // (`underwater_hue_at`). `cel_drive` and `sky_exposure` pair the same way
+    // (air, water).
     @location(1) light: vec3<f32>,
+    @location(13) water_sky: vec3<f32>,
+    @location(14) water_block: vec3<f32>,
     // Fragment − camera in render-local space (unnormalized): distance AND view
     // direction for the atmosphere in one interpolant.
     @location(2) view: vec3<f32>,
@@ -89,8 +95,8 @@ struct VsOut {
     // AO): drives the fragment-side cel banding so the bands stay put while the
     // sim's day/night scale, the tint, and the smooth AO ride on `light`
     // untouched.
-    @location(10) cel_drive: f32,
-    @location(11) sky_exposure: f32,
+    @location(10) cel_drive: vec2<f32>,
+    @location(11) sky_exposure: vec2<f32>,
     // The face's fluid medium index + 1 (vtx_fluid_medium); 0 = not a fluid.
     @location(12) @interpolate(flat) fluid: u32,
 };
@@ -98,10 +104,18 @@ struct VsOut {
 // Keep light hue and contact shading while softly grouping bright tones.
 // The caller shares its view direction between the rim and atmosphere.
 fn cel_shaded_light(in: VsOut, view_dir: vec3<f32>) -> vec3<f32> {
-    var light = max(vec3<f32>(FINAL_MIN), in.light * cel_light_ratio(in.cel_drive));
+    let water = underwater_ray(u.waterline, in.view);
+    var lit = in.light;
+    if (water) {
+        let w = underwater(u.water_absorb, u.water_glow, u.water_fog);
+        let hue = underwater_hue_at(w, u.cam_pos.y + f32(u.render_origin.y), in.world_y);
+        lit = max(vec3<f32>(FINAL_MIN), max(in.water_sky * hue, in.water_block));
+    }
+    let exposure = select(in.sky_exposure.x, in.sky_exposure.y, water);
+    var light = max(vec3<f32>(FINAL_MIN), lit * cel_light_ratio(select(in.cel_drive.x, in.cel_drive.y, water)));
     if (in.ncode != 0u) {
         light += cel_rim(face_normal(in.ncode), view_dir, light,
-            u.sun_dir.xyz, in.sky_exposure * u.sun_dir.w);
+            u.sun_dir.xyz, exposure * u.sun_dir.w);
     }
     return light;
 }
@@ -124,6 +138,80 @@ fn turn_uv(turn: u32, uv: vec2<f32>) -> vec2<f32> {
     if (turn == 2u) { return vec2<f32>(1.0 - uv.x, 1.0 - uv.y); }
     if (turn == 3u) { return vec2<f32>(1.0 - uv.y, uv.x); }
     return uv;
+}
+
+struct VertexLight {
+    sky_lit: vec3<f32>,
+    block_lit: vec3<f32>,
+    cel_drive: f32,
+    sky: f32,
+};
+
+fn vertex_light_total(l: VertexLight) -> vec3<f32> {
+    return max(vec3<f32>(FINAL_MIN), max(l.sky_lit, l.block_lit));
+}
+
+// Final vertex light = directional face shade * per-vertex AO *
+// max(sky term, block term) (each term returned shaded, see
+// vertex_light_total), all smoothly interpolated so shadows and the
+// light-level gradient are soft. `sky` is the skylight level and `sky_curve` its
+// curve (the underwater one for a water ray).
+//   - Face shade: SUN-DIRECTIONAL for terrain faces carrying a normal code
+//     (vtx_normal_code): N·L against the moving sun, warm on lit faces,
+//     cool in shadow — the flat storybook look. Code
+//     0 (cross plants, torches, dynamic props) keeps the classic SHADES
+//     table (mirror of mesh::SHADES — keep byte-identical).
+//   - AO_LUT: contact-shadow dip in lit areas.
+//   - each 6-bit channel: 0..63 -> 0..1; a gamma curve keeps near-full light
+//     bright while mid/low levels fall off, mixed up from SKY_MIN so a fully
+//     occluded face never goes black.
+//   - SKY term: scaled by fog_color.w (the sim's sky scale) INSIDE the mix so
+//     scale 1.0 is exactly identity and scale 0 bottoms out at the SKY_MIN cave
+//     floor; tinted by sky_color.rgb (white = identity).
+//   - BLOCK term (torches, glowing plants): the SAME curve but night-invariant
+//     — no scale, no sky tint — so lit surfaces keep their day brightness at
+//     night. It is evaluated PER CHANNEL off the emitter's own colour, and
+//     each channel rides its own mix(SKY_MIN, ..) floor: a saturated purple's
+//     green channel bottoms out at the cave floor, never BELOW it (which would
+//     read as a black-green cast darker than an unlit cave). For colourless
+//     light the three channels are equal, so max(sky_term, block_term) == the
+//     old single-channel term of max(sky6, block6): the curve is monotone, so
+//     max commutes through it.
+//   - FINAL_MIN floors the darkest possible pixel: "very dark, not pitch black".
+fn vertex_light(sky: f32, sky_curve: f32, blk: vec3<f32>, shade_idx: u32, ncode: u32, ao: u32) -> VertexLight {
+    var shades = array<f32, 4>(1.0, 0.85, 0.75, 0.55);
+    var ao_lut = array<f32, 4>(0.25, 0.45, 0.70, 1.0);
+    let sky_term = mix(SKY_MIN, 1.0, sky_curve * u.fog_color.w) * u.sky_color.rgb;
+    // SKY_GAMMA is exactly 3: three multiplies, not three transcendental pows.
+    let block_term = mix(vec3<f32>(SKY_MIN), vec3<f32>(1.0), blk * blk * blk);
+    var face_shade = vec3<f32>(shades[shade_idx]);
+    if (ncode != 0u) {
+        // Sun colours only where the sky actually reaches. The warm-lit /
+        // cool-shadow split is daylight bathing the face; underground it has no
+        // light source, and it read as yellow cave ceilings next to gray cave
+        // walls. Fade the sun ramp out with the vertex's sky light and rest on
+        // the neutral shade table in the dark.
+        let sun_shade = sun_face_shade(face_normal(ncode), u.sun_dir.xyz, u.sun_dir.w);
+        face_shade = mix(face_shade, sun_shade, sky);
+    }
+    // Sky bounce colours contact shadows without lifting the cave floor.
+    let occlusion = vec3<f32>(ao_lut[ao])
+        + (1.0 - ao_lut[ao]) * vec3<f32>(0.04, 0.06, 0.09) * sky * u.sun_dir.w;
+    let shading = face_shade * occlusion;
+    // Noon-equivalent light LEVEL (scale 1.0, white sky, no AO) for the cel
+    // bands: the banding pattern must not slide around as the sim dims the sky
+    // term, and AO stays a smooth multiplier so corners keep contact shadow.
+    // Deliberately SCALAR — the block channel folds to its brightest component
+    // first. A per-channel band steps each channel at a different threshold and
+    // fringes every band edge with colour.
+    let sky_noon = mix(SKY_MIN, 1.0, sky_curve);
+    let blk_lum = max(blk.r, max(blk.g, blk.b));
+    return VertexLight(
+        shading * sky_term,
+        shading * block_term,
+        max(sky_noon, mix(SKY_MIN, 1.0, blk_lum * blk_lum * blk_lum)),
+        sky,
+    );
 }
 
 // `local_pos` is relative to the render origin; `world_y` is the absolute height.
@@ -233,66 +321,24 @@ fn vs_common(local_pos: vec3<f32>, world_y: f32, tint: vec4<f32>, packed: u32, p
         out.uv = corner_local(corner);
     }
 
-    // Final vertex light = directional face shade * per-vertex AO *
-    // max(sky term, block term), all smoothly interpolated so shadows and the
-    // light-level gradient are soft.
-    //   - Face shade: SUN-DIRECTIONAL for terrain faces carrying a normal code
-    //     (vtx_normal_code): N·L against the moving sun, warm on lit faces,
-    //     cool in shadow — the flat storybook look. Code
-    //     0 (cross plants, torches, dynamic props) keeps the classic SHADES
-    //     table (mirror of mesh::SHADES — keep byte-identical).
-    //   - AO_LUT: contact-shadow dip in lit areas.
-    //   - each 6-bit channel: 0..63 -> 0..1; a gamma curve keeps near-full light
-    //     bright while mid/low levels fall off, mixed up from SKY_MIN so a fully
-    //     occluded face never goes black.
-    //   - SKY term: scaled by fog_color.w (the sim's sky scale) INSIDE the mix so
-    //     scale 1.0 is exactly identity and scale 0 bottoms out at the SKY_MIN cave
-    //     floor; tinted by sky_color.rgb (white = identity).
-    //   - BLOCK term (torches, glowing plants): the SAME curve but night-invariant
-    //     — no scale, no sky tint — so lit surfaces keep their day brightness at
-    //     night. It is evaluated PER CHANNEL off the emitter's own colour, and
-    //     each channel rides its own mix(SKY_MIN, ..) floor: a saturated purple's
-    //     green channel bottoms out at the cave floor, never BELOW it (which would
-    //     read as a black-green cast darker than an unlit cave). For colourless
-    //     light the three channels are equal, so max(sky_term, block_term) == the
-    //     old single-channel term of max(sky6, block6): the curve is monotone, so
-    //     max commutes through it.
-    //   - FINAL_MIN floors the darkest possible pixel: "very dark, not pitch black".
-    var shades = array<f32, 4>(1.0, 0.85, 0.75, 0.55);
-    var ao_lut = array<f32, 4>(0.25, 0.45, 0.70, 1.0);
-    let sky = f32(sky6) / 63.0;
     let blk = block_light_rgb(packed, packed2, tint.a);
-    let sky_curve = pow(sky, SKY_GAMMA);
-    let sky_term = mix(SKY_MIN, 1.0, sky_curve * u.fog_color.w) * u.sky_color.rgb;
-    // SKY_GAMMA is exactly 3: three multiplies, not three transcendental pows.
-    let block_term = mix(vec3<f32>(SKY_MIN), vec3<f32>(1.0), blk * blk * blk);
-    var face_shade = vec3<f32>(shades[shade_idx]);
-    if (ncode != 0u) {
-        // Sun colours only where the sky actually reaches. The warm-lit /
-        // cool-shadow split is daylight bathing the face; underground it has no
-        // light source, and it read as yellow cave ceilings next to gray cave
-        // walls. Fade the sun ramp out with the vertex's sky light and rest on
-        // the neutral shade table in the dark.
-        let sun_shade = sun_face_shade(face_normal(ncode), u.sun_dir.xyz, u.sun_dir.w);
-        face_shade = mix(face_shade, sun_shade, sky);
+    let sky = f32(sky6) / 63.0;
+    let air = vertex_light(sky, pow(sky, SKY_GAMMA), blk, shade_idx, ncode, ao);
+    // Under the surface a water ray takes the underwater skylight curve. One triangle can hold
+    // rays of both media (it crosses the waterline on screen, or reaches behind the eye), so the
+    // vertex lights it both ways and the fragment picks by its own ray.
+    var water = air;
+    let water_depth = u.water_glow.w + u.cam_pos.y + f32(u.render_origin.y) - world_y;
+    if (water_depth > 0.0 && underwater_rays(u.waterline)) {
+        let w = underwater(u.water_absorb, u.water_glow, u.water_fog);
+        let curve = underwater_sky_curve(w, sky, water_depth);
+        water = vertex_light(pow(curve, 1.0 / SKY_GAMMA), curve, blk, shade_idx, ncode, ao);
     }
-    // Sky bounce colours contact shadows without lifting the cave floor.
-    out.sky_exposure = sky;
-    let occlusion = vec3<f32>(ao_lut[ao])
-        + (1.0 - ao_lut[ao]) * vec3<f32>(0.04, 0.06, 0.09) * sky * u.sun_dir.w;
-    out.light = max(
-        vec3<f32>(FINAL_MIN),
-        face_shade * occlusion * max(sky_term, block_term),
-    );
-    // Noon-equivalent light LEVEL (scale 1.0, white sky, no AO) for the cel
-    // bands: the banding pattern must not slide around as the sim dims the sky
-    // term, and AO stays a smooth multiplier so corners keep contact shadow.
-    // Deliberately SCALAR — the block channel folds to its brightest component
-    // first. A per-channel band steps each channel at a different threshold and
-    // fringes every band edge with colour.
-    let sky_noon = mix(SKY_MIN, 1.0, sky_curve);
-    let blk_lum = max(blk.r, max(blk.g, blk.b));
-    out.cel_drive = max(sky_noon, mix(SKY_MIN, 1.0, blk_lum * blk_lum * blk_lum));
+    out.light = vertex_light_total(air);
+    out.water_sky = water.sky_lit;
+    out.water_block = water.block_lit;
+    out.cel_drive = vec2<f32>(air.cel_drive, water.cel_drive);
+    out.sky_exposure = vec2<f32>(air.sky, water.sky);
     out.ncode = ncode;
 
     out.view = local_pos - u.cam_pos.xyz;
@@ -390,8 +436,8 @@ fn opaque_color(in: VsOut, cutout: f32) -> vec4<f32> {
     }
     var color = rgb * cel_shaded_light(in, vdir);
     color = selection_brighten(color, in.view + u.cam_pos.xyz, face_normal(in.ncode), u.render_origin.xyz);
-    if (u.fog.w > 0.5) {
-        return vec4<f32>(medium_murk(in.fluid, color, dist), 1.0);
+    if (in_fluid_ray(u.fog, u.waterline, in.view)) {
+        return vec4<f32>(seen_in_fluid(in, color), 1.0);
     }
     if (fluid_sheen_applies(in)) {
         color = fluid_sheen_at(in, color, 1.0, vdir, dist).color;
@@ -436,8 +482,8 @@ fn fs_transparent(in: VsOut) -> @location(0) vec4<f32> {
     }
     var color = fluid_albedo(in.fluid, tex.rgb) * in.tint * cel_shaded_light(in, vdir);
     color = selection_brighten(color, in.view + u.cam_pos.xyz, face_normal(in.ncode), u.render_origin.xyz);
-    if (u.fog.w > 0.5) {
-        return vec4<f32>(medium_murk(in.fluid, color, dist), alpha);
+    if (in_fluid_ray(u.fog, u.waterline, in.view)) {
+        return vec4<f32>(seen_in_fluid(in, color), alpha);
     }
     if (fluid_sheen_applies(in)) {
         let surface = fluid_sheen_at(in, color, alpha, vdir, dist);
@@ -468,14 +514,15 @@ fn fluid_albedo(fluid: u32, rgb: vec3<f32>) -> vec3<f32> {
     return mix(rgb, vec3<f32>(face.albedo_toward), face.albedo_amount);
 }
 
-// The eye is inside a fluid: a fluid's faces take their OWN medium's surface
-// tint, every other surface the eye medium's volume tint, then the eye
-// medium's linear fog.
-fn medium_murk(fluid: u32, color: vec3<f32>, dist: f32) -> vec3<f32> {
+// A ray that sets out inside a fluid. In a murk, a fluid's faces take their OWN medium's surface tint
+// and every other surface the eye medium's volume tint.
+fn seen_in_fluid(in: VsOut, color: vec3<f32>) -> vec3<f32> {
     var tint = u.volume_tint.rgb;
-    if (fluid != 0u) { tint = fluid_face(fluid - 1u).surface_tint; }
-    let f = clamp((dist - u.fog.x) / (u.fog.y - u.fog.x), 0.0, 1.0);
-    return mix(color * tint, u.fog_color.rgb, f);
+    if (in.fluid != 0u) { tint = fluid_face(in.fluid - 1u).surface_tint; }
+    return in_fluid_apply(
+        color, tint, in.view, in.world_y, u.cam_pos.y + f32(u.render_origin.y),
+        u.fog, u.fog_color.rgb, u.water_absorb, u.water_glow, u.water_fog, u.waterline, u.sun_dir,
+    );
 }
 
 fn fluid_sheen_applies(in: VsOut) -> bool {
@@ -485,7 +532,7 @@ fn fluid_sheen_applies(in: VsOut) -> bool {
 fn fluid_sheen_at(in: VsOut, color: vec3<f32>, alpha: f32, vdir: vec3<f32>, dist: f32) -> SheenSurface {
     return fluid_sheen(
         color, alpha, in.view + u.cam_pos.xyz, u.render_origin.xyz,
-        vdir, dist, u.fog.z, in.sky_exposure,
+        vdir, dist, u.fog.z, in.sky_exposure.x,
         u.fog_color.w, u.sky_color.rgb, u.fog_color.rgb, in.tint,
         u.sun_dir.xyz, u.sun_dir.w,
     );

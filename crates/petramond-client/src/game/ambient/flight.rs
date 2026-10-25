@@ -171,6 +171,7 @@ pub(super) fn derive_flight(
                     stretch: 1.0,
                     skylight,
                     blocklight,
+                    submerged: false,
                 });
                 continue;
             };
@@ -194,6 +195,7 @@ pub(super) fn derive_flight(
                     stretch: 1.0,
                     skylight,
                     blocklight,
+                    submerged: false,
                 });
             }
         }

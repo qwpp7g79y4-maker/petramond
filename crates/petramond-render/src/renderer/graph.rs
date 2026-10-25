@@ -12,6 +12,11 @@ pub(crate) enum Phase {
     Translucent,
     BreakDecal,
     Cutout,
+    /// What lies across the eye's fluid surface that would otherwise paint
+    /// after it: blended particles in the other medium and, from under
+    /// water, the volumetrics. The surface then covers them like the
+    /// terrain behind it.
+    Beyond,
     Fluid,
     /// Pack volumetrics. They SAMPLE the frame depth, so they follow all
     /// depth-writing world geometry — and the fluid, whose surface writes no

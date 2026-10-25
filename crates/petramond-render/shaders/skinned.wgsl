@@ -29,16 +29,18 @@ struct SkinIn {
     @location(7) light:     vec4<f32>,
     @location(8) bone_base: u32,
     @location(9) hidden:    u32,
+    // The absolute height `light` was sampled at.
+    @location(10) light_y:  f32,
 };
 
 // render::lighting::light_rgb folded toward full bright by `self_lit`
-// (render::lighting::fold_self_lit): the sky term scaled by the sim's sky
-// scale and tinted by its colour, the block term per channel on its own
-// SKY_MIN floor, max of the two, floored at FINAL_MIN.
-fn body_light(light: vec4<f32>, self_lit: f32) -> vec3<f32> {
-    let x = light.x;
-    let sky = SKY_MIN + (1.0 - SKY_MIN) * (x * x * x * clamp(u.fog_color.w, 0.0, 1.0));
-    let sky_term = vec3<f32>(sky) * u.sky_color.rgb;
+// (render::lighting::fold_self_lit): the sky term (`curve` and `hue`: the terrain's,
+// with its underwater correction at the height the light was sampled along a water
+// ray) scaled by the sim's sky scale and tinted by its colour, the block term per
+// channel on its own SKY_MIN floor, max of the two, floored at FINAL_MIN.
+fn body_light(light: vec4<f32>, self_lit: f32, curve: f32, hue: vec3<f32>) -> vec3<f32> {
+    let sky = SKY_MIN + (1.0 - SKY_MIN) * (curve * clamp(u.fog_color.w, 0.0, 1.0));
+    let sky_term = vec3<f32>(sky) * u.sky_color.rgb * hue;
     let blk = light.yzw;
     let block_term = mix(vec3<f32>(SKY_MIN), vec3<f32>(1.0), blk * blk * blk);
     let lit = max(max(sky_term, block_term), vec3<f32>(FINAL_MIN));
@@ -58,7 +60,13 @@ fn vs_skinned(in: SkinIn) -> VsOut {
     out.clip = u.view_proj * vec4<f32>(local_pos, 1.0);
     out.uv = in.uv;
     out.shade = in.shade;
-    out.tint = in.tint * body_light(in.light, in.self_lit);
+    out.tint = in.tint * body_light(in.light, in.self_lit, pow(in.light.x, SKY_GAMMA), vec3<f32>(1.0));
+    out.water_tint = out.tint;
+    if (underwater_rays(u.waterline)) {
+        out.water_tint = in.tint * body_light(
+            in.light, in.self_lit, water_sky_curve(in.light.x, in.light_y), water_sky_hue(in.light_y),
+        );
+    }
     out.view = local_pos - u.cam_pos.xyz;
     out.world_y = local_pos.y + f32(u.render_origin.y);
     return out;

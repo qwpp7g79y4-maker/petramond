@@ -41,6 +41,7 @@ impl ViewState {
             render_origin: glam::IVec3::ZERO,
             visual_time: 0.0,
             proj_y_scale: 1.0,
+            eye_in_fluid: false,
         }
     }
 }
@@ -141,6 +142,7 @@ impl SkyPass {
             scale: 1.0,
             color: [1.0, 1.0, 1.0],
             clear_color: [0.60, 0.82, 1.00],
+            water: None,
         }
     }
 
@@ -312,6 +314,7 @@ impl ParticlePass {
             emitter_trails: Vec::new(),
             density: 1.0,
             block_count: 0,
+            beyond_count: 0,
             rows: Vec::new(),
             emitter_rows: Vec::new(),
             emitter_scratch: Vec::new(),

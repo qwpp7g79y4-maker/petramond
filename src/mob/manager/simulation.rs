@@ -401,10 +401,7 @@ impl Mobs {
                 );
             }
             let c = (mob.pos + Vec3::new(0.0, 0.3, 0.0)).block();
-            mob.skylight = world.data().skylight6_at_world(c.x, c.y, c.z);
-            mob.blocklight = petramond_world::light::BlockLight6::from_x2(
-                world.data().blocklight_rgb_at_world(c.x, c.y, c.z),
-            );
+            (mob.skylight, mob.blocklight) = world.data().dynamic_light_at_world(c.x, c.y, c.z);
         }
         self.turns = turns;
         self.exposure_scratch = exposure;

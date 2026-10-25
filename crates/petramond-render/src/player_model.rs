@@ -62,7 +62,7 @@ fn push_body(
             hurt: inst.hurt,
             emitter_tint: inst.emitter_tint,
             emitter_self_lit: inst.emitter_self_lit,
-            light: DynLight::new(inst.skylight, inst.blocklight),
+            light: DynLight::at(inst.skylight, inst.blocklight, inst.pos),
             hidden: 0,
         },
     );

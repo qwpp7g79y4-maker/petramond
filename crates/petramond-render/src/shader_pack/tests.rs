@@ -2,14 +2,15 @@ use super::*;
 
 #[test]
 fn bundled_pack_shaders_parse_and_validate() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+    let workspace = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(2)
-        .expect("workspace root above crates/petramond-render")
-        .join("mods-src");
+        .expect("workspace root above crates/petramond-render");
+    let packs = std::fs::read_dir(workspace.join("mods-src"))
+        .expect("mods-src exists")
+        .map(|entry| entry.expect("dir entry").path().join("pack/shaders"));
     let mut checked = 0;
-    for entry in std::fs::read_dir(&root).expect("mods-src exists") {
-        let dir = entry.expect("dir entry").path().join("pack/shaders");
+    for dir in packs.chain([workspace.join("assets/shaders")]) {
         let Ok(shaders) = std::fs::read_dir(&dir) else {
             continue;
         };

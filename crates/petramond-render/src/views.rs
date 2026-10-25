@@ -86,6 +86,8 @@ pub struct ParticlePresentation {
     pub stretch: f32,
     pub skylight: u8,
     pub blocklight: petramond_world::light::BlockLight6,
+    /// In a fluid cell (read for `Solid` particles only, which blend instead of cutting out).
+    pub submerged: bool,
 }
 
 /// Where a ragdolling body lies in the world: the bounds of its bones' pivots. The pose moves
