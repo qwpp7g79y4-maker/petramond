@@ -41,7 +41,6 @@ const EASE_SECONDS: f32 = 2.0;
 const DEAD_INTENSITY: f32 = 0.005;
 const SPLASH_RADIUS_SQ: f32 = 16.0 * 16.0;
 const SPLASH_DROPLETS: usize = 4;
-const SPLASH_GRAVITY: f32 = 12.0;
 const SKY_OPEN_LIGHT: u8 = 63;
 const EDGE_FADE: f32 = 0.08;
 
@@ -824,11 +823,11 @@ fn derive_splash(
         let mix = hash01(dseed ^ 0x16).powf(burst.color_bias);
         out.push(ParticlePresentation {
             quad_axes: None,
-            atlas: ParticleAtlas::Solid,
+            atlas: ParticleAtlas::Solid(burst.look),
             pos: petramond_math::world_pos::WorldPos::new(x, f64::from(kill_y), z)
                 + Vec3::new(
                     angle.cos() * radial * age,
-                    (up * age - 0.5 * SPLASH_GRAVITY * age * age).max(0.0),
+                    (up * age - 0.5 * burst.gravity * age * age).max(0.0),
                     angle.sin() * radial * age,
                 ),
             uv_min: [0.0, 0.0],

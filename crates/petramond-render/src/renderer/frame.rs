@@ -24,7 +24,7 @@ impl Renderer {
         )
     }
 
-    fn pixel_scale(&self) -> f32 {
+    pub(super) fn pixel_scale(&self) -> f32 {
         0.5 * self.screen_size().1 as f32 * self.view.proj_y_scale
     }
 

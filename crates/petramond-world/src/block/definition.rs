@@ -121,6 +121,30 @@ pub enum ParticleEmitterAnchor {
     Mouth,
 }
 
+/// Where a looping emitter's particles stop being drawn, beyond their lifetime. Same words as an
+/// ambient bundle's `kill`.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EmitterKill {
+    #[default]
+    None,
+    /// Drawn only inside the fluid the origin is in: gone past its surface.
+    Dry,
+}
+
+/// How a blended solid-colour particle is drawn.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ParticleLook {
+    #[default]
+    Cube,
+    /// A soft round dot that always faces the camera: motes too small to have sides.
+    Speck,
+    /// A camera-facing ring with a clear middle and a glint, which softens to a speck once it is
+    /// only a few pixels across.
+    Ring,
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ParticleEmitter {
@@ -160,11 +184,15 @@ pub struct ParticleEmitter {
     pub gravity: f32,
     #[serde(default)]
     pub lands: bool,
+    #[serde(default)]
+    pub kill: EmitterKill,
     /// [period seconds, open share min, max]: births only in the first open share of each
     /// period, rolled per period in that range, so the emitter puffs unevenly instead of
     /// streaming. All zero streams.
     #[serde(default)]
     pub pulse: [f32; 3],
+    #[serde(default)]
+    pub look: ParticleLook,
 }
 
 fn default_particle_anchor() -> ParticleEmitterAnchor {

@@ -25,7 +25,10 @@ pub(crate) use data::{warm_views, BlockViews};
 #[allow(unused_imports)]
 pub use definition::ColorRamp;
 pub use definition::{BlockFlags, BlockMaterial};
-pub use definition::{Construction, ParticleEmitter, ParticleEmitterAnchor, RootsFace, SupportDir};
+pub use definition::{
+    Construction, EmitterKill, ParticleEmitter, ParticleEmitterAnchor, ParticleLook, RootsFace,
+    SupportDir,
+};
 pub use interaction::builtin_claims_click;
 pub use interaction::BlockInteraction;
 pub use load::validate_particle_emitter;

@@ -309,6 +309,7 @@ impl ParticlePass {
             model_instances: Vec::new(),
             solid_instances: Vec::new(),
             emitters: Vec::new(),
+            emitter_trails: Vec::new(),
             density: 1.0,
             block_count: 0,
             rows: Vec::new(),

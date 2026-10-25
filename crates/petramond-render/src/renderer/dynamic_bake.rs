@@ -442,9 +442,11 @@ impl Renderer {
             da.total_cmp(&db)
         });
         let emitters = &self.particle.emitters;
+        let trails = &self.particle.emitter_trails;
         let solids = &self.particle.solid_instances;
         let time = self.view.visual_time;
         let density = self.particle.density;
+        let pixel_scale = self.pixel_scale();
         self.particle.emitter_draw.bake(
             &self.device,
             &self.queue,
@@ -452,10 +454,12 @@ impl Renderer {
             |rows| {
                 build_transparent_emitter_particles(
                     emitters,
+                    trails,
                     solids,
                     time,
                     render_origin,
                     cam_pos.relative_to(render_origin),
+                    pixel_scale,
                     env,
                     density,
                     rows,

@@ -42,6 +42,9 @@ fn splash_spec() -> BurstSpec {
         color: [[0.2, 0.3, 0.8], [0.5, 0.7, 1.0]],
         color_bias: 1.0,
         die_on_contact: true,
+        gravity: 12.0,
+        kill: petramond_world::block::EmitterKill::None,
+        look: ParticleLook::Cube,
     }
 }
 

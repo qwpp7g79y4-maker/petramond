@@ -11,13 +11,16 @@
 //!
 //! Block-row emitters reuse the row format for solid-colour cubes on a separate alpha-blended
 //! pipeline. Those are sorted far-to-near and back-face culled, so small transparent flames don't
-//! show all six faces at once.
+//! show all six faces at once. Specks and rings ride the same pipeline as one camera-facing quad
+//! the fragment rounds off.
 //!
 //! Instances are unbounded; the buffer grows to fit (`DynamicInstanceDraw`).
 
 use super::lighting::{self, DynLight, LightEnv};
 use super::{ParticleEmitterInstance, ParticleInstance};
 use glam::Vec3;
+use petramond::world::TrailPoint;
+use petramond_world::block::ParticleLook;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
@@ -144,6 +147,40 @@ pub struct TransparentParticleCube {
     size: f32,
     stretch: f32,
     dist_sq: f32,
+    look: ParticleLook,
+}
+
+/// The smallest a blended particle is drawn, in pixels. A round falloff needs a few pixels to
+/// resolve.
+const MIN_CUBE_PX: f32 = 1.0;
+const MIN_ROUND_PX: f32 = 2.5;
+/// Blended particles fade out across this many blocks in front of the eye instead of filling it.
+const NEAR_EYE_FADE: [f32; 2] = [0.15, 0.5];
+
+impl TransparentParticleCube {
+    fn fade_near_eye(&mut self) {
+        let d = self.dist_sq.sqrt();
+        self.alpha *=
+            ((d - NEAR_EYE_FADE[0]) / (NEAR_EYE_FADE[1] - NEAR_EYE_FADE[0])).clamp(0.0, 1.0);
+    }
+
+    /// A particle under the pixel floor flickers as it slides across pixel centres. It is drawn at
+    /// the floor instead, its alpha thinned by the area it gained, so the light it adds holds
+    /// steady. A stretched particle gives up stretch first, keeping its length.
+    fn hold_coverage(&mut self, pixel_scale: f32) {
+        let min_px = match self.look {
+            ParticleLook::Cube => MIN_CUBE_PX,
+            ParticleLook::Speck | ParticleLook::Ring => MIN_ROUND_PX,
+        };
+        let floor = min_px * self.dist_sq.sqrt() / pixel_scale;
+        if self.size >= floor {
+            return;
+        }
+        let stretch = (self.stretch * self.size / floor).max(1.0);
+        self.alpha *= (self.size * self.size * self.stretch) / (floor * floor * stretch);
+        self.size = floor;
+        self.stretch = stretch;
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -164,10 +201,12 @@ struct EmitterSchedule {
 #[allow(clippy::too_many_arguments)]
 pub fn build_transparent_emitter_particles(
     emitters: &[ParticleEmitterInstance],
+    trails: &[TrailPoint],
     solids: &[super::SolidParticleInstance],
     time: f32,
     render_origin: glam::IVec3,
     cam_pos: Vec3,
+    pixel_scale: f32,
     env: LightEnv,
     density: f32,
     rows: &mut Vec<ParticleRow>,
@@ -187,18 +226,35 @@ pub fn build_transparent_emitter_particles(
             size: s.size,
             stretch: s.stretch,
             dist_sq: (cam_pos - pos).length_squared(),
+            look: s.look,
         });
     }
     for inst in emitters {
         append_emitter_particles(inst, time, render_origin, cam_pos, env, density, scratch);
     }
-    scratch.sort_by(|a, b| b.dist_sq.total_cmp(&a.dist_sq));
-    rows.extend(scratch.iter().map(colored_particle_row));
-    rows.len() as u32
+    for cube in scratch.iter_mut() {
+        cube.fade_near_eye();
+        cube.hold_coverage(pixel_scale);
+    }
+    scratch.retain(|cube| cube.alpha > 0.001);
+    scratch.sort_by(|a, b| {
+        b.beyond
+            .cmp(&a.beyond)
+            .then(b.dist_sq.total_cmp(&a.dist_sq))
+    });
+    rows.extend(
+        scratch
+            .iter()
+            .map(|cube| colored_particle_row(cube, cam_pos)),
+    );
+    let beyond = scratch.iter().take_while(|cube| cube.beyond).count();
+    (rows.len() as u32, beyond as u32)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn append_emitter_particles(
     inst: &ParticleEmitterInstance,
+    trail: &[TrailPoint],
     time: f32,
     render_origin: glam::IVec3,
     cam_pos: Vec3,
@@ -215,6 +271,7 @@ fn append_emitter_particles(
     let latest = ((time - schedule.phase) / schedule.base_gap).floor() as i64 + 2;
     let [period, open_min, open_max] = e.pulse;
     let pulse_phase = rand01(inst.seed ^ 0x5157_E0A1_9C3B_7D21) * period;
+    let ceiling = inst.ceiling_y - render_origin.y as f32;
     let light = lighting::fold_self_lit(
         lighting::light_rgb(DynLight::new(inst.skylight, inst.blocklight), env),
         e.self_lit,
@@ -261,9 +318,10 @@ fn append_emitter_particles(
                 rand_signed(seed ^ 0x88) * velocity_jitter.y,
                 rand_signed(seed ^ 0x99) * velocity_jitter.z,
             );
-        let mut pos = inst.origin.relative_to(render_origin) + jitter + velocity * age;
+        let born_at = petramond::world::trail_origin(trail, inst.origin, birth);
+        let mut pos = born_at.relative_to(render_origin) + jitter + velocity * age;
         pos.y -= 0.5 * e.gravity * age * age;
-        if pos.y - size * 0.5 <= inst.floor_y - render_origin.y as f32 {
+        if pos.y - size * 0.5 <= inst.floor_y - render_origin.y as f32 || pos.y > ceiling {
             continue;
         }
         let [spiral_radius, spiral_hz] = e.spiral;
@@ -299,6 +357,7 @@ fn append_emitter_particles(
             size,
             stretch: 1.0,
             dist_sq: (cam_pos - pos).length_squared(),
+            look: e.look,
         });
     }
 }
@@ -348,18 +407,38 @@ fn particle_row(inst: &ParticleInstance, env: LightEnv, render_origin: glam::IVe
     }
 }
 
-fn colored_particle_row(inst: &TransparentParticleCube) -> ParticleRow {
+/// `ParticleRow::quad` for the camera-facing looks (1 is an oriented textured quad).
+const QUAD_SPECK: u32 = 2;
+const QUAD_RING: u32 = 3;
+
+fn colored_particle_row(inst: &TransparentParticleCube, cam_pos: Vec3) -> ParticleRow {
+    let half = inst.size * 0.5;
+    let facing = match inst.look {
+        ParticleLook::Cube => None,
+        ParticleLook::Speck => Some(QUAD_SPECK),
+        ParticleLook::Ring => Some(QUAD_RING),
+    };
+    let (right, up, uv_min, uv_max, quad) = match facing {
+        Some(quad) => {
+            // right × up must face the eye: the transparent pipeline culls back faces.
+            let toward = (cam_pos - inst.pos).normalize_or(Vec3::Z);
+            let right = Vec3::Y.cross(toward).normalize_or(Vec3::X);
+            let up = toward.cross(right);
+            (right * half, up * half, [-1.0; 2], [1.0; 2], quad)
+        }
+        None => (Vec3::ZERO, Vec3::ZERO, [0.0; 2], [0.0; 2], 0),
+    };
     ParticleRow {
         center: inst.pos.to_array(),
-        half: inst.size * 0.5,
-        right: [0.0; 3],
+        half,
+        right: right.to_array(),
         stretch: inst.stretch,
-        up: [0.0; 3],
+        up: up.to_array(),
         alpha: inst.alpha,
-        uv_min: [0.0; 2],
-        uv_max: [0.0; 2],
+        uv_min,
+        uv_max,
         tint: inst.color,
-        quad: 0,
+        quad,
     }
 }
 

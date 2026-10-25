@@ -11,6 +11,11 @@ use petramond_world::particle_emitters::{self as emitters, EmitterBundle};
 const TRAIL_STEP: f32 = 0.05;
 /// How far under the eye the mouth sits, as a share of body height, where no rig places it.
 const MOUTH_DROP: f32 = 0.1;
+/// How fast an item must move through a fluid to leave its wake.
+const WAKE_MIN_SPEED: f32 = 1.0;
+/// The body an item wears its wake on: about its own size.
+const ITEM_BODY: Vec3 = Vec3::splat(0.25);
+
 pub(super) struct EmitterBody {
     feet: WorldPos,
     size: Vec3,
@@ -319,36 +324,54 @@ impl GamePresentationScratch {
         }
     }
 
-    pub(super) fn collect_local_player_emitters(
+    /// The fluid's wake behind each item moving fast enough through it.
+    pub(super) fn collect_item_emitters(
         &mut self,
         game: &Game,
-        body: Option<&BodyInput>,
+        tick_alpha: f32,
         view: &ViewVolume,
+        now: f32,
     ) {
-        if game.local.player.is_spectator() || game.replica.self_view.health <= 0 {
-            return;
-        }
-        let body = match body {
-            Some(body) => EmitterBody::player(
-                body.pos,
-                body.state.body_yaw,
-                body.skylight,
-                body.blocklight,
-                0,
-            ),
-            None => {
-                let (skylight, blocklight) = game.held_item_light();
-                let feet = game.local.player.pos
-                    + Vec3::new(0.0, game.local.camera_rig.step_y_offset(), 0.0);
-                EmitterBody::player(feet, local_body_yaw(game), skylight, blocklight, 0)
+        let world = game.replica.world.data();
+        for entry in game.replica.entities.items().iter() {
+            let Some([yaw, _, speed]) = entry.curr.flight else {
+                continue;
+            };
+            if speed < WAKE_MIN_SPEED {
+                continue;
             }
-        };
-        append_emitters(
-            &mut self.particle_emitters,
-            self.local_emitters.ids().iter().copied(),
-            &body,
-            view,
-        );
+            let pos = entry.prev.pos.lerp(entry.curr.pos, tick_alpha);
+            let cell = pos.block();
+            let Some(wake) = world
+                .cell_fluid(cell.x, cell.y, cell.z)
+                .and_then(|fluid| fluid.fluid_def())
+                .and_then(|def| def.submerged.wake)
+            else {
+                continue;
+            };
+            let (skylight, blocklight) = world.dynamic_light_at_world(cell.x, cell.y, cell.z);
+            let body = EmitterBody {
+                feet: pos,
+                size: ITEM_BODY,
+                yaw,
+                facing: Vec3::new(yaw.sin(), 0.0, yaw.cos()),
+                seed: entry.curr.id ^ 0x9E37_79B9_7F4A_7C15,
+                skylight,
+                blocklight,
+                eye_height: 0.0,
+                breath: None,
+                posed_mouth: None,
+            };
+            append_emitters(
+                &mut self.particle_emitters,
+                &mut self.emitter_trails,
+                world,
+                std::iter::once(wake),
+                &body,
+                view,
+                now,
+            );
+        }
     }
 
     /// The local player's and every visible remote player's emitters. Runs after the bodies are

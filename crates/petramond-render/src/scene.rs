@@ -15,6 +15,7 @@ pub struct Scene {
     model_particles: Vec<ParticleInstance>,
     solid_particles: Vec<SolidParticleInstance>,
     particle_emitters: Vec<ParticleEmitterInstance>,
+    emitter_trails: Vec<petramond::world::TrailPoint>,
     block_entities: Vec<BlockEntityInstance>,
     block_draws: Vec<crate::BlockDrawInstance>,
     cloths: Vec<crate::views::ClothPresentation>,
@@ -78,6 +79,9 @@ impl Scene {
         self.particle_emitters.clear();
         self.particle_emitters
             .extend_from_slice(presentation.particle_emitters);
+        self.emitter_trails.clear();
+        self.emitter_trails
+            .extend_from_slice(presentation.emitter_trails);
         self.bake_block_entities(presentation.block_entities);
         bake_mobs(presentation.mobs, alpha, &mut self.mobs);
         self.mob_arena.copy_from(presentation.mob_arena);
@@ -123,7 +127,7 @@ impl Scene {
         renderer.swap_particles(&mut self.particles);
         renderer.swap_model_particles(&mut self.model_particles);
         renderer.swap_solid_particles(&mut self.solid_particles);
-        renderer.swap_particle_emitters(&mut self.particle_emitters);
+        renderer.swap_particle_emitters(&mut self.particle_emitters, &mut self.emitter_trails);
         self.item_entities.clear();
         self.block_entities.clear();
         self.block_draws.clear();
@@ -137,6 +141,7 @@ impl Scene {
         self.model_particles.clear();
         self.solid_particles.clear();
         self.particle_emitters.clear();
+        self.emitter_trails.clear();
         renderer.swap_player_bodies(&mut self.bodies, &mut self.body_poses);
         self.bodies.clear();
         self.body_poses.clear();
@@ -209,7 +214,7 @@ fn bake_particles(
     model_out.clear();
     solid_out.clear();
     for p in particles {
-        if p.atlas == ParticleAtlas::Solid {
+        if let ParticleAtlas::Solid(look) = p.atlas {
             solid_out.push(SolidParticleInstance {
                 pos: p.pos,
                 color: p.tint,
@@ -218,6 +223,7 @@ fn bake_particles(
                 stretch: p.stretch,
                 skylight: p.skylight,
                 blocklight: p.blocklight,
+                look,
             });
             continue;
         }
@@ -235,7 +241,7 @@ fn bake_particles(
         match p.atlas {
             ParticleAtlas::Block => block_out.push(inst),
             ParticleAtlas::Model => model_out.push(inst),
-            ParticleAtlas::Solid => unreachable!("handled above"),
+            ParticleAtlas::Solid(_) => unreachable!("handled above"),
         }
     }
 }

@@ -91,6 +91,9 @@ fn atlas_uv_stays_strictly_inside_the_tile_rect() {
                     uv_size: [PATCH_FRAC; 2],
                     tint: NO_TINT,
                     die_on_contact: false,
+                    gravity: 12.0,
+                    needs_fluid: false,
+                    look: petramond_world::block::ParticleLook::Cube,
                     age: 0.0,
                     lifetime: 1.0,
                     size: 0.1,
@@ -145,6 +148,9 @@ fn particle_passes_inset_margin_but_stops_in_the_box() {
         uv_size: [0.1; 2],
         tint: NO_TINT,
         die_on_contact: false,
+        gravity: 12.0,
+        needs_fluid: false,
+        look: petramond_world::block::ParticleLook::Cube,
         age: 0.0,
         lifetime: 100.0,
         size: 0.1,
@@ -223,6 +229,9 @@ fn splash_spec() -> petramond_world::particle_emitters::BurstSpec {
         color: [[0.05, 0.1, 0.5], [0.3, 0.7, 0.95]],
         color_bias: 2.5,
         die_on_contact: true,
+        gravity: 12.0,
+        kill: petramond_world::block::EmitterKill::None,
+        look: petramond_world::block::ParticleLook::Cube,
     }
 }
 
@@ -357,18 +366,91 @@ fn the_pool_keeps_every_live_particle() {
 }
 
 #[test]
-fn particles_fall_under_gravity() {
+fn a_lifting_dry_burst_rises_and_dies_at_the_fluid_surface() {
+    let spec = petramond_world::particle_emitters::BurstSpec {
+        up_speed: [0.0, 0.0],
+        radial_speed: [0.0, 0.0],
+        lifetime: [10.0, 10.0],
+        die_on_contact: false,
+        gravity: -2.0,
+        kill: petramond_world::block::EmitterKill::Dry,
+        look: petramond_world::block::ParticleLook::Ring,
+        ..splash_spec()
+    };
+    let none = |_: WorldPos| false;
+    let water_below_4 = |p: WorldPos| p.y < 4.0;
     let mut sys = ParticleSystem::new();
-    sys.spawn_break_burst(IVec3::new(0, 100, 0), Block::Dirt);
-    let y_before: f32 =
-        sys.particles().iter().map(|p| p.pos.y as f32).sum::<f32>() / sys.len() as f32;
-    for _ in 0..30 {
-        sys.tick_with(1.0 / 60.0, &empty, &empty);
+    sys.spawn_emitter_burst(
+        &spec,
+        WorldPos::new(0.0, 1.0, 0.0),
+        1.0,
+        63,
+        petramond_world::light::BlockLight6::DARK,
+    );
+    assert!(sys
+        .particles()
+        .iter()
+        .all(|p| p.look == petramond_world::block::ParticleLook::Ring));
+    let mut last_y = 0.0;
+    let mut steps = 0;
+    while !sys.is_empty() && steps < 400 {
+        last_y = sys.particles()[0].pos.y;
+        sys.tick_with(0.02, &none, &water_below_4);
+        steps += 1;
     }
-    let y_after: f32 =
-        sys.particles().iter().map(|p| p.pos.y as f32).sum::<f32>() / sys.len() as f32;
     assert!(
-        y_after < y_before,
-        "gravity should lower particles on average"
+        sys.is_empty(),
+        "the lift carries it out of the water, where it dies"
+    );
+    assert!(
+        (3.5..4.0).contains(&last_y),
+        "it died at the surface, last seen at {last_y}"
+    );
+}
+
+#[test]
+fn a_particle_born_inside_a_block_moves_out_instead_of_sticking() {
+    let spec = petramond_world::particle_emitters::BurstSpec {
+        up_speed: [0.0, 0.0],
+        radial_speed: [0.0, 0.0],
+        lifetime: [10.0, 10.0],
+        spawn: [0.0, 0.0, 0.0],
+        die_on_contact: false,
+        gravity: -2.0,
+        ..splash_spec()
+    };
+    let box_below_1 = |p: WorldPos| p.y < 1.0;
+    let none = |_: WorldPos| false;
+    let mut sys = ParticleSystem::new();
+    sys.spawn_emitter_burst(
+        &spec,
+        WorldPos::new(0.0, 0.85, 0.0),
+        1.0,
+        63,
+        petramond_world::light::BlockLight6::DARK,
+    );
+    for _ in 0..50 {
+        sys.tick_with(0.02, &box_below_1, &none);
+    }
+    assert!(
+        sys.particles().iter().all(|p| p.pos.y > 1.0),
+        "it rose out of the box"
+    );
+
+    let mut capped = ParticleSystem::new();
+    capped.spawn_emitter_burst(
+        &spec,
+        WorldPos::new(0.0, 0.5, 0.0),
+        1.0,
+        63,
+        petramond_world::light::BlockLight6::DARK,
+    );
+    let lid_over_1 = |p: WorldPos| p.y >= 1.0;
+    for _ in 0..50 {
+        capped.tick_with(0.02, &lid_over_1, &none);
+    }
+    assert!(
+        capped.particles().iter().all(|p| p.pos.y < 1.0),
+        "a surface it meets from outside still stops it"
     );
 }

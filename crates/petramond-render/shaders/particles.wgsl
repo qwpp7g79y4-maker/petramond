@@ -1,5 +1,8 @@
 // particles: tiny 3D cubes. Mining/break particles are textured cutout cubes;
 // block-row emitters use the transparent solid-color fragment entry below.
+// A speck (quad 2) or ring (quad 3) is a camera-facing quad over uv -1..1
+// that the transparent entry rounds off: a soft dot, or a rim with a clear
+// middle and a glint.
 //
 // Each particle is ONE instance row (render::particles::ParticleRow: centre,
 // half size, stretch, ABSOLUTE atlas uv rect, lit RGB tint, alpha, or an
@@ -51,6 +54,8 @@ struct VsOut {
     @location(4) view: vec3<f32>,
     // Absolute world height, for the atmosphere's altitude thinning.
     @location(5) world_y: f32,
+    // 0 cube or textured quad, 2 speck, 3 ring.
+    @location(6) @interpolate(flat) look: u32,
 };
 
 @vertex
@@ -93,6 +98,7 @@ fn vs_particle(in: ParticleIn) -> VsOut {
     out.alpha = in.alpha;
     out.view = pos - u.cam_pos.xyz;
     out.world_y = pos.y + f32(u.render_origin.y);
+    out.look = select(0u, in.quad, in.quad >= 2u);
     return out;
 }
 
@@ -133,10 +139,28 @@ fn fs_particle(in: VsOut) -> @location(0) vec4<f32> {
 @fragment
 fn fs_particle_transparent(in: VsOut) -> @location(0) vec4<f32> {
     var color = in.tint * in.shade;
-    if (u.fog.w > 0.5) {
-        color = color * u.volume_tint.rgb;
-        let f = clamp((length(in.view) - u.fog.x) / (u.fog.y - u.fog.x), 0.0, 1.0);
-        return vec4<f32>(mix(color, u.fog_color.rgb, f), clamp(in.alpha, 0.0, 1.0));
+    var alpha = in.alpha;
+    if (in.look >= 2u) {
+        let r = length(in.uv);
+        let dot = 1.0 - smoothstep(0.25, 1.0, r);
+        var shape = dot;
+        if (in.look == 3u) {
+            let rim = smoothstep(0.55, 0.8, r) * (1.0 - smoothstep(0.85, 1.0, r));
+            let glint = 1.0 - smoothstep(0.08, 0.24, length(in.uv - vec2<f32>(-0.32, -0.36)));
+            let ring = max(max(rim, 0.12 * (1.0 - smoothstep(0.8, 1.0, r))), glint);
+            color = mix(color, vec3<f32>(1.0), glint * 0.6);
+            // Under ~8 px across the rim cannot resolve; the ring settles into a speck.
+            let px = 2.0 / max(fwidth(in.uv.x), 1e-4);
+            shape = mix(dot, ring, smoothstep(5.0, 9.0, px));
+        }
+        alpha *= shape;
+    }
+    if (in_fluid_ray(u.fog, u.waterline, in.view)) {
+        let seen = in_fluid_apply(
+            color, u.volume_tint.rgb, in.view, in.world_y, u.cam_pos.y + f32(u.render_origin.y),
+            u.fog, u.fog_color.rgb, u.water_absorb, u.water_glow, u.water_fog, u.waterline, u.sun_dir,
+        );
+        return vec4<f32>(seen, clamp(alpha, 0.0, 1.0));
     }
     color = atmosphere_apply(
         color,
@@ -149,5 +173,5 @@ fn fs_particle_transparent(in: VsOut) -> @location(0) vec4<f32> {
         u.sun_dir.xyz,
         u.sun_dir.w,
     );
-    return vec4<f32>(color, clamp(in.alpha, 0.0, 1.0));
+    return vec4<f32>(color, clamp(alpha, 0.0, 1.0));
 }

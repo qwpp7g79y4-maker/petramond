@@ -33,7 +33,6 @@ fn tile_tint(tile: Tile) -> [f32; 3] {
     }
 }
 
-const PARTICLE_GRAVITY: f32 = -12.0;
 const FADE_TAIL: f32 = 0.4;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -54,6 +53,11 @@ pub struct Particle {
     pub uv_size: [f32; 2],
     pub tint: [f32; 3],
     pub die_on_contact: bool,
+    /// Pulls down in blocks/s²; negative lifts.
+    pub gravity: f32,
+    /// Dies on leaving fluid (`kill: dry`).
+    pub needs_fluid: bool,
+    pub look: petramond_world::block::ParticleLook,
     pub age: f32,
     pub lifetime: f32,
     pub size: f32,
@@ -179,11 +183,15 @@ impl ParticleSystem {
         while i < self.particles.len() {
             let p = &mut self.particles[i];
             p.age += dt;
-            p.vel.y += PARTICLE_GRAVITY * dt;
+            p.vel.y -= p.gravity * dt;
             let next = p.pos + p.vel * dt;
-            if p.die_on_contact && (blocked(next) || fluid(next)) {
+            if (p.die_on_contact && (blocked(next) || fluid(next)))
+                || (p.needs_fluid && !fluid(next))
+            {
                 p.age = p.lifetime;
-            } else if blocked(next) {
+            } else if blocked(next) && !blocked(p.pos) {
+                // Only a surface it meets stops it: one born inside a block keeps moving until
+                // it is out, instead of sticking there for its whole life.
                 p.vel = Vec3::ZERO;
             } else {
                 p.pos = next;
@@ -266,6 +274,13 @@ impl ParticleSystem {
                     skin.tint
                 },
                 die_on_contact: spec.die_on_contact,
+                gravity: spec.gravity,
+                needs_fluid: spec.kill == petramond_world::block::EmitterKill::Dry,
+                look: if recolour {
+                    spec.look
+                } else {
+                    petramond_world::block::ParticleLook::Cube
+                },
                 age: 0.0,
                 lifetime,
                 size,

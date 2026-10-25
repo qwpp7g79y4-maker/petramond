@@ -15,6 +15,7 @@ impl ServerGame {
     }
 
     pub fn game_tick_step(&mut self, events: &mut TickEvents) {
+        let chests_before = events.world.chest_changed.len();
         self.tick_damage_immunity();
         self.settle_before_stages(events);
         self.player_stages(events);
@@ -22,6 +23,12 @@ impl ServerGame {
         self.pickup_stage(events);
         let anchors = self.player_anchors();
         self.entity_stages(&anchors, events);
+        let opened: Vec<_> = events.world.chest_changed[chests_before..]
+            .iter()
+            .filter(|(_, open)| *open)
+            .map(|(cell, _)| *cell)
+            .collect();
+        self.push_container_releases(&opened, events);
     }
 
     fn settle_before_stages(&mut self, events: &mut TickEvents) {

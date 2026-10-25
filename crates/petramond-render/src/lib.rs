@@ -425,6 +425,7 @@ pub struct SolidParticleInstance {
     pub stretch: f32,
     pub skylight: u8,
     pub blocklight: petramond_world::light::BlockLight6,
+    pub look: petramond_world::block::ParticleLook,
 }
 
 pub use petramond::world::PlacedEmitter as ParticleEmitterInstance;

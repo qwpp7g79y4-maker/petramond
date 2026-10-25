@@ -261,7 +261,9 @@ impl GamePresentationScratch {
                 ParticlePresentation {
                     quad_axes: None,
                     atlas: match particle.source {
-                        crate::particle::ParticleSource::Solid => ParticleAtlas::Solid,
+                        crate::particle::ParticleSource::Solid => {
+                            ParticleAtlas::Solid(particle.look)
+                        }
                         crate::particle::ParticleSource::Model(_) => ParticleAtlas::Model,
                         crate::particle::ParticleSource::Tile { .. } => ParticleAtlas::Block,
                     },

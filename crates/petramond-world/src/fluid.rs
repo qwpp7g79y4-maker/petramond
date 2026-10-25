@@ -61,11 +61,17 @@ pub struct Quench {
 pub struct FluidSubmerged {
     /// Looping body emitter worn while the body holds its breath here.
     pub exhale: Option<u8>,
+    /// Burst a container under it lets out as it opens.
+    pub release: Option<u8>,
+    /// Looping emitter worn by an item moving through it.
+    pub wake: Option<u8>,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct FluidSplash {
     pub burst: u8,
+    /// Burst under the surface where the body went in, at the splash's intensity.
+    pub below: Option<u8>,
     pub sound_small: crate::sound_registry::Sound,
     pub sound_big: crate::sound_registry::Sound,
 }

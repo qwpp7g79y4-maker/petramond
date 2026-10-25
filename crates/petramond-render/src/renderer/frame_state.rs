@@ -282,8 +282,13 @@ impl Renderer {
         std::mem::swap(&mut self.particle.model_instances, v);
     }
 
-    pub fn swap_particle_emitters(&mut self, v: &mut Vec<ParticleEmitterInstance>) {
+    pub fn swap_particle_emitters(
+        &mut self,
+        v: &mut Vec<ParticleEmitterInstance>,
+        trails: &mut Vec<petramond::world::TrailPoint>,
+    ) {
         std::mem::swap(&mut self.particle.emitters, v);
+        std::mem::swap(&mut self.particle.emitter_trails, trails);
     }
 
     pub fn swap_solid_particles(&mut self, v: &mut Vec<SolidParticleInstance>) {

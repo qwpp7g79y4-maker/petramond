@@ -145,6 +145,7 @@ struct ParticlePass {
     model_instances: Vec<ParticleInstance>,
     solid_instances: Vec<SolidParticleInstance>,
     emitters: Vec<ParticleEmitterInstance>,
+    emitter_trails: Vec<petramond::world::TrailPoint>,
     density: f32,
     block_count: u32,
     rows: Vec<super::particles::ParticleRow>,
@@ -161,6 +162,7 @@ impl ParticlePass {
         self.model_instances.clear();
         self.solid_instances.clear();
         self.emitters.clear();
+        self.emitter_trails.clear();
     }
 }
 

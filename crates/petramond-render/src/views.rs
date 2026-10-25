@@ -67,10 +67,10 @@ pub struct DroppedItemPresentation {
 pub enum ParticleAtlas {
     Block,
     Model,
-    /// No atlas, just a solid-color cube, e.g. a water splash from an emitter burst. `tint` is the
-    /// color. Drawn alpha-blended with the looping emitter cubes, not through the cutout fleck
-    /// pipeline.
-    Solid,
+    /// No atlas, just a solid color drawn in the given look, e.g. a water splash from an emitter
+    /// burst. `tint` is the color. Drawn alpha-blended with the looping emitter particles, not
+    /// through the cutout fleck pipeline.
+    Solid(petramond_world::block::ParticleLook),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -249,6 +249,8 @@ pub struct GamePresentation<'a> {
     pub item_entities: &'a [DroppedItemPresentation],
     pub particles: &'a [ParticlePresentation],
     pub particle_emitters: &'a [PlacedEmitter],
+    /// The arena `PlacedEmitter::trail` spans index.
+    pub emitter_trails: &'a [petramond::world::TrailPoint],
     pub block_entities: &'a [BlockEntityPresentation],
     pub block_draws: &'a [petramond::world::draw::BlockDrawInstance],
     pub cloths: &'a [ClothPresentation],

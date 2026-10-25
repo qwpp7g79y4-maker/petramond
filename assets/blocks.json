@@ -291,11 +291,14 @@
         },
         "splash": {
           "burst": "petramond:water_splash",
+          "below": "petramond:splash_bubbles",
           "sound_small": "petramond:water_splash_small",
           "sound_big": "petramond:water_splash_big"
         },
         "submerged": {
-          "exhale": "petramond:breath_bubbles"
+          "exhale": "petramond:breath_bubbles",
+          "release": "petramond:release_bubbles",
+          "wake": "petramond:wake_bubbles"
         },
         "contact": {
           "clears": [

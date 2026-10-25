@@ -5,6 +5,11 @@ use petramond_math::math::Vec3;
 
 const SPLASH_MIN_FALL: f32 = 1.5;
 const SPLASH_BIG_FALL: f32 = 5.0;
+/// How far under the surface a splash's `below` burst sits: about where the plunge stops
+/// carrying the body down.
+const SPLASH_BELOW_DEPTH: f32 = 0.8;
+/// Where an opening container lets its `release` burst out, over its cell's floor.
+const RELEASE_HEIGHT: f32 = 0.85;
 use crate::world::ServerWorld;
 
 use super::game::ServerGame;
@@ -200,6 +205,17 @@ impl ServerGame {
                 pos,
                 fall,
             ));
+        if let Some(below) = splash.below {
+            let under = petramond_math::world_pos::WorldPos::new(
+                feet.x,
+                f64::from(surface.surface_y - SPLASH_BELOW_DEPTH),
+                feet.z,
+            );
+            events
+                .world
+                .emitter_bursts
+                .push(crate::events::tick::BurstFired::plain(below, under, fall));
+        }
         let sound = if fall >= SPLASH_BIG_FALL {
             splash.sound_big
         } else {
@@ -209,6 +225,33 @@ impl ServerGame {
             sound,
             pos: Some(pos),
         });
+    }
+
+    /// Each container that opened in a fluid, or under one (its lid side), lets out that fluid's
+    /// `submerged.release` burst.
+    pub fn push_container_releases(
+        &mut self,
+        opened: &[petramond_math::math::IVec3],
+        events: &mut TickEvents,
+    ) {
+        let data = self.world.data();
+        for &cell in opened {
+            let over = cell + petramond_math::math::IVec3::Y;
+            let Some(release) = data
+                .cell_fluid(cell.x, cell.y, cell.z)
+                .or_else(|| data.cell_fluid(over.x, over.y, over.z))
+                .and_then(|fluid| fluid.fluid_def())
+                .and_then(|def| def.submerged.release)
+            else {
+                continue;
+            };
+            let pos = petramond_math::world_pos::WorldPos::block_min(cell)
+                + petramond_math::math::Vec3::new(0.5, RELEASE_HEIGHT, 0.5);
+            events
+                .world
+                .emitter_bursts
+                .push(crate::events::tick::BurstFired::plain(release, pos, 1.0));
+        }
     }
 
     pub fn push_block_noise(

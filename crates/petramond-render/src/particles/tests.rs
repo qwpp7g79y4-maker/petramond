@@ -1,5 +1,6 @@
 use super::*;
 use glam::Vec3;
+use petramond::world::TrailPoint;
 use petramond_math::world_pos::WorldPos;
 
 fn inst(alpha: f32) -> ParticleInstance {
@@ -39,12 +40,16 @@ fn emitter_inst() -> ParticleEmitterInstance {
             requires_open: None,
             gravity: 0.0,
             lands: false,
+            kill: petramond_world::block::EmitterKill::None,
             pulse: [0.0; 3],
+            look: ParticleLook::Cube,
         },
         seed: 0x1234_5678_9ABC_DEF0,
         skylight: 0,
         blocklight: petramond_world::light::BlockLight6::DARK,
         floor_y: f32::NEG_INFINITY,
+        ceiling_y: f32::INFINITY,
+        trail: petramond::world::TrailSpan::default(),
     }
 }
 
@@ -184,9 +189,11 @@ fn block_emitter_particles_rise_shrink_and_fade() {
     let young_n = build_transparent_emitter_particles(
         std::slice::from_ref(&inst),
         &[],
+        &[],
         one_live_emitter_time(&inst, 0.25),
         petramond_math::math::IVec3::ZERO,
         Vec3::ZERO,
+        f32::MAX,
         LightEnv::IDENTITY,
         1.0,
         &mut young,
@@ -195,9 +202,11 @@ fn block_emitter_particles_rise_shrink_and_fade() {
     let old_n = build_transparent_emitter_particles(
         std::slice::from_ref(&inst),
         &[],
+        &[],
         one_live_emitter_time(&inst, 0.75),
         petramond_math::math::IVec3::ZERO,
         Vec3::ZERO,
+        f32::MAX,
         LightEnv::IDENTITY,
         1.0,
         &mut old,
@@ -232,9 +241,11 @@ fn spiral_emitter_particles_orbit_the_vertical_axis_as_they_age() {
     build_transparent_emitter_particles(
         std::slice::from_ref(&inst),
         &[],
+        &[],
         one_live_emitter_time(&inst, 0.25),
         petramond_math::math::IVec3::ZERO,
         Vec3::ZERO,
+        f32::MAX,
         LightEnv::IDENTITY,
         1.0,
         &mut early,
@@ -243,9 +254,11 @@ fn spiral_emitter_particles_orbit_the_vertical_axis_as_they_age() {
     build_transparent_emitter_particles(
         std::slice::from_ref(&inst),
         &[],
+        &[],
         one_live_emitter_time(&inst, 0.5),
         petramond_math::math::IVec3::ZERO,
         Vec3::ZERO,
+        f32::MAX,
         LightEnv::IDENTITY,
         1.0,
         &mut late,
@@ -291,9 +304,11 @@ fn ramp_emitter_particles_cool_through_the_ramp_as_they_age() {
     build_transparent_emitter_particles(
         std::slice::from_ref(&inst),
         &[],
+        &[],
         one_live_emitter_time(&inst, 0.1),
         petramond_math::math::IVec3::ZERO,
         Vec3::ZERO,
+        f32::MAX,
         LightEnv::IDENTITY,
         1.0,
         &mut young,
@@ -302,9 +317,11 @@ fn ramp_emitter_particles_cool_through_the_ramp_as_they_age() {
     build_transparent_emitter_particles(
         std::slice::from_ref(&inst),
         &[],
+        &[],
         one_live_emitter_time(&inst, 0.9),
         petramond_math::math::IVec3::ZERO,
         Vec3::ZERO,
+        f32::MAX,
         LightEnv::IDENTITY,
         1.0,
         &mut old,
@@ -376,9 +393,11 @@ fn landing_particles_fall_and_vanish_at_their_floor() {
         build_transparent_emitter_particles(
             std::slice::from_ref(&inst),
             &[],
+            &[],
             t,
             petramond_math::math::IVec3::ZERO,
             Vec3::ZERO,
+            f32::MAX,
             LightEnv::IDENTITY,
             1.0,
             &mut rows,
@@ -396,6 +415,167 @@ fn landing_particles_fall_and_vanish_at_their_floor() {
         }
     }
     assert!(fell, "gravity carried a particle down before it landed");
+}
+
+fn solid(pos: WorldPos, size: f32, stretch: f32, speck: bool) -> crate::SolidParticleInstance {
+    let look = if speck {
+        ParticleLook::Speck
+    } else {
+        ParticleLook::Cube
+    };
+    crate::SolidParticleInstance {
+        pos,
+        color: [1.0; 3],
+        alpha: 0.5,
+        size,
+        stretch,
+        skylight: lighting::FULL_SKYLIGHT,
+        blocklight: petramond_world::light::BlockLight6::DARK,
+        submerged: false,
+        look,
+    }
+}
+
+fn build_solids(
+    solids: &[crate::SolidParticleInstance],
+    cam: Vec3,
+    pixel_scale: f32,
+) -> Vec<ParticleRow> {
+    let (mut rows, mut scratch) = (Vec::new(), Vec::new());
+    build_transparent_emitter_particles(
+        &[],
+        &[],
+        solids,
+        0.0,
+        petramond_math::math::IVec3::ZERO,
+        cam,
+        pixel_scale,
+        LightEnv::IDENTITY,
+        1.0,
+        false,
+        &mut rows,
+        &mut scratch,
+    );
+    rows
+}
+
+#[test]
+fn specks_face_the_eye_from_every_side() {
+    let at = WorldPos::new(0.0, 0.0, 0.0);
+    for cam in [
+        Vec3::new(0.0, 0.0, 5.0),
+        Vec3::new(-3.0, 1.0, 0.5),
+        Vec3::new(0.0, 6.0, 0.0),
+        Vec3::new(0.0, -6.0, 0.0),
+    ] {
+        let rows = build_solids(&[solid(at, 0.2, 1.0, true)], cam, f32::MAX);
+        let row = rows[0];
+        let (right, up) = (Vec3::from(row.right), Vec3::from(row.up));
+        let normal = right.cross(up);
+        assert!(
+            normal.normalize().dot(cam.normalize()) > 0.99,
+            "a speck seen from {cam} turns its back face (culled) to the eye"
+        );
+        assert!((right.length() - 0.1).abs() < 1e-4 && (up.length() - 0.1).abs() < 1e-4);
+    }
+}
+
+#[test]
+fn particles_under_the_pixel_floor_keep_their_coverage() {
+    let pixel_scale = 800.0;
+    let at = WorldPos::new(0.0, 0.0, 0.0);
+    let cam = Vec3::new(0.0, 0.0, 40.0);
+    let coverage = |r: &ParticleRow| r.alpha * r.half * r.half * r.stretch;
+    for (size, stretch, speck) in [(0.01, 1.0, false), (0.02, 1.0, true), (0.01, 8.0, false)] {
+        let near = build_solids(&[solid(at, size, stretch, speck)], cam, f32::MAX)[0];
+        let held = build_solids(&[solid(at, size, stretch, speck)], cam, pixel_scale)[0];
+        let px = held.half * 2.0 * pixel_scale / 40.0;
+        assert!(px >= MIN_CUBE_PX - 1e-3, "held at {px} px");
+        assert!(held.half > near.half && held.alpha < near.alpha);
+        assert!((coverage(&held) - coverage(&near)).abs() < coverage(&near) * 1e-3);
+        assert!(
+            (held.half * held.stretch - near.half * near.stretch).abs() < 1e-5
+                || held.stretch == 1.0,
+            "a stretched particle keeps its length while it can"
+        );
+    }
+}
+
+fn build_emitters(
+    emitters: &[ParticleEmitterInstance],
+    trails: &[TrailPoint],
+    time: f32,
+) -> Vec<ParticleRow> {
+    let (mut rows, mut scratch) = (Vec::new(), Vec::new());
+    build_transparent_emitter_particles(
+        emitters,
+        trails,
+        &[],
+        time,
+        petramond_math::math::IVec3::ZERO,
+        Vec3::ZERO,
+        f32::MAX,
+        LightEnv::IDENTITY,
+        1.0,
+        false,
+        &mut rows,
+        &mut scratch,
+    );
+    rows
+}
+
+fn still_stream() -> ParticleEmitterInstance {
+    let mut inst = emitter_inst();
+    inst.emitter.rate = [20.0, 20.0];
+    inst.emitter.lifetime = [1.0, 1.0];
+    inst.emitter.velocity = [0.0, 0.0, 0.0];
+    inst.emitter.fade_power = 0.25;
+    inst.emitter.shrink_power = 0.25;
+    inst
+}
+
+#[test]
+fn a_moving_emitter_leaves_its_particles_where_they_were_born() {
+    let mut inst = still_stream();
+    let at = |x: f64| WorldPos::new(x, 2.0, 3.0);
+    let trails = [
+        TrailPoint {
+            time: 9.0,
+            origin: at(0.0),
+        },
+        TrailPoint {
+            time: 10.2,
+            origin: at(0.0),
+        },
+        TrailPoint {
+            time: 10.4,
+            origin: at(5.0),
+        },
+        TrailPoint {
+            time: 10.9,
+            origin: at(5.0),
+        },
+    ];
+    inst.origin = at(5.0);
+    inst.trail = petramond::world::TrailSpan { start: 0, len: 4 };
+    let rows = build_emitters(&[inst], &trails, 10.9);
+    let xs: Vec<f32> = rows.iter().map(|r| r.center[0]).collect();
+    assert!(
+        xs.iter().any(|&x| x < 0.1),
+        "born before the move: left behind {xs:?}"
+    );
+    assert!(
+        xs.iter().any(|&x| x > 4.9),
+        "born after it: at the new spot {xs:?}"
+    );
+    assert!(xs.iter().all(|&x| (-0.01..=5.01).contains(&x)));
+
+    inst.trail = petramond::world::TrailSpan::default();
+    let still = build_emitters(&[inst], &[], 10.9);
+    assert!(
+        still.iter().all(|r| r.center[0] > 4.9),
+        "no trail: all at the origin"
+    );
 }
 
 #[test]
@@ -420,4 +600,20 @@ fn a_pulsing_emitter_only_births_in_its_open_window() {
         (0.1..0.45).contains(&pulsing),
         "a quarter-open pulse is dark most of each period ({pulsing})"
     );
+}
+
+#[test]
+fn particles_past_the_ceiling_are_not_drawn() {
+    let mut inst = still_stream();
+    inst.emitter.velocity = [0.0, 2.0, 0.0];
+    inst.emitter.lifetime = [3.0, 3.0];
+    inst.ceiling_y = inst.origin.y as f32 + 1.5;
+    let rows = build_emitters(&[inst], &[], 20.0);
+    assert!(!rows.is_empty());
+    assert!(rows.iter().all(|r| r.center[1] <= inst.ceiling_y));
+    inst.ceiling_y = f32::INFINITY;
+    let open = build_emitters(&[inst], &[], 20.0);
+    assert!(open
+        .iter()
+        .any(|r| r.center[1] > inst.origin.y as f32 + 1.5));
 }

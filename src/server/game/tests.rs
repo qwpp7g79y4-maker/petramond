@@ -363,3 +363,38 @@ fn post_handlers_act_for_the_events_player_and_systems_for_nobody() {
         vec![("died", Some(second_id), 2), ("system", None, 2)]
     );
 }
+
+#[test]
+fn a_container_opening_under_water_lets_out_the_waters_release_burst() {
+    use crate::events::tick::TickEvents;
+    use petramond_math::math::IVec3;
+    use petramond_world::block::Block;
+
+    let mut server = crate::server::session_build::build_server_inline("", 1, 2);
+    let feet = server.sessions[0].player.pos;
+    let wet = IVec3::new(
+        feet.x.floor() as i32 + 2,
+        feet.y.floor() as i32,
+        feet.z.floor() as i32,
+    );
+    let dry = wet + IVec3::new(3, 0, 0);
+    for chest in [wet, dry] {
+        server
+            .world
+            .set_block_world(chest.x, chest.y, chest.z, Block::Chest);
+    }
+    server
+        .world
+        .set_block_world(wet.x, wet.y + 1, wet.z, Block::Water);
+    let release = Block::Water
+        .fluid_def()
+        .and_then(|def| def.submerged.release)
+        .expect("water lets air out of what opens in it");
+
+    let mut events = TickEvents::default();
+    server.push_container_releases(&[wet, dry], &mut events);
+    let bursts = &events.world.emitter_bursts;
+    assert_eq!(bursts.len(), 1, "only the chest under water bubbles");
+    assert_eq!(bursts[0].emitter, release);
+    assert_eq!(bursts[0].pos.block().x, wet.x);
+}

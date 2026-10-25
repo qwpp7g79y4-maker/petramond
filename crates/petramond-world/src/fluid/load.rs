@@ -38,21 +38,33 @@ struct RawQuench {
 #[serde(deny_unknown_fields)]
 struct RawSplash {
     burst: String,
+    #[serde(default)]
+    below: Option<String>,
     sound_small: String,
     sound_big: String,
 }
 
+fn burst_id(key: &str, what: &str) -> Result<u8, String> {
+    crate::particle_emitters::by_key(key)
+        .filter(|bundle| bundle.burst.is_some())
+        .map(|bundle| bundle.id)
+        .ok_or_else(|| format!("fluid {what} '{key}' is not a burst bundle"))
+}
+
 impl RawSplash {
     fn resolve(self) -> Result<FluidSplash, String> {
-        let burst = crate::particle_emitters::by_key(&self.burst)
-            .filter(|bundle| bundle.burst.is_some())
-            .ok_or_else(|| format!("fluid splash burst '{}' is not a burst bundle", self.burst))?;
+        let burst = burst_id(&self.burst, "splash burst")?;
+        let below = self
+            .below
+            .map(|key| burst_id(&key, "splash below"))
+            .transpose()?;
         let sound = |key: &str| {
             crate::sound_registry::by_name(key)
                 .ok_or_else(|| format!("fluid splash names unknown sound '{key}'"))
         };
         Ok(FluidSplash {
-            burst: burst.id,
+            burst,
+            below,
             sound_small: sound(&self.sound_small)?,
             sound_big: sound(&self.sound_big)?,
         })
@@ -64,6 +76,10 @@ impl RawSplash {
 struct RawSubmerged {
     #[serde(default)]
     exhale: Option<String>,
+    #[serde(default)]
+    release: Option<String>,
+    #[serde(default)]
+    wake: Option<String>,
 }
 
 impl RawSubmerged {
@@ -77,8 +93,23 @@ impl RawSubmerged {
                     .ok_or_else(|| format!("fluid exhale '{key}' is not a looping bundle"))
             })
             .transpose()?;
+        let release = self
+            .release
+            .map(|key| burst_id(&key, "submerged.release"))
+            .transpose()?;
+        let wake = self
+            .wake
+            .map(|key| {
+                crate::particle_emitters::by_key(&key)
+                    .filter(|bundle| !bundle.rows.is_empty())
+                    .map(|bundle| bundle.id)
+                    .ok_or_else(|| format!("fluid wake '{key}' is not a looping bundle"))
+            })
+            .transpose()?;
         Ok(FluidSubmerged {
             exhale,
+            release,
+            wake,
         })
     }
 }

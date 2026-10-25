@@ -44,6 +44,9 @@ const ENGINE_EMITTER_NAMES: &[&str] = &[
     "petramond:block_dust",
     "petramond:block_break",
     "petramond:breath_bubbles",
+    "petramond:splash_bubbles",
+    "petramond:release_bubbles",
+    "petramond:wake_bubbles",
 ];
 
 const MAX_BUNDLE_ROWS: usize = 4;
@@ -85,6 +88,18 @@ pub struct BurstSpec {
     pub color_bias: f32,
     #[serde(default)]
     pub die_on_contact: bool,
+    /// Pulls down in blocks/s²; negative lifts.
+    #[serde(default = "default_burst_gravity")]
+    pub gravity: f32,
+    #[serde(default)]
+    pub kill: crate::block::EmitterKill,
+    /// How a row-coloured particle is drawn (texture and block looks are cubes).
+    #[serde(default)]
+    pub look: crate::block::ParticleLook,
+}
+
+fn default_burst_gravity() -> f32 {
+    12.0
 }
 
 fn default_color_bias() -> f32 {
@@ -717,6 +732,12 @@ fn validate_burst(key: &str, b: &BurstSpec) -> Result<(), String> {
     }
     if !b.color_bias.is_finite() || !(0.25..=8.0).contains(&b.color_bias) {
         return err("color_bias must be in 0.25..=8");
+    }
+    if !b.gravity.is_finite() || !(-64.0..=64.0).contains(&b.gravity) {
+        return err("gravity must be in -64..=64");
+    }
+    if b.look != crate::block::ParticleLook::Cube && b.texture.is_some() {
+        return err("a textured burst draws cubes; look applies to row colours only");
     }
     Ok(())
 }
