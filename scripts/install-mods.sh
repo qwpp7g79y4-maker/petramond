@@ -159,6 +159,16 @@ for mod_id in "${mod_ids[@]}"; do
     else
         kind="content only"
     fi
+    # The installed pack mirrors its source: a file removed there goes here too, or its rows
+    # (a recipe, a mob, a cloth) would outlive the content that dropped them.
+    while IFS= read -r -d '' file; do
+        rel=${file#"$dest/$mod_id"/}
+        if [[ $rel != mod.wasm && ! -e $pack_source/$rel ]]; then
+            rm "$file"
+            changed+=1
+        fi
+    done < <(find "$dest/$mod_id" -type f -print0)
+    find "$dest/$mod_id" -mindepth 1 -type d -empty -delete
     if [[ -n $changed ]]; then
         echo "installed $dest/$mod_id ($kind)"
     else
