@@ -487,6 +487,18 @@ impl GamePresentationScratch {
                 );
                 ArenaRange::since(&arena.ragdoll, start)
             });
+            let ragdoll_span = ragdoll_pose.and_then(|range| {
+                petramond_render::mob_model::ragdoll_span(
+                    curr.pos,
+                    curr.yaw,
+                    curr.tilt,
+                    petramond::mob::def(Mob(curr.kind_id)).scale,
+                    range.of(&arena.ragdoll),
+                )
+            });
+            // A ragdoll is lit where its body lies, not where it died.
+            let lit_at = ragdoll_span.map_or(curr.pos + Vec3::new(0.0, 0.3, 0.0), |s| s.centre());
+            let c = lit_cell(world, lit_at.block());
             let emitters = entry.emitters();
             self.mobs.push(MobPresentation {
                 id: curr.id,
@@ -527,6 +539,7 @@ impl GamePresentationScratch {
                 emitter_self_lit: emitters.self_lit(),
                 anims: ArenaRange::since(&arena.anims, anims_start),
                 ragdoll_pose,
+                ragdoll_span,
                 held: curr.held.map(|id| id.map(petramond_world::item::ItemType)),
             });
         }
@@ -716,15 +729,19 @@ impl GamePresentationScratch {
             )
         };
         for m in &self.mobs {
-            let feet = m.prev_pos.lerp(m.pos, tick_alpha);
-            if !visible(feet) {
-                continue;
-            }
             let size = petramond::mob::def(m.kind).size;
             let half = size
                 .half_length
                 .unwrap_or(size.half_width)
                 .max(size.half_width);
+            // A ragdoll's shadow follows its body and spreads as it lies flat.
+            let (feet, half) = match m.ragdoll_span {
+                Some(span) => (span.ground(), half.max(span.half_width())),
+                None => (m.prev_pos.lerp(m.pos, tick_alpha), half),
+            };
+            if !visible(feet) {
+                continue;
+            }
             push_entity_shadow(
                 world.data(),
                 &mut self.shadows,

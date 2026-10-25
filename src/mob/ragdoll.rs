@@ -25,11 +25,16 @@
 //! `scale` so the corpse falls at a real-world rate. The mob's `pos`/`yaw` (its `global`
 //! transform) are frozen at death; the bones move in model space. Each corner is collided
 //! against the real world voxels (converted through the frozen transform), so the corpse
-//! can't pass through terrain and corners hanging over an edge keep falling.
+//! can't pass through terrain and corners hanging over an edge keep falling. A corner in a fluid
+//! drifts by the fluid's own motion profile instead of falling: drag and a slow sink.
+//!
+//! The body tumbles until it lies still, lingers, then sinks straight down into whatever it lies
+//! on and is done once it is fully buried.
 
 use glam::{Mat3, Mat4, Quat};
 
 use petramond_math::math::{voxel_at, IVec3, Vec3};
+use petramond_world::fluid::FluidMotion;
 use petramond_world::verlet;
 
 use super::model_meta::Skeleton;
@@ -43,7 +48,18 @@ const ITERS: usize = 8;
 const POLAR_ITERS: usize = 4;
 const MAX_ANGULAR_SPEED: f32 = 24.0;
 const MAX_JOINT_SWING: f32 = 0.8;
-const LIFETIME: f32 = 1.8;
+/// A corner slower than this (blocks per second) is still.
+const REST_SPEED: f32 = 0.3;
+/// The body is at rest once every corner has been still this long.
+const REST_SECS: f32 = 0.4;
+/// A body still moving after this long (an endless current) is laid to rest where it is.
+const MAX_TUMBLE_SECS: f32 = 60.0;
+/// How long a body at rest lies still before it sinks.
+const LINGER_SECS: f32 = 1.5;
+/// How fast a body at rest sinks into what it lies on (blocks per second).
+const BURY_SPEED: f32 = 0.25;
+/// How far past its own height a body sinks before it is gone (blocks).
+const BURY_MARGIN: f32 = 0.05;
 const POP_UP: f32 = 1.0;
 const LAUNCH_SPEED: f32 = 2.5;
 const LAUNCH_UP: f32 = 1.5;
@@ -96,9 +112,20 @@ struct Weld {
     rotation: Quat,
 }
 
+/// A body that has stopped moving: how long it has lain still and how far it has sunk.
+struct Rest {
+    age: f32,
+    sunk: f32,
+    /// The body's height as it came to rest (blocks).
+    height: f32,
+}
+
 pub struct Ragdoll {
     bones: Vec<RagBone>,
     age: f32,
+    /// How long every corner has been still.
+    still: f32,
+    rest: Option<Rest>,
     seed: u64,
     launch: Vec3,
     joints: RagdollJoints,
@@ -119,6 +146,8 @@ impl Ragdoll {
         Ragdoll {
             bones: Vec::new(),
             age: 0.0,
+            still: 0.0,
+            rest: None,
             seed,
             launch,
             joints,
@@ -133,9 +162,17 @@ impl Ragdoll {
         self.init
     }
 
+    /// Fully buried.
     #[inline]
     pub fn is_done(&self) -> bool {
-        self.age >= LIFETIME
+        self.rest
+            .as_ref()
+            .is_some_and(|r| r.sunk >= r.height + BURY_MARGIN)
+    }
+
+    #[cfg(test)]
+    pub fn is_at_rest(&self) -> bool {
+        self.rest.is_some()
     }
 
     pub fn pending_pose(&self, model: &petramond_world::bbmodel::Model) -> Vec<(Vec3, Quat)> {
@@ -310,10 +347,11 @@ impl Ragdoll {
     }
 
     /// Advances one tick. `mob_pos`, `yaw` and `scale` are the transform (frozen at death) that
-    /// puts the model-space sim into the frame `solid(cell)` answers in. The caller picks that
-    /// frame, which keeps a far-away corpse's sweeps small. `solid(cell)` says whether a block
-    /// stops movement. Every corner collides against the real voxels, so the corpse can't sink
-    /// through a floor or pass through a wall, and corners hanging over an edge keep falling.
+    /// puts the model-space sim into the frame `solid(cell)` and `fluid(point)` answer in. The
+    /// caller picks that frame, which keeps a far-away corpse's sweeps small. `solid(cell)` says
+    /// whether a block stops movement, `fluid(point)` how the fluid there (if any) moves a body.
+    /// Every corner collides against the real voxels, so the corpse can't sink through a floor or
+    /// pass through a wall, and corners hanging over an edge keep falling.
     pub fn step(
         &mut self,
         dt: f32,
@@ -321,12 +359,62 @@ impl Ragdoll {
         mob_pos: Vec3,
         yaw: f32,
         solid: &impl Fn(IVec3) -> bool,
+        fluid: &impl Fn(Vec3) -> Option<FluidMotion>,
     ) {
         for b in &mut self.bones {
             b.prev_c = b.c;
             b.prev_rot = b.rot;
         }
+        self.age += dt;
+        if let Some(rest) = &mut self.rest {
+            rest.age += dt;
+            if rest.age > LINGER_SECS {
+                let sink = BURY_SPEED * dt;
+                rest.sunk += sink;
+                let down = Vec3::new(0.0, -sink / scale, 0.0);
+                for b in &mut self.bones {
+                    b.c += down;
+                    for (node, old) in b.nodes.iter_mut().zip(&mut b.nodes_old) {
+                        *node += down;
+                        *old += down;
+                    }
+                }
+            }
+            return;
+        }
+        self.tumble(dt, scale, mob_pos, yaw, solid, fluid);
+        let fastest = self.fastest_corner(scale, dt);
+        self.still = if fastest < REST_SPEED {
+            self.still + dt
+        } else {
+            0.0
+        };
+        if self.still >= REST_SECS || self.age >= MAX_TUMBLE_SECS {
+            let (lo, hi) = self
+                .bones
+                .iter()
+                .filter(|b| b.weld.is_none())
+                .flat_map(|b| b.nodes)
+                .fold((f32::INFINITY, f32::NEG_INFINITY), |(lo, hi), n| {
+                    (lo.min(n.y), hi.max(n.y))
+                });
+            self.rest = Some(Rest {
+                age: 0.0,
+                sunk: 0.0,
+                height: if lo <= hi { (hi - lo) * scale } else { 0.0 },
+            });
+        }
+    }
 
+    fn tumble(
+        &mut self,
+        dt: f32,
+        scale: f32,
+        mob_pos: Vec3,
+        yaw: f32,
+        solid: &impl Fn(IVec3) -> bool,
+        fluid: &impl Fn(Vec3) -> Option<FluidMotion>,
+    ) {
         // The corpse's model-to-world transform, `global = T(pos)·Ry(yaw)·Scale`, and its inverse.
         let ry = Quat::from_rotation_y(yaw);
         let ry_inv = Quat::from_rotation_y(-yaw);
@@ -346,7 +434,15 @@ impl Ragdoll {
                 continue;
             }
             for k in 0..8 {
-                verlet::integrate(&mut b.nodes[k], &mut b.nodes_old[k], accel, dt2, VEL_DAMP);
+                if let Some(motion) = fluid(world_of(b.nodes[k])) {
+                    // Velocities in blocks per second, through the frozen yaw and scale.
+                    let vel = ry * ((b.nodes[k] - b.nodes_old[k]) * scale / dt);
+                    let drifted = ry_inv * motion.drift(vel, dt) / scale;
+                    b.nodes_old[k] = b.nodes[k];
+                    b.nodes[k] += drifted * dt;
+                } else {
+                    verlet::integrate(&mut b.nodes[k], &mut b.nodes_old[k], accel, dt2, VEL_DAMP);
+                }
                 if solid(voxel_at(world_of(b.nodes[k] - probe))) {
                     let v = b.nodes[k] - b.nodes_old[k];
                     b.nodes_old[k].x = b.nodes[k].x - v.x * GROUND_FRICTION;
@@ -431,7 +527,6 @@ impl Ragdoll {
             b.rot = rot;
             b.c = c;
         }
-        self.age += dt;
     }
 
     fn limit_swing(&mut self, i: usize) {
@@ -503,6 +598,33 @@ impl Ragdoll {
             .iter()
             .map(|b| b.c + b.rot * (b.rest_pivot - b.c0))
             .collect()
+    }
+
+    /// How fast the fastest box corner moved this tick (blocks per second), by the rigid pose
+    /// each bone ended the tick in: the solver's own per-tick corrections (gravity pressed into
+    /// the floor and pushed back out, friction) leave the pose still.
+    fn fastest_corner(&self, scale: f32, dt: f32) -> f32 {
+        self.bones
+            .iter()
+            .filter(|b| b.weld.is_none())
+            .flat_map(|b| {
+                b.rest
+                    .iter()
+                    .map(move |r| ((b.c + b.rot * *r) - (b.prev_c + b.prev_rot * *r)).length())
+            })
+            .fold(0.0f32, f32::max)
+            * scale
+            / dt.max(1e-6)
+    }
+
+    #[cfg(test)]
+    pub fn highest_node_y(&self) -> f32 {
+        self.bones
+            .iter()
+            .filter(|b| b.weld.is_none())
+            .flat_map(|b| b.nodes)
+            .map(|n| n.y)
+            .fold(f32::NEG_INFINITY, f32::max)
     }
 
     #[cfg(test)]

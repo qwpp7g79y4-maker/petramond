@@ -909,8 +909,18 @@ fn opening_a_screen_drops_a_latched_action_so_it_cant_fire_behind_the_menu() {
 }
 
 #[test]
-fn a_killed_mob_ragdolls_then_despawns() {
-    let mut game = game_on_empty_chunk();
+fn a_killed_mob_ragdolls_lies_still_then_sinks_away() {
+    let mut game = game();
+    game.server_world_mut().clear_world();
+    let mut chunk = petramond_world::chunk::Chunk::new(0, 0);
+    for z in 0..petramond_world::chunk::CHUNK_SZ {
+        for x in 0..petramond_world::chunk::CHUNK_SX {
+            chunk.set_block(x, 63, z, Block::Grass);
+        }
+    }
+    game.server_world_mut()
+        .insert_chunk_for_test(petramond_world::chunk::ChunkPos::new(0, 0), chunk);
+    game.server_player_mut().pos = WorldPos::new(8.5, 64.0, 8.5);
     let pos = WorldPos::new(8.0, 64.0, 8.0);
     assert!(game.server_world_mut().mobs_mut().spawn(Mob::Owl, pos, 0.0));
     let id = game.server_world().mobs().instances()[0].id();
@@ -926,28 +936,28 @@ fn a_killed_mob_ragdolls_then_despawns() {
             &MobDamageFeedback::default()
         )
         .is_some());
-    assert_eq!(
-        game.server_world().mobs().len(),
-        1,
-        "the corpse is present while ragdolling"
-    );
     let player_pos = game.server_player().body_center();
     let player_body = game.server_player().body();
+    let anchors = [petramond::mob::PlayerAnchor {
+        pos: player_pos,
+        body: Some(player_body),
+        ..Default::default()
+    }];
     for _ in 0..50 {
-        game.server_world_mut().tick_mobs(
-            TICK_DT,
-            &[petramond::mob::PlayerAnchor {
-                pos: player_pos,
-                body: Some(player_body),
-                ..Default::default()
-            }],
-        );
+        game.server_world_mut().tick_mobs(TICK_DT, &anchors);
     }
     assert_eq!(
         game.server_world().mobs().len(),
-        0,
-        "the corpse despawns once the ragdoll finishes"
+        1,
+        "the body lies where it fell for a while"
     );
+    for _ in 0..400 {
+        if game.server_world().mobs().is_empty() {
+            return;
+        }
+        game.server_world_mut().tick_mobs(TICK_DT, &anchors);
+    }
+    panic!("the body sinks into the ground and is gone");
 }
 
 #[test]

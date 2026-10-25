@@ -218,9 +218,11 @@ impl Renderer {
         }
         for (i, inst) in self.actor.mobs.iter().enumerate() {
             let g = &self.actor.mob_gpu[inst.kind.0 as usize];
-            let (min, max) = if inst.ragdoll.is_some() {
-                let pad = glam::Vec3::splat(6.0);
-                (inst.pos - pad, inst.pos + pad)
+            let (min, max) = if let Some(span) = inst.ragdoll_span {
+                // The bones' pivots, padded by the body's own size so every box hanging off one
+                // stays inside.
+                let pad = glam::Vec3::splat(g.cull_r.max(g.cull_y1 - g.cull_y0));
+                (span.min - pad, span.max + pad)
             } else {
                 (
                     inst.pos + glam::Vec3::new(-g.cull_r, g.cull_y0, -g.cull_r),

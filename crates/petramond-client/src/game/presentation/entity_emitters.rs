@@ -296,7 +296,9 @@ impl GamePresentationScratch {
             let size = def.size;
             let look = m.yaw + m.head_yaw;
             let body = EmitterBody {
-                feet: m.prev_pos.lerp(m.pos, tick_alpha),
+                feet: m
+                    .ragdoll_span
+                    .map_or(m.prev_pos.lerp(m.pos, tick_alpha), |s| s.ground()),
                 size: Vec3::new(
                     size.half_width * 2.0,
                     size.height,

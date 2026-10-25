@@ -159,6 +159,29 @@ pub(crate) struct MobPoseSpecies<'m, 'c> {
     pub cache: &'c mut MobPoseCache<'m>,
 }
 
+/// Where a ragdolling body lies: its bones' pivots (`bones`, model space) placed by the frozen
+/// `pos`, `yaw` and `tilt` and the species `scale` the way the pose bake places them.
+pub fn ragdoll_span(
+    pos: petramond_math::world_pos::WorldPos,
+    yaw: f32,
+    tilt: petramond_math::math::Tilt,
+    scale: f32,
+    bones: &[(Vec3, glam::Quat)],
+) -> Option<crate::BodySpan> {
+    let frame = tilt.body_frame(yaw);
+    let (lo, hi) = bones.iter().fold(
+        (Vec3::splat(f32::INFINITY), Vec3::splat(f32::NEG_INFINITY)),
+        |(lo, hi), (p, _)| {
+            let at = frame.transform_vector3(*p * scale);
+            (lo.min(at), hi.max(at))
+        },
+    );
+    (lo.x <= hi.x).then(|| crate::BodySpan {
+        min: pos + lo,
+        max: pos + hi,
+    })
+}
+
 pub(crate) fn pose_mob_instances<'i, 'm>(
     species: MobPoseSpecies<'m, '_>,
     instances: impl IntoIterator<Item = &'i MobRenderInstance>,

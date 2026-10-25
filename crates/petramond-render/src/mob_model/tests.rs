@@ -33,6 +33,7 @@ fn instance(anim_time: f32, moving: bool) -> MobRenderInstance {
         emitter_self_lit: 0.0,
         anims: crate::ArenaRange::default(),
         ragdoll: None,
+        ragdoll_span: None,
         held: [None; 2],
     }
 }
@@ -221,5 +222,42 @@ fn anim_clips_follow_the_table_that_names_the_id() {
     assert!(
         cache.resolve(&m, ours.names(), crate::AnimId(9)).is_none(),
         "an id outside the table resolves to nothing"
+    );
+}
+
+/// A ragdoll's bones move inside the frame frozen where it died: a body that slid away and sank
+/// lies where its bones are, which is what culls it, lights it and casts its shadow.
+#[test]
+fn a_ragdolls_span_follows_its_bones_away_from_where_it_died() {
+    let died = WorldPos::new(10.0, 64.0, -5.0);
+    let scale = 0.25;
+    let yaw = std::f32::consts::FRAC_PI_2;
+    // Model space: the bones slid 24 units (6 blocks) along the body and sank 40 (10 blocks).
+    let bones = [
+        (Vec3::new(-2.0, -40.0, 22.0), glam::Quat::IDENTITY),
+        (Vec3::new(2.0, -38.0, 26.0), glam::Quat::IDENTITY),
+    ];
+    let span = super::ragdoll_span(died, yaw, petramond_math::math::Tilt::LEVEL, scale, &bones)
+        .expect("bones give a span");
+    let frame = petramond_math::math::Tilt::LEVEL.body_frame(yaw);
+    for (p, _) in bones {
+        let at = died + frame.transform_vector3(p * scale);
+        for (lo, v, hi) in [
+            (span.min.x, at.x, span.max.x),
+            (span.min.y, at.y, span.max.y),
+            (span.min.z, at.z, span.max.z),
+        ] {
+            assert!(lo - 1e-4 <= v && v <= hi + 1e-4, "{at:?} outside {span:?}");
+        }
+    }
+    let ground = span.ground();
+    assert!(
+        (ground.y - (died.y - 10.0)).abs() < 1e-3,
+        "it rests 10 blocks down: {ground:?}"
+    );
+    let moved = ((ground.x - died.x).powi(2) + (ground.z - died.z).powi(2)).sqrt();
+    assert!((moved - 6.0).abs() < 0.1, "it slid 6 blocks away: {moved}");
+    assert!(
+        super::ragdoll_span(died, yaw, petramond_math::math::Tilt::LEVEL, scale, &[]).is_none()
     );
 }

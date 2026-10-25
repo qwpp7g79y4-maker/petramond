@@ -170,6 +170,7 @@ fn bake_mobs(mobs: &[MobPresentation], alpha: f32, out: &mut Vec<MobRenderInstan
         emitter_self_lit: m.emitter_self_lit,
         anims: m.anims,
         ragdoll: m.ragdoll_pose,
+        ragdoll_span: m.ragdoll_span,
         held: if m.dead { [None; 2] } else { m.held },
     }));
 }

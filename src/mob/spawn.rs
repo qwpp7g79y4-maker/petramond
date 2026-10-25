@@ -578,9 +578,9 @@ fn too_near_existing(kind: Mob, pos: WorldPos, existing: &[Spawn]) -> bool {
 
 pub(super) fn room_for(list: &[Instance], kind: Mob) -> u32 {
     let d = def(kind);
-    let species = list.iter().filter(|m| m.kind == kind).count() as u32;
-    let category = list
-        .iter()
+    let living = || list.iter().filter(|m| !m.is_dead());
+    let species = living().filter(|m| m.kind == kind).count() as u32;
+    let category = living()
         .filter(|m| def(m.kind).category == d.category)
         .count() as u32;
     cap_room(species, d.cap, category, d.category.cap())

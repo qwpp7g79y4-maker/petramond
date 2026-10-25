@@ -139,6 +139,7 @@ fn mob_presentation(id: u64) -> MobPresentation {
         emitter_tint: [1.0; 3],
         emitter_self_lit: 0.0,
         ragdoll_pose: None,
+        ragdoll_span: None,
         held: [None; 2],
     }
 }

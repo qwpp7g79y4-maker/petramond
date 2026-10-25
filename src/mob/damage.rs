@@ -223,7 +223,15 @@ impl Instance {
                 let w = c + anchor;
                 world.data().blocks_movement_at(w.x, w.y, w.z)
             };
-            rag.step(dt, d.scale, pos.relative_to(anchor), yaw, &solid);
+            let fluid = |p: Vec3| {
+                let at = petramond_math::world_pos::WorldPos::new(
+                    f64::from(anchor.x) + f64::from(p.x),
+                    f64::from(anchor.y) + f64::from(p.y),
+                    f64::from(anchor.z) + f64::from(p.z),
+                );
+                world.data().fluid_at_point(at).map(|s| s.fluid.motion)
+            };
+            rag.step(dt, d.scale, pos.relative_to(anchor), yaw, &solid, &fluid);
         } else {
             rag.init(skeleton, d.scale, vel, yaw);
         }

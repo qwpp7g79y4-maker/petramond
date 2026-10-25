@@ -88,6 +88,32 @@ pub struct ParticlePresentation {
     pub blocklight: petramond_world::light::BlockLight6,
 }
 
+/// Where a ragdolling body lies in the world: the bounds of its bones' pivots. The pose moves
+/// inside a frame frozen where the mob died, so this, not the mob's position, is where the body
+/// is (`mob_model::ragdoll_span`).
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct BodySpan {
+    pub min: petramond_math::world_pos::WorldPos,
+    pub max: petramond_math::world_pos::WorldPos,
+}
+
+impl BodySpan {
+    pub fn centre(self) -> petramond_math::world_pos::WorldPos {
+        self.min.lerp(self.max, 0.5)
+    }
+
+    /// Under the middle of the body at its lowest bone: where it rests.
+    pub fn ground(self) -> petramond_math::world_pos::WorldPos {
+        let c = self.centre();
+        petramond_math::world_pos::WorldPos::new(c.x, self.min.y, c.z)
+    }
+
+    /// Half the body's widest horizontal extent.
+    pub fn half_width(self) -> f32 {
+        ((self.max.x - self.min.x).max(self.max.z - self.min.z) * 0.5) as f32
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct MobPresentation {
     pub id: u64,
@@ -118,6 +144,8 @@ pub struct MobPresentation {
     pub emitter_tint: [f32; 3],
     pub emitter_self_lit: f32,
     pub ragdoll_pose: Option<crate::ArenaRange>,
+    /// Where the ragdolling body lies, with `ragdoll_pose`.
+    pub ragdoll_span: Option<BodySpan>,
     pub held: [Option<petramond_world::item::ItemType>; 2],
 }
 

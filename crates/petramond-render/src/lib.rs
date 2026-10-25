@@ -51,8 +51,8 @@ pub use renderer::{
     RenderedFrame, Renderer, SchematicThumbnailer,
 };
 pub use views::BreakOverlayView;
-pub use views::EntityShadow;
 pub use views::{AnimId, AnimInterner, AnimLayer, AnimNames, GaitFade, MobArena};
+pub use views::{BodySpan, EntityShadow};
 pub use world_marks::{WorldMark, WorldMarks};
 
 pub use scene::Scene;
@@ -333,6 +333,8 @@ pub struct MobRenderInstance {
     pub emitter_self_lit: f32,
     pub anims: ArenaRange,
     pub ragdoll: Option<ArenaRange>,
+    /// Where the ragdolling body lies, with `ragdoll`.
+    pub ragdoll_span: Option<BodySpan>,
     pub held: [Option<petramond_world::item::ItemType>; 2],
 }
 

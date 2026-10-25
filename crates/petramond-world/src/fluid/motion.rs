@@ -32,6 +32,16 @@ impl FluidMotion {
         bounded + (current - bounded) * retain(self.entry_friction, dt)
     }
 
+    /// A body left to the fluid (no will of its own): its sideways speed bleeds off with the
+    /// fluid's friction and it settles toward the fluid's sink speed.
+    pub fn drift(self, velocity: Vec3, dt: f32) -> Vec3 {
+        let horizontal = self.horizontal_velocity(velocity, Vec3::ZERO, dt);
+        let vertical = self.brake_vertical(velocity.y, dt);
+        let vertical = vertical
+            + (-self.sink - vertical).clamp(-self.vertical_accel * dt, self.vertical_accel * dt);
+        Vec3::new(horizontal.x, vertical, horizontal.z)
+    }
+
     pub fn probe_height(self, body_height: f32) -> f32 {
         (body_height * self.probe_fraction + self.probe_offset).min(body_height)
     }
