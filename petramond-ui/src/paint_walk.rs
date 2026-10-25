@@ -114,6 +114,8 @@ pub(crate) struct PaintCtx<'a> {
     pub row_hover: Option<(u32, u32)>,
     pub tab_hover: Option<(u32, u32)>,
     pub preview: Option<&'a PreviewState>,
+    pub slots: &'a [crate::interact::SlotRef],
+    pub filled: Option<&'a dyn crate::runtime::SlotFill>,
 }
 
 pub(super) struct Here<'a> {

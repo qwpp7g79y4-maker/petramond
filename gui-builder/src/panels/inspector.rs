@@ -816,9 +816,34 @@ fn kind_props(
             role,
             accepts,
             take_only,
+            ghost,
         } => {
             string_prop(ui, "role", role, t);
             slot_semantics(ui, accepts, take_only, t);
+            let mut name = ghost.clone().unwrap_or_default();
+            ui.horizontal(|ui| {
+                ui.label("ghost")
+                    .on_hover_text("Image shown faded while the slot is empty");
+                if ui.text_edit_singleline(&mut name).changed() {
+                    *ghost = (!name.is_empty()).then(|| name.clone());
+                    t.changed = true;
+                }
+                if ui
+                    .button("Choose image…")
+                    .on_hover_text("Copies the PNG next to the project file")
+                    .clicked()
+                {
+                    match crate::io::choose_project_image(ctx.project_dir) {
+                        Ok(Some(chosen)) => {
+                            *ctx.status = Some(format!("copied '{chosen}' beside the project"));
+                            *ghost = Some(chosen);
+                            t.changed = true;
+                        }
+                        Ok(None) => {}
+                        Err(e) => *ctx.status = Some(e),
+                    }
+                }
+            });
         }
         NodeKind::SlotGrid {
             role,

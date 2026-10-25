@@ -1,11 +1,15 @@
 use super::{frame_src, mask, Here, Icon, PaintCtx, SceneElement, SceneView};
-use crate::doc::{GaugeMode, ImageFit, TabSpec};
+use crate::doc::{GaugeMode, ImageFit, NodeKind, TabSpec};
 use crate::layout::{grid_cell, RectI};
 use crate::paint::{Fit, PaintStyle, Painter, SpriteSrc, TexId};
 use crate::theme::{palette, FaceState};
 use crate::widget;
 
 const ICON_GAP: i32 = 4;
+/// The item icon's side inside a slot cell, which a slot's ghost takes too.
+const ICON_SIDE: i32 = 16;
+/// A ghost shows as faintly as a ghost item does (the renderer's dimmed item icon).
+const GHOST_TINT: [f32; 4] = [1.0, 1.0, 1.0, 0.35];
 
 impl<'a> PaintCtx<'a> {
     pub(super) fn container(&self, n: &Here<'a>, p: &mut Painter<'_>) {
@@ -309,10 +313,40 @@ impl<'a> PaintCtx<'a> {
     }
 
     pub(super) fn slots(&self, n: &Here<'a>, cols: u32, rows: u32, p: &mut Painter<'_>) {
+        let ghost = match &n.inst.node.kind {
+            NodeKind::Slot {
+                ghost: Some(ghost), ..
+            } => self.doc_image(Some(ghost)),
+            _ => None,
+        };
+        let site = self.slots.iter().find(|s| s.inst == n.i);
         for c in 0..cols * rows {
             let cell = grid_cell(n.rect, cols, c, self.metrics);
             if let Some(face) = n.part.and_then(|p| p.face(FaceState::Default)) {
                 self.draw_face(p, face, cell, n.clip);
+            }
+            let empty = site.is_none_or(|s| {
+                self.filled
+                    .is_none_or(|fill| !fill.filled(&s.role, s.base + c))
+            });
+            if let Some((tex, size)) = ghost.filter(|_| empty) {
+                let src = SpriteSrc {
+                    tex: TexId::DocImage(tex),
+                    rect: [0, 0, size.0, size.1],
+                    tex_size: size,
+                };
+                let inset = ((cell.w - ICON_SIDE) / 2).max(0);
+                let icon = RectI {
+                    x: cell.x + inset,
+                    y: cell.y + inset,
+                    w: cell.w - 2 * inset,
+                    h: cell.h - 2 * inset,
+                };
+                let style = PaintStyle {
+                    color: GHOST_TINT,
+                    clip: n.clip,
+                };
+                p.sprite(&src, icon, Fit::Stretch, style);
             }
             let overlay = if n.inst.selected == Some(c as i32) {
                 n.part.and_then(|p| {

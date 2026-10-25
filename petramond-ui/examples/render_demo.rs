@@ -126,6 +126,7 @@ fn main() {
             images: &NoImages,
             dim: Some([0.0, 0.0, 0.0, 0.55]),
             preview: None,
+            filled: None,
         },
         &mut fs,
         &mut out,

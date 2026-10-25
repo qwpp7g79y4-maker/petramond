@@ -321,6 +321,7 @@ impl Remap for PlayerStateRow {
             held_data: _,
             off_hand_item,
             off_hand_data: _,
+            worn,
             mining: _,
             eating: _,
             eating_off_hand: _,
@@ -336,6 +337,9 @@ impl Remap for PlayerStateRow {
         remap_conditions(map, conditions);
         map.optional_item(held_item);
         map.optional_item(off_hand_item);
+        for item in worn {
+            map.optional_item(item);
+        }
         for shown in held_display {
             map.optional_item(shown);
         }

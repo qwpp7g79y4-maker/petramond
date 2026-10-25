@@ -40,6 +40,8 @@ pub(super) struct RawItemDef {
     pub food: Option<RawFood>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dropped_reaction: Option<RawDroppedReaction>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wear: Option<super::wear::RawWear>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -505,6 +507,11 @@ fn convert(
         }
         None => None,
     };
+    let wear = r
+        .wear
+        .as_ref()
+        .map(super::wear::RawWear::resolve)
+        .transpose()?;
     if let Some(pose) = &r.held_pose {
         if pose
             .grip
@@ -553,6 +560,7 @@ fn convert(
         food,
         dropped_reaction,
         projectile,
+        wear,
         data,
     })
 }

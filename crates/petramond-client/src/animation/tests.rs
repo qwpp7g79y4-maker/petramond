@@ -15,6 +15,7 @@ fn body_at(pos: WorldPos) -> BodyInput {
         blocklight: BlockLight6::DARK,
         state: BodyState::default(),
         bones: ArenaRange::default(),
+        worn: Default::default(),
     }
 }
 

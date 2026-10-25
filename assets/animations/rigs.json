@@ -5,7 +5,9 @@
     "observed": true,
     "presenter": "body",
     "grips": {"main": "left_item", "off": "right_item"},
-    "twist": ["waist", "body"]
+    "twist": ["waist", "body"],
+    "wear": {"head": "head"},
+    "mouth": {"bone": "head", "at": [0, 26, -4.2]}
   },
   "player_first_person": {
     "model": "models/entities/player_first_person.bbmodel",

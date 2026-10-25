@@ -298,8 +298,20 @@ impl AppUi {
         now: f64,
         dim: Option<[f32; 4]>,
     ) -> bool {
+        self.frame_filled(kind, screen, now, dim, None)
+    }
+
+    /// A frame whose slots draw their ghosts by what `filled` says they hold.
+    pub fn frame_filled(
+        &mut self,
+        kind: GuiKind,
+        screen: (u32, u32),
+        now: f64,
+        dim: Option<[f32; 4]>,
+        filled: Option<&dyn petramond_ui::runtime::SlotFill>,
+    ) -> bool {
         let viewport = petramond::gui::UiViewport::new(screen, self.viewport_generation);
-        self.frame_in(kind, viewport, now, dim)
+        self.frame_in_filled(kind, viewport, now, dim, filled)
     }
 
     pub fn frame_in(
@@ -308,6 +320,17 @@ impl AppUi {
         viewport: petramond::gui::UiViewport,
         now: f64,
         dim: Option<[f32; 4]>,
+    ) -> bool {
+        self.frame_in_filled(kind, viewport, now, dim, None)
+    }
+
+    fn frame_in_filled(
+        &mut self,
+        kind: GuiKind,
+        viewport: petramond::gui::UiViewport,
+        now: f64,
+        dim: Option<[f32; 4]>,
+        filled: Option<&dyn petramond_ui::runtime::SlotFill>,
     ) -> bool {
         let Some(doc) = documents::doc_for(kind) else {
             self.input.clear();
@@ -356,6 +379,7 @@ impl AppUi {
                 images: &images,
                 dim,
                 preview: None,
+                filled,
             },
             &mut self.fs,
             &mut self.out,

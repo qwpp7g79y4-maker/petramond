@@ -9,6 +9,7 @@ pub enum MenuSlotWire {
     CraftResult,
     Container(u32),
     Widget(String),
+    Worn(u8),
 }
 
 impl MenuSlotWire {
@@ -17,6 +18,7 @@ impl MenuSlotWire {
         match slot {
             MenuSlot::Inventory(i) => Self::Inventory(*i as u32),
             MenuSlot::OffHand => Self::OffHand,
+            MenuSlot::Worn(slot) => Self::Worn(slot.to_u8()),
             MenuSlot::CraftResult => Self::CraftResult,
             MenuSlot::Container(i) => Self::Container(*i as u32),
             MenuSlot::Widget(id) => Self::Widget((*id).to_string()),
@@ -30,6 +32,9 @@ impl MenuSlotWire {
         Some(match self {
             Self::Inventory(i) => MenuSlot::Inventory(*i as usize),
             Self::OffHand => MenuSlot::OffHand,
+            Self::Worn(slot) => {
+                MenuSlot::Worn(petramond_world::inventory::WearSlot::try_from_u8(*slot)?)
+            }
             Self::CraftResult => MenuSlot::CraftResult,
             Self::Container(i) => MenuSlot::Container(*i as usize),
             Self::Widget(id) => MenuSlot::Widget(crate::menu::slots::declared_widget(id)?),

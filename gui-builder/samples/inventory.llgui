@@ -402,6 +402,26 @@
             "h": "auto",
             "pad": [
               4,
+              4,
+              4,
+              4
+            ],
+            "margin": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "gap": 0,
+            "dir": "column",
+            "align": "stretch",
+            "justify": "start"
+          },
+          "compact_layout": {
+            "w": "auto",
+            "h": "auto",
+            "pad": [
+              4,
               3,
               4,
               4
@@ -412,26 +432,58 @@
               0,
               0
             ],
-            "gap": 6,
+            "gap": 0,
             "dir": "column",
-            "align": "stretch",
-            "justify": "space_between"
+            "align": "center",
+            "justify": "start"
           },
           "style": "panel.large",
           "children": [
             {
-              "type": "label",
-              "text": "Inventory"
-            },
-            {
               "type": "column",
-              "children": [
-                {
-                  "type": "slot_grid",
-                  "role": "player_inv",
-                  "cols": 9,
-                  "rows": 3
+              "layout": {
+                "w": "auto",
+                "h": {
+                  "grow": 1
                 },
+                "pad": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "gap": 6,
+                "dir": "column",
+                "align": "stretch",
+                "justify": "space_between"
+              },
+              "compact_layout": {
+                "w": "auto",
+                "h": "auto",
+                "pad": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "gap": 2,
+                "dir": "column",
+                "align": "stretch",
+                "justify": "start"
+              },
+              "children": [
                 {
                   "type": "row",
                   "layout": {
@@ -445,24 +497,186 @@
                     ],
                     "margin": [
                       0,
-                      2,
+                      0,
                       0,
                       0
                     ],
                     "gap": 4,
                     "dir": "column",
+                    "align": "stretch",
+                    "justify": "start"
+                  },
+                  "compact_layout": {
+                    "w": "auto",
+                    "h": "auto",
+                    "pad": [
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "margin": [
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "gap": 0,
+                    "dir": "column",
+                    "align": "stretch",
                     "justify": "start"
                   },
                   "children": [
                     {
+                      "type": "frame",
+                      "layout": {
+                        "w": {
+                          "grow": 1
+                        },
+                        "h": "auto",
+                        "pad": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "margin": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "gap": 0,
+                        "dir": "column",
+                        "justify": "end"
+                      },
+                      "compact_layout": {
+                        "w": {
+                          "grow": 1
+                        },
+                        "h": "auto",
+                        "pad": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "margin": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "gap": 0,
+                        "dir": "row",
+                        "justify": "start"
+                      },
+                      "children": [
+                        {
+                          "type": "slot",
+                          "role": "off_hand",
+                          "ghost": "../../textures/gui/slot/off_hand.png"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "layout": {
+                        "w": "auto",
+                        "h": "auto",
+                        "pad": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "margin": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "gap": 4,
+                        "dir": "column",
+                        "justify": "start"
+                      },
+                      "compact_layout": {
+                        "w": "auto",
+                        "h": "auto",
+                        "pad": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "margin": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "gap": 0,
+                        "dir": "row",
+                        "justify": "start"
+                      },
+                      "children": [
+                        {
+                          "type": "slot",
+                          "role": "worn_head",
+                          "ghost": "../../textures/gui/slot/head.png"
+                        },
+                        {
+                          "type": "slot",
+                          "role": "worn_chest",
+                          "ghost": "../../textures/gui/slot/chest.png"
+                        },
+                        {
+                          "type": "slot",
+                          "role": "worn_legs",
+                          "ghost": "../../textures/gui/slot/legs.png"
+                        },
+                        {
+                          "type": "slot",
+                          "role": "worn_feet",
+                          "ghost": "../../textures/gui/slot/feet.png"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "column",
+                  "children": [
+                    {
+                      "type": "slot_grid",
+                      "role": "player_inv",
+                      "cols": 9,
+                      "rows": 3
+                    },
+                    {
                       "type": "slot_grid",
                       "role": "hotbar",
                       "cols": 9,
-                      "rows": 1
-                    },
-                    {
-                      "type": "slot",
-                      "role": "off_hand"
+                      "rows": 1,
+                      "layout": {
+                        "w": "auto",
+                        "h": "auto",
+                        "pad": [
+                          0,
+                          0,
+                          0,
+                          0
+                        ],
+                        "margin": [
+                          0,
+                          2,
+                          0,
+                          0
+                        ],
+                        "gap": 0,
+                        "dir": "column",
+                        "justify": "start"
+                      }
                     }
                   ]
                 }

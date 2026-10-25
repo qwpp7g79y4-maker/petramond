@@ -74,6 +74,7 @@ mod tests {
                 images: &NoImages,
                 dim: None,
                 preview: None,
+                filled: None,
             },
             &mut frame,
             &mut out,

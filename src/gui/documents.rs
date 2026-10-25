@@ -1,7 +1,7 @@
 use super::GuiKind;
 use crate::menu::slots::{doc_container_specs, ItemTags, DOCUMENTS_DIR};
 use petramond_ui::contract::{self, image_refs, validate_for_engine, EngineCheck};
-use petramond_ui::{DocClass, Document, Node, NodeKind, SlotContract};
+use petramond_ui::{DocClass, Document, Node, NodeKind};
 use petramond_world::container::{MAX_CONTAINER_SLOTS, MAX_SLOT_FILTERS};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -101,13 +101,6 @@ const _: () = {
     assert!(ui::IMAGE_MAX_SIDE == mod_api::GUI_IMAGE_MAX_SIDE);
     assert!(ui::IMAGE_MAX_FRAMES == mod_api::GUI_IMAGE_MAX_FRAMES);
 };
-
-pub fn contract_for(kind: GuiKind) -> SlotContract {
-    super::kind_key(kind)
-        .and_then(contract::engine_kind)
-        .map(|k| k.contract())
-        .unwrap_or_default()
-}
 
 fn file_mtime(path: &std::path::Path) -> Option<SystemTime> {
     std::fs::metadata(path).and_then(|m| m.modified()).ok()

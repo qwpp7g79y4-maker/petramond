@@ -146,33 +146,110 @@
         "type": "column",
         "style": "panel.large",
         "layout": {
-          "pad": [4, 3, 4, 4],
-          "gap": 6,
-          "justify": "space_between",
+          "pad": [4, 4, 4, 4],
           "align": "stretch"
         },
+        "compact_layout": {
+          "pad": [4, 3, 4, 4],
+          "align": "center"
+        },
         "children": [
-          { "type": "label", "text": "Inventory" },
           {
             "type": "column",
+            "layout": {
+              "h": { "grow": 1 },
+              "gap": 6,
+              "justify": "space_between",
+              "align": "stretch"
+            },
+            "compact_layout": { "gap": 2, "align": "stretch" },
             "children": [
               {
-                "type": "slot_grid",
-                "role": "player_inv",
-                "cols": 9,
-                "rows": 3
+                "type": "row",
+                "layout": { "gap": 4, "align": "stretch" },
+                "compact_layout": { "align": "stretch" },
+                "children": [
+                  {
+                    "type": "frame",
+                    "layout": {
+                      "w": { "grow": 1 },
+                      "dir": "column",
+                      "justify": "end"
+                    },
+                    "compact_layout": {
+                      "w": { "grow": 1 },
+                      "dir": "row",
+                      "justify": "start"
+                    },
+                    "children": [
+                      {
+                        "type": "slot",
+                        "role": "off_hand",
+                        "ghost": "../../textures/gui/slot/off_hand.png"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "frame",
+                    "style": "panel.inset",
+                    "layout": { "pad": [1, 1, 1, 1] },
+                    "compact_layout": { "w": 0, "h": 0, "pad": [0, 0, 0, 0] },
+                    "children": [
+                      {
+                        "type": "image",
+                        "id": "player_view",
+                        "image": "",
+                        "layout": { "w": 48, "h": 82 },
+                        "compact_layout": { "w": 0, "h": 0 },
+                        "bind": { "image": "player_view" }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "frame",
+                    "layout": { "dir": "column", "gap": 4 },
+                    "compact_layout": { "dir": "row" },
+                    "children": [
+                      {
+                        "type": "slot",
+                        "role": "worn_head",
+                        "ghost": "../../textures/gui/slot/head.png"
+                      },
+                      {
+                        "type": "slot",
+                        "role": "worn_chest",
+                        "ghost": "../../textures/gui/slot/chest.png"
+                      },
+                      {
+                        "type": "slot",
+                        "role": "worn_legs",
+                        "ghost": "../../textures/gui/slot/legs.png"
+                      },
+                      {
+                        "type": "slot",
+                        "role": "worn_feet",
+                        "ghost": "../../textures/gui/slot/feet.png"
+                      }
+                    ]
+                  }
+                ]
               },
               {
-                "type": "row",
-                "layout": { "gap": 4, "margin": [0, 2, 0, 0] },
+                "type": "column",
                 "children": [
+                  {
+                    "type": "slot_grid",
+                    "role": "player_inv",
+                    "cols": 9,
+                    "rows": 3
+                  },
                   {
                     "type": "slot_grid",
                     "role": "hotbar",
                     "cols": 9,
-                    "rows": 1
-                  },
-                  { "type": "slot", "role": "off_hand" }
+                    "rows": 1,
+                    "layout": { "margin": [0, 2, 0, 0] }
+                  }
                 ]
               }
             ]

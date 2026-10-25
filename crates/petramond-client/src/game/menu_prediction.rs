@@ -90,6 +90,7 @@ impl Game {
             MenuSlot::OffHand => {
                 slot_capacity(&self.replica.self_view.inventory.off_hand().copied(), held)
             }
+            MenuSlot::Worn(worn) => self.replica.self_view.inventory.worn_capacity(worn, held),
             MenuSlot::Container(i)
                 if petramond_world::container::slot_admits(
                     specs,
@@ -127,6 +128,7 @@ impl Game {
                 inventory.place_cursor_count_in_external_slot(&mut cell, wanted);
                 *inventory.off_hand_mut() = cell;
             }
+            MenuSlot::Worn(worn) => inventory.place_cursor_in_worn(worn, wanted),
             MenuSlot::Container(i)
                 if petramond_world::container::slot_admits(
                     specs,
@@ -167,7 +169,7 @@ impl Game {
         let v = &self.replica.menu_view;
         match slot {
             MenuSlot::Inventory(_) => !(shift || gather) || v.container.is_none(),
-            MenuSlot::OffHand => !gather || v.container.is_none(),
+            MenuSlot::OffHand | MenuSlot::Worn(_) => !gather || v.container.is_none(),
             MenuSlot::Container(i) => {
                 !shift
                     && !gather
@@ -248,6 +250,15 @@ impl Game {
                     *inv.off_hand_mut() = cell;
                 }
             }
+            MenuSlot::Worn(worn) => {
+                if shift {
+                    inv.shift_unwear(worn);
+                } else if gather {
+                    inv.collect_to_cursor();
+                } else {
+                    inv.click_worn(worn);
+                }
+            }
             MenuSlot::Container(i) => {
                 let Some(kind) = self.replica.menu_view.container_kind else {
                     return;
@@ -288,6 +299,7 @@ impl Game {
                 slot,
                 petramond_world::gui_state::MenuSlot::Inventory(_)
                     | petramond_world::gui_state::MenuSlot::OffHand
+                    | petramond_world::gui_state::MenuSlot::Worn(_)
             ) {
                 self.begin_inventory_prediction()
             } else {
@@ -315,6 +327,7 @@ impl Game {
             slot,
             petramond_world::gui_state::MenuSlot::Inventory(_)
                 | petramond_world::gui_state::MenuSlot::OffHand
+                | petramond_world::gui_state::MenuSlot::Worn(_)
         ) {
             self.begin_inventory_prediction()
         } else {
@@ -330,6 +343,9 @@ impl Game {
                         self.replica.self_view.inventory.off_hand_mut(),
                         all,
                     );
+                }
+                petramond_world::gui_state::MenuSlot::Worn(worn) => {
+                    self.replica.self_view.inventory.take_worn(worn);
                 }
                 _ => {}
             }
@@ -364,7 +380,9 @@ impl Game {
                 self.begin_menu_prediction()
             }
             MenuSlot::Container(_) => (false, self.prediction.begin_track_only()),
-            MenuSlot::OffHand | MenuSlot::CraftResult | MenuSlot::Widget(_) => return,
+            MenuSlot::OffHand | MenuSlot::Worn(_) | MenuSlot::CraftResult | MenuSlot::Widget(_) => {
+                return
+            }
         };
         if can {
             match slot {
@@ -402,6 +420,7 @@ impl Game {
         match slot {
             MenuSlot::Inventory(i) => self.replica.self_view.inventory.slot(i).is_some(),
             MenuSlot::OffHand => self.replica.self_view.inventory.off_hand().is_some(),
+            MenuSlot::Worn(worn) => self.replica.self_view.inventory.worn(worn).is_some(),
             MenuSlot::CraftResult => self.replica.menu_view.craft_output.is_some(),
             MenuSlot::Container(i) => self
                 .replica

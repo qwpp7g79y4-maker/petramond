@@ -88,6 +88,8 @@ pub struct BlockDisplay {
     pub thirdperson_righthand: DisplayTransform,
     pub thirdperson_lefthand: Option<DisplayTransform>,
     pub ground: DisplayTransform,
+    /// Worn on the head.
+    pub head: DisplayTransform,
 }
 
 impl BlockDisplay {
@@ -106,6 +108,7 @@ impl BlockDisplay {
             thirdperson_righthand: ctx("thirdperson_righthand"),
             thirdperson_lefthand: opt_ctx("thirdperson_lefthand"),
             ground: ctx("ground"),
+            head: ctx("head"),
         }
     }
 }

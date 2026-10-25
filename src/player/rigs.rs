@@ -26,6 +26,9 @@ struct RawRig {
     twist: Vec<String>,
     #[serde(default)]
     holds: BTreeMap<String, String>,
+    /// The bone each wear slot's item rides on, by slot key.
+    #[serde(default)]
+    wear: BTreeMap<String, String>,
     /// Where the body's mouth emitters sit.
     #[serde(default)]
     mouth: Option<RawBonePoint>,
@@ -84,6 +87,7 @@ pub struct Rig {
     pub camera: Option<usize>,
     pub twist: Vec<usize>,
     pub holds: Vec<(&'static str, ClipId)>,
+    pub wear: [Option<WearBone>; petramond_world::inventory::WEAR_SLOTS],
     pub mouth: Option<BonePoint>,
 }
 
@@ -92,6 +96,30 @@ pub struct Rig {
 pub struct BonePoint {
     pub bone: usize,
     pub at: glam::Vec3,
+}
+
+/// Where a wear slot's item sits: on `bone`, centred on that bone's own cubes at rest (model
+/// pixels), so a helmet centres on the head whatever the model's proportions.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct WearBone {
+    pub bone: usize,
+    pub anchor: glam::Vec3,
+}
+
+impl WearBone {
+    fn of(model: &Model, bone: usize) -> Self {
+        let cubes = model.cubes.iter().filter(|c| c.bone == bone);
+        let (lo, hi) = cubes.fold(
+            (glam::Vec3::splat(f32::MAX), glam::Vec3::splat(f32::MIN)),
+            |(lo, hi), c| (lo.min(c.from.min(c.to)), hi.max(c.from.max(c.to))),
+        );
+        let anchor = if lo.x <= hi.x {
+            (lo + hi) * 0.5
+        } else {
+            model.bones[bone].pivot
+        };
+        Self { bone, anchor }
+    }
 }
 
 impl Rig {
@@ -192,6 +220,12 @@ fn rig_from(
         .iter()
         .map(|v| bone(v, "twist"))
         .collect::<Result<_, _>>()?;
+    let mut wear = [None; petramond_world::inventory::WEAR_SLOTS];
+    for (slot, bone_name) in &row.wear {
+        let slot = petramond_world::inventory::WearSlot::from_key(slot)
+            .ok_or_else(|| format!("`wear.{slot}`: not a wear slot"))?;
+        wear[slot.index()] = Some(WearBone::of(&model, bone(bone_name, "wear")?));
+    }
     let mouth = row
         .mouth
         .as_ref()
@@ -233,6 +267,7 @@ fn rig_from(
         camera,
         twist,
         holds,
+        wear,
         mouth,
     })
 }

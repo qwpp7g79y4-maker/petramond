@@ -31,6 +31,7 @@ pub(super) fn build(
         let inv = &view.inventory;
         snapshot.active = inv.active_slot();
         snapshot.off_hand = inv.off_hand().copied();
+        snapshot.worn = *inv.raw_worn();
         snapshot.health = view.health_view();
         snapshot.breath = view.breath_view();
         snapshot.effects = view.effect_icons();
@@ -79,6 +80,9 @@ fn preview_capacity(
             .map(|cell| slot_capacity(cell, held))
             .unwrap_or(0),
         MenuSlot::OffHand => slot_capacity(&snapshot.off_hand, held),
+        MenuSlot::Worn(worn) => {
+            u8::from(snapshot.worn[worn.index()].is_none() && worn.admits(held))
+        }
         MenuSlot::Container(i)
             if petramond_world::container::slot_admits(
                 specs,
@@ -112,6 +116,13 @@ fn preview_place(
         return;
     }
 
+    if let MenuSlot::Worn(worn) = slot {
+        if wanted > 0 && cursor.as_ref().is_some_and(|held| worn.admits(held)) {
+            place_cursor_count(cursor, &mut snapshot.worn[worn.index()], 1);
+        }
+        return;
+    }
+
     let cell = match slot {
         MenuSlot::OffHand => Some(&mut snapshot.off_hand),
         MenuSlot::Container(i)
@@ -128,6 +139,7 @@ fn preview_place(
                 .and_then(|container| container.slots.get_mut(i))
         }
         MenuSlot::Inventory(_)
+        | MenuSlot::Worn(_)
         | MenuSlot::CraftResult
         | MenuSlot::Container(_)
         | MenuSlot::Widget(_) => None,

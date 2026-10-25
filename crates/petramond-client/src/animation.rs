@@ -39,6 +39,7 @@ pub struct BodyInput {
     pub blocklight: BlockLight6,
     pub state: BodyState,
     pub bones: ArenaRange,
+    pub worn: [Option<petramond_world::item::ItemType>; petramond_world::inventory::WEAR_SLOTS],
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -310,5 +311,6 @@ fn pose_row(
         },
         held: held[0],
         held_off: held[1],
+        worn: body.worn,
     }
 }

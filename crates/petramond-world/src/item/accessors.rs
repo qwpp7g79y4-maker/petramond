@@ -99,6 +99,11 @@ impl ItemType {
     }
 
     #[inline]
+    pub fn wear(self) -> Option<super::Wear> {
+        self.def().wear
+    }
+
+    #[inline]
     pub fn dropped_reaction(self) -> Option<DroppedReaction> {
         self.def().dropped_reaction
     }

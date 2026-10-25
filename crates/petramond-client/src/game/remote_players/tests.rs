@@ -23,6 +23,7 @@ fn row(id: u8, pos: WorldPos) -> PlayerStateRow {
         held_data: None,
         off_hand_item: None,
         off_hand_data: None,
+        worn: Vec::new(),
         mining: None,
         eating: false,
         eating_off_hand: false,

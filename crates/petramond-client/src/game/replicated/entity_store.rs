@@ -210,6 +210,7 @@ impl AssignFrom for PlayerStateRow {
             held_data,
             off_hand_item,
             off_hand_data,
+            worn,
             mining,
             eating,
             eating_off_hand,
@@ -235,6 +236,7 @@ impl AssignFrom for PlayerStateRow {
         self.held_data.clone_from(held_data);
         self.off_hand_item = *off_hand_item;
         self.off_hand_data.clone_from(off_hand_data);
+        self.worn.clone_from(worn);
         self.mining = *mining;
         self.eating = *eating;
         self.eating_off_hand = *eating_off_hand;

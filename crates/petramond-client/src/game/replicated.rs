@@ -634,20 +634,11 @@ pub fn inventory_from_wire(
     slots: &[Option<petramond::net::protocol::ItemSlotWire>],
     active: u8,
 ) -> Inventory {
-    let mut grid: [Option<ItemStack>; petramond_world::inventory::TOTAL_SLOTS] =
-        [None; petramond_world::inventory::TOTAL_SLOTS];
-    for (dst, src) in grid.iter_mut().zip(slots.iter()) {
-        *dst = src.as_ref().map(ItemSlotWire::to_stack);
-    }
-    let cursor = slots
-        .get(petramond_world::inventory::TOTAL_SLOTS)
-        .and_then(|s| s.as_ref())
-        .map(ItemSlotWire::to_stack);
-    let off_hand = slots
-        .get(petramond_world::inventory::TOTAL_SLOTS + 1)
-        .and_then(|s| s.as_ref())
-        .map(ItemSlotWire::to_stack);
-    Inventory::from_parts(grid, cursor, off_hand, active)
+    let cells: Vec<Option<ItemStack>> = slots
+        .iter()
+        .map(|s| s.as_ref().map(ItemSlotWire::to_stack))
+        .collect();
+    Inventory::from_cells(&cells, active)
 }
 
 pub fn lerp_ragdoll(
@@ -945,6 +936,13 @@ impl Game {
                     )
                     .collect(),
             );
+            // The engine claim the local player predicts with folds in what is worn.
+            for slot in petramond_world::inventory::WearSlot::ALL {
+                let worn = self.replica.self_view.inventory.worn(slot).copied();
+                if self.local.player.inventory.worn(slot) != worn.as_ref() {
+                    self.local.player.inventory.set_worn(slot, worn);
+                }
+            }
             self.local.player.adopt_resolved_body(
                 self.replica.self_view.move_scale,
                 self.replica.self_view.fly_scale,

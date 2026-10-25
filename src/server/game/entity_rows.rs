@@ -187,6 +187,13 @@ impl ServerGame {
                 .off_hand()
                 .and_then(|st| petramond_world::item::variant::blob(st.variant))
                 .map(|b| (*b).clone()),
+            worn: sess
+                .player
+                .inventory
+                .raw_worn()
+                .iter()
+                .map(|st| st.map(|st| st.item.0))
+                .collect(),
             mining: sess.sim.mining.overlay(),
             eating: sess.sim.eating.is_some(),
             eating_off_hand: sess

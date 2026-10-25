@@ -345,6 +345,7 @@ mod tests {
                 images: &NoImages,
                 dim: None,
                 preview: None,
+                filled: None,
             },
             fs,
             &mut FrameOutput::default(),

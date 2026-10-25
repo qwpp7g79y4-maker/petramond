@@ -28,5 +28,6 @@ pub(super) struct ItemDef {
     pub food: Option<super::FoodDef>,
     pub dropped_reaction: Option<super::DroppedReaction>,
     pub projectile: Option<super::Projectile>,
+    pub wear: Option<super::Wear>,
     pub data: &'static [(&'static str, &'static str)],
 }

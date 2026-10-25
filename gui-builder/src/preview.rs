@@ -116,6 +116,7 @@ pub fn render_rgba(
             images,
             dim: None,
             preview: forced,
+            filled: None,
         },
         fs,
         &mut out,

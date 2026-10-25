@@ -269,6 +269,7 @@ fn break_overlays_collect_own_and_visible_remote_miners() {
             held_data: None,
             off_hand_item: None,
             off_hand_data: None,
+            worn: Vec::new(),
             mining,
             eating: false,
             eating_off_hand: false,

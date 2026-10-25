@@ -138,6 +138,9 @@ impl ServerGame {
         if let Some(stack) = self.sessions[s].player.inventory.take_off_hand() {
             stacks.push(stack);
         }
+        for slot in petramond_world::inventory::WearSlot::ALL {
+            stacks.extend(self.sessions[s].player.inventory.take_worn(slot));
+        }
         let cell = (
             centre.x.floor() as i32,
             centre.y.floor() as i32,

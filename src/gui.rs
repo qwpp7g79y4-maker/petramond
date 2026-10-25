@@ -3,7 +3,6 @@ pub mod documents;
 
 use petramond_world::inventory::{HOTBAR_LEN, TOTAL_SLOTS};
 use petramond_world::item::{ItemStack, ItemType};
-use serde::Deserialize;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -25,16 +24,19 @@ pub enum DocImageSource {
     },
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Deserialize)]
-#[serde(rename_all = "snake_case")]
+/// The image the renderer draws the local player into (the inventory's figure).
+pub const PLAYER_VIEW_IMAGE: &str = "petramond:player";
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Role {
     Generic,
     PlayerInv,
     Hotbar,
     OffHand,
+    /// A worn equipment slot, keyed `worn_<slot>` (`worn_head`).
+    Worn(petramond_world::inventory::WearSlot),
     CraftResult,
     Container,
-    #[serde(other)]
     Other,
 }
 
@@ -46,7 +48,10 @@ impl Role {
             "off_hand" => Role::OffHand,
             "craft_result" => Role::CraftResult,
             "container" => Role::Container,
-            _ => return None,
+            _ => Role::Worn(
+                key.strip_prefix("worn_")
+                    .and_then(petramond_world::inventory::WearSlot::from_key)?,
+            ),
         })
     }
 
@@ -55,6 +60,7 @@ impl Role {
             Role::Hotbar => MenuSlot::Inventory(i),
             Role::PlayerInv => MenuSlot::Inventory(HOTBAR_LEN + i),
             Role::OffHand => MenuSlot::OffHand,
+            Role::Worn(slot) => MenuSlot::Worn(slot),
             Role::CraftResult => MenuSlot::CraftResult,
             Role::Container => MenuSlot::Container(i),
             Role::Generic | Role::Other => return None,
@@ -140,6 +146,7 @@ pub struct UiSnapshot {
     pub active: u8,
     pub slots: [Option<ItemStack>; TOTAL_SLOTS],
     pub off_hand: Option<ItemStack>,
+    pub worn: [Option<ItemStack>; petramond_world::inventory::WEAR_SLOTS],
     pub craft_output: Option<ItemStack>,
     pub craft_recipes: Vec<CraftingRecipeView>,
     pub craft_tip: Option<CraftingRecipeView>,
@@ -151,6 +158,32 @@ pub struct UiSnapshot {
     pub gui_state: Option<Arc<GuiStateMap>>,
     pub hurt_flash: f32,
     pub heart_wiggle: Option<(i32, i32, f32)>,
+    /// The view is the player's own eyes, so what they wear frames it.
+    pub first_person: bool,
+}
+
+impl UiSnapshot {
+    /// The stack a document slot of `role` at `index` shows.
+    pub fn stack_in(&self, role: Role, index: usize) -> Option<ItemStack> {
+        match role {
+            Role::Hotbar => self.slots.get(index).copied().flatten(),
+            Role::PlayerInv => self.slots.get(HOTBAR_LEN + index).copied().flatten(),
+            Role::OffHand => self.off_hand,
+            Role::Worn(slot) => self.worn[slot.index()],
+            Role::CraftResult => self.craft_output,
+            Role::Container => self
+                .container
+                .as_ref()
+                .and_then(|c| c.slots.get(index).copied().flatten()),
+            Role::Generic | Role::Other => None,
+        }
+    }
+}
+
+impl petramond_ui::runtime::SlotFill for UiSnapshot {
+    fn filled(&self, role: &str, index: u32) -> bool {
+        Role::from_key(role).is_some_and(|role| self.stack_in(role, index as usize).is_some())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -188,6 +221,7 @@ impl Default for UiSnapshot {
             active: 0,
             slots: [None; TOTAL_SLOTS],
             off_hand: None,
+            worn: [None; petramond_world::inventory::WEAR_SLOTS],
             craft_output: None,
             craft_recipes: Vec::new(),
             craft_tip: None,
@@ -198,6 +232,7 @@ impl Default for UiSnapshot {
             effects: Vec::new(),
             gui_state: None,
             hurt_flash: 0.0,
+            first_person: false,
             heart_wiggle: None,
         }
     }

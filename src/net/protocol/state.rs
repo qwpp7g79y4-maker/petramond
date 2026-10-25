@@ -75,6 +75,8 @@ pub struct PlayerStateRow {
     pub held_data: Option<Vec<u8>>,
     pub off_hand_item: Option<u16>,
     pub off_hand_data: Option<Vec<u8>>,
+    /// What each wear slot holds, by `WearSlot` index.
+    pub worn: Vec<Option<u16>>,
     pub mining: Option<(IVec3, u8)>,
     pub eating: bool,
     pub eating_off_hand: bool,
@@ -139,9 +141,10 @@ pub struct SelfState {
     pub mode: u8,
     pub effects: Vec<(u8, u32)>,
     pub inventory_revision: u64,
-    /// All 36 slots in index order, then the cursor stack, then the off-hand
-    /// stack LAST (the `SelfRestore` layout). `None` while the revision hasn't
-    /// moved since the last update the recipient saw.
+    /// `Inventory::cells`: all 36 slots in index order, the cursor stack, the
+    /// off-hand stack, then the worn slots head to feet (the `SelfRestore`
+    /// layout). `None` while the revision hasn't moved since the last update
+    /// the recipient saw.
     ///
     /// The active hotbar INDEX and the own mining overlay deliberately do NOT
     /// ride here: both are client-owned (the index rides `PlayerUpdate`, the

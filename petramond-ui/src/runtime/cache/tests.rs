@@ -61,6 +61,7 @@ fn frame(
             images: &NoImages,
             dim: None,
             preview: None,
+            filled: None,
         },
         fs,
         out,

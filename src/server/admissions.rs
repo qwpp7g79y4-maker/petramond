@@ -291,11 +291,7 @@ pub(in crate::server) fn self_restore_from(player: &Player) -> SelfRestore {
             .collect(),
         inventory: player
             .inventory
-            .raw_slots()
-            .iter()
-            .copied()
-            .chain(std::iter::once(player.inventory.cursor().copied()))
-            .chain(std::iter::once(player.inventory.off_hand().copied()))
+            .cells()
             .map(|slot| slot.map(ItemSlotWire::from_stack))
             .collect(),
         active_slot: player.inventory.active_slot(),

@@ -66,6 +66,7 @@ fn paint(doc_json: &str, state: &UiState, images: &dyn DocImages, now: f64) -> F
             images,
             dim: None,
             preview: None,
+            filled: None,
         },
         &mut fs,
         &mut out,
@@ -151,6 +152,7 @@ fn image_backed_button_sizes_to_one_frame_and_still_clicks() {
                 images: &images,
                 dim: None,
                 preview: None,
+                filled: None,
             },
             fs,
             out,
@@ -209,4 +211,62 @@ fn bound_image_overrides_an_image_backed_buttons_sheet() {
     assert!(doc_image_batch(&out, 0).is_none());
     let r = out.rect("go").expect("button rect");
     assert_eq!((r.w, r.h), (16, 16));
+}
+
+const GHOST_SLOT_DOC: &str = r#"{
+    "format": 1, "kind": "petramond:ghosts", "class": "screen",
+    "root": { "type": "frame", "children": [
+        { "type": "slot", "role": "worn", "ghost": "outline" },
+        { "type": "slot", "role": "worn", "ghost": "outline" }
+    ] }
+}"#;
+
+struct Holding(u32);
+
+impl crate::runtime::SlotFill for Holding {
+    fn filled(&self, role: &str, index: u32) -> bool {
+        role == "worn" && index == self.0
+    }
+}
+
+#[test]
+fn a_slot_shows_its_ghost_only_while_it_holds_nothing() {
+    let images = Sheets(&[("outline", 7, (16, 16))]);
+    let rt = UiRuntime::new(
+        Arc::new(Document::from_json(GHOST_SLOT_DOC).unwrap()),
+        Arc::new(Theme::placeholder()),
+    );
+    let state = UiState::new();
+    let ghosts = |filled: Option<&dyn crate::runtime::SlotFill>| {
+        let mut fs = crate::input::FrameState::new();
+        let mut out = FrameOutput::default();
+        rt.frame(
+            FrameArgs {
+                screen: (200, 200),
+                scale: 1,
+                now: 0.0,
+                state: &state,
+                input: &[],
+                clipboard: None,
+                images: &images,
+                dim: None,
+                preview: None,
+                filled,
+            },
+            &mut fs,
+            &mut out,
+        );
+        out.draw
+            .batches
+            .iter()
+            .filter(|b| b.tex == TexId::DocImage(7))
+            .map(|b| b.count / 6)
+            .sum::<u32>()
+    };
+    assert_eq!(ghosts(None), 2, "unknown contents read as empty");
+    assert_eq!(
+        ghosts(Some(&Holding(1))),
+        1,
+        "the filled slot hides its ghost"
+    );
 }

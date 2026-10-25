@@ -58,6 +58,7 @@ pub enum PointerButton {
 pub enum MenuSlot {
     Inventory(usize),
     OffHand,
+    Worn(crate::inventory::WearSlot),
     CraftResult,
     Container(usize),
     Widget(WidgetId),

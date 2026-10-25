@@ -230,12 +230,19 @@ pub(super) use wire_struct;
 
 pub type UnknownFields = BTreeMap<u16, Vec<u8>>;
 
+pub fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    *value == T::default()
+}
+
+/// A record of tagged fields: a reader takes a missing tag as the field's default and keeps
+/// tags it does not know. A field marked `(omit_default)` is not written while it holds its
+/// default, so adding one leaves the bytes of every record that never sets it unchanged.
 macro_rules! tagged_record {
-    ($name:ty { $($tag:literal => $field:ident),+ $(,)? }) => {
+    ($name:ty { $($tag:literal => $field:ident $(($omit:ident))?),+ $(,)? }) => {
         impl $crate::save::wire::Wire for $name {
             fn put(&self, buf: &mut Vec<u8>) {
                 let mut w = $crate::save::wire::TaggedWriter::new(buf);
-                $( w.field($tag, &self.$field); )+
+                $( $crate::save::wire::tagged_record!(@put w, $tag, &self.$field $(, $omit)?); )+
                 w.unknown(&self.unknown);
                 w.finish();
             }
@@ -247,6 +254,14 @@ macro_rules! tagged_record {
                     unknown: fields.into_unknown(),
                 })
             }
+        }
+    };
+    (@put $w:ident, $tag:literal, $value:expr) => {
+        $w.field($tag, $value);
+    };
+    (@put $w:ident, $tag:literal, $value:expr, omit_default) => {
+        if !$crate::save::wire::is_default($value) {
+            $w.field($tag, $value);
         }
     };
 }

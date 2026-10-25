@@ -230,6 +230,13 @@ impl Player {
             self.effect_scale(petramond_world::effect::EffectBehavior::breath_scale)
                 * self.worn_scale(PlayerAttribute::BreathDrain),
         );
+        for attribute in [PlayerAttribute::AttackCooldown, PlayerAttribute::FlySpeed] {
+            self.claims.set_attribute(
+                super::ENGINE_CLAIMANT,
+                attribute,
+                self.worn_scale(attribute),
+            );
+        }
         let idle = self.is_spectator() || !gameplay;
         let denied = if idle {
             super::DeniedActions::of([

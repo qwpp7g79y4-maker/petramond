@@ -226,7 +226,7 @@ fn bake_collision_bounds(
 
 impl CompiledAsset for BlockModel {
     const MAGIC: [u8; 8] = *b"LLBLK\0\0\0";
-    const FORMAT_VERSION: u32 = 13;
+    const FORMAT_VERSION: u32 = 15;
     const SUBDIR: &'static str = "models";
     const EXTENSION: &'static str = "llblock";
 

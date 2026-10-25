@@ -4,6 +4,9 @@ use crate::item::{ItemStack, ItemType};
 mod slots;
 #[cfg(test)]
 mod tests;
+mod wear;
+
+pub use wear::{WearSlot, WEAR_SLOTS};
 
 pub use slots::{
     insert_into_slots, merge_stack, place_cursor_count, plan_drag_distribution, slot_capacity,
@@ -26,6 +29,7 @@ pub struct Inventory {
     slots: [Option<ItemStack>; TOTAL_SLOTS],
     cursor: Option<ItemStack>,
     off_hand: Option<ItemStack>,
+    worn: [Option<ItemStack>; WEAR_SLOTS],
     active: u8,
     revision: u64,
 }
@@ -36,6 +40,7 @@ impl Default for Inventory {
             slots: [None; TOTAL_SLOTS],
             cursor: None,
             off_hand: None,
+            worn: [None; WEAR_SLOTS],
             active: 0,
             revision: 0,
         }
@@ -496,8 +501,10 @@ impl Inventory {
         }
         room.min(want) as u8
     }
+    /// Shift-click on an inventory slot: put a wearable item on when its slot is free, else move
+    /// the stack between hotbar and main inventory.
     pub fn shift_move_slot(&mut self, i: usize) {
-        if i >= TOTAL_SLOTS {
+        if i >= TOTAL_SLOTS || self.wear_from_slot(i) {
             return;
         }
         let Some(stack) = self.slots[i].take() else {
@@ -632,9 +639,36 @@ impl Inventory {
             slots,
             cursor,
             off_hand,
+            worn: [None; WEAR_SLOTS],
             active: active.min(HOTBAR_LEN as u8 - 1),
             revision: 0,
         }
+    }
+
+    pub fn with_worn(mut self, worn: [Option<ItemStack>; WEAR_SLOTS]) -> Self {
+        self.worn = worn;
+        self
+    }
+
+    /// Every cell as one flat list, the order the network ships it in: the slots, the cursor,
+    /// the off hand, then each worn slot.
+    pub fn cells(&self) -> impl Iterator<Item = Option<ItemStack>> + '_ {
+        self.slots
+            .iter()
+            .copied()
+            .chain([self.cursor, self.off_hand])
+            .chain(self.worn.iter().copied())
+    }
+
+    /// Rebuilds an inventory from [`Self::cells`]; cells a shorter list leaves out stay empty.
+    pub fn from_cells(cells: &[Option<ItemStack>], active: u8) -> Self {
+        let at = |i: usize| cells.get(i).copied().flatten();
+        let mut slots = [None; TOTAL_SLOTS];
+        for (i, slot) in slots.iter_mut().enumerate() {
+            *slot = at(i);
+        }
+        let worn = std::array::from_fn(|i| at(TOTAL_SLOTS + 2 + i));
+        Self::from_parts(slots, at(TOTAL_SLOTS), at(TOTAL_SLOTS + 1), active).with_worn(worn)
     }
 }
 

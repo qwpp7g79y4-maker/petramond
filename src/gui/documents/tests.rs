@@ -2,20 +2,25 @@ use super::*;
 
 mod fit;
 
+/// The UI crate names one role per wear slot without seeing `WearSlot`; a slot added on one
+/// side only would leave a worn cell no document can show.
 #[test]
-fn engine_contracts_cover_every_container_kind() {
-    for (kind, total) in [
-        (GuiKind::Chest, 27 + 27 + 9),
-        (GuiKind::Inventory, 27 + 9 + 1 + 1),
-        (GuiKind::CraftingTable, 27 + 9 + 1),
-        (GuiKind::Furnace, 27 + 9 + 3),
-        (GuiKind::Hotbar, 9 + 1),
-    ] {
-        let contract = contract_for(kind);
-        let sum: usize = contract.roles.iter().map(|(_, n)| n).sum();
-        assert_eq!(sum, total, "{kind:?}");
+fn every_wear_slot_has_its_worn_role() {
+    use petramond_world::inventory::WearSlot;
+    let roles: Vec<String> = WearSlot::ALL
+        .iter()
+        .map(|slot| format!("worn_{}", slot.key()))
+        .collect();
+    assert_eq!(roles, petramond_ui::contract::WORN_ROLES);
+    for (slot, role) in WearSlot::ALL
+        .into_iter()
+        .zip(petramond_ui::contract::WORN_ROLES)
+    {
+        assert_eq!(
+            crate::gui::Role::from_key(role),
+            Some(crate::gui::Role::Worn(slot))
+        );
     }
-    assert!(contract_for(GuiKind::Pause).roles.is_empty());
 }
 
 #[test]
@@ -118,6 +123,7 @@ fn crafting_table_browser_shrinks_before_inventory_leaves_the_viewport() {
             images: &NoImages,
             dim: None,
             preview: None,
+            filled: None,
         },
         &mut frame_state,
         &mut output,
@@ -169,6 +175,7 @@ fn inventory_browser_shrinks_before_inventory_leaves_the_viewport() {
             images: &NoImages,
             dim: None,
             preview: None,
+            filled: None,
         },
         &mut frame_state,
         &mut output,

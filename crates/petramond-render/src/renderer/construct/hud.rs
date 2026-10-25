@@ -60,7 +60,31 @@ pub(super) fn build_hud_layers(
             ],
         })
     });
+    let worn_bind = crate::worn_overlays::compose_atlas().map(|img| {
+        let (_tex, view, sampler) =
+            crate::resources::create_rgba_nearest(device, queue, &img, "worn overlays");
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("worn overlays bind"),
+            layout: atlas_bgl,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+        })
+    });
     vec![
+        hud_layer(
+            "hud worn overlay",
+            |b| &b.worn_overlay,
+            HudLayerTexture::Texture(worn_bind),
+            true,
+        ),
         hud_layer(
             "hud vignette",
             |b| &b.vignette,

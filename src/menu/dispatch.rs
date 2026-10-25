@@ -48,6 +48,15 @@ impl ContainerMenu {
                     *inv.off_hand_mut() = cell;
                 }
             }
+            MenuSlot::Worn(worn) => {
+                if shift {
+                    inv.shift_unwear(worn);
+                } else if gather {
+                    self.collect_to_cursor(world, inv);
+                } else {
+                    inv.click_worn(worn);
+                }
+            }
             MenuSlot::CraftResult => self.craft_take_output(inv, button, shift),
             MenuSlot::Container(i) => {
                 self.container_slot_interaction(world, inv, gui, i, button, shift, gather);

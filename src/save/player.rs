@@ -34,6 +34,7 @@ struct PlayerRecord {
     slots: Vec<DiskSlot>,
     cursor: DiskSlot,
     off_hand: DiskSlot,
+    worn: Vec<DiskSlot>,
     active_slot: u8,
     craft_craftable_only: bool,
     effects: Vec<(String, u32)>,
@@ -57,6 +58,7 @@ tagged_record!(PlayerRecord {
     13 => effects,
     14 => obtained_items,
     15 => unlocked_recipes,
+    16 => worn (omit_default),
 });
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -64,6 +66,7 @@ pub struct KeptPlayer {
     inventory: Vec<(usize, DiskSlot)>,
     cursor: Option<DiskSlot>,
     off_hand: Option<DiskSlot>,
+    worn: Vec<(usize, DiskSlot)>,
     unknown: UnknownFields,
 }
 
@@ -72,6 +75,7 @@ impl KeptPlayer {
         self.inventory.is_empty()
             && self.cursor.is_none()
             && self.off_hand.is_none()
+            && self.worn.is_empty()
             && self.unknown.is_empty()
     }
 }
@@ -101,12 +105,20 @@ pub fn encode_keeping(player: &Player, pal: &Palette, kept: &KeptPlayer) -> Vec<
         (None, Some(stored)) => stored.clone(),
         (live, _) => DiskSlot::of(live, pal),
     };
-    let kept_at = |i: usize| {
-        kept.inventory
+    let kept_in = |cells: &'_ [(usize, DiskSlot)], i: usize| {
+        cells
             .iter()
             .find(|(at, _)| *at == i)
             .map(|(_, slot)| slot)
+            .cloned()
     };
+    let kept_at = |i: usize| kept_in(&kept.inventory, i);
+    let live_worn = player.inventory.raw_worn();
+    let worn_count = kept
+        .worn
+        .iter()
+        .map(|(i, _)| i + 1)
+        .fold(live_worn.len(), usize::max);
     let live_slots = player.inventory.raw_slots();
     let slot_count = kept
         .inventory
@@ -125,10 +137,22 @@ pub fn encode_keeping(player: &Player, pal: &Palette, kept: &KeptPlayer) -> Vec<
             spot: bs.spot,
         }),
         slots: (0..slot_count)
-            .map(|i| or_kept(live_slots.get(i).copied().flatten(), kept_at(i)))
+            .map(|i| or_kept(live_slots.get(i).copied().flatten(), kept_at(i).as_ref()))
             .collect(),
         cursor: or_kept(player.inventory.cursor().copied(), kept.cursor.as_ref()),
         off_hand: or_kept(player.inventory.off_hand().copied(), kept.off_hand.as_ref()),
+        worn: {
+            let mut worn: Vec<DiskSlot> = (0..worn_count)
+                .map(|i| {
+                    let live = live_worn.get(i).copied().flatten();
+                    or_kept(live, kept_in(&kept.worn, i).as_ref())
+                })
+                .collect();
+            while worn.last().is_some_and(DiskSlot::is_empty) {
+                worn.pop();
+            }
+            worn
+        },
         active_slot: player.inventory.active_slot(),
         craft_craftable_only: player.craft_craftable_only,
         effects: player
@@ -194,6 +218,19 @@ impl PlayerData {
             kept.off_hand = Some(stored);
             None
         });
+        let mut worn = [None; petramond_world::inventory::WEAR_SLOTS];
+        for (i, stored) in record.worn.into_iter().enumerate() {
+            let Some(cell) = worn.get_mut(i) else {
+                if !stored.is_empty() {
+                    kept.worn.push((i, stored));
+                }
+                continue;
+            };
+            match stored.resolve(pal) {
+                Ok(live) => *cell = live,
+                Err(stored) => kept.worn.push((i, stored)),
+            }
+        }
         Self {
             pos: record.pos,
             vel: record.vel,
@@ -205,7 +242,8 @@ impl PlayerData {
                 bed: b.bed,
                 spot: b.spot,
             }),
-            inventory: Inventory::from_parts(slots, cursor, off_hand, record.active_slot),
+            inventory: Inventory::from_parts(slots, cursor, off_hand, record.active_slot)
+                .with_worn(worn),
             effects: record.effects,
             craft_craftable_only: record.craft_craftable_only,
             obtained_items: record.obtained_items,

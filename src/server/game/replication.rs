@@ -328,11 +328,7 @@ impl ServerGame {
             (sess.replication.last_sent_inventory_revision != Some(revision)).then(|| {
                 player
                     .inventory
-                    .raw_slots()
-                    .iter()
-                    .copied()
-                    .chain(std::iter::once(player.inventory.cursor().copied()))
-                    .chain(std::iter::once(player.inventory.off_hand().copied()))
+                    .cells()
                     .map(|slot| slot.map(ItemSlotWire::from_stack))
                     .collect()
             });

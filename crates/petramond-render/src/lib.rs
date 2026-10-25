@@ -21,6 +21,7 @@ pub mod item_model;
 pub mod job;
 pub mod views;
 pub mod world_marks;
+pub mod worn_overlays;
 
 pub mod lighting;
 pub mod mob_model;
@@ -375,6 +376,7 @@ pub struct PlayerBodyRender {
     pub body: PlayerRenderInstance,
     pub held: HeldItemView,
     pub held_off: HeldItemView,
+    pub worn: [Option<ItemType>; petramond_world::inventory::WEAR_SLOTS],
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]

@@ -35,6 +35,7 @@ impl GuiRouter {
             MenuSlot::Inventory(i) => Some(i),
             MenuSlot::Container(i) => Some(CONTAINER_SLOT_STREAK_BASE + i),
             MenuSlot::OffHand => Some(OFF_HAND_STREAK_KEY),
+            MenuSlot::Worn(worn) => Some(WORN_STREAK_BASE + worn.index()),
             MenuSlot::CraftResult | MenuSlot::Widget(_) => None,
         };
         match streak_key {
@@ -75,3 +76,5 @@ const DOUBLE_CLICK_SECS: f64 = 0.25;
 const CONTAINER_SLOT_STREAK_BASE: usize = 1000;
 
 const OFF_HAND_STREAK_KEY: usize = 999;
+
+const WORN_STREAK_BASE: usize = 990;

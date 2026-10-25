@@ -21,6 +21,12 @@ pub struct UiRuntime {
     theme: Arc<Theme>,
 }
 
+/// Which slots hold something, for the faded `ghost` an empty slot shows. Without one every
+/// slot reads as empty.
+pub trait SlotFill {
+    fn filled(&self, role: &str, index: u32) -> bool;
+}
+
 pub struct FrameArgs<'a> {
     pub screen: (u32, u32),
     pub scale: i32,
@@ -31,6 +37,7 @@ pub struct FrameArgs<'a> {
     pub images: &'a dyn DocImages,
     pub dim: Option<[f32; 4]>,
     pub preview: Option<&'a PreviewState>,
+    pub filled: Option<&'a dyn SlotFill>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -353,6 +360,8 @@ impl UiRuntime {
             row_hover: hovered.row,
             tab_hover,
             preview: args.preview,
+            slots: &slots,
+            filled: args.filled,
         };
         let mut painter = Painter {
             list: &mut out.draw,

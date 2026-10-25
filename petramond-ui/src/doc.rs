@@ -205,6 +205,9 @@ pub enum NodeKind {
         accepts: Vec<Accept>,
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         take_only: bool,
+        /// An image drawn faded in the slot while it holds nothing: what belongs there.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        ghost: Option<String>,
     },
     SlotGrid {
         role: String,
@@ -333,6 +336,7 @@ impl NodeKind {
                 role: "storage".into(),
                 accepts: Vec::new(),
                 take_only: false,
+                ghost: None,
             },
             "slot_grid" => NodeKind::SlotGrid {
                 role: "storage".into(),
@@ -764,6 +768,7 @@ impl Document {
                 role,
                 accepts,
                 take_only,
+                ..
             } => out.push(SlotSemantics {
                 role: role.clone(),
                 accepts: accepts.clone(),

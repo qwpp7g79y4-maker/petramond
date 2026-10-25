@@ -83,6 +83,7 @@ impl Project {
                     role: role.clone(),
                     accepts: Vec::new(),
                     take_only: false,
+                    ghost: None,
                 }
             } else {
                 NodeKind::SlotGrid {

@@ -648,6 +648,14 @@ impl GamePresentationScratch {
                     hurt: p.hurt_flash01(),
                 },
                 bones: frame.push_bones(p.bones.current()),
+                worn: std::array::from_fn(|i| {
+                    p.curr
+                        .worn
+                        .get(i)
+                        .copied()
+                        .flatten()
+                        .map(petramond_world::item::ItemType)
+                }),
             };
             frame.remotes.push(RemoteBody {
                 key: p.curr.id.0 as u32,
@@ -869,6 +877,13 @@ fn collect_player(
             hurt: 0.0,
         },
         bones: frame.push_bones(game.fx.local_bones()),
+        worn: petramond_world::inventory::WearSlot::ALL.map(|slot| {
+            game.replica
+                .self_view
+                .inventory
+                .worn(slot)
+                .map(|stack| stack.item)
+        }),
     })
 }
 

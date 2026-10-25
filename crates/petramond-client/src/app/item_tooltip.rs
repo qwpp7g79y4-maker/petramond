@@ -132,6 +132,7 @@ fn hovered_stack(game: &Game, role: &str, index: usize) -> Option<ItemStack> {
         Role::Hotbar => menu.inventory.slot(index).copied(),
         Role::PlayerInv => menu.inventory.slot(HOTBAR_LEN + index).copied(),
         Role::OffHand => menu.inventory.off_hand().copied(),
+        Role::Worn(slot) => menu.inventory.worn(slot).copied(),
         Role::CraftResult => menu.craft_output,
         Role::Container => menu
             .container

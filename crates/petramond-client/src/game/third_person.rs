@@ -55,6 +55,11 @@ impl Game {
             .unwrap_or(self.local.third_person.enabled)
     }
 
+    /// The view is the player's own eyes: no third-person boom, no claimed camera, no spectating.
+    pub fn sees_through_own_eyes(&self) -> bool {
+        !self.local.player.is_spectator() && !self.camera_claimed() && !self.third_person_enabled()
+    }
+
     #[inline]
     pub fn camera_claimed(&self) -> bool {
         self.local.third_person.claimed.camera.is_some()

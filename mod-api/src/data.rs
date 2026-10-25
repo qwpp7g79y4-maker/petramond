@@ -255,6 +255,20 @@ impl PlayerAttribute {
     pub const fn index(self) -> usize {
         self as usize
     }
+
+    /// The attribute's name in content rows.
+    pub const fn key(self) -> &'static str {
+        match self {
+            Self::MoveSpeed => "move_speed",
+            Self::AttackCooldown => "attack_cooldown",
+            Self::FlySpeed => "fly_speed",
+            Self::BreathDrain => "breath_drain",
+        }
+    }
+
+    pub fn from_key(key: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|a| a.key() == key)
+    }
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Hash)]

@@ -1,11 +1,11 @@
 pub mod icon;
 mod vitals;
+mod worn;
 
-use petramond::gui::{Role, SlotRect, UiSnapshot};
+use petramond::gui::{SlotRect, UiSnapshot};
 
 use petramond_text::tiny as tiny_text;
 use petramond_world::gui_state::GuiKind;
-use petramond_world::inventory::HOTBAR_LEN;
 use petramond_world::item::ItemType;
 
 #[repr(C)]
@@ -35,6 +35,7 @@ pub struct UiBuild {
     pub drag_counts: Vec<UiVertex>,
     pub vignette: Vec<UiVertex>,
     pub effects: Vec<UiVertex>,
+    pub worn_overlay: Vec<UiVertex>,
 }
 
 impl UiBuild {
@@ -50,6 +51,7 @@ impl UiBuild {
         self.drag_icon_quads.clear();
         self.drag_counts.clear();
         self.vignette.clear();
+        self.worn_overlay.clear();
     }
 }
 
@@ -124,7 +126,7 @@ fn push_doc_game_content(
             h: (slot.rect.h - 2.0 * inset).max(0.0),
         };
         let i = slot.index as usize;
-        let Some(stack) = slot_item(ui, slot.role, i) else {
+        let Some(stack) = ui.stack_in(slot.role, i) else {
             continue;
         };
         if stack.item == ItemType::Air || stack.count == 0 {
@@ -502,20 +504,6 @@ pub(super) fn intersect_rect(a: SlotRect, b: SlotRect) -> Option<SlotRect> {
     })
 }
 
-fn slot_item(ui: &UiSnapshot, role: Role, i: usize) -> Option<petramond_world::item::ItemStack> {
-    match role {
-        Role::Hotbar => ui.slots.get(i).copied().flatten(),
-        Role::PlayerInv => ui.slots.get(HOTBAR_LEN + i).copied().flatten(),
-        Role::OffHand => ui.off_hand,
-        Role::CraftResult => ui.craft_output,
-        Role::Container => ui
-            .container
-            .as_ref()
-            .and_then(|c| c.slots.get(i).copied().flatten()),
-        Role::Generic | Role::Other => None,
-    }
-}
-
 pub fn build_ui(
     ui: &UiSnapshot,
     screen: (u32, u32),
@@ -529,6 +517,7 @@ pub fn build_ui(
     if screen.0 == 0 || screen.1 == 0 {
         return;
     }
+    worn::push(ui, build, screen);
     if ui.hurt_flash > 0.0 {
         push_hurt_vignette(&mut build.vignette, screen, ui.hurt_flash);
     }
@@ -565,6 +554,7 @@ fn push_hurt_vignette(out: &mut Vec<UiVertex>, screen: (u32, u32), strength: f32
 mod tests {
     use super::*;
     use petramond::gui::DocSlot;
+    use petramond::gui::Role;
 
     const SCREEN: (u32, u32) = (1280, 720);
 

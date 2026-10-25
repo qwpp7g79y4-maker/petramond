@@ -311,6 +311,7 @@ fn staged_overflow_resyncs_at_a_boundary_and_catch_up_stays_one_per_segment() {
                         held_data: None,
                         off_hand_item: None,
                         off_hand_data: None,
+                        worn: Vec::new(),
                         mining: None,
                         eating: false,
                         eating_off_hand: false,

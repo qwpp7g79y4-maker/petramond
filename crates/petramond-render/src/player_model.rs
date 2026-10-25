@@ -31,6 +31,9 @@ fn reflect_local(m: Mat4) -> Mat4 {
 
 const SPRITE_WORLD_SIZE: f32 = 0.60;
 const BLOCK_WORLD_SIZE: f32 = 0.30;
+/// Model pixels one display block spans when worn: a full 16-unit model is 10 px, a head (8 px)
+/// plus a pixel of shell all round, the proportion worn blocks have always had.
+const WORN_PX_PER_BLOCK: f32 = 10.0;
 
 pub(super) fn place_player_body(
     rig: &Rig,
@@ -67,6 +70,33 @@ fn push_body(
     let [hand, off_hand] =
         grips.map(|bone| global * pose.get(bone).copied().unwrap_or(Mat4::IDENTITY));
     (hand, off_hand)
+}
+
+/// The frame a worn item composes in: its bone's posed frame, origin on the bone's anchor,
+/// one unit per display block.
+pub(super) fn worn_frame(
+    inst: &PlayerRenderInstance,
+    pose: &[Mat4],
+    render_origin: glam::IVec3,
+    at: petramond::player::rigs::WearBone,
+) -> Mat4 {
+    let global = Mat4::from_translation(inst.pos.relative_to(render_origin)) * inst.placement;
+    global
+        * pose.get(at.bone).copied().unwrap_or(Mat4::IDENTITY)
+        * Mat4::from_translation(at.anchor)
+        * Mat4::from_scale(Vec3::splat(WORN_PX_PER_BLOCK))
+}
+
+/// A worn bbmodel item: its `head` display pose in the worn frame.
+pub(super) fn worn_model_at(
+    frame: Mat4,
+    kind: petramond_world::block_model::BlockModelKind,
+) -> Mat4 {
+    frame
+        * petramond_world::block_model::display(kind)
+            .head
+            .base_matrix()
+        * petramond_world::block_model::instance(kind).display_from_unit
 }
 
 pub(super) fn posed_hand(

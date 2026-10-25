@@ -407,7 +407,7 @@
     "recipe": "click (per grid cell): select the stable recipe key",
     "craft": "click: request one authoritative craft (shift: craft the maximum possible)"
    },
-   "notes": "container: inventory/output slots route by role; recipe and tooltip icons occupy host hooks (recipe_result, craft_tip_result/_ingredients). The SELECTION is shown by the grid cell's own selected face, not by a detail line \u2014 that line cost two rows of the grid."
+   "notes": "container: inventory/output slots route by role; recipe and tooltip icons occupy host hooks (recipe_result, craft_tip_result/_ingredients). The SELECTION is shown by the grid cell's own selected face, not by a detail line \u2014 that line cost two rows of the grid. Worn slots (worn_head/chest/legs/feet) and off_hand show faded ghost icons while empty."
   },
   "petramond:crafting_table": {
    "state": {

@@ -17,6 +17,7 @@ mod tether;
 mod tool;
 mod uses;
 pub mod variant;
+mod wear;
 
 pub use data::ENGINE_ITEM_NAMES;
 pub(crate) use data::{load_tables, ItemTables};
@@ -36,6 +37,7 @@ pub use tool::{
 };
 pub use uses::{ItemUse, UseRay};
 pub use variant::VariantId;
+pub use wear::Wear;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ItemType(pub u16);

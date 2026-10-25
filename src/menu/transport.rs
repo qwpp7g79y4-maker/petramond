@@ -48,6 +48,7 @@ impl ContainerMenu {
         match slot {
             MenuSlot::Inventory(i) => inv.take_slot_for_drop(i, all),
             MenuSlot::OffHand => take_slot_stack(inv.off_hand_mut(), all),
+            MenuSlot::Worn(worn) => inv.take_worn(worn),
             MenuSlot::CraftResult if self.crafting_station().is_some() => {
                 take_slot_stack(&mut self.craft_output, all)
             }
@@ -76,7 +77,8 @@ impl ContainerMenu {
                     }
                 });
             }
-            MenuSlot::OffHand | MenuSlot::CraftResult | MenuSlot::Widget(_) => {}
+            MenuSlot::OffHand | MenuSlot::Worn(_) | MenuSlot::CraftResult | MenuSlot::Widget(_) => {
+            }
         }
     }
 
@@ -102,6 +104,7 @@ impl ContainerMenu {
                 .map(|cell| slot_capacity(cell, held))
                 .unwrap_or(0),
             MenuSlot::OffHand => slot_capacity(&inv.off_hand().copied(), held),
+            MenuSlot::Worn(worn) => inv.worn_capacity(worn, held),
             MenuSlot::Container(_) => {
                 let Some(i) = self.open_container_index(slot) else {
                     return 0;
@@ -144,6 +147,7 @@ impl ContainerMenu {
                 inv.place_cursor_count_in_external_slot(&mut cell, wanted);
                 *inv.off_hand_mut() = cell;
             }
+            MenuSlot::Worn(worn) => inv.place_cursor_in_worn(worn, wanted),
             MenuSlot::Container(_) => {
                 let Some(i) = self.open_container_index(slot) else {
                     return;

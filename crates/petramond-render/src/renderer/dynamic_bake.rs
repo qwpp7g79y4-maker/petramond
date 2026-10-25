@@ -502,6 +502,53 @@ struct HeldStreams {
 }
 
 impl HeldStreams {
+    /// An item worn on a body bone: its worn model (or its own model) in the `head` pose, a
+    /// block as a head-sized cube. A sprite item with no worn model shows nothing.
+    fn push_worn(
+        &mut self,
+        item: petramond_world::item::ItemType,
+        frame: glam::Mat4,
+        light: crate::lighting::DynLight,
+        env: crate::lighting::LightEnv,
+    ) {
+        let worn_model = item.wear().and_then(|w| w.model);
+        let kind = worn_model.map_or(
+            item.held_render_kind(),
+            petramond_world::item::ItemRenderKind::Model,
+        );
+        match kind {
+            petramond_world::item::ItemRenderKind::Model(kind) => {
+                crate::item_model::build_block_model_item(
+                    kind,
+                    crate::player_model::worn_model_at(frame, kind),
+                    light,
+                    env,
+                    None,
+                    &mut self.model_verts,
+                    &mut self.model_indices,
+                );
+            }
+            petramond_world::item::ItemRenderKind::BlockCube(block) => {
+                let start = self.block_verts.len();
+                crate::item_cube::push_block_item_cube_lit_with_state(
+                    &mut self.block_verts,
+                    &mut self.block_indices,
+                    block,
+                    petramond_world::block_state::HeldBlockState::None,
+                    glam::Vec3::splat(-0.5),
+                    1.0,
+                    light,
+                    false,
+                );
+                crate::player_model::transform_positions(
+                    self.block_verts[start..].iter_mut().map(|v| &mut v.pos),
+                    frame,
+                );
+            }
+            petramond_world::item::ItemRenderKind::Sprite(_) => {}
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn push(
         &mut self,

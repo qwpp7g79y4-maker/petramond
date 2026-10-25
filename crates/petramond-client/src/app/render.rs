@@ -289,6 +289,7 @@ impl App {
         window_ui.craft_tip = self.crafting_browser.tip_view().cloned();
         let mut scene_ui = ui_snapshot::build(Some(&*game), scene_screen, cursor, None);
         scene_ui.hurt_flash = if hud_visible { shake.flash } else { 0.0 };
+        scene_ui.first_person = hud_visible && game.sees_through_own_eyes();
         scene_ui.heart_wiggle = hud_fx.heart_wiggle(scene_ui.health, now);
         if hud_fx.bubble_popped(scene_ui.breath) {
             self.sound

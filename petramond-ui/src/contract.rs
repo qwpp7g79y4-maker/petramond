@@ -16,6 +16,8 @@ pub const CHEST_SLOTS: usize = 27;
 pub const FURNACE_SLOTS: usize = 3;
 pub const MAX_CONTAINER_SLOTS: usize = 54;
 pub const MAX_SLOT_FILTERS: usize = u32::BITS as usize;
+/// One role per worn-equipment slot (`worn_<WearSlot key>`), head to feet.
+pub const WORN_ROLES: [&str; 4] = ["worn_head", "worn_chest", "worn_legs", "worn_feet"];
 pub const IMAGE_MAX_SIDE: u32 = 640;
 pub const IMAGE_MAX_FRAMES: u32 = 64;
 
@@ -57,6 +59,10 @@ pub const ENGINE_KINDS: &[EngineKind] = &[
             ("player_inv", MAIN_GRID_SLOTS),
             ("hotbar", HOTBAR_SLOTS),
             ("off_hand", 1),
+            (WORN_ROLES[0], 1),
+            (WORN_ROLES[1], 1),
+            (WORN_ROLES[2], 1),
+            (WORN_ROLES[3], 1),
             ("craft_result", 1),
         ],
     ),
@@ -168,16 +174,20 @@ pub fn mod_document_contract(doc: &Document) -> Result<SlotContract, String> {
             "player_inv" if count == MAIN_GRID_SLOTS => {}
             "hotbar" if count == HOTBAR_SLOTS => {}
             "off_hand" if count == 1 => {}
-            "player_inv" | "hotbar" | "off_hand" => {
+            r if WORN_ROLES.contains(&r) && count == 1 => {}
+            r if matches!(r, "player_inv" | "hotbar" | "off_hand") || WORN_ROLES.contains(&r) => {
                 return Err(format!(
                     "role '{role}' declares {count} slots; the engine grids are \
-                     player_inv:{MAIN_GRID_SLOTS}, hotbar:{HOTBAR_SLOTS}, and off_hand:1"
+                     player_inv:{MAIN_GRID_SLOTS}, hotbar:{HOTBAR_SLOTS}, and one each for \
+                     off_hand and {}",
+                    WORN_ROLES.join(", ")
                 ))
             }
             _ => {
                 return Err(format!(
                     "role '{role}' is not available to mod documents (allowed: container, \
-                     player_inv, hotbar, off_hand)"
+                     player_inv, hotbar, off_hand, {})",
+                    WORN_ROLES.join(", ")
                 ))
             }
         }
@@ -277,6 +287,9 @@ pub fn image_refs(doc: &Document) -> Vec<ImageRef> {
         let named = match &node.kind {
             NodeKind::Image { image, frames, .. } => Some((image.as_str(), *frames)),
             NodeKind::Rotimage { image, .. } => Some((image.as_str(), None)),
+            NodeKind::Slot {
+                ghost: Some(ghost), ..
+            } => Some((ghost.as_str(), None)),
             NodeKind::Button {
                 image: Some(image),
                 frames,
