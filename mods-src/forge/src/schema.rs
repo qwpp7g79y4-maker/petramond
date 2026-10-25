@@ -65,6 +65,16 @@ pub struct FitSpec {
     pub overlays: BTreeMap<String, String>,
     pub gentle: Option<GentleSpec>,
     pub wear: Option<WearSpec>,
+    pub inflicts: Option<InflictSpec>,
+}
+
+/// A body condition the augmented tool puts on the mob it hits.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InflictSpec {
+    pub condition: String,
+    pub stage: String,
+    pub ticks: u32,
 }
 
 #[derive(Debug, Deserialize)]

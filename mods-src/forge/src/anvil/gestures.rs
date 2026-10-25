@@ -77,6 +77,28 @@ impl AnvilSpec {
         }
     }
 
+    /// Every working augment on the held tool that `inflicts` a condition puts it on `target`.
+    pub(crate) fn inflict_held(&self, player: PlayerId, target: EntityRef) {
+        let Some(held) = player_held(player) else {
+            return;
+        };
+        let Some((_, stats)) = self.tools.get(&held.item) else {
+            return;
+        };
+        let Some(rec) = Record::of_stack(&held.data) else {
+            return;
+        };
+        for e in rec
+            .entries
+            .iter()
+            .filter(|e| !e.id.is_empty() && e.cond > 0)
+        {
+            if let Some(i) = self.fit_of(&e.id, &stats.kind).and_then(|f| f.inflicts) {
+                entity_condition_apply(target, i.condition, i.stage, i.ticks);
+            }
+        }
+    }
+
     /// Runs on the drop, like carving. Dropping the augment's own material repairs it at the
     /// install rate and only uses what the bar needs. A gem upgrades the mount one level each, up
     /// to [`LEVEL_MAX`]. Anything left over waits for the workstation sweep.

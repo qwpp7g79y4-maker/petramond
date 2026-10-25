@@ -118,7 +118,12 @@
         "roll": 0
       },
       "sprite": "monsters:fang",
-      "tags": []
+      "tags": [],
+      "data": {
+        "petramond:creative": {
+          "visible": false
+        }
+      }
     },
     {
       "patch": "petramond:stone_axe",

@@ -4,7 +4,7 @@ use mod_sdk::*;
 
 use crate::anvil::{BASE_SOCKETS, SOCKETS};
 use crate::keys;
-use crate::schema::{read_rows, FitSpec, GentleSpec, SlotsSpec, WearOnSpec};
+use crate::schema::{read_rows, FitSpec, GentleSpec, InflictSpec, SlotsSpec, WearOnSpec};
 
 #[derive(Clone)]
 pub(super) struct Fit {
@@ -18,6 +18,32 @@ pub(super) struct Fit {
     pub(super) overlays: Vec<(String, String)>,
     pub(super) gentle: Option<u8>,
     pub(super) wear: Option<Wear>,
+    pub(super) inflicts: Option<Inflict>,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct Inflict {
+    pub(super) condition: ConditionId,
+    pub(super) stage: u8,
+    pub(super) ticks: u32,
+}
+
+impl Inflict {
+    fn resolve(spec: &InflictSpec) -> Option<Inflict> {
+        let info = resolve_condition_logged(&spec.condition)?;
+        let Some(stage) = info.stage(&spec.stage) else {
+            log(&format!(
+                "forge: condition '{}' has no stage '{}'",
+                spec.condition, spec.stage
+            ));
+            return None;
+        };
+        Some(Inflict {
+            condition: info.id,
+            stage,
+            ticks: spec.ticks.max(1),
+        })
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -76,6 +102,7 @@ impl From<FitSpec> for Fit {
             overlay: f.overlay,
             overlays: f.overlays.into_iter().collect(),
             gentle: f.gentle.as_ref().map(GentleSpec::chance),
+            inflicts: f.inflicts.as_ref().and_then(Inflict::resolve),
             wear: f.wear.map(|w| Wear {
                 on: match w.on {
                     WearOnSpec::Break => WearOn::Break,

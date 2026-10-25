@@ -14,6 +14,7 @@ fn fit(tool: &str, overlay: &str, cost: u8, speed: f32, damage: f32) -> Fit {
         overlays: Vec::new(),
         gentle: None,
         wear: None,
+        inflicts: None,
     }
 }
 

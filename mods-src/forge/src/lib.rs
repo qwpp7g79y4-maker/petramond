@@ -44,6 +44,7 @@ const ON_BLOCK_PLACED: u32 = 1;
 const ON_CONTAINER_OPENED: u32 = 2;
 const ON_BLOCK_BREAK: u32 = 4;
 const ON_MOB_DAMAGED: u32 = 5;
+const ON_PLAYER_DAMAGE: u32 = 6;
 const GEN_CLAY: u32 = 1;
 const GEN_ORE: u32 = 2;
 
@@ -82,6 +83,8 @@ impl Mod for Forge {
         }
         if anvil_ok {
             register_event_handler(EventKind::MobDamaged, 0, ON_MOB_DAMAGED);
+            // Last, so it only sees a player hit nothing refused.
+            register_event_handler(EventKind::PlayerDamagePre, i32::MAX, ON_PLAYER_DAMAGE);
         }
         if !furnace_ok && !anvil_ok {
             return;
@@ -112,11 +115,31 @@ impl Mod for Forge {
             (
                 ON_MOB_DAMAGED,
                 EventPayload::MobDamaged {
+                    mob_id,
                     source: DamageSource::PlayerAttack { id },
+                    killed,
                     ..
                 },
             ) => {
-                self.anvil.spec().wear_held(*id, anvil::WearOn::Hit, None);
+                let spec = self.anvil.spec();
+                if !*killed {
+                    spec.inflict_held(*id, EntityRef::Mob(*mob_id));
+                }
+                spec.wear_held(*id, anvil::WearOn::Hit, None);
+            }
+            (
+                ON_PLAYER_DAMAGE,
+                EventPayload::PlayerDamagePre {
+                    amount,
+                    source: DamageSource::PlayerAttack { id },
+                    ..
+                },
+            ) if *amount > 0 => {
+                if let Some(victim) = player_state().id {
+                    let spec = self.anvil.spec();
+                    spec.inflict_held(*id, EntityRef::Player(victim));
+                    spec.wear_held(*id, anvil::WearOn::Hit, None);
+                }
             }
             (ON_BLOCK_PLACED, EventPayload::BlockPlaced { pos, block }) => {
                 self.furnace.on_placed(*pos, *block);
