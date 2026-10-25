@@ -76,6 +76,7 @@ mod_sdk::pack_keys! {
 
     pub(crate) BEACH: SurfaceBiome = "petramond:beach";
     pub(crate) SAND: Block = "petramond:sand";
+    pub(crate) WEARS_EMITTER: Data = "exploration:wears_emitter";
 
     pub(crate) FISHING_ROD: Data = "exploration:fishing_rod";
     pub(crate) ROD_CAST: Sound = "exploration:rod_cast";

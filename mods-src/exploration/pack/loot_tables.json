@@ -425,6 +425,127 @@
       ]
     },
     {
+      "loot": "exploration:sardine_drops",
+      "pools": [
+        {
+          "rolls": [
+            1,
+            1
+          ],
+          "entries": [
+            {
+              "weight": 100,
+              "result": {
+                "type": "item",
+                "item": "exploration:raw_sardine",
+                "count": [
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "loot": "exploration:glimmerfin_drops",
+      "pools": [
+        {
+          "rolls": [
+            1,
+            1
+          ],
+          "entries": [
+            {
+              "weight": 100,
+              "result": {
+                "type": "item",
+                "item": "exploration:raw_glimmerfin",
+                "count": [
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "loot": "exploration:lanternfish_drops",
+      "pools": [
+        {
+          "rolls": [
+            1,
+            1
+          ],
+          "entries": [
+            {
+              "weight": 100,
+              "result": {
+                "type": "item",
+                "item": "exploration:raw_lanternfish",
+                "count": [
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "rolls": [
+            1,
+            1
+          ],
+          "entries": [
+            {
+              "weight": 35,
+              "result": {
+                "type": "item",
+                "item": "exploration:glowpod_teal",
+                "count": [
+                  1,
+                  1
+                ]
+              }
+            },
+            {
+              "weight": 65,
+              "result": {
+                "type": "empty"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "loot": "exploration:shark_drops",
+      "pools": [
+        {
+          "rolls": [
+            1,
+            1
+          ],
+          "entries": [
+            {
+              "weight": 100,
+              "result": {
+                "type": "item",
+                "item": "exploration:shark_tooth",
+                "count": [
+                  1,
+                  2
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "loot": "exploration:ruin_offering",
       "pools": [
         {
@@ -611,6 +732,30 @@
                 "count": [
                   1,
                   1
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "loot": "exploration:jellyfish_drops",
+      "pools": [
+        {
+          "rolls": [
+            1,
+            1
+          ],
+          "entries": [
+            {
+              "weight": 100,
+              "result": {
+                "type": "item",
+                "item": "exploration:glowing_tendril",
+                "count": [
+                  1,
+                  3
                 ]
               }
             }

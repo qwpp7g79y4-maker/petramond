@@ -372,6 +372,25 @@
       "class": "petramond:smelting",
       "ingredient": "exploration:raw_lanternfish",
       "result": "exploration:cooked_lanternfish"
+    },
+    {
+      "type": "crafting",
+      "recipe": "exploration:sting_salve",
+      "station": "petramond:crafting_table",
+      "ingredients": [
+        {
+          "item": "exploration:glowing_tendril",
+          "count": 2
+        },
+        {
+          "item": "exploration:salt",
+          "count": 1
+        }
+      ],
+      "result": {
+        "item": "exploration:sting_salve",
+        "count": 1
+      }
     }
   ]
 }

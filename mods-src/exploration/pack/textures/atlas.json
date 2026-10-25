@@ -229,6 +229,10 @@
       "file": "salt.png"
     },
     {
+      "name": "exploration:shark_tooth",
+      "file": "shark_tooth.png"
+    },
+    {
       "name": "exploration:bubble_tonic",
       "file": "bubble_tonic.png"
     },
@@ -1475,6 +1479,22 @@
           173
         ]
       }
+    },
+    {
+      "name": "exploration:glowing_tendril",
+      "file": "glowing_tendril.png"
+    },
+    {
+      "name": "exploration:sting_salve",
+      "file": "sting_salve.png"
+    },
+    {
+      "name": "exploration:sword_stinging_tendrils",
+      "file": "sword_stinging_tendrils.png"
+    },
+    {
+      "name": "exploration:stinging_tendrils",
+      "file": "stinging_tendrils.png"
     }
   ]
 }

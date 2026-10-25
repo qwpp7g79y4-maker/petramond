@@ -580,6 +580,197 @@
           "shrink_power": 0.25
         }
       ]
+    },
+    {
+      "emitter": "exploration:sting_sparks",
+      "body_size": [
+        0.6,
+        1.8,
+        0.6
+      ],
+      "particles": [
+        {
+          "offset": [
+            0.0,
+            0.9,
+            0.0
+          ],
+          "rate": [
+            5.0,
+            8.0
+          ],
+          "lifetime": [
+            0.3,
+            0.6
+          ],
+          "size": [
+            0.04,
+            0.08
+          ],
+          "spawn_box": [
+            0.3,
+            0.8,
+            0.3
+          ],
+          "velocity": [
+            0.0,
+            0.25,
+            0.0
+          ],
+          "velocity_jitter": [
+            0.4,
+            0.3,
+            0.4
+          ],
+          "color": [
+            [
+              0.55,
+              0.95,
+              1.0
+            ],
+            [
+              0.95,
+              0.75,
+              1.0
+            ]
+          ],
+          "alpha": [
+            0.6,
+            0.9
+          ],
+          "fade_power": 0.7,
+          "shrink_power": 0.5,
+          "self_lit": 0.0
+        }
+      ]
+    },
+    {
+      "emitter": "exploration:lanternfish_glow",
+      "body_size": [
+        0.3,
+        0.32,
+        0.6
+      ],
+      "body_self_lit": 0.45,
+      "particles": [
+        {
+          "offset": [
+            0.0,
+            0.36,
+            -0.3
+          ],
+          "rate": [
+            2.0,
+            4.0
+          ],
+          "lifetime": [
+            0.8,
+            1.6
+          ],
+          "size": [
+            0.03,
+            0.06
+          ],
+          "spawn_box": [
+            0.05,
+            0.05,
+            0.05
+          ],
+          "velocity": [
+            0.0,
+            0.15,
+            0.0
+          ],
+          "velocity_jitter": [
+            0.08,
+            0.06,
+            0.08
+          ],
+          "color": [
+            [
+              0.5,
+              0.94,
+              0.85
+            ],
+            [
+              0.81,
+              1.0,
+              0.96
+            ]
+          ],
+          "alpha": [
+            0.6,
+            0.9
+          ],
+          "fade_power": 0.7,
+          "shrink_power": 0.4,
+          "self_lit": 1.0
+        }
+      ]
+    },
+    {
+      "emitter": "exploration:jellyfish_glow",
+      "body_size": [
+        0.6,
+        1.1,
+        0.6
+      ],
+      "body_self_lit": 0.3,
+      "particles": [
+        {
+          "offset": [
+            0.0,
+            0.9,
+            0.0
+          ],
+          "rate": [
+            1.0,
+            2.0
+          ],
+          "lifetime": [
+            1.2,
+            2.2
+          ],
+          "size": [
+            0.025,
+            0.05
+          ],
+          "spawn_box": [
+            0.25,
+            0.15,
+            0.25
+          ],
+          "velocity": [
+            0.0,
+            -0.1,
+            0.0
+          ],
+          "velocity_jitter": [
+            0.05,
+            0.05,
+            0.05
+          ],
+          "color": [
+            [
+              1.0,
+              0.78,
+              0.92
+            ],
+            [
+              1.0,
+              0.91,
+              0.97
+            ]
+          ],
+          "alpha": [
+            0.4,
+            0.75
+          ],
+          "fade_power": 0.7,
+          "shrink_power": 0.4,
+          "self_lit": 1.0
+        }
+      ]
     }
   ]
 }

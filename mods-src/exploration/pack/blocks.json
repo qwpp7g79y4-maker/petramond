@@ -8324,6 +8324,43 @@
           "chance": 1.0
         }
       ]
+    },
+    {
+      "block": "exploration:glowing_tendril",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect",
+        "climbable"
+      ],
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 25,
+      "light_color": [
+        1.0,
+        0.958,
+        0.98
+      ],
+      "tiles": [
+        "exploration:glowing_tendril",
+        "exploration:glowing_tendril",
+        "exploration:glowing_tendril"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:glowing_tendril",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "support": "above"
     }
   ]
 }

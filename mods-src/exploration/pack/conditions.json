@@ -1,0 +1,27 @@
+{
+  "conditions": [
+    {
+      "condition": "exploration:stung",
+      "stages": [
+        {
+          "stage": "light",
+          "damage": {
+            "amount": 1,
+            "interval": 20
+          },
+          "emitter": "exploration:sting_sparks"
+        },
+        {
+          "stage": "great",
+          "damage": {
+            "amount": 1,
+            "interval": 12
+          },
+          "emitter": "exploration:sting_sparks",
+          "cools_to": "light",
+          "cools_after": 0.5
+        }
+      ]
+    }
+  ]
+}

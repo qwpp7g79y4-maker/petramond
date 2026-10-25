@@ -45,6 +45,151 @@
       "pitch_variation": 0.1,
       "attenuation_distance": 12.0,
       "category": "block"
+    },
+    {
+      "sound": "exploration:fish_hurt",
+      "variants": [
+        "sounds/fish_hurt1.ogg",
+        "sounds/fish_hurt2.ogg",
+        "sounds/fish_hurt3.ogg"
+      ],
+      "gain": 0.7,
+      "pitch_variation": 0.15,
+      "attenuation_distance": 10.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:fish_death",
+      "variants": [
+        "sounds/fish_death1.ogg",
+        "sounds/fish_death2.ogg"
+      ],
+      "gain": 0.7,
+      "pitch_variation": 0.15,
+      "attenuation_distance": 10.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:crab_idle",
+      "variants": [
+        "sounds/crab_idle1.ogg",
+        "sounds/crab_idle2.ogg"
+      ],
+      "gain": 0.5,
+      "pitch_variation": 0.1,
+      "attenuation_distance": 8.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:crab_hurt",
+      "variants": [
+        "sounds/crab_hurt.ogg"
+      ],
+      "gain": 0.9,
+      "pitch_variation": 0.15,
+      "attenuation_distance": 12.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:crab_death",
+      "variants": [
+        "sounds/crab_death1.ogg",
+        "sounds/crab_death2.ogg"
+      ],
+      "gain": 0.9,
+      "pitch_variation": 0.1,
+      "attenuation_distance": 12.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:turtle_idle",
+      "variants": [
+        "sounds/turtle_idle1.ogg",
+        "sounds/turtle_idle2.ogg"
+      ],
+      "gain": 0.6,
+      "pitch_variation": 0.1,
+      "attenuation_distance": 12.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:turtle_hurt",
+      "variants": [
+        "sounds/turtle_hurt1.ogg",
+        "sounds/turtle_hurt2.ogg",
+        "sounds/turtle_hurt3.ogg"
+      ],
+      "gain": 0.9,
+      "pitch_variation": 0.12,
+      "attenuation_distance": 14.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:turtle_death",
+      "variants": [
+        "sounds/turtle_death.ogg"
+      ],
+      "gain": 0.9,
+      "pitch_variation": 0.08,
+      "attenuation_distance": 14.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:jellyfish_hurt",
+      "variants": [
+        "sounds/jellyfish_hurt1.ogg",
+        "sounds/jellyfish_hurt2.ogg",
+        "sounds/jellyfish_hurt3.ogg"
+      ],
+      "gain": 0.8,
+      "pitch_variation": 0.1,
+      "attenuation_distance": 12.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:jellyfish_death",
+      "variants": [
+        "sounds/jellyfish_death1.ogg",
+        "sounds/jellyfish_death2.ogg"
+      ],
+      "gain": 0.8,
+      "pitch_variation": 0.1,
+      "attenuation_distance": 12.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:jelly_sting",
+      "variants": [
+        "sounds/jelly_sting1.ogg",
+        "sounds/jelly_sting2.ogg"
+      ],
+      "gain": 0.8,
+      "pitch_variation": 0.1,
+      "attenuation_distance": 10.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:shark_hurt",
+      "variants": [
+        "sounds/shark_hurt1.ogg",
+        "sounds/shark_hurt2.ogg",
+        "sounds/shark_hurt3.ogg"
+      ],
+      "gain": 1.0,
+      "pitch_variation": 0.08,
+      "attenuation_distance": 20.0,
+      "category": "mob"
+    },
+    {
+      "sound": "exploration:shark_death",
+      "variants": [
+        "sounds/shark_death1.ogg",
+        "sounds/shark_death2.ogg"
+      ],
+      "gain": 1.0,
+      "pitch_variation": 0.06,
+      "attenuation_distance": 20.0,
+      "category": "mob"
     }
   ]
 }

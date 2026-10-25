@@ -13,6 +13,7 @@ mod ocean;
 mod probe;
 mod shroom;
 mod spores;
+mod worn_emitters;
 
 use content::Content;
 use dripstone::Dripstone;
@@ -29,7 +30,9 @@ const GEN_SHOAL: u32 = 10;
 const HOOK_DRIPSTONE: u32 = 1;
 const HOOK_KELP: u32 = 2;
 const HOOK_RIPEN: u32 = 3;
+const TICK_SEA_LIFE: u32 = 1;
 const TICK_FISHING: u32 = 2;
+const TICK_WORN_EMITTERS: u32 = 3;
 const HANDLER_PROJECTILE: u32 = 1;
 const HANDLER_PLAYER_DAMAGE: u32 = 2;
 const HANDLER_MOB_DAMAGE: u32 = 3;
@@ -52,9 +55,11 @@ struct Exploration {
     shoals: Option<ocean::shoal::Shoals>,
     ruins: Option<ocean::ruin::Ruins>,
     lighthouses: Option<ocean::lighthouse::Lighthouses>,
+    sea_life: Option<ocean::sea_life::SeaLife>,
     ripening: Option<ocean::ripen::Ripening>,
     taking_out: Option<ocean::take_out::TakingOut>,
     fishing: Option<fishing::Fishing>,
+    worn_emitters: Option<worn_emitters::WornEmitters>,
     spores: spores::Spores,
 }
 
@@ -147,9 +152,17 @@ impl Mod for Exploration {
                 if self.ripening.is_some() {
                     register_block_behavior(keys::RIPENS, HOOK_RIPEN);
                 }
+                self.sea_life = ocean::sea_life::SeaLife::resolve(ocean.water);
+                if self.sea_life.is_some() {
+                    register_tick_system(Stage::Mobs, AttachSide::Before, 0, TICK_SEA_LIFE);
+                }
                 self.ocean = Some(ocean);
             }
             None => log("exploration: ocean content failed to resolve; seafloor bare"),
+        }
+        self.worn_emitters = worn_emitters::WornEmitters::resolve();
+        if self.worn_emitters.is_some() {
+            register_tick_system(Stage::Mobs, AttachSide::After, 0, TICK_WORN_EMITTERS);
         }
         self.fishing = resolve_block_logged(keys::WATER).and_then(fishing::Fishing::resolve);
         if self.fishing.is_some() {
@@ -247,9 +260,19 @@ impl Mod for Exploration {
 
     fn tick_system(&mut self, system_id: u32) {
         match system_id {
+            TICK_SEA_LIFE => {
+                if let Some(life) = &mut self.sea_life {
+                    life.tick();
+                }
+            }
             TICK_FISHING => {
                 if let Some(fishing) = &mut self.fishing {
                     fishing.tick();
+                }
+            }
+            TICK_WORN_EMITTERS => {
+                if let Some(worn) = &mut self.worn_emitters {
+                    worn.tick();
                 }
             }
             _ => {}

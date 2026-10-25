@@ -1,0 +1,833 @@
+{
+  "mobs": [
+    {
+      "mob": "exploration:sardine",
+      "key": "exploration:sardine",
+      "model": "models/sardine.bbmodel",
+      "scale": 0.0625,
+      "size": {
+        "half_width": 0.12,
+        "height": 0.22,
+        "half_length": 0.3
+      },
+      "tags": {
+        "petramond:health": 3.0
+      },
+      "swim": {
+        "speed": 2.6
+      },
+      "data": {
+        "exploration:swim": {
+          "school": 5.0,
+          "shy": 1.8,
+          "flee": 1.54
+        },
+        "petramond:loot": "exploration:sardine_drops"
+      },
+      "walk_speed": 2.0,
+      "jump_speed": 0.0,
+      "turn_rate": 9.0,
+      "walk_anim_rate": 1.4,
+      "category": "aquatic",
+      "cap": 56,
+      "spawn": {
+        "chance": 0.8,
+        "biomes": [
+          "petramond:ocean",
+          "petramond:deep_ocean",
+          "exploration:kelp_forest",
+          "exploration:cold_ocean",
+          "exploration:warm_ocean",
+          "exploration:coral_reef",
+          "exploration:frozen_ocean",
+          "exploration:deep_frozen_ocean"
+        ],
+        "ground": [],
+        "y": [
+          34,
+          61
+        ],
+        "space": [
+          "petramond:water",
+          "exploration:kelp",
+          "exploration:seagrass"
+        ],
+        "chances": {
+          "exploration:coral_reef": 0.5,
+          "exploration:frozen_ocean": 0.5,
+          "exploration:deep_frozen_ocean": 0.5
+        }
+      },
+      "spawn_group": {
+        "min": 6,
+        "max": 12
+      },
+      "wander": {
+        "chance_per_tick": 0.0,
+        "radius": 6
+      },
+      "habitat": {
+        "avoid": [],
+        "prefer": []
+      },
+      "avoid_fluids": false,
+      "buoyancy": "neutral",
+      "breath": {
+        "capacity": 300,
+        "breathes": [
+          "petramond:water"
+        ]
+      },
+      "damage_feedback": [
+        {
+          "component": "petramond:decrease_health"
+        },
+        {
+          "component": "petramond:flash"
+        },
+        {
+          "component": "petramond:knockback"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "hurt"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "death"
+        },
+        {
+          "component": "petramond:immunity"
+        },
+        {
+          "component": "petramond:ragdoll"
+        }
+      ],
+      "sounds": [
+        {
+          "category": "hurt",
+          "sound": "exploration:fish_hurt"
+        },
+        {
+          "category": "death",
+          "sound": "exploration:fish_death"
+        }
+      ],
+      "brain": []
+    },
+    {
+      "mob": "exploration:glimmerfin",
+      "key": "exploration:glimmerfin",
+      "model": "models/glimmerfin.bbmodel",
+      "scale": 0.0625,
+      "size": {
+        "half_width": 0.14,
+        "height": 0.4,
+        "half_length": 0.28
+      },
+      "tags": {
+        "petramond:health": 4.0
+      },
+      "swim": {
+        "speed": 2.0
+      },
+      "data": {
+        "exploration:swim": {
+          "school": 4.0,
+          "shy": 1.5,
+          "flee": 1.8
+        },
+        "petramond:loot": "exploration:glimmerfin_drops"
+      },
+      "walk_speed": 2.0,
+      "jump_speed": 0.0,
+      "turn_rate": 9.0,
+      "walk_anim_rate": 1.4,
+      "category": "aquatic",
+      "cap": 40,
+      "spawn": {
+        "chance": 0.9,
+        "biomes": [
+          "exploration:warm_ocean",
+          "exploration:coral_reef",
+          "petramond:ocean"
+        ],
+        "ground": [],
+        "y": [
+          36,
+          61
+        ],
+        "space": [
+          "petramond:water",
+          "exploration:kelp",
+          "exploration:seagrass"
+        ],
+        "chances": {
+          "petramond:ocean": 0.3
+        }
+      },
+      "spawn_group": {
+        "min": 3,
+        "max": 7
+      },
+      "wander": {
+        "chance_per_tick": 0.0,
+        "radius": 6
+      },
+      "habitat": {
+        "avoid": [],
+        "prefer": []
+      },
+      "avoid_fluids": false,
+      "buoyancy": "neutral",
+      "breath": {
+        "capacity": 300,
+        "breathes": [
+          "petramond:water"
+        ]
+      },
+      "damage_feedback": [
+        {
+          "component": "petramond:decrease_health"
+        },
+        {
+          "component": "petramond:flash"
+        },
+        {
+          "component": "petramond:knockback"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "hurt"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "death"
+        },
+        {
+          "component": "petramond:immunity"
+        },
+        {
+          "component": "petramond:ragdoll"
+        }
+      ],
+      "sounds": [
+        {
+          "category": "hurt",
+          "sound": "exploration:fish_hurt"
+        },
+        {
+          "category": "death",
+          "sound": "exploration:fish_death"
+        }
+      ],
+      "brain": []
+    },
+    {
+      "mob": "exploration:lanternfish",
+      "key": "exploration:lanternfish",
+      "model": "models/lanternfish.bbmodel",
+      "scale": 0.0625,
+      "size": {
+        "half_width": 0.15,
+        "height": 0.32,
+        "half_length": 0.3
+      },
+      "tags": {
+        "petramond:health": 6.0
+      },
+      "swim": {
+        "speed": 1.2,
+        "turn": 3.0,
+        "accel": 4.0
+      },
+      "data": {
+        "exploration:swim": {
+          "school": 0.0,
+          "shy": 1.2,
+          "flee": 2.0
+        },
+        "petramond:loot": "exploration:lanternfish_drops",
+        "exploration:wears_emitter": {
+          "emitter": "exploration:lanternfish_glow"
+        }
+      },
+      "walk_speed": 2.0,
+      "jump_speed": 0.0,
+      "turn_rate": 9.0,
+      "walk_anim_rate": 1.4,
+      "category": "aquatic",
+      "cap": 10,
+      "spawn": {
+        "chance": 0.5,
+        "biomes": [
+          "petramond:deep_ocean",
+          "exploration:deep_frozen_ocean"
+        ],
+        "ground": [],
+        "y": [
+          -24,
+          42
+        ],
+        "space": [
+          "petramond:water",
+          "exploration:kelp",
+          "exploration:seagrass"
+        ]
+      },
+      "spawn_group": {
+        "min": 1,
+        "max": 2
+      },
+      "wander": {
+        "chance_per_tick": 0.0,
+        "radius": 6
+      },
+      "habitat": {
+        "avoid": [],
+        "prefer": []
+      },
+      "avoid_fluids": false,
+      "buoyancy": "neutral",
+      "breath": {
+        "capacity": 300,
+        "breathes": [
+          "petramond:water"
+        ]
+      },
+      "damage_feedback": [
+        {
+          "component": "petramond:decrease_health"
+        },
+        {
+          "component": "petramond:flash"
+        },
+        {
+          "component": "petramond:knockback"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "hurt"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "death"
+        },
+        {
+          "component": "petramond:immunity"
+        },
+        {
+          "component": "petramond:ragdoll"
+        }
+      ],
+      "sounds": [
+        {
+          "category": "hurt",
+          "sound": "exploration:fish_hurt"
+        },
+        {
+          "category": "death",
+          "sound": "exploration:fish_death"
+        }
+      ],
+      "brain": []
+    },
+    {
+      "mob": "exploration:crab",
+      "key": "exploration:crab",
+      "model": "models/crab.bbmodel",
+      "scale": 0.0375,
+      "size": {
+        "half_width": 0.15,
+        "height": 0.2
+      },
+      "tags": {
+        "petramond:health": 5.0
+      },
+      "walk_speed": 1.6,
+      "jump_speed": 7.2,
+      "turn_rate": 6.0,
+      "walk_anim_rate": 1.2,
+      "category": "aquatic",
+      "cap": 12,
+      "spawn": {
+        "chance": 0.9,
+        "biomes": [
+          "petramond:beach"
+        ],
+        "ground": [
+          "petramond:sand",
+          "petramond:gravel"
+        ]
+      },
+      "spawn_group": {
+        "min": 2,
+        "max": 4
+      },
+      "wander": {
+        "chance_per_tick": 0.012,
+        "radius": 8
+      },
+      "habitat": {
+        "avoid": [],
+        "prefer": [
+          "petramond:beach"
+        ]
+      },
+      "avoid_fluids": true,
+      "breath": {
+        "capacity": 300,
+        "breathes": [
+          "petramond:water",
+          "petramond:air"
+        ]
+      },
+      "damage_feedback": [
+        {
+          "component": "petramond:decrease_health"
+        },
+        {
+          "component": "petramond:flash"
+        },
+        {
+          "component": "petramond:knockback"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "hurt"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "death"
+        },
+        {
+          "component": "petramond:immunity"
+        },
+        {
+          "component": "petramond:ragdoll"
+        }
+      ],
+      "sounds": [
+        {
+          "category": "idle",
+          "sound": "exploration:crab_idle",
+          "tick_interval": 400,
+          "tick_interval_variance": 250
+        },
+        {
+          "category": "hurt",
+          "sound": "exploration:crab_hurt"
+        },
+        {
+          "category": "death",
+          "sound": "exploration:crab_death"
+        }
+      ],
+      "brain": [
+        {
+          "node": "wander",
+          "priority": 0
+        },
+        {
+          "node": "panic",
+          "priority": 40,
+          "params": {
+            "memory_ticks": 80,
+            "radius": 5,
+            "speed_scale": 2.2
+          }
+        }
+      ],
+      "buoyancy": "sink",
+      "gait_facings": [
+        90,
+        -90
+      ]
+    },
+    {
+      "mob": "exploration:sea_turtle",
+      "key": "exploration:sea_turtle",
+      "model": "models/sea_turtle.bbmodel",
+      "scale": 0.0625,
+      "size": {
+        "half_width": 0.4,
+        "height": 0.35,
+        "half_length": 0.6
+      },
+      "tags": {
+        "petramond:health": 14.0
+      },
+      "walk_speed": 0.9,
+      "jump_speed": 7.2,
+      "turn_rate": 6.0,
+      "walk_anim_rate": 0.7,
+      "category": "aquatic",
+      "cap": 8,
+      "spawn": {
+        "chance": 0.3,
+        "biomes": [
+          "exploration:warm_ocean",
+          "exploration:coral_reef",
+          "petramond:ocean"
+        ],
+        "ground": [],
+        "y": [
+          50,
+          61
+        ],
+        "space": [
+          "petramond:water",
+          "exploration:kelp",
+          "exploration:seagrass"
+        ],
+        "chances": {
+          "petramond:ocean": 0.5
+        }
+      },
+      "spawn_group": {
+        "min": 1,
+        "max": 2
+      },
+      "wander": {
+        "chance_per_tick": 0.012,
+        "radius": 8
+      },
+      "habitat": {
+        "avoid": [],
+        "prefer": []
+      },
+      "avoid_fluids": false,
+      "damage_feedback": [
+        {
+          "component": "petramond:decrease_health"
+        },
+        {
+          "component": "petramond:flash"
+        },
+        {
+          "component": "petramond:knockback"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "hurt"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "death"
+        },
+        {
+          "component": "petramond:immunity"
+        },
+        {
+          "component": "petramond:ragdoll"
+        }
+      ],
+      "sounds": [
+        {
+          "category": "idle",
+          "sound": "exploration:turtle_idle",
+          "tick_interval": 700,
+          "tick_interval_variance": 400
+        },
+        {
+          "category": "hurt",
+          "sound": "exploration:turtle_hurt"
+        },
+        {
+          "category": "death",
+          "sound": "exploration:turtle_death"
+        }
+      ],
+      "brain": [
+        {
+          "node": "wander",
+          "priority": 0
+        },
+        {
+          "node": "panic",
+          "priority": 40,
+          "params": {
+            "memory_ticks": 100,
+            "radius": 5,
+            "speed_scale": 1.6
+          }
+        }
+      ],
+      "buoyancy": "neutral",
+      "swim": {
+        "speed": 1.8,
+        "turn": 1.2,
+        "accel": 1.2
+      },
+      "data": {
+        "exploration:swim": {
+          "school": 0.0,
+          "shy": 0.0,
+          "amphibious": true,
+          "surfaces": {
+            "every": 1200,
+            "stay": 160
+          },
+          "roam": 20.0
+        }
+      }
+    },
+    {
+      "mob": "exploration:jellyfish",
+      "key": "exploration:jellyfish",
+      "model": "models/jellyfish.bbmodel",
+      "scale": 0.0625,
+      "size": {
+        "half_width": 0.3,
+        "height": 1.0
+      },
+      "tags": {
+        "petramond:health": 6.0
+      },
+      "swim": {
+        "speed": 0.6,
+        "turn": 0.8,
+        "accel": 0.8
+      },
+      "data": {
+        "exploration:swim": {
+          "school": 0.0,
+          "shy": 0.0,
+          "roam": 6.0
+        },
+        "exploration:sting": {
+          "condition": "exploration:stung",
+          "stage": "light",
+          "ticks": 120,
+          "reach": 0.15,
+          "sound": "exploration:jelly_sting"
+        },
+        "exploration:wears_emitter": {
+          "emitter": "exploration:jellyfish_glow"
+        },
+        "petramond:loot": "exploration:jellyfish_drops"
+      },
+      "walk_speed": 2.0,
+      "jump_speed": 0.0,
+      "turn_rate": 9.0,
+      "walk_anim_rate": 1.4,
+      "category": "aquatic",
+      "cap": 12,
+      "spawn": {
+        "chance": 0.4,
+        "biomes": [
+          "petramond:ocean",
+          "petramond:deep_ocean",
+          "exploration:cold_ocean",
+          "exploration:warm_ocean",
+          "exploration:coral_reef"
+        ],
+        "ground": [],
+        "y": [
+          30,
+          58
+        ],
+        "space": [
+          "petramond:water",
+          "exploration:kelp",
+          "exploration:seagrass"
+        ],
+        "chances": {
+          "exploration:warm_ocean": 0.6,
+          "exploration:coral_reef": 0.3,
+          "exploration:cold_ocean": 0.5
+        }
+      },
+      "spawn_group": {
+        "min": 2,
+        "max": 4
+      },
+      "wander": {
+        "chance_per_tick": 0.0,
+        "radius": 6
+      },
+      "habitat": {
+        "avoid": [],
+        "prefer": []
+      },
+      "avoid_fluids": false,
+      "buoyancy": "neutral",
+      "breath": {
+        "capacity": 300,
+        "breathes": [
+          "petramond:water"
+        ]
+      },
+      "damage_feedback": [
+        {
+          "component": "petramond:decrease_health"
+        },
+        {
+          "component": "petramond:flash"
+        },
+        {
+          "component": "petramond:knockback"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "hurt"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "death"
+        },
+        {
+          "component": "petramond:immunity"
+        },
+        {
+          "component": "petramond:ragdoll"
+        }
+      ],
+      "sounds": [
+        {
+          "category": "hurt",
+          "sound": "exploration:jellyfish_hurt"
+        },
+        {
+          "category": "death",
+          "sound": "exploration:jellyfish_death"
+        }
+      ],
+      "brain": []
+    },
+    {
+      "mob": "exploration:shark",
+      "key": "exploration:shark",
+      "model": "models/shark.bbmodel",
+      "scale": 0.073,
+      "size": {
+        "half_width": 0.35,
+        "height": 0.6,
+        "half_length": 1.1
+      },
+      "tags": {
+        "petramond:health": 24.0
+      },
+      "swim": {
+        "speed": 2.4,
+        "turn": 2.2,
+        "accel": 3.0
+      },
+      "data": {
+        "exploration:swim": {
+          "school": 0.0,
+          "shy": 0.0,
+          "roam": 14.0
+        },
+        "petramond:loot": "exploration:shark_drops"
+      },
+      "walk_speed": 2.0,
+      "jump_speed": 0.0,
+      "turn_rate": 9.0,
+      "walk_anim_rate": 1.4,
+      "category": "aquatic",
+      "cap": 3,
+      "spawn": {
+        "chance": 0.12,
+        "biomes": [
+          "petramond:deep_ocean",
+          "petramond:ocean",
+          "exploration:warm_ocean",
+          "exploration:coral_reef"
+        ],
+        "ground": [],
+        "y": [
+          22,
+          56
+        ],
+        "space": [
+          "petramond:water",
+          "exploration:kelp",
+          "exploration:seagrass"
+        ],
+        "chances": {
+          "petramond:ocean": 0.06
+        }
+      },
+      "spawn_group": {
+        "min": 1,
+        "max": 1
+      },
+      "wander": {
+        "chance_per_tick": 0.0,
+        "radius": 6
+      },
+      "habitat": {
+        "avoid": [],
+        "prefer": []
+      },
+      "avoid_fluids": false,
+      "buoyancy": "neutral",
+      "breath": {
+        "capacity": 300,
+        "breathes": [
+          "petramond:water"
+        ]
+      },
+      "damage_feedback": [
+        {
+          "component": "petramond:decrease_health"
+        },
+        {
+          "component": "petramond:flash"
+        },
+        {
+          "component": "petramond:knockback"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "hurt"
+        },
+        {
+          "component": "petramond:sound",
+          "when": "death"
+        },
+        {
+          "component": "petramond:immunity"
+        },
+        {
+          "component": "petramond:ragdoll"
+        }
+      ],
+      "sounds": [
+        {
+          "category": "hurt",
+          "sound": "exploration:shark_hurt"
+        },
+        {
+          "category": "death",
+          "sound": "exploration:shark_death"
+        }
+      ],
+      "brain": [
+        {
+          "node": "chase_player",
+          "priority": 20,
+          "params": {
+            "radius": 14.0,
+            "give_up_radius": 20.0,
+            "fov": 300.0,
+            "medium": "fluid"
+          }
+        },
+        {
+          "node": "melee_attack",
+          "priority": 30,
+          "params": {
+            "reach": 0.9,
+            "damage": 5.0,
+            "knockback": 4.0,
+            "cooldown_ticks": 30,
+            "windup_ticks": 4,
+            "animation": "bite"
+          }
+        }
+      ]
+    }
+  ]
+}

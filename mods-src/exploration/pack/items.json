@@ -637,6 +637,19 @@
       "tags": []
     },
     {
+      "item": "exploration:shark_tooth",
+      "key": "exploration:shark_tooth",
+      "name": "Shark Tooth",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:shark_tooth",
+      "tags": []
+    },
+    {
       "item": "exploration:bubble_tonic",
       "key": "exploration:bubble_tonic",
       "name": "Bubble Tonic",
@@ -1827,6 +1840,110 @@
       },
       "tags": [],
       "block": "exploration:limestone_bricks_slab"
+    },
+    {
+      "item": "exploration:glowing_tendril",
+      "key": "exploration:glowing_tendril",
+      "name": "Glowing Tendril",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:glowing_tendril",
+      "data": {
+        "forge:augment": [
+          {
+            "tool": "sword",
+            "cost": 2,
+            "overlay": "exploration:stinging_tendrils",
+            "overlays": {
+              "default": "exploration:sword_stinging_tendrils"
+            },
+            "inflicts": {
+              "condition": "exploration:stung",
+              "stage": "light",
+              "ticks": 100
+            },
+            "wear": {
+              "on": "hit",
+              "max": 600
+            }
+          },
+          {
+            "tool": "axe",
+            "cost": 2,
+            "overlay": "exploration:stinging_tendrils",
+            "inflicts": {
+              "condition": "exploration:stung",
+              "stage": "light",
+              "ticks": 100
+            },
+            "wear": {
+              "on": "hit",
+              "max": 600
+            }
+          }
+        ]
+      }
+    },
+    {
+      "item": "exploration:sting_salve",
+      "key": "exploration:sting_salve",
+      "name": "Sting Salve",
+      "info": "Soothes a jellyfish sting",
+      "max_stack_size": 16,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+      },
+      "sprite": "exploration:sting_salve",
+      "tags": [],
+      "food": {
+        "eat_ticks": 24,
+        "clears": [
+          "exploration:stung"
+        ]
+      }
+    },
+    {
+      "item": "exploration:stinging_tendrils",
+      "key": "exploration:stinging_tendrils",
+      "name": "Stinging Tendrils",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:stinging_tendrils",
+      "tags": [],
+      "data": {
+        "petramond:creative": {
+          "visible": false
+        }
+      }
+    },
+    {
+      "item": "exploration:sword_stinging_tendrils",
+      "key": "exploration:sword_stinging_tendrils",
+      "name": "Stinging Tendrils",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:sword_stinging_tendrils",
+      "tags": [],
+      "data": {
+        "petramond:creative": {
+          "visible": false
+        }
+      }
     }
   ]
 }
