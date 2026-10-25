@@ -75,7 +75,16 @@ pub(super) struct RawBlockDef {
     pub roots_face: RootsFace,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub stacks: bool,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub sway: f32,
 }
+
+fn is_zero(v: &f32) -> bool {
+    *v == 0.0
+}
+
+/// The farthest a plant may sway, in blocks: past this it leaves its cell's light.
+const MAX_SWAY: f32 = 0.5;
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -570,6 +579,9 @@ fn convert(
     let (family, params, shape_key) = r.shape.resolve(r.corners)?;
     let (sim, render, _) = shape_kind::families::singletons(family);
     let uv_turns = resolve_uv_turns(&r, sim)?;
+    if !(r.sway.is_finite() && (0.0..=MAX_SWAY).contains(&r.sway)) {
+        return Err(format!("sway must be within 0.0..={MAX_SWAY}"));
+    }
     let mut flags = BlockFlags::NONE;
     for f in &r.flags {
         flags = flags.with(f.to_flag());
@@ -964,6 +976,7 @@ fn convert(
         ),
         roots_face: r.roots_face,
         stacks: r.stacks,
+        sway: r.sway,
     })
 }
 

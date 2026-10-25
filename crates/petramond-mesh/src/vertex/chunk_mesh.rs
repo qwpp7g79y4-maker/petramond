@@ -55,6 +55,9 @@ pub struct ChunkMesh {
     pub model_idx: Vec<u32>,
     pub model_blend_idx: Vec<u32>,
     pub contact: Vec<ContactShadowVertex>,
+    /// Swaying [`opaque`](Self::opaque) vertices, (index, lean): sealed into
+    /// [`TerrainVertex::sway`].
+    pub sway: Vec<(u32, i16)>,
     pub mesh_dirty: bool,
     pub visibility: SectionVisibility,
     pub(crate) sealed_quads: [Vec<TerrainVertex>; QuadLayer::COUNT],
@@ -81,6 +84,7 @@ impl ChunkMesh {
             model_idx: vec![],
             model_blend_idx: vec![],
             contact: vec![],
+            sway: vec![],
             mesh_dirty: false,
             visibility: SectionVisibility::ALL,
             sealed_quads: Default::default(),
@@ -116,6 +120,12 @@ impl ChunkMesh {
         for layer in QuadLayer::ALL {
             let cpu = std::mem::take(self.quads_mut(layer));
             self.sealed_quads[layer.index()] = cpu.iter().map(TerrainVertex::from_mesh).collect();
+        }
+        let opaque = &mut self.sealed_quads[QuadLayer::Opaque.index()];
+        for (i, lean) in std::mem::take(&mut self.sway) {
+            if let Some(v) = opaque.get_mut(i as usize) {
+                v.sway = lean;
+            }
         }
         self.sealed = true;
     }

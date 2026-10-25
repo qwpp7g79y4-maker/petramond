@@ -33,6 +33,8 @@ pub(super) struct Streams {
     pub(super) model_idx: Vec<u32>,
     pub(super) model_blend_idx: Vec<u32>,
     pub(super) contact: Vec<ContactShadowVertex>,
+    /// Swaying `opaque` vertices: (index, lean in terrain fixed point).
+    pub(super) sway: Vec<(u32, i16)>,
 }
 
 impl Streams {
@@ -46,6 +48,7 @@ impl Streams {
         self.model_idx.clear();
         self.model_blend_idx.clear();
         self.contact.clear();
+        self.sway.clear();
     }
 }
 

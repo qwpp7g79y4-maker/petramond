@@ -273,6 +273,7 @@ mod seams;
 mod slabs;
 mod snow;
 mod stairs;
+mod sway;
 mod synthetic_fluids;
 mod tint;
 

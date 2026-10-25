@@ -47,6 +47,8 @@ pub(crate) struct BlockDef {
     /// Held by a cell of its own row in its support direction (a kelp
     /// segment standing on the one below), whatever that cell presents.
     pub stacks: bool,
+    /// How far, in blocks, a current sways this plant's free vertices; 0 holds it still.
+    pub sway: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

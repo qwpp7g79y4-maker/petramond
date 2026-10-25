@@ -32,7 +32,8 @@ pub const TERRAIN_POS_SCALE: f32 = 64.0;
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct TerrainVertex {
     pub pos: [i16; 3],
-    pub _pad: i16,
+    /// How far a current sways this vertex, in the same fixed point as `pos`; 0 = still.
+    pub sway: i16,
     pub tint: u32,
     pub packed: u32,
     pub packed2: u32,
@@ -68,7 +69,7 @@ impl TerrainVertex {
         }
         Self {
             pos: [quant(v.pos[0]), quant(v.pos[1]), quant(v.pos[2])],
-            _pad: 0,
+            sway: 0,
             tint: v.tint,
             packed: v.packed,
             packed2: v.packed2,

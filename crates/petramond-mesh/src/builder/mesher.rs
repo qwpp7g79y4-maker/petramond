@@ -145,13 +145,17 @@ impl SectionMesher<'_> {
             self.emit_fluid(cell);
             return;
         }
+        let start = self.out.opaque.len();
         match emitter {
             MeshEmitter::Nothing => {}
-            MeshEmitter::Plant(layout) => self.emit_plant(cell, layout),
+            MeshEmitter::Plant(layout) => {
+                self.emit_plant(cell, layout);
+                self.record_sway(cell, start);
+            }
             MeshEmitter::Pole => self.emit_pole(cell),
             MeshEmitter::Model => self.emit_model(cell),
             MeshEmitter::Boxes => match self.emit_boxes(cell) {
-                BoxesOutcome::Drawn => {}
+                BoxesOutcome::Drawn => self.record_sway(cell, start),
                 BoxesOutcome::Cube { whole_stack } => {
                     self.emit_cube(cell, whole_stack, whole_stack.then_some(masks).flatten())
                 }
@@ -162,6 +166,30 @@ impl SectionMesher<'_> {
         }
     }
 }
+
+impl SectionMesher<'_> {
+    /// Marks the vertices a swaying cell just emitted. Those at the floor of a cell that stands
+    /// on something else stay pinned, so a plant sways from its root; a stacked run (kelp)
+    /// moves as one stalk because every joint between its segments sways alike.
+    fn record_sway(&mut self, cell: &Cell, start: usize) {
+        let sway = cell.block.sway();
+        if sway <= 0.0 {
+            return;
+        }
+        let lean = (sway * crate::vertex::TERRAIN_POS_SCALE).round() as i16;
+        let rooted = self.nb.block(cell.world - IVec3::Y) != cell.block;
+        let floor = (cell.world.y - self.anchor.y) as f32;
+        for (i, v) in self.out.opaque[start..].iter().enumerate() {
+            if rooted && v.pos[1] <= floor + ROOT_EPS {
+                continue;
+            }
+            self.out.sway.push(((start + i) as u32, lean));
+        }
+    }
+}
+
+/// How close to its cell's floor a vertex is still part of the root.
+const ROOT_EPS: f32 = 1.0 / 64.0;
 
 fn finish(out: &Streams) -> ChunkMesh {
     let far_opaque_len = if out.leaf_interior.is_empty() {
@@ -182,6 +210,7 @@ fn finish(out: &Streams) -> ChunkMesh {
         model_idx: out.model_idx.to_vec(),
         model_blend_idx: out.model_blend_idx.to_vec(),
         contact: out.contact.to_vec(),
+        sway: out.sway.to_vec(),
         mesh_dirty: true,
         ..ChunkMesh::empty()
     }

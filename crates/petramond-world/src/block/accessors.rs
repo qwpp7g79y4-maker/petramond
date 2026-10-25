@@ -468,6 +468,11 @@ impl Block {
     }
 
     #[inline]
+    pub fn sway(self) -> f32 {
+        self.def().sway
+    }
+
+    #[inline]
     pub fn roots_face(self) -> crate::block::RootsFace {
         self.def().roots_face
     }

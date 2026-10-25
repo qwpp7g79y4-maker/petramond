@@ -355,12 +355,28 @@ fn vs_main(in: VsIn) -> VsOut {
 
 @vertex
 fn vs_terrain(in: VsInTerrain) -> VsOut {
-    let mesh_pos = vec3<f32>(in.pos_q.xyz) * TERRAIN_POS_SCALE_INV
+    var mesh_pos = vec3<f32>(in.pos_q.xyz) * TERRAIN_POS_SCALE_INV
         + greedy_overlap_push(in.packed, in.packed2);
+    // pos_q.w = how far a current sways this vertex (a swaying plant row).
+    if (in.pos_q.w != 0) {
+        let p = vec2<f32>(in.col_origin.xz % vec2<i32>(64)) + mesh_pos.xz;
+        mesh_pos += vec3<f32>(current_sway(p, mesh_pos.y, u.fog.z), 0.0).xzy
+            * (f32(in.pos_q.w) * TERRAIN_POS_SCALE_INV);
+    }
     // The column origin and the render origin are both integers: only their
     // small difference becomes a float.
     let anchor = vec3<f32>(in.col_origin.xyz - u.render_origin.xyz);
     return vs_common(anchor + mesh_pos, mesh_pos.y, in.tint, in.packed, in.packed2);
+}
+
+// A slow current: a long swell along it with a shorter sideways eddy, phased by position and
+// height so a meadow ripples and a kelp stalk undulates instead of nodding in step. Integral
+// wave numbers over 64 blocks keep the column origin's wrap seamless. Length <= 1.
+fn current_sway(p: vec2<f32>, y: f32, t: f32) -> vec2<f32> {
+    let k = 6.2831853 / 64.0;
+    let swell = sin(t * 0.85 + dot(p, vec2<f32>(3.0, 2.0) * k) + y * 0.42);
+    let eddy = sin(t * 1.55 + dot(p, vec2<f32>(-5.0, 7.0) * k) + y * 0.77);
+    return vec2<f32>(0.75 * swell + 0.25 * eddy, 0.45 * eddy + 0.15 * swell) * 0.95;
 }
 
 // Sub-pixel tangent overlap for greedy-MERGED quads (1/1024 block). Their long
