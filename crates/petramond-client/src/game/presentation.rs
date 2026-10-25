@@ -325,7 +325,11 @@ impl GamePresentationScratch {
                     cols: u16::from(def.segments[0]) + 1,
                     rows: u16::from(def.segments[1]) + 1,
                     first: self.cloth_points.len() as u32,
-                    coat: cloth_coat(data, sim.cell, &mut self.cloth_texels),
+                    coat: if sim.carried_by_body() {
+                        petramond_render::views::ClothCoat::None
+                    } else {
+                        cloth_coat(data, sim.cell, &mut self.cloth_texels)
+                    },
                 });
             self.cloth_points.extend(sim.points(alpha).map(|pos| {
                 let c = sim.cell + petramond_math::math::voxel_at(pos);
@@ -347,7 +351,7 @@ impl GamePresentationScratch {
             .collect_cloths(eye.block(), radius, &mut self.far_cloths);
         let (time, wind) = cloth.far_clock();
         for placed in &self.far_cloths {
-            if cloth.simulates(placed.cell) {
+            if cloth.simulates(super::cloth::ClothKey::Cell(placed.cell)) {
                 continue;
             }
             let Some(def) = petramond_world::cloth::def(placed.cloth) else {
@@ -359,7 +363,15 @@ impl GamePresentationScratch {
             }
             let distance = (min - eye).length();
             let segments = super::cloth::ClothSystem::far_segments(def, distance);
-            super::cloth::far_pose(def, placed.cell, wind, time, segments, &mut self.far_pose);
+            super::cloth::far_pose(
+                def,
+                Vec3::from_array(def.anchor),
+                super::cloth::phase_of(placed.cell),
+                wind,
+                time,
+                segments,
+                &mut self.far_pose,
+            );
             self.cloths
                 .push(petramond_render::views::ClothPresentation {
                     cell: placed.cell,
@@ -372,6 +384,47 @@ impl GamePresentationScratch {
                 });
             self.cloth_points.extend(self.far_pose.iter().map(|&pos| {
                 let c = placed.cell + petramond_math::math::voxel_at(pos);
+                let (skylight, blocklight) = data.dynamic_light_at_world(c.x, c.y, c.z);
+                petramond_render::views::ClothPoint {
+                    pos,
+                    skylight,
+                    blocklight,
+                }
+            }));
+        }
+
+        // A sail beyond simulation range keeps flying too, posed where its body stands.
+        for m in super::cloth::carried_cloths(&game.presented_entities_cache) {
+            if cloth.simulates(m.key()) || (m.top - eye).length() > radius as f32 {
+                continue;
+            }
+            let cell = m.top.block();
+            let min = petramond_math::world_pos::WorldPos::block_min(cell);
+            if !view.aabb_visible(min + lo, min + hi) {
+                continue;
+            }
+            let segments = super::cloth::ClothSystem::far_segments(m.def, (m.top - eye).length());
+            super::cloth::far_pose(
+                m.def,
+                m.top.relative_to(cell),
+                super::cloth::phase_of(cell),
+                wind,
+                time,
+                segments,
+                &mut self.far_pose,
+            );
+            self.cloths
+                .push(petramond_render::views::ClothPresentation {
+                    cell,
+                    tile: m.def.tile,
+                    uv: m.def.uv,
+                    cols: segments[0] as u16 + 1,
+                    rows: segments[1] as u16 + 1,
+                    first: self.cloth_points.len() as u32,
+                    coat: petramond_render::views::ClothCoat::None,
+                });
+            self.cloth_points.extend(self.far_pose.iter().map(|&pos| {
+                let c = cell + petramond_math::math::voxel_at(pos);
                 let (skylight, blocklight) = data.dynamic_light_at_world(c.x, c.y, c.z);
                 petramond_render::views::ClothPoint {
                     pos,

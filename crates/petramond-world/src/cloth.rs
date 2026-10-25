@@ -27,7 +27,8 @@ pub struct ClothDef {
     pub size: [f32; 2],
     /// Quads across and down.
     pub segments: [u8; 2],
-    /// Top of the pinned edge in the owning cell's 0..1 space.
+    /// Top of the pinned edge in the owning cell's 0..1 space. A sheet a mob carries pins at
+    /// its row's `at` instead.
     pub anchor: [f32; 3],
     /// Fraction of each constraint's error removed per pass, 0..=1.
     pub stiffness: f32,
@@ -47,6 +48,7 @@ struct RawCloth {
     uv: [f32; 4],
     size: [f32; 2],
     segments: [u8; 2],
+    #[serde(default = "cell_top")]
     anchor: [f32; 3],
     #[serde(default = "default_stiffness")]
     stiffness: f32,
@@ -60,6 +62,10 @@ struct RawCloth {
 
 fn full_uv() -> [f32; 4] {
     [0.0, 0.0, 16.0, 16.0]
+}
+
+fn cell_top() -> [f32; 3] {
+    [0.5, 1.0, 0.5]
 }
 
 fn default_stiffness() -> f32 {

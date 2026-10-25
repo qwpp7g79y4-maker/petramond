@@ -130,6 +130,8 @@ struct RawMobDef {
     #[serde(default)]
     seats: Vec<[f64; 3]>,
     #[serde(default)]
+    cloth: Vec<RawMobCloth>,
+    #[serde(default)]
     container_slots: usize,
     #[serde(default)]
     reach: Option<f64>,
@@ -175,6 +177,13 @@ struct RawSpawn {
     #[serde(default)]
     chances: std::collections::BTreeMap<String, f64>,
     ground: Vec<Block>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawMobCloth {
+    cloth: String,
+    at: [f32; 3],
 }
 
 #[derive(Deserialize)]
@@ -416,6 +425,21 @@ fn convert(
         radius,
         random: r.random_despawn,
     });
+    let cloths = r
+        .cloth
+        .iter()
+        .map(|c| {
+            let def = petramond_world::cloth::by_key(&c.cloth)
+                .ok_or_else(|| format!("unknown cloth '{}'", c.cloth))?;
+            if !c.at.iter().all(|v| v.is_finite()) {
+                return Err(format!("cloth '{}' `at` must be finite", c.cloth));
+            }
+            Ok(super::MobCloth {
+                cloth: def.id,
+                at: c.at,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     if r.seats.len() > super::MAX_MOB_SEATS {
         return Err(format!(
             "at most {} seats per species, got {}",
@@ -530,6 +554,7 @@ fn convert(
         sounds: convert_sounds(r.sounds)?,
         brain: convert_brain(r.brain)?,
         seats: Box::leak(seats.into_boxed_slice()),
+        cloths: Box::leak(cloths.into_boxed_slice()),
         container_slots: r.container_slots,
         reach: reach as f32,
         eye_height: eye_height as f32,

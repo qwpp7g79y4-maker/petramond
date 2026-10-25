@@ -18,6 +18,10 @@
 //! Nothing here is authoritative or deterministic; two clients may flutter a flag
 //! differently. The wind is whatever the client mods set (`ClientClothWindSet`), or
 //! [`DEFAULT_WIND`] when none does.
+//!
+//! A sheet can also be carried by a body (a mob row's `cloth`, a boat's sail). Its
+//! pinned edge then follows the body every step and it meets no blocks or bodies; the
+//! wind it feels is relative to its own points' motion, so a moving hull fills its sail.
 
 use petramond::world::{PlacedCloth, ReplicaWorld};
 use petramond_math::math::{IVec3, Vec3};
@@ -126,9 +130,35 @@ struct Obstacle {
     edge_bounds: [(Vec3, Vec3); 12],
 }
 
+/// What a sim hangs from: a block's cell, or a body's carried cloth (mob id, cloth index).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(super) enum ClothKey {
+    Cell(IVec3),
+    Mount(u64, u8),
+}
+
+/// A cloth a presented body carries this frame: where the top of its pinned edge is.
+#[derive(Clone, Copy)]
+pub(super) struct MountedCloth {
+    pub mob: u64,
+    pub index: u8,
+    pub def: &'static ClothDef,
+    pub top: WorldPos,
+}
+
+impl MountedCloth {
+    pub(super) fn key(&self) -> ClothKey {
+        ClothKey::Mount(self.mob, self.index)
+    }
+}
+
 pub(super) struct ClothSim {
+    /// The cell positions are relative to: the owning block's, or for a carried sheet one
+    /// kept near its pinned edge.
     pub(super) cell: IVec3,
     pub(super) def: &'static ClothDef,
+    /// For a carried sheet, the top of its pinned edge relative to `cell`, this step.
+    mount: Option<Vec3>,
     /// Positions relative to the owning cell's minimum corner.
     pos: Vec<Vec3>,
     old: Vec<Vec3>,
@@ -159,6 +189,27 @@ impl ClothSim {
     /// A sim starting from the far pose at `time`, so a flag coming into simulation
     /// range carries on from the shape it was just drawn in.
     pub(super) fn new(cell: IVec3, def: &'static ClothDef, wind: [f32; 2], time: f32) -> Self {
+        Self::hung(cell, def, None, wind, time)
+    }
+
+    /// A sim for a sheet a body carries, its pinned edge's top at `top`.
+    pub(super) fn carried(
+        def: &'static ClothDef,
+        top: WorldPos,
+        wind: [f32; 2],
+        time: f32,
+    ) -> Self {
+        let cell = top.block();
+        Self::hung(cell, def, Some(top.relative_to(cell)), wind, time)
+    }
+
+    fn hung(
+        cell: IVec3,
+        def: &'static ClothDef,
+        mount: Option<Vec3>,
+        wind: [f32; 2],
+        time: f32,
+    ) -> Self {
         let [cols, rows] = def.segments.map(|s| usize::from(s) + 1);
         let tris: Box<[[usize; 3]]> = triangles(cols, rows).collect();
         let (around, vertex_tris) = triangles_around(&tris, cols * rows);
@@ -166,6 +217,7 @@ impl ClothSim {
         let mut sim = Self {
             cell,
             def,
+            mount,
             pos: Vec::new(),
             old: Vec::new(),
             prev: Vec::new(),
@@ -186,10 +238,47 @@ impl ClothSim {
             #[cfg(test)]
             furls: 0,
         };
-        far_pose(def, cell, wind, time, [cols - 1, rows - 1], &mut sim.pos);
+        let anchor = sim.anchor();
+        far_pose(
+            def,
+            anchor,
+            sim.phase,
+            wind,
+            time,
+            [cols - 1, rows - 1],
+            &mut sim.pos,
+        );
         sim.old.clone_from(&sim.pos);
         sim.prev.clone_from(&sim.pos);
         sim
+    }
+
+    /// The top of the pinned edge, relative to the cell.
+    fn anchor(&self) -> Vec3 {
+        self.mount.unwrap_or(Vec3::from_array(self.def.anchor))
+    }
+
+    pub(super) fn carried_by_body(&self) -> bool {
+        self.mount.is_some()
+    }
+
+    /// Moves a carried sheet's pinned edge to `top`, re-basing the sim onto the cell under
+    /// it whenever the body has carried it out of the one it started from.
+    fn carry_to(&mut self, top: WorldPos) {
+        let shift = top.block() - self.cell;
+        if shift != IVec3::ZERO {
+            let d = shift.as_vec3();
+            for p in self
+                .pos
+                .iter_mut()
+                .chain(&mut self.old)
+                .chain(&mut self.prev)
+            {
+                *p -= d;
+            }
+            self.cell += shift;
+        }
+        self.mount = Some(top.relative_to(self.cell));
     }
 
     /// Lays the sheet out downwind at `spread` of its width, at rest.
@@ -198,7 +287,7 @@ impl ClothSim {
         let downwind = Vec3::new(wind[0], 0.0, wind[1]).normalize_or(Vec3::NEG_X);
         let [cols, rows] = def.segments.map(usize::from);
         let [du, dv] = [def.size[0] / cols as f32, def.size[1] / rows as f32];
-        let anchor = Vec3::from_array(def.anchor);
+        let anchor = self.anchor();
         self.pos.clear();
         self.pos.extend((0..=rows).flat_map(|v| {
             (0..=cols).map(move |u| {
@@ -226,7 +315,7 @@ impl ClothSim {
 
     fn pin(&self, i: usize) -> Vec3 {
         let dv = self.def.size[1] / f32::from(self.def.segments[1]);
-        Vec3::from_array(self.def.anchor) - Vec3::Y * ((i / self.cols()) as f32 * dv)
+        self.anchor() - Vec3::Y * ((i / self.cols()) as f32 * dv)
     }
 
     /// Advances one fixed step. `boxes(cell)` answers collision boxes for a cell given
@@ -241,7 +330,11 @@ impl ClothSim {
         let def = self.def;
         let h = STEP / SUBSTEPS as f32;
         self.prev.copy_from_slice(&self.pos);
-        self.gather_obstacles(boxes);
+        if self.mount.is_some() {
+            self.obstacles.clear();
+        } else {
+            self.gather_obstacles(boxes);
+        }
         let mut accel = std::mem::take(&mut self.accel);
         self.wind_accel(time, wind, h, &mut accel);
         let gravity = Vec3::Y * (GRAVITY * def.gravity);
@@ -860,7 +953,7 @@ fn is_full_cube(boxes: &[Aabb]) -> bool {
 }
 
 /// A per-cell phase so neighbouring flags never move in step.
-fn phase_of(cell: IVec3) -> f32 {
+pub(super) fn phase_of(cell: IVec3) -> f32 {
     let h = (cell.x as u32)
         .wrapping_mul(0x9E37_79B9)
         .wrapping_add((cell.y as u32).wrapping_mul(0x85EB_CA6B))
@@ -868,13 +961,14 @@ fn phase_of(cell: IVec3) -> f32 {
     (h >> 8) as f32 / (1u32 << 24) as f32 * std::f32::consts::TAU
 }
 
-/// The sheet posed without simulation, on a `segments` grid relative to `cell`: it
+/// The sheet posed without simulation, on a `segments` grid hung from `anchor`: it
 /// streams downwind, drooping more the calmer the air (fitted to the sim's settled
 /// shapes), with a ripple running from the post to the free edge. Drawn beyond
 /// simulation range and used to start a sim, so neither handover pops.
 pub(super) fn far_pose(
     def: &ClothDef,
-    cell: IVec3,
+    anchor: Vec3,
+    phase: f32,
     wind: [f32; 2],
     time: f32,
     segments: [usize; 2],
@@ -888,8 +982,7 @@ pub(super) fn far_pose(
     let (sin, cos) = droop.sin_cos();
     let amplitude = FAR_RIPPLE * (speed / 1.5).min(2.0);
     let omega = 3.0 + 1.5 * speed;
-    let t = time + phase_of(cell);
-    let anchor = Vec3::from_array(def.anchor);
+    let t = time + phase;
     let [cols, rows] = segments.map(|s| s.max(1));
     let [width, height] = def.size;
     out.clear();
@@ -915,7 +1008,7 @@ fn link(pos: &mut [Vec3], i: usize, j: usize, rest: f32, pinned: [bool; 2], k: f
 /// Every cloth near the camera, simulated at a fixed step.
 #[derive(Default)]
 pub(super) struct ClothSystem {
-    sims: FxHashMap<IVec3, ClothSim>,
+    sims: FxHashMap<ClothKey, ClothSim>,
     placed: Vec<PlacedCloth>,
     hulls: Vec<BodyHull>,
     near: Vec<(Vec3, f32, f32)>,
@@ -931,6 +1024,7 @@ impl ClothSystem {
         camera: WorldPos,
         wind: [f32; 2],
         bodies: impl IntoIterator<Item = BodyHull>,
+        mounts: &[MountedCloth],
         dt: f32,
     ) {
         self.hulls.clear();
@@ -941,20 +1035,33 @@ impl ClothSystem {
         world.collect_cloths(center, SIM_RADIUS + SIM_HYSTERESIS, &mut self.placed);
         self.placed.sort_by_key(dist2);
         self.placed.truncate(MAX_ACTIVE);
+        let keep2 = |top: WorldPos| (top - camera).length() <= (SIM_RADIUS + SIM_HYSTERESIS) as f32;
         let placed = &self.placed;
-        self.sims.retain(|cell, sim| {
-            placed
+        self.sims.retain(|key, sim| match *key {
+            ClothKey::Cell(cell) => placed
                 .iter()
-                .any(|p| p.cell == *cell && p.cloth == sim.def.id)
+                .any(|p| p.cell == cell && p.cloth == sim.def.id),
+            ClothKey::Mount(..) => mounts
+                .iter()
+                .any(|m| m.key() == *key && m.def.id == sim.def.id && keep2(m.top)),
         });
         let entry_radius2 = i64::from(SIM_RADIUS) * i64::from(SIM_RADIUS);
         for p in placed.iter().filter(|p| dist2(p) <= entry_radius2) {
             if let (std::collections::hash_map::Entry::Vacant(slot), Some(def)) = (
-                self.sims.entry(p.cell),
+                self.sims.entry(ClothKey::Cell(p.cell)),
                 petramond_world::cloth::def(p.cloth),
             ) {
                 slot.insert(ClothSim::new(p.cell, def, wind, self.time));
             }
+        }
+        for m in mounts {
+            if (m.top - camera).length() > SIM_RADIUS as f32 && !self.sims.contains_key(&m.key()) {
+                continue;
+            }
+            self.sims
+                .entry(m.key())
+                .or_insert_with(|| ClothSim::carried(m.def, m.top, wind, self.time))
+                .carry_to(m.top);
         }
 
         self.acc = (self.acc + dt.max(0.0)).min(STEP * MAX_STEPS_PER_FRAME as f32);
@@ -963,6 +1070,10 @@ impl ClothSystem {
             self.acc -= STEP;
             self.time += STEP;
             for sim in self.sims.values_mut() {
+                if sim.carried_by_body() {
+                    sim.step(self.time, wind, &|_| &[], &[]);
+                    continue;
+                }
                 let cell = sim.cell;
                 let boxes = |c: IVec3| {
                     let w = cell + c;
@@ -990,8 +1101,8 @@ impl ClothSystem {
         self.sims.values()
     }
 
-    pub(super) fn simulates(&self, cell: IVec3) -> bool {
-        self.sims.contains_key(&cell)
+    pub(super) fn simulates(&self, key: ClothKey) -> bool {
+        self.sims.contains_key(&key)
     }
 
     /// The clock and wind far poses are drawn at, continuous with the sims.
@@ -1033,10 +1144,45 @@ impl super::Game {
                     .max(size.half_width)
             }),
         });
+        let mounts = carried_cloths(&self.presented_entities_cache);
         self.fx
             .cloth
-            .tick(&self.replica.world, camera, wind, bodies, dt);
+            .tick(&self.replica.world, camera, wind, bodies, &mounts, dt);
     }
+}
+
+/// Every cloth the presented bodies carry, placed where each body stands and faces.
+pub(super) fn carried_cloths(entities: &[mod_api::ClientEntityData]) -> Vec<MountedCloth> {
+    let mut out = Vec::new();
+    for e in entities {
+        let (Some(kind), mod_api::EntityRef::Mob(mob)) = (e.mob_kind, e.id) else {
+            continue;
+        };
+        let cloths = petramond::mob::def(petramond::mob::Mob(kind.0)).cloths;
+        if cloths.is_empty() {
+            continue;
+        }
+        let feet = WorldPos::new(e.feet[0], e.feet[1], e.feet[2]);
+        let yaw = e.body_facing[0].atan2(e.body_facing[1]);
+        for (index, c) in cloths.iter().enumerate() {
+            let Some(def) = petramond_world::cloth::def(c.cloth) else {
+                continue;
+            };
+            let top = petramond::mob::riding::body_point(
+                feet,
+                yaw,
+                petramond_math::math::Tilt::LEVEL,
+                c.at,
+            );
+            out.push(MountedCloth {
+                mob,
+                index: index as u8,
+                def,
+                top,
+            });
+        }
+    }
+    out
 }
 
 #[cfg(test)]

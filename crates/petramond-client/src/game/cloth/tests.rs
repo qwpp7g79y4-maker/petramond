@@ -167,7 +167,15 @@ fn the_far_pose_matches_where_the_sim_settles_so_the_handover_does_not_pop() {
         let settled = free_edge(&sim).iter().sum::<Vec3>() / sim.rows() as f32;
         let mut pose = Vec::new();
         let segments = def.segments.map(usize::from);
-        far_pose(def, IVec3::ZERO, wind, 6.0, segments, &mut pose);
+        far_pose(
+            def,
+            Vec3::from_array(def.anchor),
+            phase_of(IVec3::ZERO),
+            wind,
+            6.0,
+            segments,
+            &mut pose,
+        );
         let cols = segments[0] + 1;
         let posed = pose.iter().skip(cols - 1).step_by(cols).sum::<Vec3>() / sim.rows() as f32;
         assert!(
@@ -235,4 +243,30 @@ fn a_flag_shoved_around_thin_posts_never_stays_snagged_on_them() {
             "path {phase}: a point still hangs {snag} from where the flag flew before"
         );
     }
+}
+
+#[test]
+fn a_carried_sheet_follows_its_body_and_trails_behind_it_in_still_air() {
+    let def = sheet([2.0, 2.5], [10, 10], [0.5, 1.0, 0.5]);
+    let start = WorldPos::new(10.5, 70.0, -3.5);
+    let mut sim = ClothSim::carried(def, start, [0.0, 0.0], 0.0);
+    let speed = 5.0;
+    let steps = (3.0 / STEP) as usize;
+    let mut top = start;
+    for n in 0..steps {
+        top = start + Vec3::new(speed * n as f32 * STEP, 0.0, 0.0);
+        sim.carry_to(top);
+        sim.step(n as f32 * STEP, [0.0, 0.0], &open_air, &[]);
+    }
+    let pinned = WorldPos::block_min(sim.cell) + sim.points(1.0).next().unwrap();
+    assert!(
+        (pinned - top).length() < 1e-3,
+        "the pinned edge rides with the body"
+    );
+    let cols = sim.cols();
+    let tip = WorldPos::block_min(sim.cell) + sim.points(1.0).nth(cols - 1).unwrap();
+    assert!(
+        tip.x < top.x - 0.8,
+        "the free edge streams out behind a moving body: tip {tip:?}, top {top:?}"
+    );
 }

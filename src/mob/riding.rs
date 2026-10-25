@@ -59,8 +59,19 @@ pub fn seat_world_pos(
     mob_tilt: Tilt,
     seat: [f32; 3],
 ) -> petramond_math::world_pos::WorldPos {
-    let hip = Vec3::new(seat[0], seat[1] + PLAYER_HIP_HEIGHT, -seat[2]);
-    mob_pos + mob_tilt.body_frame(mob_yaw).transform_vector3(hip) - Vec3::Y * PLAYER_HIP_HEIGHT
+    let hip = [seat[0], seat[1] + PLAYER_HIP_HEIGHT, seat[2]];
+    body_point(mob_pos, mob_yaw, mob_tilt, hip) - Vec3::Y * PLAYER_HIP_HEIGHT
+}
+
+/// A point given in a mob's own frame (blocks; +z = the way it faces) placed in the world.
+pub fn body_point(
+    mob_pos: petramond_math::world_pos::WorldPos,
+    mob_yaw: f32,
+    mob_tilt: Tilt,
+    local: [f32; 3],
+) -> petramond_math::world_pos::WorldPos {
+    let v = Vec3::new(local[0], local[1], -local[2]);
+    mob_pos + mob_tilt.body_frame(mob_yaw).transform_vector3(v)
 }
 
 pub fn dismount_spot(

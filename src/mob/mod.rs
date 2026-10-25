@@ -570,6 +570,14 @@ impl<'de> serde::Deserialize<'de> for CubeName {
     }
 }
 
+/// A sheet of fabric a body carries: its cloth row, and the top of its pinned edge in the
+/// body's own frame (blocks; +z = the way the mob faces, like seats).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MobCloth {
+    pub cloth: u8,
+    pub at: [f32; 3],
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SavedMob {
     pub kind: Mob,
@@ -674,6 +682,8 @@ pub struct MobDef {
     pub sounds: &'static [MobSoundSpec],
     pub brain: &'static [BrainNode],
     pub seats: &'static [[f32; 3]],
+    /// Fabric the body carries (a boat's sail), drawn by the client's cloth sim.
+    pub cloths: &'static [MobCloth],
     pub container_slots: usize,
     pub reach: f32,
     pub eye_height: f32,
