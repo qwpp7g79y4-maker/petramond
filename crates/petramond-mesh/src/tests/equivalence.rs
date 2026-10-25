@@ -350,7 +350,8 @@ fn vertex_shared_face_lighting_matches_the_per_face_fold() {
 fn closure_front_end_meshes_the_pad_the_mesh_pool_would_assemble() {
     const PAD: usize = SECTION_SIZE + 2;
     const PAD_VOL: usize = PAD * PAD * PAD;
-    const BIOME_PAD: usize = SECTION_SIZE + 4;
+    const HALO: usize = petramond_world::biome::TINT_HALO_RADIUS;
+    const BIOME_PAD: usize = petramond_world::biome::TINT_HALO_SIDE;
     let pidx = |x: usize, y: usize, z: usize| (y * PAD + z) * PAD + x;
     let (section, scene) = fixtures::showcase();
     let pos = SectionPos::new(0, 0, 0);
@@ -387,7 +388,8 @@ fn closure_front_end_meshes_the_pad_the_mesh_pool_would_assemble() {
     let mut biome = vec![0u8; BIOME_PAD * BIOME_PAD];
     for pz in 0..BIOME_PAD {
         for px in 0..BIOME_PAD {
-            biome[pz * BIOME_PAD + px] = (scene.biome)(px as i32 - 2, pz as i32 - 2);
+            biome[pz * BIOME_PAD + px] =
+                (scene.biome)(px as i32 - HALO as i32, pz as i32 - HALO as i32);
         }
     }
     let pad = build_section_mesh_from_pad(

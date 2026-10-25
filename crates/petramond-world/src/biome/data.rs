@@ -47,6 +47,10 @@ struct RawBiomeDef {
     grass_color: [f32; 3],
     foliage_color: [f32; 3],
     water_color: [f32; 3],
+    /// How far one sees through this biome's water: scales the water's fog distance and
+    /// divides its absorption (1 = the fluid's own optics).
+    #[serde(default = "plain_water")]
+    water_clarity: f32,
     #[serde(default)]
     ambient: BTreeMap<String, f32>,
     #[serde(default)]
@@ -54,6 +58,12 @@ struct RawBiomeDef {
     #[serde(default)]
     generation: Option<serde_json::Value>,
 }
+
+fn plain_water() -> f32 {
+    1.0
+}
+
+pub const WATER_CLARITY: std::ops::RangeInclusive<f32> = 0.25..=4.0;
 
 #[derive(Deserialize)]
 struct RawFile {
@@ -83,6 +93,14 @@ fn parse_layers(texts: &[&str]) -> Result<crate::registry::Catalog<BiomeDef>, St
         BIOME_ID_CAP,
         |r, index, names| {
             let key = names.name(index).expect("index resolved from this table");
+            if !r.water_clarity.is_finite() || !WATER_CLARITY.contains(&r.water_clarity) {
+                return Err(format!(
+                    "biome '{}': water_clarity must be within {}..={}",
+                    r.biome,
+                    WATER_CLARITY.start(),
+                    WATER_CLARITY.end()
+                ));
+            }
             let mut ambient = Vec::with_capacity(r.ambient.len());
             for (bundle, density) in r.ambient {
                 if !crate::registry::is_namespaced(&bundle) {
@@ -107,6 +125,7 @@ fn parse_layers(texts: &[&str]) -> Result<crate::registry::Catalog<BiomeDef>, St
                 grass_color: r.grass_color,
                 foliage_color: r.foliage_color,
                 water_color: r.water_color,
+                water_clarity: r.water_clarity,
                 ambient: Box::leak(ambient.into_boxed_slice()),
                 trees: r.trees.map(|v| &*v.to_string().leak()),
                 generation: r.generation.map(|v| &*v.to_string().leak()),

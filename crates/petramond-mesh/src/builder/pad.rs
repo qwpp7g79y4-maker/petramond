@@ -3,7 +3,7 @@ use petramond_world::chunk::SECTION_SIZE;
 use petramond_world::fluid_math;
 
 pub(super) const SECTION_PAD: usize = SECTION_SIZE + 2;
-pub(super) const BIOME_PAD_RADIUS: i32 = 2;
+pub(super) const BIOME_PAD_RADIUS: i32 = petramond_world::biome::TINT_HALO_RADIUS as i32;
 pub(super) const BIOME_PAD: usize = SECTION_SIZE + (BIOME_PAD_RADIUS as usize * 2);
 
 #[inline]

@@ -7,7 +7,7 @@ use petramond_persist::bytecodec::{deflate, inflate, put_u32, put_u64, put_u8, R
 use petramond_region::{REGION_SHIFT, REGION_SIZE};
 use petramond_world::chunk::{ChunkPos, SECTION_SIZE};
 
-pub const FORMAT_VERSION: u8 = 12;
+pub const FORMAT_VERSION: u8 = 13;
 
 include!(concat!(env!("OUT_DIR"), "/engine_stamp.rs"));
 
@@ -15,8 +15,8 @@ fn table_fingerprint(seed: u32) -> u64 {
     crate::cache::GenContext::installed(seed).tables()
 }
 const CELLS: usize = SECTION_SIZE * SECTION_SIZE;
-pub const MESH_BIOME_RADIUS: usize = 2;
-pub const MESH_BIOME_SIDE: usize = SECTION_SIZE + 2 * MESH_BIOME_RADIUS;
+pub const MESH_BIOME_RADIUS: usize = petramond_world::biome::TINT_HALO_RADIUS;
+pub const MESH_BIOME_SIDE: usize = petramond_world::biome::TINT_HALO_SIDE;
 const MESH_BIOME_CELLS: usize = MESH_BIOME_SIDE * MESH_BIOME_SIDE;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

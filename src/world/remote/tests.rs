@@ -511,7 +511,9 @@ fn column_payload_fixture(
     ColumnPayload {
         pos,
         biomes: flat(SECTION_SIZE * SECTION_SIZE),
-        mesh_biomes: flat(20 * 20),
+        mesh_biomes: flat(
+            petramond_world::biome::TINT_HALO_SIDE * petramond_world::biome::TINT_HALO_SIDE,
+        ),
         surface_heightmap: vec![64; SECTION_SIZE * SECTION_SIZE],
         sky_cover: vec![64; SECTION_SIZE * SECTION_SIZE],
         summaries: vec![0u8; WorldData::column_section_range().count()],

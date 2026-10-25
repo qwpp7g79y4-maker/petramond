@@ -154,11 +154,12 @@ impl<S: WorldSide> World<S> {
         let gen = self.side.server().and_then(|s| s.gen.column_gen.get(&pos));
         gen.map_or_else(
             || {
-                let mut halo = vec![0u8; 20 * 20];
-                for z in 0..20 {
-                    for x in 0..20 {
-                        halo[z * 20 + x] =
-                            col.biome_at(x.saturating_sub(2).min(15), z.saturating_sub(2).min(15));
+                use petramond_world::biome::{TINT_HALO_RADIUS as R, TINT_HALO_SIDE as SIDE};
+                let mut halo = vec![0u8; SIDE * SIDE];
+                for z in 0..SIDE {
+                    for x in 0..SIDE {
+                        halo[z * SIDE + x] =
+                            col.biome_at(x.saturating_sub(R).min(15), z.saturating_sub(R).min(15));
                     }
                 }
                 (

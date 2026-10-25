@@ -1,9 +1,13 @@
 use crate::world::{World, WorldSide};
 use std::sync::Arc;
 
+use petramond_world::biome::{TINT_HALO_RADIUS as HALO_RADIUS, TINT_HALO_SIDE as HALO_SIDE};
 use petramond_world::chunk::{ChunkPos, SectionPos, SECTION_SIZE};
 use petramond_world::column::{Column, NO_SURFACE};
 use petramond_world::section::Section;
+
+/// Grass and foliage blend as the mesher's do; water over the whole halo.
+const LAND_BLEND_RADIUS: usize = 2;
 
 impl<S: WorldSide> World<S> {
     pub fn client_surface_column_revision(&self, pos: ChunkPos) -> Option<u64> {
@@ -69,8 +73,9 @@ impl<S: WorldSide> World<S> {
 }
 
 /// Tint grids for surface sampling, 16x16 per [`TileTint`] kind, filled in the first time a column
-/// asks. If we have a 20x20 biome halo, each cell is a 5×5 box blend (separable, so each halo
-/// color only decodes once). Otherwise we just use the column's own biome colors.
+/// asks. With the column's biome halo, each cell is a box blend as wide as the mesher's for that
+/// kind (separable, so each halo color only decodes once). Otherwise we just use the column's own
+/// biome colors.
 struct SurfaceTintGrids<'a> {
     halo: Option<&'a [u8]>,
     column: &'a Column,
@@ -89,7 +94,7 @@ impl<'a> SurfaceTintGrids<'a> {
                     .get(&pos)
                     .map(|halo| halo.as_ref())
             })
-            .filter(|halo| halo.len() == 20 * 20);
+            .filter(|halo| halo.len() == HALO_SIDE * HALO_SIDE);
         Self {
             halo,
             column,
@@ -132,15 +137,18 @@ impl<'a> SurfaceTintGrids<'a> {
             }
             return out;
         };
-        let mut colors = [[0.0f32; 3]; 400];
-        for (color, &id) in colors.iter_mut().zip(halo) {
-            *color = color_of(id);
-        }
-        let mut rows = [[0.0f32; 3]; 20 * 16];
-        for z in 0..20 {
+        let radius = match kind {
+            petramond_world::tile::TileTint::Water => HALO_RADIUS,
+            _ => LAND_BLEND_RADIUS,
+        };
+        let (skip, width) = (HALO_RADIUS - radius, 2 * radius + 1);
+        let colors: Vec<[f32; 3]> = halo.iter().map(|&id| color_of(id)).collect();
+        let mut rows = [[0.0f32; 3]; HALO_SIDE * 16];
+        for z in 0..HALO_SIDE {
             for x in 0..16 {
+                let at = z * HALO_SIDE + x + skip;
                 let mut sum = [0.0f32; 3];
-                for cell in &colors[z * 20 + x..z * 20 + x + 5] {
+                for cell in &colors[at..at + width] {
                     for channel in 0..3 {
                         sum[channel] += cell[channel];
                     }
@@ -148,15 +156,16 @@ impl<'a> SurfaceTintGrids<'a> {
                 rows[z * 16 + x] = sum;
             }
         }
+        let area = (width * width) as f32;
         for z in 0..16 {
             for x in 0..16 {
                 let mut sum = [0.0f32; 3];
-                for row in 0..5 {
+                for row in 0..width {
                     for channel in 0..3 {
-                        sum[channel] += rows[(z + row) * 16 + x][channel];
+                        sum[channel] += rows[(z + skip + row) * 16 + x][channel];
                     }
                 }
-                out[z * 16 + x] = sum.map(|channel| channel / 25.0);
+                out[z * 16 + x] = sum.map(|channel| channel / area);
             }
         }
         out

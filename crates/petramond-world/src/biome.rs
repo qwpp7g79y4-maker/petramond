@@ -46,6 +46,53 @@ pub fn count() -> usize {
 
 pub const SKY_FOG_BLEND_SPAN_BLOCKS: i32 = 10;
 
+/// Columns of biome kept around each chunk for its tints to blend over.
+pub const TINT_HALO_RADIUS: usize = 4;
+pub const TINT_HALO_SIDE: usize = crate::chunk::SECTION_SIZE + 2 * TINT_HALO_RADIUS;
+
+/// The biome water colour around (x, z), averaged over the tint halo's reach, so swimming across a
+/// biome border shades the water instead of switching it.
+pub fn blended_water_color(
+    x: f64,
+    z: f64,
+    biome_at_column: impl FnMut(i32, i32) -> Biome,
+) -> [f32; 3] {
+    halo_mean(x, z, biome_at_column, Biome::water_color)
+}
+
+/// The water's clarity at a point, blended over the same halo as its colour so it never steps
+/// at a biome border.
+pub fn blended_water_clarity(
+    x: f64,
+    z: f64,
+    biome_at_column: impl FnMut(i32, i32) -> Biome,
+) -> f32 {
+    halo_mean(x, z, biome_at_column, |b| [b.water_clarity()])[0]
+}
+
+/// The mean of `sample` over the tint halo around a point.
+fn halo_mean<const N: usize>(
+    x: f64,
+    z: f64,
+    mut biome_at_column: impl FnMut(i32, i32) -> Biome,
+    sample: impl Fn(Biome) -> [f32; N],
+) -> [f32; N] {
+    let (cx, cz) = (x.floor() as i32, z.floor() as i32);
+    let r = TINT_HALO_RADIUS as i32;
+    let mut sum = [0.0f32; N];
+    let mut n = 0.0f32;
+    for dz in (-r..=r).step_by(2) {
+        for dx in (-r..=r).step_by(2) {
+            let c = sample(biome_at_column(cx + dx, cz + dz));
+            for i in 0..N {
+                sum[i] += c[i];
+            }
+            n += 1.0;
+        }
+    }
+    sum.map(|v| v / n)
+}
+
 pub fn blended_fog_color(
     x: f64,
     z: f64,
@@ -156,6 +203,11 @@ impl Biome {
     #[inline]
     pub fn water_color(self) -> [f32; 3] {
         self.def().water_color
+    }
+
+    #[inline]
+    pub fn water_clarity(self) -> f32 {
+        self.def().water_clarity
     }
 
     #[inline]

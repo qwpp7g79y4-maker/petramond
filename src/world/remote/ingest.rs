@@ -18,7 +18,8 @@ impl ReplicaWorld {
         let origin = self.take_record_origin();
         let expected_sections = WorldData::column_section_range().count();
         if payload.biomes.0.len() != SECTION_SIZE * SECTION_SIZE
-            || payload.mesh_biomes.0.len() != 20 * 20
+            || payload.mesh_biomes.0.len()
+                != petramond_world::biome::TINT_HALO_SIDE * petramond_world::biome::TINT_HALO_SIDE
             || payload.surface_heightmap.len() != SECTION_SIZE * SECTION_SIZE
             || payload.sky_cover.len() != SECTION_SIZE * SECTION_SIZE
             || payload.summaries.len() != expected_sections

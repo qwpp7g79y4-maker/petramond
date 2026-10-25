@@ -19,7 +19,7 @@ use petramond_world::section::Section;
 pub(super) const PAD: usize = SECTION_SIZE + 2;
 pub(super) const PAD_VOL: usize = PAD * PAD * PAD;
 
-pub(super) const BIOME_PAD_RADIUS: i32 = 2;
+pub(super) const BIOME_PAD_RADIUS: i32 = petramond_world::biome::TINT_HALO_RADIUS as i32;
 pub(super) const BIOME_PAD: usize = SECTION_SIZE + (BIOME_PAD_RADIUS as usize * 2);
 pub(super) const BIOME_PAD_AREA: usize = BIOME_PAD * BIOME_PAD;
 

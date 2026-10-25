@@ -11,6 +11,7 @@ pub(crate) struct BiomeDef {
     pub grass_color: Color,
     pub foliage_color: Color,
     pub water_color: Color,
+    pub water_clarity: f32,
     pub ambient: &'static [(&'static str, f32)],
     pub trees: Option<&'static str>,
     pub generation: Option<&'static str>,
