@@ -102,3 +102,27 @@ fn sparse_maps_walk_in_cell_order_whatever_the_insertion_order() {
         .is_sorted());
     assert_eq!(reskin, reverse.tick_furnaces(|_| None));
 }
+
+#[test]
+fn batched_writes_keep_the_source_a_holding_block_replaces() {
+    let mut section = Section::new(0, 0, 0);
+    section.fill_box([0, 0, 0], [3, 0, 0], Block::Water.id());
+    section.set_blocks_raw([([0, 0, 0], Block::OakSlab.id())]);
+    section.fill_box([1, 0, 0], [1, 0, 0], Block::OakFence.id());
+    section.set_block(2, 0, 0, Block::OakSlab);
+    for x in 0..3 {
+        assert_eq!(section.held_fluid(x, 0, 0), Some(Block::Water), "cell {x}");
+    }
+    section.set_blocks_raw([([0, 0, 0], Block::Stone.id())]);
+    assert_eq!(
+        section.cell_fluid(0, 0, 0),
+        None,
+        "a full block displaces it"
+    );
+    section.overwrite_block_raw(1, 0, 0, Block::OakFence.id());
+    assert_eq!(
+        section.held_fluid(1, 0, 0),
+        None,
+        "a replicated write keeps exactly what it is sent"
+    );
+}

@@ -3,6 +3,10 @@ use super::*;
 pub struct LadderFamily;
 
 impl ShapeSim for LadderFamily {
+    fn floodable(&self) -> bool {
+        true
+    }
+
     fn faces_by_row(&self) -> bool {
         true
     }

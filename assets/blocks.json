@@ -272,6 +272,7 @@
         "delay": 5,
         "drop_off": 1,
         "renewable": true,
+        "floods": true,
         "motion": {
           "speed_scale": 1.0,
           "accel": 16.0,

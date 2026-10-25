@@ -31,7 +31,9 @@ pub const FLOW_DIR_EPS_SQ: f32 = 1e-4;
 /// meta->height mapping shared with the mesher so flow geometry and simulation
 /// stay in lockstep: `amount / 9`, so a source's top sits slightly recessed
 /// (8/9) and reads as liquid, and each level steps down from there.
-pub fn fluid_height(meta: u8, above: Block, fluid: Block) -> f32 {
+///
+/// `above` = the fluid filling the cell above, if any.
+pub fn fluid_height(meta: u8, above: Option<Block>, fluid: Block) -> f32 {
     if fills_cell(meta, above, fluid) {
         return 1.0;
     }
@@ -49,8 +51,8 @@ pub fn fluid_height(meta: u8, above: Block, fluid: Block) -> f32 {
 /// the mesher's still side tiles) keep these pockets calm. The
 /// mesher, buoyancy/contact probes, and the submerged-camera test share this
 /// one rule.
-pub fn fills_cell(meta: u8, above: Block, fluid: Block) -> bool {
-    above.fluid() == Some(fluid) || is_falling(meta)
+pub fn fills_cell(meta: u8, above: Option<Block>, fluid: Block) -> bool {
+    above == Some(fluid) || is_falling(meta)
 }
 
 #[inline]

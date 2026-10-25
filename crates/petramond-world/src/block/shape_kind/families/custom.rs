@@ -3,6 +3,10 @@ use super::*;
 pub struct CustomFamily;
 
 impl ShapeSim for CustomFamily {
+    fn floodable(&self) -> bool {
+        true
+    }
+
     fn light_shape(&self, p: &ShapeParams, _b: Block) -> crate::block::BlockLightShape {
         match p.custom() {
             Some(c) if c.light_shape == crate::block::shape_kind::CustomLight::OpaqueCube => {

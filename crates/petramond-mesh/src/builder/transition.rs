@@ -29,7 +29,9 @@ pub const SAMPLING_HALO: SamplingHalo = SamplingHalo {
 const _: () = assert!(SAMPLING_HALO.horizontal < SECTION_SIZE / 2);
 
 pub(super) fn needs_tint(section: &Section, rules: &Rules) -> bool {
-    section.has_biome_tint_blocks() || section.blocks_iter().any(|id| rules.is_tinted_material(id))
+    section.has_biome_tint_blocks()
+        || section.held_fluids().next().is_some()
+        || section.blocks_iter().any(|id| rules.is_tinted_material(id))
 }
 
 pub(super) fn axes(face: Face) -> (IVec3, IVec3) {

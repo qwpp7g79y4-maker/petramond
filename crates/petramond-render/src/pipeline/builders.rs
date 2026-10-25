@@ -43,11 +43,25 @@ const _: () = assert!(
     "a bias that wins coplanar ties must be negative (toward camera)"
 );
 
+/// A face that must lose every coplanar tie: a fluid a block holds lies on the block's own
+/// faces, and the block shows wherever both draw.
+const COPLANAR_LOSE_DEPTH_BIAS: wgpu::DepthBiasState = wgpu::DepthBiasState {
+    constant: 10,
+    slope_scale: 1.0,
+    clamp: 0.0,
+};
+
+const _: () = assert!(
+    COPLANAR_LOSE_DEPTH_BIAS.constant > 0 && COPLANAR_LOSE_DEPTH_BIAS.slope_scale > 0.0,
+    "a bias that loses coplanar ties must be positive (away from camera)"
+);
+
 #[derive(Copy, Clone)]
 pub(super) enum DepthPreset {
     WriteLess,
     WriteLessEqualCoplanarBiased,
     ReadLess,
+    ReadLessCoplanarLosing,
     ReadLessEqualBiased,
     ReadLessEqualContactBiased,
     ReadLessEqual,
@@ -71,6 +85,9 @@ impl DepthPreset {
                 wgpu::CompareFunction::Less,
                 wgpu::DepthBiasState::default(),
             ),
+            DepthPreset::ReadLessCoplanarLosing => {
+                (false, wgpu::CompareFunction::Less, COPLANAR_LOSE_DEPTH_BIAS)
+            }
             DepthPreset::ReadLessEqualBiased => {
                 (false, wgpu::CompareFunction::LessEqual, BREAK_DEPTH_BIAS)
             }

@@ -273,7 +273,41 @@ impl WorldData {
     }
 
     pub fn fluid_cell_at(&self, wx: i32, wy: i32, wz: i32) -> bool {
-        self.physics_block(wx, wy, wz).fluid().is_some()
+        self.cell_fluid(wx, wy, wz).is_some()
+    }
+
+    /// The fluid the block at the cell holds beside it, as a slab stands in water.
+    pub fn held_fluid(&self, wx: i32, wy: i32, wz: i32) -> Option<Block> {
+        let (s, lx, ly, lz) = self.chunk_at_world(wx, wy, wz)?;
+        s.held_fluid(lx, ly, lz)
+    }
+
+    /// Whether the block at the cell has room to hold `fluid` beside it.
+    pub fn can_hold_at(&self, wx: i32, wy: i32, wz: i32, fluid: Block) -> bool {
+        self.chunk_at_world(wx, wy, wz)
+            .is_some_and(|(s, lx, ly, lz)| {
+                s.block(lx, ly, lz)
+                    .can_hold_in(fluid, s.cell_state(lx, ly, lz))
+            })
+    }
+
+    /// What breaking `block` at `pos` leaves: the fluid its cell held, as a source, else the
+    /// block's own [`break_residue`](Block::break_residue).
+    pub fn break_residue_at(&self, pos: crate::mathh::IVec3, block: Block) -> Block {
+        self.held_fluid(pos.x, pos.y, pos.z).unwrap_or_else(|| {
+            block.break_residue(Block::from_id(self.chunk_block(pos.x, pos.y - 1, pos.z)))
+        })
+    }
+
+    /// See [`SectionCursor::cell_fluid`](super::SectionCursor::cell_fluid).
+    pub fn cell_fluid(&self, wx: i32, wy: i32, wz: i32) -> Option<Block> {
+        if !crate::border::contains_column(wx, wz) {
+            return None;
+        }
+        if let Some((section, lx, ly, lz)) = self.chunk_at_world(wx, wy, wz) {
+            return section.cell_fluid(lx, ly, lz);
+        }
+        self.physics_block(wx, wy, wz).fluid()
     }
 
     pub fn mark_chunk_modified(&mut self, pos: crate::mathh::IVec3) {

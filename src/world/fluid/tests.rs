@@ -11,6 +11,7 @@ fn lava_flow_delay() -> u64 {
 }
 
 mod budget;
+mod held;
 mod quenching;
 mod source_renewal;
 
@@ -667,7 +668,11 @@ fn a_replica_renders_each_fluids_sheet_at_the_servers_heights() {
         let drop_off = desc.drop_off as i32;
         let reach = (8 + drop_off - 1) / drop_off - 1;
         let height = |w: &ServerWorld, x: i32| {
-            fluid_height(w.data.fluid_meta_world(x, 65, 8), block(w, x, 66, 8), fluid)
+            fluid_height(
+                w.data.fluid_meta_world(x, 65, 8),
+                w.data.cell_fluid(x, 66, 8),
+                fluid,
+            )
         };
         let mut prev = height(&server, 8);
         for x in 9..=8 + reach {

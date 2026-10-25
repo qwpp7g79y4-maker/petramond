@@ -268,10 +268,16 @@ impl BlockFlags {
     pub const FLUID: BlockFlags = BlockFlags(1 << 10);
     pub const CONTAINS_FLUID: BlockFlags = BlockFlags(1 << 12);
     pub const INVISIBLE: BlockFlags = BlockFlags(1 << 11);
+    pub const FLOODABLE: BlockFlags = BlockFlags(1 << 13);
 
     #[inline]
     pub const fn contains_fluid(self) -> bool {
         self.contains(Self::CONTAINS_FLUID)
+    }
+
+    #[inline]
+    pub const fn floodable(self) -> bool {
+        self.contains(Self::FLOODABLE)
     }
     pub const fn invisible(self) -> bool {
         self.contains(Self::INVISIBLE)

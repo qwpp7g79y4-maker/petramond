@@ -3,6 +3,10 @@ use super::*;
 pub struct FenceFamily;
 
 impl ShapeSim for FenceFamily {
+    fn floodable(&self) -> bool {
+        true
+    }
+
     fn refines(&self, _p: &ShapeParams) -> bool {
         true
     }

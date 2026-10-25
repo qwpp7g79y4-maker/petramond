@@ -50,6 +50,8 @@ pub(super) struct NeighborSnap {
     pub skylight: Option<std::sync::Arc<[u8]>>,
     pub blocklight: Option<std::sync::Arc<[petramond_world::light::LightRgb]>>,
     pub cell_states: Option<Box<[(u16, petramond_world::block::ShapeState)]>>,
+    /// `(cell index, fluid id)` for every cell whose block holds a fluid beside it.
+    pub held_fluids: Box<[(u16, u16)]>,
     pub transition_tints: Box<[(u16, bool)]>,
     /// Whether the section MAY hold a snow cover or snow-bedded block (a superset test off its
     /// id set), which is the only thing the pad's transition exclusion pass looks for.
@@ -206,11 +208,13 @@ struct Pad {
     skylight: Box<[u8]>,
     blocklight: Box<[petramond_world::light::LightRgb]>,
     cell_states: Box<[petramond_world::block::ShapeState]>,
+    held: Box<[u16]>,
     loaded: Box<[bool]>,
     transition_blocked: Box<[bool]>,
     /// The sparse fields' cells the last assembly wrote: the next one clears exactly those
     /// instead of the whole pad. The dense fields are written whole, row by row.
     written_states: Vec<usize>,
+    written_held: Vec<usize>,
     written_blocked: Vec<usize>,
 }
 
@@ -222,9 +226,11 @@ impl Pad {
             skylight: vec![SKY_FULL; PAD_VOL].into_boxed_slice(),
             blocklight: vec![petramond_world::light::LightRgb::ZERO; PAD_VOL].into_boxed_slice(),
             cell_states: vec![petramond_world::block::ShapeState::NONE; PAD_VOL].into_boxed_slice(),
+            held: vec![0u16; PAD_VOL].into_boxed_slice(),
             loaded: vec![false; PAD_VOL].into_boxed_slice(),
             transition_blocked: vec![false; PAD_VOL].into_boxed_slice(),
             written_states: Vec::new(),
+            written_held: Vec::new(),
             written_blocked: Vec::new(),
         }
     }
@@ -232,6 +238,9 @@ impl Pad {
     fn clear_sparse(&mut self) {
         for i in self.written_states.drain(..) {
             self.cell_states[i] = petramond_world::block::ShapeState::NONE;
+        }
+        for i in self.written_held.drain(..) {
+            self.held[i] = 0;
         }
         for i in self.written_blocked.drain(..) {
             self.transition_blocked[i] = false;
@@ -268,9 +277,11 @@ fn assemble_pad(pos: SectionPos, nbhd: &[Option<NeighborSnap>; 27], pad: &mut Pa
         skylight,
         blocklight,
         cell_states,
+        held,
         loaded,
         transition_blocked,
         written_states,
+        written_held,
         written_blocked,
     } = pad;
 
@@ -365,6 +376,10 @@ fn assemble_pad(pos: SectionPos, nbhd: &[Option<NeighborSnap>; 27], pad: &mut Pa
                         written_states.push(i);
                     });
                 }
+                scatter_border_states(&s.held_fluids, (dx, dy, dz), |i, fluid| {
+                    held[i] = fluid;
+                    written_held.push(i);
+                });
             }
         }
     }
@@ -489,6 +504,7 @@ fn build(job: MeshJob, cancel: &crate::worker::JobCancel) -> Option<ChunkMesh> {
                 skylight: &pad.skylight,
                 blocklight: &pad.blocklight,
                 cell_states: &pad.cell_states,
+                held: &pad.held,
                 loaded: &pad.loaded,
                 transition_blocked: &pad.transition_blocked,
                 biome: &biome,

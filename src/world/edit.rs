@@ -28,7 +28,8 @@ impl<S: WorldSide> World<S> {
         for &c in &cells {
             if let Some((chunk, lx, ly, lz)) = self.data.chunk_at_world_mut(c.x, c.y, c.z) {
                 let old = chunk.block(lx, ly, lz);
-                chunk.set_block(lx, ly, lz, Block::Air);
+                let residue = chunk.held_fluid(lx, ly, lz).unwrap_or(Block::Air);
+                chunk.set_block(lx, ly, lz, residue);
                 chunk.modified = true;
                 changes.push(CellChange::new(c, old, ChangeKind::Place));
             }
@@ -48,8 +49,8 @@ impl<S: WorldSide> World<S> {
             .map(|c| (c, self.data.chunk_block(c.x, c.y, c.z)))
             .collect();
         if self.remove_compound(pos).is_none() {
-            let below = Block::from_id(self.data.chunk_block(pos.x, pos.y - 1, pos.z));
-            let _ = self.set_block_world(pos.x, pos.y, pos.z, block.break_residue(below));
+            let residue = self.data.break_residue_at(pos, block);
+            let _ = self.set_block_world(pos.x, pos.y, pos.z, residue);
         }
         Some((block, cells))
     }

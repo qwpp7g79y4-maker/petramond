@@ -502,7 +502,7 @@ fn dist2(a: WorldPos, b: WorldPos) -> f64 {
 fn body_cell_open(world: &ServerWorld, wx: i32, y: i32, wz: i32) -> bool {
     let block = world.data().physics_block(wx, y, wz);
     world.data().placement_cell_open(IVec3::new(wx, y, wz))
-        && block.fluid().is_none()
+        && world.data().cell_fluid(wx, y, wz).is_none()
         && !block.has_tag(petramond_world::block::BlockTag::NAV_HAZARD)
 }
 

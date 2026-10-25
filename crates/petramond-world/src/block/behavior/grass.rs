@@ -32,9 +32,8 @@ pub(super) fn smothered(world: &WorldData, pos: IVec3) -> bool {
 }
 
 pub(super) fn submerged(world: &WorldData, pos: IVec3) -> bool {
-    world
-        .block_if_loaded(pos.x, pos.y + 1, pos.z)
-        .is_some_and(|b| b.fluid().is_some())
+    world.block_if_loaded(pos.x, pos.y + 1, pos.z).is_some()
+        && world.cell_fluid(pos.x, pos.y + 1, pos.z).is_some()
 }
 
 #[cfg(test)]

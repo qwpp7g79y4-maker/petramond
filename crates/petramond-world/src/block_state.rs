@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::block::{Block, ShapeState};
 use crate::chunk::SECTION_VOLUME;
 use crate::facing::Facing;
+use crate::fluid::held;
 use crate::wire_enum::wire_enum;
 
 wire_enum! {
@@ -387,6 +388,39 @@ impl BlockStates {
                 let key = idx as u16;
                 !s.cell_states.contains_key(&key) && !s.cell_kv.contains_key(&key)
             })
+    }
+
+    /// [`clear_on_block_change`](Self::clear_on_block_change) for a write of `new` over `old`,
+    /// keeping the fluid the cell was or held when `new` can hold it: a slab placed into a source
+    /// of water, or a fence replacing a slab that stood in it. Returns whether it kept one.
+    pub fn replace_on_block_change(&mut self, idx: usize, old: u16, new: u16) -> bool {
+        let kept = self.kept_fluid(idx, old, new);
+        self.clear_on_block_change(idx);
+        let Some(fluid) = kept else {
+            return false;
+        };
+        self.sparse_mut()
+            .cell_kv
+            .entry(idx as u16)
+            .or_default()
+            .insert(held::KV_KEY.to_owned(), held::encode(fluid));
+        true
+    }
+
+    fn kept_fluid(&self, idx: usize, old: u16, new: u16) -> Option<Block> {
+        let new = Block::from_id(new);
+        if !new.flags().floodable() {
+            return None;
+        }
+        let old = Block::from_id(old);
+        let fluid = if old.is_fluid() {
+            crate::fluid_math::is_source(self.fluid_meta(idx)).then_some(old)?
+        } else if let Some(fluid) = old.contained_fluid() {
+            fluid
+        } else {
+            held::decode(old, self.cell_kv().get(&(idx as u16))?.get(held::KV_KEY)?)?
+        };
+        new.can_hold(fluid).then_some(fluid)
     }
 
     #[inline]

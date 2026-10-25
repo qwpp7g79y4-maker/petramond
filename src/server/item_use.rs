@@ -223,8 +223,17 @@ impl ServerGame {
         {
             return false;
         }
-        self.world
-            .set_block_world(source.x, source.y, source.z, Block::Air);
+        if self
+            .world
+            .data()
+            .held_fluid(source.x, source.y, source.z)
+            .is_some()
+        {
+            self.world.set_held_fluid(source, None);
+        } else {
+            self.world
+                .set_block_world(source.x, source.y, source.z, Block::Air);
+        }
         true
     }
 
@@ -260,10 +269,15 @@ impl ServerGame {
                 return false;
             }
         }
-        if !rules::pour_lands(self.world.data(), p) {
+        if !rules::pour_lands(self.world.data(), p, fluid) {
             return false;
         }
-        if !self.world.set_block_world(p.x, p.y, p.z, fluid) {
+        let poured = if rules::fills_held(self.world.data(), p, fluid) {
+            self.world.set_held_fluid(p, Some(fluid))
+        } else {
+            self.world.set_block_world(p.x, p.y, p.z, fluid)
+        };
+        if !poured {
             return false;
         }
         self.mods.emit(PostEvent::BlockPlaced {

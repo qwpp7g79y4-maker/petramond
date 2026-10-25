@@ -282,6 +282,18 @@ impl<'a> Neighbourhood<'a> {
     }
 
     #[inline]
+    pub(super) fn cell_fluid(&self, p: IVec3) -> Option<Block> {
+        let l = self.local(p);
+        self.pad.cell_fluid_local(l.x, l.y, l.z)
+    }
+
+    /// The cell's fluid if it has one, else its block: what a fluid surface reads beside it.
+    #[inline]
+    pub(super) fn fluid_view(&self, p: IVec3) -> Block {
+        self.cell_fluid(p).unwrap_or_else(|| self.block(p))
+    }
+
+    #[inline]
     pub(super) fn fluid_fills(&self, p: IVec3, fluid: Block) -> bool {
         let l = self.local(p);
         self.pad.fluid_fills_local(l.x, l.y, l.z, fluid)

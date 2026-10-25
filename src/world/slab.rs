@@ -20,6 +20,10 @@ impl<S: WorldSide> World<S> {
         let old = section.block(lx, ly, lz);
         section.set_block(lx, ly, lz, representative);
         section.set_slab_state(lx, ly, lz, next);
+        if next.is_full() {
+            // The second layer displaces the fluid the first stood in.
+            section.set_held_fluid(lx, ly, lz, None);
+        }
         section.modified = true;
         self.apply_cell_changes(&[CellChange::new(pos, old, ChangeKind::Place)]);
         true

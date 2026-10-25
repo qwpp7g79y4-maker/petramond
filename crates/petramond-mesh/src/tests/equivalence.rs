@@ -102,6 +102,7 @@ mod parallel_tests {
                     block: &nb,
                     cell_state: &|_, _, _| petramond_world::block::ShapeState::NONE,
                     fluid_meta: &|_, _, _| 0,
+                    held_fluid: &|_, _, _| 0,
                     biome: &nb_biome,
                     skylight: &nb_light,
                     blocklight: &|_, _, _| petramond_world::light::LightRgb::ZERO,
@@ -283,6 +284,7 @@ fn random_scene(seed: u64) -> (Section, fixtures::Scene) {
                 (cell_hash(seed ^ 1, x, y, z) % 8) as u8
             }
         }),
+        held: Box::new(|_, _, _| 0),
         biome: Box::new(move |x, z| (cell_hash(seed ^ 2, x, 0, z) % 4) as u8),
         sky: Box::new(move |x, y, z| {
             (cell_hash(seed ^ 3, x, y, z) % (u64::from(SKY_FULL) + 1)) as u8
@@ -359,6 +361,7 @@ fn closure_front_end_meshes_the_pad_the_mesh_pool_would_assemble() {
     let mut skylight = vec![SKY_FULL; PAD_VOL];
     let mut blocklight = vec![petramond_world::light::LightRgb::ZERO; PAD_VOL];
     let mut cell_states = vec![petramond_world::block::ShapeState::NONE; PAD_VOL];
+    let mut held = vec![0u16; PAD_VOL];
     let mut loaded = vec![false; PAD_VOL];
     let mut transition_blocked = vec![false; PAD_VOL];
     for py in 0..PAD {
@@ -376,6 +379,7 @@ fn closure_front_end_meshes_the_pad_the_mesh_pool_would_assemble() {
                 skylight[i] = (scene.sky)(wx, wy, wz);
                 blocklight[i] = (scene.blocklight)(wx, wy, wz);
                 cell_states[i] = (scene.cell_state)(wx, wy, wz);
+                held[i] = (scene.held)(wx, wy, wz);
                 loaded[i] = (scene.loaded)(wx, wy, wz);
             }
         }
@@ -396,6 +400,7 @@ fn closure_front_end_meshes_the_pad_the_mesh_pool_would_assemble() {
             skylight: &skylight,
             blocklight: &blocklight,
             cell_states: &cell_states,
+            held: &held,
             loaded: &loaded,
             transition_blocked: &transition_blocked,
             biome: &biome,

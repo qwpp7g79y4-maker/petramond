@@ -92,9 +92,9 @@ pub(super) fn fluid_of(block: Block) -> Option<&'static FluidDef> {
 
 impl crate::world::engine_behavior::EngineBlockBehavior for FluidBehavior {
     fn neighbor_update(&self, world: &mut ServerWorld, pos: IVec3) {
-        if let Some(fluid) = fluid_of(block_at(world, pos)) {
+        if let Some(fluid) = cell_fluid(world, pos).and_then(fluid_of) {
             contact::react(world, pos, fluid);
-            if block_at(world, pos) == fluid.block {
+            if cell_fluid(world, pos) == Some(fluid.block) {
                 world.schedule_fluid_tick(pos, fluid.delay);
             }
         }
@@ -140,9 +140,11 @@ fn flowing(level: u8) -> u8 {
     level & LEVEL_MASK
 }
 
+/// Open to flowing fluid: air, or a fragile block the flow washes away. A block holding a fluid
+/// is already full: a source of that fluid.
 #[inline]
-fn fillable(block: Block) -> bool {
-    block == Block::Air || block.is_fragile()
+fn fillable(block: Block, fluid: Option<Block>) -> bool {
+    block == Block::Air || (block.is_fragile() && fluid.is_none())
 }
 
 #[inline]
@@ -153,6 +155,12 @@ fn opposite(d: IVec3) -> IVec3 {
 #[inline]
 fn block_at<S: WorldSide>(world: &World<S>, p: IVec3) -> Block {
     world.data.physics_block(p.x, p.y, p.z)
+}
+
+/// The fluid filling the cell: a fluid block, or one a block holds (a source of it).
+#[inline]
+fn cell_fluid<S: WorldSide>(world: &World<S>, p: IVec3) -> Option<Block> {
+    world.data.cell_fluid(p.x, p.y, p.z)
 }
 
 pub(super) struct FluidReads<'w> {
@@ -175,6 +183,16 @@ impl<'w> FluidReads<'w> {
     #[inline]
     pub(super) fn meta(&self, p: IVec3) -> u8 {
         self.cursor.fluid_meta(p)
+    }
+
+    #[inline]
+    pub(super) fn fluid(&self, p: IVec3) -> Option<Block> {
+        self.cursor.cell_fluid(p)
+    }
+
+    #[inline]
+    pub(super) fn fillable(&self, p: IVec3) -> bool {
+        fillable(self.block(p), self.fluid(p))
     }
 }
 

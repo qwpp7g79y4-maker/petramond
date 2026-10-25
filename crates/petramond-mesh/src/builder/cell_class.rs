@@ -20,7 +20,6 @@ pub struct MeshRegistry {
     pad: Box<[u8]>,
     emitters: Box<[MeshEmitter]>,
     cubes: Box<[CubeRow]>,
-    contained: Box<[Option<Block>]>,
     tiles: Box<[TileMeta]>,
     ring: Box<[u8]>,
 }
@@ -114,7 +113,6 @@ impl MeshRegistry {
             pad: blocks.iter().map(|&b| pad_class(b)).collect(),
             emitters: blocks.iter().map(|b| b.mesh_emitter()).collect(),
             cubes: blocks.iter().map(|&b| CubeRow::of(b)).collect(),
-            contained: blocks.iter().map(|b| b.contained_fluid()).collect(),
             tiles: Tile::all().map(TileMeta::of).collect(),
             ring: blocks.iter().map(|&b| ring_class(b)).collect(),
         }
@@ -131,11 +129,6 @@ impl MeshRegistry {
             Some(row) => *row,
             None => self.cubes[0],
         }
-    }
-
-    #[inline]
-    pub(super) fn contained_fluid(&self, id: u16) -> Option<Block> {
-        self.contained.get(id as usize).copied().flatten()
     }
 
     #[inline]

@@ -52,6 +52,17 @@ impl Geometry {
                             s.fluid_meta((x & 15) as usize, (y & 15) as usize, (z & 15) as usize)
                         })
                     },
+                    held_fluid: &|x, y, z| {
+                        lookup(x, y, z)
+                            .and_then(|s| {
+                                s.held_fluid(
+                                    (x & 15) as usize,
+                                    (y & 15) as usize,
+                                    (z & 15) as usize,
+                                )
+                            })
+                            .map_or(0, |fluid| fluid.id())
+                    },
                     biome: &|_, _| 0,
                     skylight: &|_, _, _| petramond_world::chunk::SKY_FULL,
                     blocklight: &|_, _, _| petramond_world::light::LightRgb::ZERO,

@@ -3,6 +3,10 @@ use super::*;
 pub struct ModelFamily;
 
 impl ShapeSim for ModelFamily {
+    fn floodable(&self) -> bool {
+        true
+    }
+
     fn compound_members(
         &self,
         p: &ShapeParams,

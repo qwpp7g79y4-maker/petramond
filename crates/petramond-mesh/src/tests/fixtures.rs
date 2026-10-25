@@ -13,6 +13,7 @@ pub(super) struct Scene {
     pub block: Reads<u16>,
     pub cell_state: Reads<ShapeState>,
     pub fluid: Reads<u8>,
+    pub held: Reads<u16>,
     pub biome: Box<dyn Fn(i32, i32) -> u8>,
     pub sky: Reads<u8>,
     pub blocklight: Reads<LightRgb>,
@@ -26,6 +27,7 @@ impl Scene {
             block: &self.block,
             cell_state: &self.cell_state,
             fluid_meta: &self.fluid,
+            held_fluid: &self.held,
             biome: &self.biome,
             skylight: &self.sky,
             blocklight: &self.blocklight,
@@ -45,7 +47,7 @@ impl Scene {
 
 pub(super) fn standalone(section: &Section) -> Scene {
     let s = Rc::new(section.clone());
-    let (b, c, f, d) = (s.clone(), s.clone(), s.clone(), s);
+    let (b, c, f, h, d) = (s.clone(), s.clone(), s.clone(), s.clone(), s);
     let at = |wx: i32, wy: i32, wz: i32| {
         in_section(wx, wy, wz).then_some((wx as usize, wy as usize, wz as usize))
     };
@@ -57,6 +59,11 @@ pub(super) fn standalone(section: &Section) -> Scene {
             at(x, y, z).map_or(ShapeState::NONE, |(x, y, z)| c.cell_state(x, y, z))
         }),
         fluid: Box::new(move |x, y, z| at(x, y, z).map_or(0, |(x, y, z)| f.fluid_meta(x, y, z))),
+        held: Box::new(move |x, y, z| {
+            at(x, y, z)
+                .and_then(|(x, y, z)| h.held_fluid(x, y, z))
+                .map_or(0, |fluid| fluid.id())
+        }),
         biome: Box::new(|_, _| 0),
         sky: Box::new(|_, _, _| SKY_FULL),
         blocklight: Box::new(|_, _, _| LightRgb::ZERO),
@@ -162,6 +169,7 @@ pub(super) fn showcase() -> (Section, Scene) {
                 0
             }
         }),
+        held: Box::new(|_, _, _| 0),
         biome: Box::new(|_, _| 0),
         sky: Box::new(move |wx, wy, wz| {
             if wy < 0 {
@@ -241,6 +249,7 @@ pub(super) fn generated_sections() -> Vec<(SectionPos, Section, Scene)> {
                     }
                     _ => 0,
                 }),
+                held: Box::new(|_, _, _| 0),
                 biome: Box::new(move |wx, wz| {
                     g.get(&(wx >> 4, wz >> 4)).map_or(0, |lc| {
                         lc.chunk.biome_at((wx & 15) as usize, (wz & 15) as usize)

@@ -2,14 +2,16 @@ use crate::world::ServerWorld;
 use petramond_math::math::IVec3;
 use petramond_world::fluid::FluidDef;
 
-use super::{block_at, fluid_of, CARDINALS, DOWN, UP};
+use super::{block_at, cell_fluid, fluid_of, CARDINALS, DOWN, UP};
 
+/// Quench reactions at a cell filled with `fluid`. Only a loose fluid cell turns into the
+/// result: a block holding the fluid keeps it.
 pub(super) fn react(world: &mut ServerWorld, pos: IVec3, fluid: &'static FluidDef) {
-    if let Some(q) = fluid.quench {
+    if let Some(q) = fluid.quench.filter(|_| block_at(world, pos) == fluid.block) {
         if [UP]
             .into_iter()
             .chain(CARDINALS)
-            .any(|d| block_at(world, pos + d) == q.by)
+            .any(|d| cell_fluid(world, pos + d) == Some(q.by))
         {
             world.set_block_world(pos.x, pos.y, pos.z, q.result);
             return;

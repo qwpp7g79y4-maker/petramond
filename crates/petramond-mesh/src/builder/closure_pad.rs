@@ -11,6 +11,8 @@ pub struct WorldReads<'r> {
     pub block: &'r dyn Fn(i32, i32, i32) -> u16,
     pub cell_state: &'r dyn Fn(i32, i32, i32) -> ShapeState,
     pub fluid_meta: &'r dyn Fn(i32, i32, i32) -> u8,
+    /// The fluid (block id) the cell's block holds beside it, 0 for none.
+    pub held_fluid: &'r dyn Fn(i32, i32, i32) -> u16,
     pub biome: &'r dyn Fn(i32, i32) -> u8,
     pub skylight: &'r dyn Fn(i32, i32, i32) -> u8,
     pub blocklight: &'r dyn Fn(i32, i32, i32) -> LightRgb,
@@ -24,6 +26,7 @@ pub(super) struct ClosurePad {
     skylight: Vec<u8>,
     blocklight: Vec<LightRgb>,
     cell_states: Vec<ShapeState>,
+    held: Vec<u16>,
     loaded: Vec<bool>,
     transition_blocked: Vec<bool>,
     biome: Vec<u8>,
@@ -39,6 +42,7 @@ impl ClosurePad {
             skylight: vec![SKY_FULL; PAD_VOL],
             blocklight: vec![LightRgb::ZERO; PAD_VOL],
             cell_states: vec![ShapeState::NONE; PAD_VOL],
+            held: vec![0; PAD_VOL],
             loaded: vec![false; PAD_VOL],
             transition_blocked: vec![false; PAD_VOL],
             biome: vec![0; BIOME_PAD * BIOME_PAD],
@@ -59,6 +63,7 @@ impl ClosurePad {
                     };
                     pad.blocklight[i] = (reads.blocklight)(wx, wy, wz);
                     pad.cell_states[i] = (reads.cell_state)(wx, wy, wz);
+                    pad.held[i] = (reads.held_fluid)(wx, wy, wz);
                     pad.loaded[i] = (reads.loaded)(wx, wy, wz);
                     pad.transition_blocked[i] = (reads.dyed)(wx, wy, wz)
                         || snow_cover_at(IVec3::new(wx, wy + SNOW_COVER_REACH, wz), |p| {
@@ -87,6 +92,7 @@ impl ClosurePad {
             skylight: &self.skylight,
             blocklight: &self.blocklight,
             cell_states: &self.cell_states,
+            held: &self.held,
             transition_blocked: &self.transition_blocked,
             loaded: &self.loaded,
             biome: &self.biome,

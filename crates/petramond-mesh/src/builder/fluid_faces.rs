@@ -2,7 +2,6 @@ use std::cell::OnceCell;
 
 use glam::IVec3;
 use petramond_world::block::Block;
-use petramond_world::block_state::LogAxis;
 use petramond_world::fluid::medium::medium_index;
 use petramond_world::light::{BlockLight6, LightRgb};
 use petramond_world::tile::TileTint;
@@ -10,12 +9,10 @@ use petramond_world::tile::TileTint;
 use super::super::face::{quad_for, Face, FaceShading, FACES};
 use super::super::face_emit::{push_cube_face, FaceSpec};
 use super::super::fluid::{side_vs_fluid, FluidReads, FluidSurface, SideVsFluid};
-use super::super::tint;
 use super::super::vertex::{
     pack_fluid_face, push_back_face, Vertex, FLUID_FLOW_FLAG2, FLUID_MEDIUM_MASK,
     FLUID_MEDIUM_SHIFT,
 };
-use super::cube_face::cube_face_tile;
 use super::lighting::{boundary_plane, face_lighting, self_lit_face};
 use super::mesher::Cell;
 use super::neighbourhood::Neighbourhood;
@@ -34,22 +31,15 @@ pub(super) fn emit_fluid_cell(
     tint_of: impl Fn(Option<TileTint>) -> [f32; 3],
     cell_tint: Option<[f32; 3]>,
 ) {
-    let (fluid, resident, pos) = (cell.block, cell.resident, cell.world);
+    let (fluid, pos) = (cell.block, cell.world);
     let def = fluid
         .fluid_def()
         .expect("a fluid-class block carries its fluid row");
     let medium = &def.medium;
     let lane_index = medium_index(fluid).expect("every fluid row has a medium index");
-    let table = nb.pad().table;
-    let fills = |p: IVec3| {
-        if resident {
-            nb.fluid_fills(p, fluid)
-        } else {
-            table.fluid(nb.block(p + IVec3::Y).id()) == Some(fluid)
-        }
-    };
+    let fills = |p: IVec3| nb.fluid_fills(p, fluid);
     let full = fills(pos);
-    if resident && full && FACES.iter().all(|f| nb.fluid_fills(pos + f.dir(), fluid)) {
+    if full && FACES.iter().all(|f| fills(pos + f.dir())) {
         return;
     }
     let opaque = medium.is_opaque();
@@ -57,15 +47,7 @@ pub(super) fn emit_fluid_cell(
     let surface_cell = OnceCell::new();
     let surface = || {
         surface_cell.get_or_init(|| {
-            let block_at = |x, y, z| nb.block(IVec3::new(x, y, z));
-            if !resident {
-                return FluidSurface::stationary(
-                    pos.to_array(),
-                    fluid,
-                    fluid.fluid_still_tile(),
-                    block_at,
-                );
-            }
+            let block_at = |x, y, z| nb.fluid_view(IVec3::new(x, y, z));
             FluidSurface::new(
                 pos,
                 fluid,
@@ -101,26 +83,21 @@ pub(super) fn emit_fluid_cell(
             continue;
         }
         let mut exposed_step = false;
-        if table.fluid(front_block.id()) == Some(fluid) {
+        if nb.cell_fluid(front) == Some(fluid) {
             match side_vs_fluid(full, is_side, fills(front)) {
                 SideVsFluid::ExposedStep => exposed_step = true,
                 SideVsFluid::Cull => continue,
             }
         }
 
-        let (tile, flow_strip, tint) = if resident {
-            let still = fluid.fluid_still_tile();
-            let (tile, flow_strip) = match face {
-                Face::PosY => (surface().top_tile(), surface().flows()),
-                Face::NegY => (still, false),
-                _ if nb.fluid_still(pos, fluid) => (still, false),
-                _ => (fluid.fluid_flow_tile(), true),
-            };
-            (tile, flow_strip, tint_of(still.world_tint()))
-        } else {
-            let tile = cube_face_tile(fluid.is_axial(), face, fluid.tiles(), None, LogAxis::Y);
-            (tile, false, tint::NO_TINT)
+        let still = fluid.fluid_still_tile();
+        let (tile, flow_strip) = match face {
+            Face::PosY => (surface().top_tile(), surface().flows()),
+            Face::NegY => (still, false),
+            _ if nb.fluid_still(pos, fluid) => (still, false),
+            _ => (fluid.fluid_flow_tile(), true),
         };
+        let tint = tint_of(still.world_tint());
         let tint = match cell_tint {
             Some(m) => [tint[0] * m[0], tint[1] * m[1], tint[2] * m[2]],
             None => tint,

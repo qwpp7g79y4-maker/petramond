@@ -185,6 +185,9 @@ pub struct Plan {
     claim: Option<ColumnMask>,
 }
 
+/// Engine cell data naming the fluid a cell's block holds.
+const HELD_FLUID: &str = "petramond:fluid";
+
 impl Plan {
     pub fn new() -> Plan {
         Plan::default()
@@ -319,6 +322,12 @@ impl Plan {
             Some(entry) => entry.1 = value,
             None => entries.push((key.to_string(), value)),
         }
+    }
+
+    /// The cell at `pos` holds `fluid` beside its block, as a slab stands in water. The engine
+    /// keeps it only where the block written there can hold that fluid.
+    pub fn hold_fluid(&mut self, pos: [i32; 3], fluid: &str) {
+        self.data(pos, HELD_FLUID, fluid.as_bytes().to_vec());
     }
 
     /// Clears the column's natural contents from `lo` to `hi` (inclusive): trees, plants and
@@ -1200,10 +1209,16 @@ fn emit_slice(
             }
         }
     }
+    // Nearby sites share one output: a cell this plan writes replaces an earlier plan's, data
+    // and all, as a later write does within one plan.
+    let written = |l: u16| emitted[l as usize / 64] & (1 << (l % 64)) != 0;
+    out.authored
+        .data
+        .retain(|d| section_of(d.pos) != section || !written(local(d.pos)));
     for _ in 0..r.u32()? {
         let l = r.u16()?;
         let (k, v) = (r.blob()?, r.blob()?);
-        if emitted[l as usize / 64] & (1 << (l % 64)) != 0 {
+        if written(l) {
             out.authored.data.push(AuthoredData {
                 pos: at(l),
                 key: String::from_utf8(k.to_vec()).ok()?,

@@ -18,6 +18,7 @@ fn mesh_lit_floor(block_light: impl Fn(i32, i32, i32) -> LightRgb) -> ChunkMesh 
             },
             cell_state: &|_, _, _| petramond_world::block::ShapeState::NONE,
             fluid_meta: &|_, _, _| 0,
+            held_fluid: &|_, _, _| 0,
             biome: &|_, _| 0,
             skylight: &|_, _, _| 0,
             blocklight: &block_light,

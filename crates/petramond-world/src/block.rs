@@ -290,5 +290,7 @@ pub fn split_part_kv_key(stored: &str) -> (&str, CellPart) {
 #[inline]
 pub fn kv_key_affects_mesh(key: &str) -> bool {
     let base = split_part_kv_key(key).0;
-    base == TINT_KV_KEY || base == crate::block_model::PARTS_KV_KEY
+    base == TINT_KV_KEY
+        || base == crate::block_model::PARTS_KV_KEY
+        || base == crate::fluid::held::KV_KEY
 }

@@ -93,40 +93,6 @@ impl FluidSurface {
         }
     }
 
-    pub(super) fn stationary(
-        pos: [i32; 3],
-        block: Block,
-        tile: Tile,
-        block_at: impl Fn(i32, i32, i32) -> Block,
-    ) -> Self {
-        let [x, y, z] = pos;
-        let fluid = |x, y, z| {
-            (block_at(x, y, z).fluid() == Some(block)).then(|| {
-                if block_at(x, y + 1, z).fluid() == Some(block) {
-                    1.0
-                } else {
-                    8.0 / 9.0
-                }
-            })
-        };
-        let reads = FluidReads {
-            block_at: &block_at,
-            height_at: &fluid,
-            still_at: &|_, _, _| true,
-        };
-        let mut surface = Self::new(
-            IVec3::new(x, y, z),
-            block,
-            block_at(x, y + 1, z).fluid() == Some(block),
-            false,
-            &reads,
-        );
-        surface.top_tile = tile;
-        surface.top_angle = 0;
-        surface.flows = false;
-        surface
-    }
-
     #[inline]
     pub(super) fn top_tile(&self) -> Tile {
         self.top_tile

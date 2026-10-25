@@ -116,6 +116,7 @@ impl ReplicaWorld {
                             skylight: s.skylight_arc(),
                             blocklight: s.blocklight_arc(),
                             cell_states: sparse_state_snapshot(s.cell_states()),
+                            held_fluids: s.held_fluids().map(|(i, f)| (i, f.id())).collect(),
                             transition_tints: s
                                 .cell_tint_map()
                                 .into_keys()
@@ -134,6 +135,7 @@ impl ReplicaWorld {
                                     skylight: None,
                                     blocklight: None,
                                     cell_states: None,
+                                    held_fluids: Box::new([]),
                                     transition_tints: Box::new([]),
                                     blanket: false,
                                 })

@@ -182,6 +182,45 @@ fn a_published_plan_emits_state_data_and_clears_per_section() {
     assert!(state(&far, slab).contains(&("half".into(), "top".into())));
 }
 
+/// Nearby sites' plans share one section's output: a cell a later plan writes is its alone, so the
+/// data an earlier plan gave that cell goes with the earlier cell.
+#[test]
+fn a_later_plan_in_one_output_takes_over_an_earlier_plans_cell_data() {
+    let slab = families().get(Name::new("oak"), Form::Slab).unwrap();
+    let mut earlier = Plan::new();
+    for pos in [[1, 2, 3], [4, 2, 3], [7, 2, 3]] {
+        earlier.set(pos, &slab);
+        earlier.hold_fluid(pos, "petramond:water");
+    }
+    let mut later = Plan::new();
+    later.set([1, 2, 3], &slab);
+    later.hold_fluid([1, 2, 3], "petramond:water");
+    later.set([4, 2, 3], &Material::named("t:oak_planks"));
+    let mut out = GenOutput::default();
+    let mut resolve = ids;
+    for plan in [earlier, later] {
+        IndexedPlan::parse(plan.encode(), 0).expect("parses").emit(
+            [0, 0, 0],
+            &mut resolve,
+            &mut out,
+        );
+    }
+    let mut data: Vec<_> = out
+        .authored
+        .data
+        .iter()
+        .map(|d| (d.pos, d.key.as_str()))
+        .collect();
+    data.sort();
+    assert_eq!(
+        data,
+        vec![
+            ([1, 2, 3], "petramond:fluid"),
+            ([7, 2, 3], "petramond:fluid")
+        ]
+    );
+}
+
 #[test]
 fn merged_clears_cover_exactly_the_cleared_cells() {
     for seed in 0..60u32 {

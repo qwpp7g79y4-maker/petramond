@@ -71,7 +71,7 @@ pub(super) fn navigation_step_gate_on<'c, 'w, M: path::CellCache>(
             (c.y - 1..=c.y + params.head_cells()).all(|y| {
                 let at = IVec3::new(c.x, y, c.z);
                 let block = cur.physics_block(at);
-                !hazards::hazardous(block, params.tolerated)
+                !hazards::hazardous_at(cur, at, params.tolerated)
                     && classify_boxes(cur.boxes_of(at, block)) != CellShape::Partial
             })
         })

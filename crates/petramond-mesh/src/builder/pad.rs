@@ -23,6 +23,8 @@ pub struct SectionMeshPad<'a> {
     pub skylight: &'a [u8],
     pub blocklight: &'a [petramond_world::light::LightRgb],
     pub cell_states: &'a [ShapeState],
+    /// The fluid (block id) each cell's block holds beside it, 0 for none.
+    pub held: &'a [u16],
     pub transition_blocked: &'a [bool],
     pub loaded: &'a [bool],
     pub biome: &'a [u8],
@@ -51,13 +53,26 @@ impl SectionMeshPad<'_> {
         }
     }
 
+    /// The fluid filling pad cell `i`: a fluid block, the fluid its row contains, or the one
+    /// its block holds.
     #[inline]
-    fn block_above_local(&self, px: usize, py: usize, pz: usize) -> Block {
-        if py + 1 < SECTION_PAD {
-            self.table.block(self.blocks[mesh_pad_idx(px, py + 1, pz)])
-        } else {
-            Block::Air
-        }
+    pub(super) fn fluid_at(&self, i: usize) -> Option<Block> {
+        self.table
+            .fluid(self.blocks[i])
+            .or_else(|| (self.held[i] != 0).then(|| self.table.block(self.held[i])))
+    }
+
+    #[inline]
+    fn fluid_above_local(&self, px: usize, py: usize, pz: usize) -> Option<Block> {
+        (py + 1 < SECTION_PAD)
+            .then(|| self.fluid_at(mesh_pad_idx(px, py + 1, pz)))
+            .flatten()
+    }
+
+    #[inline]
+    pub(super) fn cell_fluid_local(&self, lx: i32, ly: i32, lz: i32) -> Option<Block> {
+        let (px, py, pz) = Self::local_pad_xyz(lx, ly, lz)?;
+        self.fluid_at(mesh_pad_idx(px, py, pz))
     }
 
     #[inline]
@@ -66,10 +81,10 @@ impl SectionMeshPad<'_> {
             return false;
         };
         let i = mesh_pad_idx(px, py, pz);
-        if self.table.fluid(self.blocks[i]) != Some(fluid) {
+        if self.fluid_at(i) != Some(fluid) {
             return false;
         }
-        fluid_math::fills_cell(self.fluid[i], self.block_above_local(px, py, pz), fluid)
+        fluid_math::fills_cell(self.fluid[i], self.fluid_above_local(px, py, pz), fluid)
     }
 
     #[inline]
@@ -82,12 +97,12 @@ impl SectionMeshPad<'_> {
     ) -> Option<f32> {
         let (px, py, pz) = Self::local_pad_xyz(lx, ly, lz)?;
         let i = mesh_pad_idx(px, py, pz);
-        if self.table.fluid(self.blocks[i]) != Some(fluid) {
+        if self.fluid_at(i) != Some(fluid) {
             return None;
         }
         Some(fluid_math::fluid_height(
             self.fluid[i],
-            self.block_above_local(px, py, pz),
+            self.fluid_above_local(px, py, pz),
             fluid,
         ))
     }
@@ -98,8 +113,7 @@ impl SectionMeshPad<'_> {
             return false;
         };
         let i = mesh_pad_idx(px, py, pz);
-        self.table.fluid(self.blocks[i]) == Some(fluid)
-            && fluid_math::is_still_source(self.fluid[i])
+        self.fluid_at(i) == Some(fluid) && fluid_math::is_still_source(self.fluid[i])
     }
 
     #[inline]
@@ -108,6 +122,6 @@ impl SectionMeshPad<'_> {
             return false;
         };
         let i = mesh_pad_idx(px, py, pz);
-        self.table.fluid(self.blocks[i]) == Some(fluid) && fluid_math::is_falling(self.fluid[i])
+        self.fluid_at(i) == Some(fluid) && fluid_math::is_falling(self.fluid[i])
     }
 }

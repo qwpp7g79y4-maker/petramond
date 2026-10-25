@@ -186,7 +186,7 @@ impl BehaviorWorld for TestWorld {
             return;
         }
         self.data.sim.pending_breaks.push((pos, block));
-        let below = Block::from_id(self.data.chunk_block(pos.x, pos.y - 1, pos.z));
-        TestWorld::set_block_world(self, pos.x, pos.y, pos.z, block.break_residue(below));
+        let residue = self.data.break_residue_at(pos, block);
+        TestWorld::set_block_world(self, pos.x, pos.y, pos.z, residue);
     }
 }

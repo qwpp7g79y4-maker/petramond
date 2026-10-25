@@ -467,6 +467,18 @@ pub trait ShapeSim: Send + Sync + 'static {
         false
     }
 
+    /// Whether a cell of this shape can hold a fluid beside the block itself (a slab or fence
+    /// standing in water). A full cube or a plant never does.
+    fn floodable(&self) -> bool {
+        false
+    }
+
+    /// Whether a floodable cell in `state` still leaves room for a fluid: a full slab stack does
+    /// not.
+    fn room_for_fluid(&self, _state: ShapeState) -> bool {
+        true
+    }
+
     fn faces_by_row(&self) -> bool {
         false
     }

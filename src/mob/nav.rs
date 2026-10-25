@@ -529,9 +529,8 @@ pub(super) fn fluid_footing(
     pos: petramond_math::world_pos::WorldPos,
 ) -> Option<Block> {
     let feet = pos.block();
-    cur.physics_block(feet)
-        .fluid()
-        .or_else(|| cur.physics_block(feet - IVec3::Y).fluid())
+    cur.cell_fluid(feet)
+        .or_else(|| cur.cell_fluid(feet - IVec3::Y))
 }
 
 pub(super) fn nav_loaded_fn<'c, 'w>(

@@ -181,7 +181,7 @@ pub fn apply_gen_plan(section: &mut Section, plan: &crate::hooks::GenerationPlan
                 ));
             }
             for (key, value) in &cell.data {
-                section.cell_kv_set(x, y, z, key.clone(), value.clone());
+                section.set_cell_data(x, y, z, key.clone(), value.clone());
             }
         }
     }
@@ -204,6 +204,6 @@ fn write_authored(section: &mut Section, local: IVec3, cell: &petramond_world::s
         section.set_cell_state(x, y, z, cell.state);
     }
     for (key, value) in &cell.data {
-        section.cell_kv_set(x, y, z, key.clone(), value.clone());
+        section.set_cell_data(x, y, z, key.clone(), value.clone());
     }
 }

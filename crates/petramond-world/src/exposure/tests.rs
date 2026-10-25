@@ -22,6 +22,7 @@ fn fluid(block: Block, contact: FluidContact) -> &'static FluidDef {
         delay: 5,
         drop_off: 1,
         renewable: false,
+        floods: false,
         quench: None,
         motion: FluidMotion {
             speed_scale: 1.0,

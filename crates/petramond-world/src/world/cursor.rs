@@ -79,7 +79,20 @@ impl<'w> SectionCursor<'w> {
 
     #[inline]
     pub fn fluid_cell(&self, c: IVec3) -> bool {
-        self.physics_block(c).fluid().is_some()
+        self.cell_fluid(c).is_some()
+    }
+
+    /// The fluid filling the cell: a fluid block, the fluid its row contains, or one its block
+    /// holds. An absent section answers by its summary, as [`physics_block`](Self::physics_block).
+    #[inline]
+    pub fn cell_fluid(&self, c: IVec3) -> Option<Block> {
+        if !crate::border::contains_column(c.x, c.z) {
+            return None;
+        }
+        match self.section_at(c) {
+            Some((s, lx, ly, lz)) => s.cell_fluid(lx, ly, lz),
+            None => self.data.physics_block(c.x, c.y, c.z).fluid(),
+        }
     }
 
     #[inline]

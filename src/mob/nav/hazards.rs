@@ -9,9 +9,14 @@ use crate::world::SectionCursor;
 
 const EPS: f64 = 1e-4;
 
-pub(super) fn hazardous(block: Block, tolerated: &[Block]) -> bool {
+/// Whether a cell of `block` filled with `fluid` harms a walker that does not tolerate it.
+pub(super) fn hazardous(block: Block, fluid: Option<Block>, tolerated: &[Block]) -> bool {
     let hazard = |b: Block| b.has_tag(BlockTag::NAV_HAZARD) && !tolerated.contains(&b);
-    hazard(block) || block.fluid().is_some_and(hazard)
+    hazard(block) || fluid.is_some_and(hazard)
+}
+
+pub(super) fn hazardous_at(cur: &SectionCursor<'_>, c: IVec3, tolerated: &[Block]) -> bool {
+    hazardous(cur.physics_block(c), cur.cell_fluid(c), tolerated)
 }
 
 pub(in crate::mob) fn foothold_in_hazard(
@@ -59,7 +64,7 @@ pub(super) fn step_gate_on<'c, 'w, M: path::CellCache>(
             f64::from(hi.z) + 0.5 + hw,
         ];
         !any_cell(min, max, |c| {
-            cells.get(c, |c| hazardous(cur.physics_block(c), params.tolerated))
+            cells.get(c, |c| hazardous_at(cur, c, params.tolerated))
         })
     }
 }
@@ -87,14 +92,15 @@ pub(in crate::mob) fn body_in_hazard(
 ) -> bool {
     any_cell([min[0], min[1] - 2.0 * EPS, min[2]], max, |c| {
         let block = cur.physics_block(c);
-        if !hazardous(block, tolerated) {
+        let fluid = cur.cell_fluid(c);
+        if !hazardous(block, fluid, tolerated) {
             return false;
         }
-        let Some(fluid) = block.fluid() else {
+        let Some(fluid) = fluid else {
             return true;
         };
         let surface =
-            c.y as f32 + fluid_height(cur.fluid_meta(c), cur.physics_block(c + IVec3::Y), fluid);
+            c.y as f32 + fluid_height(cur.fluid_meta(c), cur.cell_fluid(c + IVec3::Y), fluid);
         min[1] + EPS < f64::from(surface)
     })
 }
@@ -213,7 +219,7 @@ fn segment_enters_hazard(
     sweep_min[1] = pos.y.min(landing) - 2.0 * EPS;
     sweep_max[1] = sweep_max[1].max(landing + height);
     any_cell(sweep_min, sweep_max, |c| {
-        if !hazardous(cur.physics_block(c), tolerated) {
+        if !hazardous_at(cur, c, tolerated) {
             return false;
         }
         // Climbing ashore can ground the leading edge while the body still overhangs the pool.

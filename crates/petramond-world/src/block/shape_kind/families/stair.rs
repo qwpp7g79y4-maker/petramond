@@ -3,6 +3,10 @@ use super::*;
 pub struct StairFamily;
 
 impl ShapeSim for StairFamily {
+    fn floodable(&self) -> bool {
+        true
+    }
+
     fn refines(&self, _p: &ShapeParams) -> bool {
         true
     }

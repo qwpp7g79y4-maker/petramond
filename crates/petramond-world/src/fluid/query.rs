@@ -46,8 +46,8 @@ impl WorldData {
     pub fn fluid_flow_dir_at(&self, wx: i32, wy: i32, wz: i32, fluid: Block) -> Vec3 {
         let cur = self.cursor();
         let block_at = |x: i32, y: i32, z: i32| {
-            let block = cur.physics_block(IVec3::new(x, y, z));
-            block.fluid().unwrap_or(block)
+            let c = IVec3::new(x, y, z);
+            cur.cell_fluid(c).unwrap_or_else(|| cur.physics_block(c))
         };
         let fluid_at = |x: i32, y: i32, z: i32| -> Option<f32> {
             if block_at(x, y, z) != fluid {
@@ -55,7 +55,7 @@ impl WorldData {
             }
             Some(fluid_height(
                 cur.fluid_meta(IVec3::new(x, y, z)),
-                block_at(x, y + 1, z),
+                cur.cell_fluid(IVec3::new(x, y + 1, z)),
                 fluid,
             ))
         };
@@ -93,24 +93,24 @@ impl WorldData {
 fn fluid_surface_at(cur: &SectionCursor<'_>, cell: IVec3) -> Option<Immersion> {
     let mut sample = fluid_in_cell(cur, cell)?;
     let mut top = cell;
-    while cur.physics_block(top + IVec3::Y).fluid() == Some(sample.fluid.block) {
+    while cur.cell_fluid(top + IVec3::Y) == Some(sample.fluid.block) {
         top.y += 1;
     }
     sample.surface_y = top.y as f32
         + fluid_height(
             cur.fluid_meta(top),
-            cur.physics_block(top + IVec3::Y),
+            cur.cell_fluid(top + IVec3::Y),
             sample.fluid.block,
         );
     Some(sample)
 }
 
 fn fluid_in_cell(cur: &SectionCursor<'_>, cell: IVec3) -> Option<Immersion> {
-    let fluid = cur.physics_block(cell).fluid()?.fluid_def()?;
+    let fluid = cur.cell_fluid(cell)?.fluid_def()?;
     let surface_y = cell.y as f32
         + fluid_height(
             cur.fluid_meta(cell),
-            cur.physics_block(cell + IVec3::Y),
+            cur.cell_fluid(cell + IVec3::Y),
             fluid.block,
         );
     Some(Immersion { fluid, surface_y })

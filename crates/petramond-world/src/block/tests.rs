@@ -121,6 +121,21 @@ fn every_block_has_consistent_metadata() {
     }
 }
 
+/// A posed model never fills its cell, whatever shape hosts it: a chest stands in water as a door
+/// does.
+#[test]
+fn every_row_drawn_by_a_posed_model_can_hold_water() {
+    let posed: Vec<Block> = Block::all()
+        .iter()
+        .copied()
+        .filter(|b| b.animated_model().is_some() && !b.flags().is_opaque())
+        .collect();
+    assert!(!posed.is_empty());
+    for block in posed {
+        assert!(block.can_hold(Block::Water), "{block:?}");
+    }
+}
+
 #[test]
 fn a_melting_block_leaves_its_fluid_only_over_support() {
     let (melting, fluid) = Block::all()

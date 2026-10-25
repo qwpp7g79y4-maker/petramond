@@ -440,7 +440,7 @@ impl Section {
             .chain(overlay.map(|o| o.overlay))
             .chain(block.covered_side())
             .chain(block.front_tile())
-            .chain(block.is_fluid().then(|| block.fluid_flow_tile()))
+            .chain(block.fluid().map(|fluid| fluid.fluid_flow_tile()))
             .any(|tile| {
                 tile.world_tint()
                     .is_some_and(|t| !matches!(t, TileTint::Fixed(_)))

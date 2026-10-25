@@ -3,6 +3,14 @@ use super::*;
 pub struct SlabFamily;
 
 impl ShapeSim for SlabFamily {
+    fn floodable(&self) -> bool {
+        true
+    }
+
+    fn room_for_fluid(&self, state: ShapeState) -> bool {
+        !SlabState::from_cell(state).is_full()
+    }
+
     fn accepts_row_uv_rotation(&self) -> bool {
         true
     }

@@ -183,6 +183,15 @@ fn mesh_lit(
                     0
                 }
             },
+            held_fluid: &|wx, wy, wz| {
+                if in_section(wx, wy, wz) {
+                    section
+                        .held_fluid(wx as usize, wy as usize, wz as usize)
+                        .map_or(0, |fluid| fluid.id())
+                } else {
+                    0
+                }
+            },
             biome: &|_, _| 0,
             skylight: &sky,
             blocklight: &block_light,
@@ -225,6 +234,7 @@ fn mesh_in_scene(
             block: &block,
             cell_state: &|_, _, _| petramond_world::block::ShapeState::NONE,
             fluid_meta: &|_, _, _| 0,
+            held_fluid: &|_, _, _| 0,
             biome: &|_, _| 0,
             skylight: &sky,
             blocklight: &|_, _, _| petramond_world::light::LightRgb::ZERO,

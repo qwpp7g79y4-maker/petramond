@@ -41,6 +41,8 @@ pub(super) fn create_terrain_pipelines(
     // step over shallower water) shows its back as a dark sheet from the fluid
     // side, "in front of" the fluid that is actually there. Depth `Less`, NO
     // write, so a see-through body never occludes the geometry behind it.
+    // Biased to lose coplanar ties: a fluid a block holds shares the block's
+    // own boundary faces, and the block wins them.
     let transparent_pipe = world_pipeline(
         device,
         "terrain transparent pipe",
@@ -51,7 +53,7 @@ pub(super) fn create_terrain_pipelines(
         vbuf_layouts,
         &transparent_targets,
         cull_back(),
-        Some(DepthPreset::ReadLess),
+        Some(DepthPreset::ReadLessCoplanarLosing),
         max_samples,
     );
     // Translucent BLOCKS (ice) blend like water but WRITE depth and draw
@@ -83,7 +85,7 @@ pub(super) fn create_terrain_pipelines(
         vbuf_layouts,
         &transparent_targets,
         wgpu::PrimitiveState::default(),
-        Some(DepthPreset::ReadLess),
+        Some(DepthPreset::ReadLessCoplanarLosing),
         max_samples,
     );
     (

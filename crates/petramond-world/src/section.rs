@@ -15,6 +15,7 @@ pub(crate) use metrics::METRICS;
 mod block_entities;
 mod cell_states;
 mod cube;
+mod held_fluid;
 mod ids;
 mod metrics;
 mod restore;
@@ -251,13 +252,29 @@ impl Section {
         self.set_block_raw(x, y, z, b.id());
     }
 
+    /// Writes `id` into the cell. Its states clear, except the fluid it was or held when `id`
+    /// can hold that fluid (see [`BlockStates::replace_on_block_change`]).
     pub fn set_block_raw(&mut self, x: usize, y: usize, z: usize, id: u16) {
+        self.write_block_raw(x, y, z, id, true);
+    }
+
+    /// [`set_block_raw`](Section::set_block_raw) that keeps no fluid: the cell takes exactly the
+    /// states the caller writes after it, as a replicated cell does.
+    pub fn overwrite_block_raw(&mut self, x: usize, y: usize, z: usize, id: u16) {
+        self.write_block_raw(x, y, z, id, false);
+    }
+
+    fn write_block_raw(&mut self, x: usize, y: usize, z: usize, id: u16, keep_fluid: bool) {
         let i = section_idx(x, y, z);
         let old = self.blocks.get(i);
         self.blocks.set(i, id);
         self.present.insert(id);
         self.adjust_metrics(x, y, z, old, id);
-        self.states.clear_on_block_change(i);
+        if keep_fluid {
+            self.states.replace_on_block_change(i, old, id);
+        } else {
+            self.states.clear_on_block_change(i);
+        }
         self.dirty = true;
         self.mark_light_dirty();
     }
@@ -265,7 +282,8 @@ impl Section {
     /// Sets every cell of the inclusive local box `lo..=hi` to `id`. A cell that already holds
     /// `id` with no fluid, state or cell data is skipped: writing it would change nothing.
     pub fn fill_box(&mut self, lo: [usize; 3], hi: [usize; 3], id: u16) {
-        let bare = self.states.is_all_bare();
+        let mut bare = self.states.is_all_bare();
+        let floodable = Block::from_id(id).flags().floodable();
         if bare && id == 0 && self.non_air_count == 0 {
             return;
         }
@@ -302,7 +320,9 @@ impl Section {
                     }
                     cells.set(i, id);
                     tally.note(i, class(old), new_bits);
-                    if !bare {
+                    if floodable {
+                        bare &= !self.states.replace_on_block_change(i, old, id);
+                    } else if !bare {
                         self.states.clear_on_block_change(i);
                     }
                     changed = true;
@@ -321,7 +341,7 @@ impl Section {
     pub fn set_blocks_raw(&mut self, cells: impl IntoIterator<Item = ([usize; 3], u16)>) {
         let table = Self::metric_table();
         let class = |id: u16| table.get(id as usize).copied().unwrap_or(0);
-        let bare = self.states.is_all_bare();
+        let mut bare = self.states.is_all_bare();
         let mut tally = metrics::MetricTally::default();
         let mut changed = false;
         let mut writes = cells.into_iter().peekable();
@@ -341,7 +361,9 @@ impl Section {
                 cells.set(i, id);
                 self.present.insert(id);
                 tally.note(i, class(old), class(id));
-                if !bare {
+                if Block::from_id(id).flags().floodable() {
+                    bare &= !self.states.replace_on_block_change(i, old, id);
+                } else if !bare {
                     self.states.clear_on_block_change(i);
                 }
                 changed = true;

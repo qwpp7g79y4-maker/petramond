@@ -114,7 +114,7 @@ impl Block {
         self == Block::Air
             || (self.light_shape() == BlockLightShape::Open
                 && self.is_transparent()
-                && !self.is_fluid()
+                && self.fluid().is_none()
                 && !self.is_leaves())
     }
 
@@ -232,6 +232,19 @@ impl Block {
     #[inline]
     pub fn fluid(self) -> Option<Block> {
         data::BlockTable::current().fluid(self.id())
+    }
+
+    /// Whether a cell of this block can hold `fluid` beside it, as a slab stands in water.
+    #[inline]
+    pub fn can_hold(self, fluid: Block) -> bool {
+        self.flags().floodable() && fluid.fluid_def().is_some_and(|f| f.floods)
+    }
+
+    /// [`can_hold`](Self::can_hold) for a cell in `state`, which may leave no room (a full slab
+    /// stack).
+    #[inline]
+    pub fn can_hold_in(self, fluid: Block, state: crate::block::ShapeState) -> bool {
+        self.can_hold(fluid) && self.shape_kind_def().sim.room_for_fluid(state)
     }
 
     #[inline]
@@ -418,7 +431,12 @@ impl Block {
     }
 
     #[inline]
+    /// What a broken block leaves in its cell: the fluid it held (as a source), or the fluid
+    /// it melts to when something holds that fluid up.
     pub fn break_residue(self, below: Block) -> Block {
+        if let Some(fluid) = self.contained_fluid() {
+            return fluid;
+        }
         match self.melts_to() {
             Some(fluid) if below.is_solid() || below == fluid => fluid,
             _ => Block::Air,

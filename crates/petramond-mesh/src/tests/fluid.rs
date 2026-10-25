@@ -414,6 +414,48 @@ fn fluid_body_emits_only_outward_boundary_walls() {
     }
 }
 
+/// Water a block holds is part of the body: no wall between it and the water around it, and
+/// a holding cell in the top layer draws the surface like its neighbours.
+#[test]
+fn water_a_block_holds_joins_the_body_around_it() {
+    use crate::face::Face;
+
+    const LO: usize = 6;
+    const HI: usize = 9;
+    let mut section = floor_section(Block::Stone);
+    for z in LO..HI {
+        for x in LO..HI {
+            section.set_fluid(x, 1, z, Block::Water, 0);
+            section.set_fluid(x, 2, z, Block::Water, 0);
+        }
+    }
+    section.set_block(7, 1, 7, Block::OakFence);
+    section.set_block(8, 2, 6, Block::OakSlab);
+    assert_eq!(section.held_fluid(7, 1, 7), Some(Block::Water));
+    let m = mesh(&section);
+    let quads = fluid_quads(&m, Block::Water);
+    for quad in quads.iter().filter(|q| face_of(&q[0]) != Face::PosY) {
+        let face = face_of(&quad[0]);
+        let d = face.dir();
+        let (axis, plane) = if d.x != 0 { (0, d.x) } else { (2, d.z) };
+        let want = if plane > 0 { HI } else { LO } as f32;
+        assert!(
+            d.y == 0 && quad.iter().all(|v| (v.pos[axis] - want).abs() < 1e-4),
+            "{face:?} wall inside the body: {:?}",
+            quad.iter().map(|v| v.pos).collect::<Vec<_>>()
+        );
+    }
+    let top_over = |x: f32, z: f32| {
+        quads.iter().any(|q| {
+            face_of(&q[0]) == Face::PosY
+                && q.iter().all(|v| v.pos[1] > 2.5)
+                && q.iter().any(|v| v.pos[0] > x && v.pos[0] < x + 1.0 + 1e-4)
+                && q.iter().any(|v| v.pos[2] > z && v.pos[2] < z + 1.0 + 1e-4)
+        })
+    };
+    assert!(top_over(8.0, 6.0), "the slab's water draws its surface");
+}
+
 /// The FALLING bit picks the flow tile on every exposed face, not the surface gradient.
 /// An open-air column has zero gradient, and its top cell still must not fall back to the
 /// still tile when the pour above is gone or hasn't streamed yet.
@@ -629,5 +671,57 @@ fn an_emissive_solid_cube_keeps_its_sampled_light_and_ao() {
     assert!(
         faces.iter().any(|v| ao_idx(v) < 3),
         "{block:?}: an emissive cube's top keeps the trench walls' AO"
+    );
+}
+
+/// Water a slab holds is drawn like loose water: its surface meets a flowing neighbour's along
+/// the shared edge.
+#[test]
+fn held_water_meets_flowing_water() {
+    use crate::face::Face;
+
+    let mut section = floor_section(Block::Stone);
+    for x in 6..=8 {
+        section.set_fluid(x, 1, 8, Block::Water, 0);
+    }
+    section.set_block(8, 1, 8, Block::OakSlab);
+    assert_eq!(section.held_fluid(8, 1, 8), Some(Block::Water));
+    section.set_fluid(9, 1, 8, Block::Water, 3);
+    let m = mesh(&section);
+    let quads = fluid_quads(&m, Block::Water);
+    let in_cell = |q: &[Vertex; 4], x: f32| {
+        q.iter()
+            .all(|v| (x..=x + 1.0).contains(&v.pos[0]) && (8.0..=9.0).contains(&v.pos[2]))
+    };
+    let top_edge = |x: f32, edge: f32| {
+        let top = quads
+            .iter()
+            .find(|q| face_of(&q[0]) == Face::PosY && in_cell(q, x))
+            .unwrap_or_else(|| panic!("a surface over x {x}"));
+        let mut ys: Vec<f32> = top
+            .iter()
+            .filter(|v| (v.pos[0] - edge).abs() < 1e-4)
+            .map(|v| v.pos[1])
+            .collect();
+        ys.sort_by(f32::total_cmp);
+        ys
+    };
+    assert_eq!(
+        top_edge(8.0, 9.0),
+        top_edge(9.0, 9.0),
+        "the held surface meets the flowing one"
+    );
+    let full = petramond_world::block_state::SlabState::single(
+        petramond_world::block_state::SlabSplit::Y,
+        0,
+        Block::OakSlab,
+    )
+    .with_slot(1, Block::OakSlab)
+    .expect("a second layer");
+    section.set_slab_state(8, 1, 8, full);
+    assert_eq!(
+        section.held_fluid(8, 1, 8),
+        None,
+        "a full slab stack leaves no room"
     );
 }

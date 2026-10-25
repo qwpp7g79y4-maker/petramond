@@ -209,7 +209,7 @@ impl ReplicaWorld {
         let old = {
             let section = self.data.section_mut(pos).expect("presence checked above");
             let old = section.block(lx, ly, lz);
-            section.set_block_raw(lx, ly, lz, delta.block_id);
+            section.overwrite_block_raw(lx, ly, lz, delta.block_id);
             if let Some(meta) = delta.fluid {
                 section.set_fluid(lx, ly, lz, Block::from_id(delta.block_id), meta);
             }

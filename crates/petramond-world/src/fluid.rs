@@ -2,6 +2,7 @@ use crate::block::Block;
 use crate::mathh::Vec3;
 
 pub mod contact;
+pub mod held;
 pub(crate) mod load;
 pub mod medium;
 mod motion;
@@ -68,6 +69,9 @@ pub struct FluidDef {
     pub delay: u64,
     pub drop_off: u8,
     pub renewable: bool,
+    /// A block that can hold a fluid takes this one in: placed into a source of it, or poured
+    /// into from a bucket.
+    pub floods: bool,
     pub quench: Option<Quench>,
     pub motion: FluidMotion,
     pub current: CurrentProperties,

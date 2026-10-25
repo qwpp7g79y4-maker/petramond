@@ -42,15 +42,17 @@ fn gather_touched_fluids(
         for y in lo[1]..=hi[1] {
             for z in lo[2]..=hi[2] {
                 for x in lo[0]..=hi[0] {
-                    let Some(block) = world.block_if_stream_final(x, y, z) else {
+                    if world.block_if_stream_final(x, y, z).is_none() {
                         return false;
-                    };
-                    let Some(def) = block.fluid().and_then(|f| f.fluid_def()) else {
+                    }
+                    let Some(def) = world.data().cell_fluid(x, y, z).and_then(|f| f.fluid_def())
+                    else {
                         continue;
                     };
-                    let Some(above) = world.block_if_stream_final(x, y + 1, z) else {
+                    if world.block_if_stream_final(x, y + 1, z).is_none() {
                         return false;
-                    };
+                    }
+                    let above = world.data().cell_fluid(x, y + 1, z);
                     let height =
                         fluid_height(world.data().fluid_meta_world(x, y, z), above, def.block);
                     if min[1] + CONTACT_EPS < f64::from(y) + f64::from(height) {

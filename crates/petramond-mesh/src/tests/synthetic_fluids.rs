@@ -5,6 +5,7 @@ use petramond_world::fluid_math::FALLING;
 
 const TAR: &str = "meshfluids:tar";
 const MIST: &str = "meshfluids:mist";
+const REED: &str = "meshfluids:reed";
 
 fn fluid_row(name: &str, alpha: f32, tiles: &str) -> String {
     format!(
@@ -32,6 +33,18 @@ fn fluid_row(name: &str, alpha: f32, tiles: &str) -> String {
     )
 }
 
+fn holding_row(name: &str, fluid: &str) -> String {
+    format!(
+        r#"{{
+        "block": "{name}", "contained_fluid": "{fluid}",
+        "shape": "cross", "flags": ["transparent"], "tags": ["fragile"],
+        "behavior": "fragile", "interaction": "none", "collision": [], "emission": 0,
+        "tiles": ["short_grass", "short_grass", "short_grass"],
+        "material": "plant", "hardness": 0, "drops": []
+    }}"#
+    )
+}
+
 fn stage() -> petramond_util::test_dirs::TestScratchDir {
     let root = petramond_util::test_dirs::TestScratchDir::new("mesh-fluids");
     let pack = root.join("mods/meshfluids");
@@ -53,9 +66,10 @@ fn stage() -> petramond_util::test_dirs::TestScratchDir {
     write(
         "blocks.json",
         &format!(
-            r#"{{"blocks": [{}, {}]}}"#,
+            r#"{{"blocks": [{}, {}, {}]}}"#,
             fluid_row(TAR, 1.0, "plain"),
-            fluid_row(MIST, 0.5, "tinted")
+            fluid_row(MIST, 0.5, "tinted"),
+            holding_row(REED, MIST)
         ),
     );
     root
@@ -78,6 +92,28 @@ fn synthetic_fluid_rows() {
     an_opaque_top_under_a_lid_draws_only_when_recessed(tar, mist);
     only_a_full_opaque_medium_covers_the_faces_behind_it(tar, mist);
     biome_tinted_fluid_tiles_mark_the_section(tar, mist);
+    held_fluid_takes_its_own_tint(mist, block(REED));
+}
+
+/// A fluid a block holds is the same fluid: its faces take the fluid's biome tint like the
+/// loose fluid beside it, not a plain untinted tile.
+fn held_fluid_takes_its_own_tint(fluid: Block, holder: Block) {
+    let mut section = Section::new(0, 0, 0);
+    section.set_fluid(4, 4, 4, fluid, 0);
+    section.set_block(8, 4, 8, holder);
+    let m = mesh(&section);
+    let top_tint = |x: f32| {
+        fluid_quads(&m, fluid)
+            .iter()
+            .find(|q| face_of(&q[0]) == Face::PosY && q[0].pos[0].floor() == x)
+            .map(|q| q[0].tint & 0x00FF_FFFF)
+            .unwrap_or_else(|| panic!("a top face at x {x}"))
+    };
+    assert_eq!(
+        top_tint(8.0),
+        top_tint(4.0),
+        "held and loose fluid share a tint"
+    );
 }
 
 fn block(name: &str) -> Block {

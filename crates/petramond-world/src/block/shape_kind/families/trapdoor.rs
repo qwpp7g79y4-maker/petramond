@@ -3,6 +3,10 @@ use super::*;
 pub struct TrapdoorFamily;
 
 impl ShapeSim for TrapdoorFamily {
+    fn floodable(&self) -> bool {
+        true
+    }
+
     fn rotate_y(&self, block: Block, state: ShapeState) -> crate::block::rotation::CellRotation {
         let mut panel = crate::trapdoor::TrapdoorState::from_cell(state);
         panel.facing = crate::block::rotation::facing(panel.facing);

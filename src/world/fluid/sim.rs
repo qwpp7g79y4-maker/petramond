@@ -5,7 +5,7 @@ use petramond_world::block::Block;
 use petramond_world::chunk::WORLD_MIN_Y;
 
 use super::{
-    amount, block_at, contact, fill_with_fluid, fillable, flowing, fluid_of, is_source, opposite,
+    amount, cell_fluid, contact, fill_with_fluid, flowing, fluid_of, is_source, opposite,
     FluidAnnounce, FluidReads, CARDINALS, DOWN, FALLING, SLOPE_FIND_DIST, UP,
 };
 use petramond_world::fluid::FluidDef;
@@ -80,19 +80,19 @@ impl FluidSim {
         pos: IVec3,
         announce: &mut FluidAnnounce,
     ) {
-        let Some(fluid) = fluid_of(block_at(world, pos)) else {
+        let Some(fluid) = cell_fluid(world, pos).and_then(fluid_of) else {
             return;
         };
         contact::react(world, pos, fluid);
         let (current, mut meta, relevel) = {
             let reads = FluidReads::new(world);
-            let current = reads.block(pos);
+            let current = reads.fluid(pos);
             let meta = reads.meta(pos);
-            let relevel = (current == fluid.block && !is_source(meta))
+            let relevel = (current == Some(fluid.block) && !is_source(meta))
                 .then(|| self.recompute(&reads, pos, fluid));
             (current, meta, relevel)
         };
-        if current != fluid.block {
+        if current != Some(fluid.block) {
             return;
         }
         match relevel {
@@ -130,7 +130,7 @@ impl FluidSim {
         let mut sources = 0;
         for d in CARDINALS {
             let np = pos + d;
-            if reads.block(np) != fluid_block {
+            if reads.fluid(np) != Some(fluid_block) {
                 continue;
             }
             let nm = reads.meta(np);
@@ -142,15 +142,15 @@ impl FluidSim {
 
         if fluid.renewable && sources >= 2 {
             let below = pos + DOWN;
-            let below_block = reads.block(below);
-            let solid_below = below_block != fluid_block && !fillable(below_block);
-            let source_below = below_block == fluid_block && is_source(reads.meta(below));
+            let below_fluid = reads.fluid(below);
+            let solid_below = below_fluid != Some(fluid_block) && !reads.fillable(below);
+            let source_below = below_fluid == Some(fluid_block) && is_source(reads.meta(below));
             if solid_below || source_below {
                 return Some(0);
             }
         }
 
-        if reads.block(pos + UP) == fluid_block {
+        if reads.fluid(pos + UP) == Some(fluid_block) {
             return Some(FALLING);
         }
 
@@ -181,8 +181,7 @@ impl FluidSim {
         }
         let (pour, spread_sideways) = {
             let reads = FluidReads::new(world);
-            let below_block = reads.block(below);
-            if below.y >= WORLD_MIN_Y && fillable(below_block) {
+            if below.y >= WORLD_MIN_Y && reads.fillable(below) {
                 let poured = self.recompute(&reads, below, fluid).unwrap_or(FALLING);
                 (
                     Some(poured),
@@ -198,8 +197,8 @@ impl FluidSim {
                 // cross of falls. A FLOWING cell over fluid is a column joining
                 // the body under it and must not creep either: that would let
                 // flow climb over itself and advance where no source pushes it.
-                let sideways =
-                    below_block != fluid.block || (is_source(meta) && is_source(reads.meta(below)));
+                let sideways = reads.fluid(below) != Some(fluid.block)
+                    || (is_source(meta) && is_source(reads.meta(below)));
                 (None, sideways)
             }
         };
@@ -225,7 +224,7 @@ impl FluidSim {
         let (dirs, count) = self.spread_directions(&FluidReads::new(world), pos, fluid);
         for &(d, new_meta) in &dirs[..count] {
             let np = pos + d;
-            if block_at(world, np) != fluid.block {
+            if cell_fluid(world, np) != Some(fluid.block) {
                 fill_with_fluid(world, np, fluid.block, new_meta, announce);
             }
         }
@@ -293,8 +292,7 @@ impl FluidSim {
     }
 
     fn passable(&self, reads: &FluidReads<'_>, pos: IVec3, fluid: Block) -> bool {
-        let b = reads.block(pos);
-        fillable(b) || (b == fluid && !is_source(reads.meta(pos)))
+        reads.fillable(pos) || (reads.fluid(pos) == Some(fluid) && !is_source(reads.meta(pos)))
     }
 
     fn drop_below(&self, reads: &FluidReads<'_>, pos: IVec3, fluid: &'static FluidDef) -> bool {
@@ -302,8 +300,9 @@ impl FluidSim {
         if below.y < WORLD_MIN_Y {
             return false;
         }
-        let b = reads.block(below);
-        b == fluid.block || fillable(b) || fluid.quench.is_some_and(|q| b == q.by)
+        reads.fluid(below) == Some(fluid.block)
+            || reads.fillable(below)
+            || fluid.quench.is_some_and(|q| reads.block(below) == q.by)
     }
 
     fn source_neighbor_count(&self, reads: &FluidReads<'_>, pos: IVec3, fluid: Block) -> usize {
@@ -311,7 +310,7 @@ impl FluidSim {
             .iter()
             .filter(|&&d| {
                 let np = pos + d;
-                reads.block(np) == fluid && is_source(reads.meta(np))
+                reads.fluid(np) == Some(fluid) && is_source(reads.meta(np))
             })
             .count()
     }

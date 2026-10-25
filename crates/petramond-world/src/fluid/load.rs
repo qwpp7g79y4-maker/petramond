@@ -11,6 +11,8 @@ pub(crate) struct RawFluid {
     #[serde(default)]
     renewable: bool,
     #[serde(default)]
+    floods: bool,
+    #[serde(default)]
     quench: Option<RawQuench>,
     motion: FluidMotion,
     #[serde(default)]
@@ -94,6 +96,9 @@ impl RawFluid {
             })
             .transpose()?;
         self.medium.validate()?;
+        if self.floods && self.medium.is_opaque() {
+            return Err("floods requires a see-through medium".into());
+        }
         let contact = self
             .contact
             .map(RawContact::resolve)
@@ -109,6 +114,7 @@ impl RawFluid {
             delay: self.delay,
             drop_off: self.drop_off,
             renewable: self.renewable,
+            floods: self.floods,
             quench,
             motion: m,
             current: self.current,

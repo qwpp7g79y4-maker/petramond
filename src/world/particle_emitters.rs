@@ -135,7 +135,10 @@ impl<S: WorldSide> World<S> {
                     if let Some(side) = emitter.requires_open {
                         let q = side.support_cell(cell);
                         let over = Block::from_id(neighbour_id(&self.data, section, sp, q));
-                        if over == block || over.blocks_movement() || over.fluid().is_some() {
+                        if over == block
+                            || over.blocks_movement()
+                            || self.data.cell_fluid(q.x, q.y, q.z).is_some()
+                        {
                             continue;
                         }
                     }

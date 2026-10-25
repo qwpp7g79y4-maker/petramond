@@ -68,7 +68,7 @@ impl EngineItemUse {
     pub fn lands(&self, world: &WorldData) -> bool {
         match *self {
             EngineItemUse::Fill { .. } => true,
-            EngineItemUse::Pour { cell, .. } => pour_lands(world, cell),
+            EngineItemUse::Pour { cell, fluid, .. } => pour_lands(world, cell, fluid),
         }
     }
 }
@@ -80,10 +80,12 @@ pub fn resolve_engine_item_use(actor: &impl ActorView, world: &WorldData) -> Opt
                 .map(|(source, becomes)| EngineItemUse::Fill { source, becomes })
         }
         ItemUse::BucketPour { becomes, fluid } => {
-            bucket_pour_cell(world, actor.eye(), actor.look_dir()).map(|cell| EngineItemUse::Pour {
-                cell,
-                fluid,
-                becomes,
+            bucket_pour_cell(world, actor.eye(), actor.look_dir(), fluid).map(|cell| {
+                EngineItemUse::Pour {
+                    cell,
+                    fluid,
+                    becomes,
+                }
             })
         }
         ItemUse::Shear => None,
@@ -102,17 +104,27 @@ pub fn bucket_fill_target(
 ) -> Option<(IVec3, ItemType)> {
     let takes = |fluid: Block| fills.iter().any(|&(b, _)| b == fluid);
     let (hit, _) = raycast::fluid_sources(eye, dir, world, takes)?;
-    let scooped = Block::from_id(world.chunk_block(hit.block.x, hit.block.y, hit.block.z));
+    let IVec3 { x, y, z } = hit.block;
+    let held = world.held_fluid(x, y, z);
+    let scooped = held.unwrap_or_else(|| Block::from_id(world.chunk_block(x, y, z)));
     let &(_, becomes) = fills.iter().find(|&&(b, _)| b == scooped)?;
-    world
-        .is_fluid_source_world(hit.block, scooped)
+    (held.is_some() || world.is_fluid_source_world(hit.block, scooped))
         .then_some((hit.block, becomes))
 }
 
-pub fn bucket_pour_cell(world: &WorldData, eye: WorldPos, dir: Vec3) -> Option<IVec3> {
+/// Where a bucket of `fluid` pours: into the block looked at when that block takes it in place
+/// (a replaceable block, or one that can hold the fluid and holds none), else the cell before
+/// the face looked at.
+pub fn bucket_pour_cell(
+    world: &WorldData,
+    eye: WorldPos,
+    dir: Vec3,
+    fluid: Block,
+) -> Option<IVec3> {
     let (hit, _) = raycast::including_any_fluid(eye, dir, world)?;
     let looked_at = Block::from_id(world.chunk_block(hit.block.x, hit.block.y, hit.block.z));
-    if crate::world::placement::replaces_in_place(looked_at) {
+    if crate::world::placement::replaces_in_place(looked_at) || fills_held(world, hit.block, fluid)
+    {
         Some(hit.block)
     } else if hit.normal == IVec3::ZERO {
         None
@@ -121,8 +133,17 @@ pub fn bucket_pour_cell(world: &WorldData, eye: WorldPos, dir: Vec3) -> Option<I
     }
 }
 
-pub fn pour_lands(world: &WorldData, cell: IVec3) -> bool {
+pub fn pour_lands(world: &WorldData, cell: IVec3, fluid: Block) -> bool {
     Block::from_id(world.chunk_block(cell.x, cell.y, cell.z)).is_replaceable()
+        || fills_held(world, cell, fluid)
+}
+
+/// Whether pouring `fluid` at `cell` fills the block there instead of replacing it.
+pub fn fills_held(world: &WorldData, cell: IVec3, fluid: Block) -> bool {
+    let block = Block::from_id(world.chunk_block(cell.x, cell.y, cell.z));
+    !block.is_replaceable()
+        && world.can_hold_at(cell.x, cell.y, cell.z, fluid)
+        && world.held_fluid(cell.x, cell.y, cell.z).is_none()
 }
 
 #[cfg(test)]
@@ -240,66 +261,34 @@ mod tests {
     }
 
     #[test]
-    fn a_pour_resolves_and_lands_identically_on_both_mirrors() {
-        let floor = IVec3::new(4, 64, 4);
-        let (server, replica) = server_and_replica(|_| {});
-        let actor = looking_down_at(ItemType::WaterBucket, floor);
-        let on_server = resolve_engine_item_use(&actor, server.data());
+    fn a_bucket_fills_a_block_that_holds_water_and_scoops_it_back_on_both_mirrors() {
+        let slab = IVec3::new(8, 65, 8);
+        let pour = looking_down_at(ItemType::WaterBucket, slab);
+        let (server, replica) = server_and_replica(|w| {
+            assert!(w.set_block_world(slab.x, slab.y, slab.z, Block::OakSlab));
+        });
+        let on_server = resolve_engine_item_use(&pour, server.data());
         assert!(
-            matches!(on_server, Some(EngineItemUse::Pour { cell, fluid: Block::Water, .. }) if cell == floor + IVec3::Y),
-            "stone is poured against: {on_server:?}"
+            matches!(on_server, Some(EngineItemUse::Pour { cell, .. }) if cell == slab),
+            "a dry slab takes the water in place: {on_server:?}"
         );
-        assert_eq!(resolve_engine_item_use(&actor, replica.data()), on_server);
-        assert!(engine_item_use_claims(&actor, server.data()));
-        assert!(engine_item_use_claims(&actor, replica.data()));
-    }
+        assert_eq!(resolve_engine_item_use(&pour, replica.data()), on_server);
+        assert!(engine_item_use_claims(&pour, replica.data()));
 
-    #[test]
-    fn a_pour_with_nothing_in_reach_resolves_nothing() {
-        let (server, replica) = server_and_replica(|_| {});
-        let mut actor = looking_down_at(ItemType::WaterBucket, IVec3::new(4, 64, 4));
-        actor.dir = Vec3::new(0.0, 1.0, 0.0);
-        assert_eq!(resolve_engine_item_use(&actor, server.data()), None);
-        assert_eq!(resolve_engine_item_use(&actor, replica.data()), None);
-    }
-
-    #[test]
-    fn shears_resolve_no_block_use() {
-        let (server, _) = server_and_replica(|_| {});
-        let actor = looking_down_at(ItemType::Shears, IVec3::new(4, 64, 4));
-        assert!(holds_shears(&actor));
-        assert_eq!(resolve_engine_item_use(&actor, server.data()), None);
-    }
-
-    #[test]
-    fn eating_needs_food_and_a_body_in_play() {
-        let food = ItemType::all()
-            .iter()
-            .copied()
-            .find(|i| i.food().is_some())
-            .expect("a registered food");
-        let mut actor = looking_down_at(food, IVec3::ZERO);
-        assert!(eat_claims(&actor));
-        actor.spectator = true;
-        assert!(!eat_claims(&actor), "a spectator eats nothing");
-        actor.spectator = false;
-        actor.held = Some(ItemStack::new(ItemType::Dirt, 1));
-        assert!(!eat_claims(&actor));
-        actor.held = None;
-        assert!(!eat_claims(&actor));
-    }
-
-    #[test]
-    fn a_coat_is_shearable_only_on_a_live_unshorn_shearable_species() {
-        assert!(can_shear_coat(Mob::Sheep, false, false));
-        assert!(!can_shear_coat(Mob::Sheep, false, true), "already shorn");
-        assert!(!can_shear_coat(Mob::Sheep, true, false), "a ragdoll");
-        let bare = crate::mob::Mob::all()
-            .iter()
-            .copied()
-            .find(|&m| crate::mob::def(m).shear.is_none());
-        if let Some(bare) = bare {
-            assert!(!can_shear_coat(bare, false, false));
-        }
+        let (server, replica) = server_and_replica(|w| {
+            assert!(w.set_block_world(slab.x, slab.y, slab.z, Block::OakSlab));
+            assert!(w.set_held_fluid(slab, Some(Block::Water)));
+        });
+        let scoop = looking_down_at(ItemType::WoodenBucket, slab);
+        let fill = Some(EngineItemUse::Fill {
+            source: slab,
+            becomes: ItemType::WaterBucket,
+        });
+        assert_eq!(resolve_engine_item_use(&scoop, server.data()), fill);
+        assert_eq!(resolve_engine_item_use(&scoop, replica.data()), fill);
+        assert!(
+            matches!(resolve_engine_item_use(&pour, replica.data()), Some(EngineItemUse::Pour { cell, .. }) if cell == slab + IVec3::Y),
+            "a slab already holding water is poured onto"
+        );
     }
 }

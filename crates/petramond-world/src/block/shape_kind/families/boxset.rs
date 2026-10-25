@@ -4,6 +4,10 @@ use crate::block::shape_kind::RunRoot;
 pub struct BoxSetFamily;
 
 impl ShapeSim for BoxSetFamily {
+    fn floodable(&self) -> bool {
+        true
+    }
+
     fn refines(&self, p: &ShapeParams) -> bool {
         box_set(p).refine != super::super::BoxSetRefine::None
     }

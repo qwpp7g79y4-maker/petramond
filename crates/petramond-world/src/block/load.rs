@@ -602,6 +602,19 @@ fn convert(
     if flags.fluid() && (!sim.hosts_fluid() || flags.is_opaque() || flags.is_solid()) {
         return Err("fluid requires a nonopaque, nonsolid cube".into());
     }
+    let animated_model = r
+        .animated_model
+        .as_deref()
+        .map(|key| {
+            crate::animated_model::by_key(key)
+                .ok_or_else(|| format!("unknown animated_model '{key}'"))
+        })
+        .transpose()?;
+    // A posed model (a chest's body, a door leaf) never fills its cell, whatever shape hosts it.
+    let floodable = sim.floodable() || animated_model.is_some();
+    if floodable && contained_fluid.is_none() && !flags.is_opaque() && !flags.fluid() {
+        flags = flags.with(BlockFlags::FLOODABLE);
+    }
     flags = flags.with(sim.row_flags());
     if render.mesh_emitter(&params) == MeshEmitter::Boxes {
         flags = flags.with(BlockFlags::BOX_SHAPE);
@@ -614,14 +627,6 @@ fn convert(
             authored_collision: !r.collision.is_empty(),
         },
     )?;
-    let animated_model = r
-        .animated_model
-        .as_deref()
-        .map(|key| {
-            crate::animated_model::by_key(key)
-                .ok_or_else(|| format!("unknown animated_model '{key}'"))
-        })
-        .transpose()?;
     let draws_itself = render.mesh_emitter(&params) != MeshEmitter::Nothing;
     match animated_model {
         None if !draws_itself => {

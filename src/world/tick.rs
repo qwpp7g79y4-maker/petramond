@@ -133,8 +133,8 @@ impl<S: WorldSide> World<S> {
             return;
         }
         self.note_block_destroyed(pos, block);
-        let below = Block::from_id(self.data.chunk_block(pos.x, pos.y - 1, pos.z));
-        self.set_block_world(pos.x, pos.y, pos.z, block.break_residue(below));
+        let residue = self.data.break_residue_at(pos, block);
+        self.set_block_world(pos.x, pos.y, pos.z, residue);
     }
 }
 
@@ -219,6 +219,12 @@ impl ServerWorld {
         match crate::world::engine_behavior::engine_behavior(behavior.key()) {
             Some(engine) => engine.neighbor_update(self, pos),
             None => behavior.neighbor_update(self, pos),
+        }
+        // A block holding a fluid is also a source of it.
+        let now = Block::from_id(self.data.chunk_block(pos.x, pos.y, pos.z));
+        if !now.is_fluid() && self.data.cell_fluid(pos.x, pos.y, pos.z).is_some() {
+            use crate::world::engine_behavior::EngineBlockBehavior;
+            crate::world::fluid::FLUID.neighbor_update(self, pos);
         }
     }
 

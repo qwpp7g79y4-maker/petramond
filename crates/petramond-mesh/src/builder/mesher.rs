@@ -12,6 +12,7 @@ use super::cell_tint::CellTinting;
 use super::exposed_masks::{build_exposed_masks, ExposedMasks, VISIT_ALL};
 use super::families::BoxesOutcome;
 use super::neighbourhood::Neighbourhood;
+use super::pad::mesh_pad_idx;
 use super::pad::SectionMeshPad;
 use super::scratch::{BoxBuffers, MeshScratch, ScratchLease, Streams};
 use super::transition;
@@ -20,7 +21,6 @@ use super::MeshContext;
 #[derive(Copy, Clone)]
 pub(super) struct Cell {
     pub(super) block: Block,
-    pub(super) resident: bool,
     pub(super) lx: usize,
     pub(super) ly: usize,
     pub(super) lz: usize,
@@ -107,16 +107,18 @@ impl SectionMesher<'_> {
                     let lx = row.trailing_zeros() as usize;
                     row &= row - 1;
                     let resident = table.block(self.section.block_raw(lx, ly, lz));
-                    for block in
-                        std::iter::once(resident).chain(registry.contained_fluid(resident.id()))
-                    {
+                    let held = self
+                        .nb
+                        .pad()
+                        .fluid_at(mesh_pad_idx(lx + 1, ly + 1, lz + 1))
+                        .filter(|&fluid| fluid != resident);
+                    for block in std::iter::once(resident).chain(held) {
                         let class = registry.cell_class(block.id());
                         if class & SKIP != 0 {
                             continue;
                         }
                         let cell = Cell {
                             block,
-                            resident: block == resident,
                             lx,
                             ly,
                             lz,

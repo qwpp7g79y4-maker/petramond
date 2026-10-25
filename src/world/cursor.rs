@@ -39,6 +39,11 @@ impl<'w> SectionCursor<'w> {
     }
 
     #[inline]
+    pub fn cell_fluid(&self, c: IVec3) -> Option<Block> {
+        self.cells.cell_fluid(c)
+    }
+
+    #[inline]
     pub fn collision_boxes(&self, c: IVec3) -> &'static [Aabb] {
         self.cells.collision_boxes(c)
     }

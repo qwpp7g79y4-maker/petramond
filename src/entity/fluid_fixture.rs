@@ -8,6 +8,7 @@ use crate::world::ServerWorld;
 pub const BRINE: &str = "bodyfluid:brine";
 pub const SYRUP: &str = "bodyfluid:syrup";
 pub const CINDER: &str = "bodyfluid:cinder";
+pub const REED: &str = "bodyfluid:reed";
 pub const FLOOR_Y: i32 = 64;
 
 pub fn stage(tag: &str) -> TestScratchDir {
@@ -24,7 +25,16 @@ pub fn stage(tag: &str) -> TestScratchDir {
     write(
         "blocks.json",
         serde_json::json!({"blocks": [
-            fluid_row(BRINE, "jump", 1.0, 1.0 / 3.0, 0.0, serde_json::json!({}), &[], 0.75),
+            flooding(fluid_row(
+                BRINE,
+                "jump",
+                1.0,
+                1.0 / 3.0,
+                0.0,
+                serde_json::json!({}),
+                &[],
+                0.75
+            )),
             fluid_row(
                 SYRUP,
                 "step",
@@ -39,6 +49,7 @@ pub fn stage(tag: &str) -> TestScratchDir {
                 0.0,
             ),
             hazard_floor_row(CINDER),
+            holding_row(REED, BRINE),
         ]}),
     );
     write(
@@ -96,6 +107,12 @@ pub fn fluid_row(
     })
 }
 
+fn flooding(mut row: serde_json::Value) -> serde_json::Value {
+    row["fluid"]["floods"] = serde_json::json!(true);
+    row["fluid"]["medium"]["surface_alpha"] = serde_json::json!(0.8);
+    row
+}
+
 fn hazard_floor_row(name: &str) -> serde_json::Value {
     serde_json::json!({
         "block": name,
@@ -104,6 +121,16 @@ fn hazard_floor_row(name: &str) -> serde_json::Value {
         "collision": [{"min": [0, 0, 0], "max": [1, 1, 1]}], "emission": 0,
         "tiles": ["stone", "stone", "stone"],
         "material": "stone", "hardness": 1.5, "drops": []
+    })
+}
+
+fn holding_row(name: &str, fluid: &str) -> serde_json::Value {
+    serde_json::json!({
+        "block": name, "contained_fluid": fluid, "stacks": true,
+        "shape": "cross", "flags": ["transparent"], "tags": ["fragile"],
+        "behavior": "fragile", "interaction": "none", "collision": [], "emission": 0,
+        "tiles": ["short_grass", "short_grass", "short_grass"],
+        "material": "plant", "hardness": 0, "drops": []
     })
 }
 

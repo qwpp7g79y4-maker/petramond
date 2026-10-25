@@ -3,6 +3,10 @@ use super::*;
 pub struct PaneFamily;
 
 impl ShapeSim for PaneFamily {
+    fn floodable(&self) -> bool {
+        true
+    }
+
     fn refines(&self, _p: &ShapeParams) -> bool {
         true
     }

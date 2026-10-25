@@ -157,7 +157,8 @@ impl WorldData {
         let cur = self.cursor();
         (WORLD_MIN_Y..=top).rev().find(|&y| {
             let c = IVec3::new(wx, y, wz);
-            cur.blocks_movement(c) || cur.block_if_loaded(c).is_some_and(|b| b.is_fluid())
+            cur.blocks_movement(c)
+                || (cur.block_if_loaded(c).is_some() && cur.cell_fluid(c).is_some())
         })
     }
 

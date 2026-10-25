@@ -399,17 +399,9 @@ impl ServerGame {
         let carry_variant = self.carry_variant_at(container_pos, event.block, 0);
         let broken_tint = self.world.data().cell_burst_tint(event.pos);
         if self.world.remove_compound(event.pos).is_none() {
-            let below = Block::from_id(self.world.data().chunk_block(
-                event.pos.x,
-                event.pos.y - 1,
-                event.pos.z,
-            ));
-            self.world.set_block_world(
-                event.pos.x,
-                event.pos.y,
-                event.pos.z,
-                event.block.break_residue(below),
-            );
+            let residue = self.world.data().break_residue_at(event.pos, event.block);
+            self.world
+                .set_block_world(event.pos.x, event.pos.y, event.pos.z, residue);
         }
         self.world.forget_block_entity_records(container_pos);
         if let Some(container) = self.world.take_container(container_pos) {

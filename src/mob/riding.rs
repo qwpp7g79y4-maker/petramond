@@ -102,7 +102,8 @@ pub fn dismount_footing_safe(
     let layer_safe = |y: i32| {
         footprint(y).all(|(x, y, z)| {
             let block = world.physics_block(x, y, z);
-            block.fluid().is_none() && !block.has_tag(petramond_world::block::BlockTag::NAV_HAZARD)
+            world.cell_fluid(x, y, z).is_none()
+                && !block.has_tag(petramond_world::block::BlockTag::NAV_HAZARD)
         })
     };
     let ground = min[1].floor() as i32;

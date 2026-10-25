@@ -3,6 +3,10 @@ use super::*;
 pub struct DoorFamily;
 
 impl ShapeSim for DoorFamily {
+    fn floodable(&self) -> bool {
+        true
+    }
+
     fn compound_members(
         &self,
         _p: &ShapeParams,
