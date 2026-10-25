@@ -73,8 +73,9 @@ pub(crate) fn terrain_cube(
     let cubes = &caves.caches().terrain.section_cubes;
     cubes.get_or_compute_unlocked(key(caves, sp), || {
         let (surf, biomes) = crate::feature::cached_tile_raw(surface, caves, sp.cx, sp.cz);
+        let drops = crate::feature::cached_tile_drops(surface, caves, sp.cx, sp.cz);
         let mut section = Section::new(sp.cx, sp.cy, sp.cz);
-        surface.fill_section(&mut section, &biomes.map(|b| b.id()), &surf);
+        surface.fill_section(&mut section, &biomes.map(|b| b.id()), &surf, &drops);
         caves.carve_section(&mut section, &surf);
         section.blocks().clone()
     })

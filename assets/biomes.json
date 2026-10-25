@@ -9,6 +9,8 @@
       "water_color": [0.030, 0.290, 0.620],
       "generation": {
         "surface": [
+          {"if": {"steep": 2}, "then": "petramond:stone"},
+          {"if": {"cluster_noise_below": {"salt": 1481281026, "threshold": 0.18, "period": 10.0}}, "then": {"if": {"depth_from_top": 1}, "then": "petramond:gravel"}},
           {"if": {"depth_from_top": 2}, "then": "petramond:sand"},
           {"if": {"depth_from_top": 4}, "then": "petramond:dirt"},
           "petramond:stone"
@@ -288,7 +290,10 @@
       "water_color": [0.022, 0.220, 0.530],
       "generation": {
         "surface": [
-          {"if": {"depth_from_top": 2}, "then": "petramond:dirt"},
+          {"if": {"steep": 2}, "then": "petramond:stone"},
+          {"if": {"cluster_noise_below": {"salt": 986006013, "threshold": 0.3, "period": 12.0}}, "then": {"if": {"depth_from_top": 2}, "then": "petramond:sand"}},
+          {"if": {"cluster_noise_below": {"salt": 673918686, "threshold": 0.2, "period": 9.0}}, "then": {"if": {"depth_from_top": 1}, "then": "petramond:clay"}},
+          {"if": {"depth_from_top": 2}, "then": "petramond:gravel"},
           "petramond:stone"
         ],
         "flags": ["ocean", "no_beach", "wet"]

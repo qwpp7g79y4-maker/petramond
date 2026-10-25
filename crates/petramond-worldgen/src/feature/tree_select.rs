@@ -420,6 +420,9 @@ fn scatter_fallen_branches(
                 y: surf,
                 surf_y: surf,
                 depth_from_top: 0,
+                // Litter only asks whether the ground is soft; a cliff lip reading as flat
+                // ground costs nothing worth four more column reads.
+                drop: 0,
             },
             spec(biome).surface,
         );

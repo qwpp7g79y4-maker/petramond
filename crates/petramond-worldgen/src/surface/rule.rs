@@ -23,6 +23,9 @@ pub enum SurfaceCond {
         threshold: f32,
         period: f32,
     },
+    /// True on a column standing at least this many blocks above a side neighbour: the lip and
+    /// face of a cliff or terrace riser, where bare rock shows.
+    Steep(u8),
 }
 
 pub struct SurfaceCtx {
@@ -32,6 +35,8 @@ pub struct SurfaceCtx {
     pub y: i32,
     pub surf_y: i32,
     pub depth_from_top: u32,
+    /// How far the column's density surface stands above its lowest side neighbour's.
+    pub drop: u8,
 }
 
 impl SurfaceCond {
@@ -46,6 +51,7 @@ impl SurfaceCond {
                 threshold,
                 period,
             } => patch_field(c.seed, *salt, c.wx, c.wz, *period) < *threshold,
+            SurfaceCond::Steep(n) => c.drop >= *n,
         }
     }
 }

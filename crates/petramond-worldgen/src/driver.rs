@@ -490,10 +490,17 @@ impl ChunkGenerator {
                     && col.core.surf_max >= SEA_LEVEL
                     && ranges_overlap(sec_lo, sec_hi, SEA_LEVEL + 1, col.core.surf_max + 1)
                 {
+                    let drops = crate::feature::cached_tile_drops(
+                        &self.surface_density,
+                        &self.caves,
+                        sp.cx,
+                        sp.cz,
+                    );
                     vegetation::place_vegetation_section(
                         section,
                         &col.core.biome,
                         &col.core.surf,
+                        &drops,
                         &col.core.top_surf,
                         self.seed,
                     );
@@ -525,8 +532,14 @@ impl ChunkGenerator {
                 .as_ref()
                 .is_some_and(|h| h.replaces(WorldgenStage::Climate)) =>
             {
+                let drops = crate::feature::cached_tile_drops(
+                    &self.surface_density,
+                    &self.caves,
+                    sp.cx,
+                    sp.cz,
+                );
                 self.surface_density
-                    .fill_section(section, &col.core.biome, &col.core.surf);
+                    .fill_section(section, &col.core.biome, &col.core.surf, &drops);
                 self.caves.carve_section(section, &col.core.surf);
                 true
             }

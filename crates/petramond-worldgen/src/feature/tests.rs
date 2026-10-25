@@ -405,3 +405,20 @@ fn canopy_tree_stems_replace_the_sapling_and_ground_cover() {
         }
     }
 }
+
+/// A column on a tile's edge reads its drop off the neighbouring tile, so the rock faces the
+/// `steep` surface rule paints never break along chunk seams.
+#[test]
+fn tile_drops_match_a_halo_read_across_every_edge() {
+    let seed = 0x1234_5678;
+    let surface = SurfaceDensitySystem::new(seed);
+    let caves = crate::noise::cave_field::CaveField::new(seed);
+    let mut stepped = 0;
+    for (cx, cz) in [(0, 0), (-3, 5), (12, -7), (4, -3), (-20, 30)] {
+        let drops = super::cached_tile_drops(&surface, &caves, cx, cz);
+        let reference = surface.column_drops_around(cx * CHUNK_SX as i32, cz * CHUNK_SZ as i32);
+        assert_eq!(drops, reference, "drops differ at ({cx},{cz})");
+        stepped += drops.iter().filter(|&&d| d > 0).count();
+    }
+    assert!(stepped > 0, "the sampled tiles hold some slope");
+}

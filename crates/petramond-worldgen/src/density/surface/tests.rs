@@ -134,6 +134,7 @@ fn generate_surface_chunk(system: &SurfaceDensitySystem, cx: i32, cz: i32) -> Ch
 
 fn section_fill(system: &SurfaceDensitySystem, cx: i32, cz: i32, region: &RegionCells) -> Chunk {
     let biomes: Vec<u8> = region.biomes.iter().map(|b| b.id()).collect();
+    let drops = system.column_drops_around(cx * CHUNK_SX as i32, cz * CHUNK_SZ as i32);
     let mut chunk = Chunk::new(cx, cz);
     for z in 0..CHUNK_SZ {
         for x in 0..CHUNK_SX {
@@ -142,7 +143,7 @@ fn section_fill(system: &SurfaceDensitySystem, cx: i32, cz: i32, region: &Region
     }
     for cy in 0..(CHUNK_SY / SECTION_SIZE) as i32 {
         let mut section = Section::new(cx, cy, cz);
-        system.fill_section(&mut section, &biomes, &region.surf);
+        system.fill_section(&mut section, &biomes, &region.surf, &drops);
         for ly in 0..SECTION_SIZE {
             for z in 0..CHUNK_SZ {
                 for x in 0..CHUNK_SX {
@@ -166,6 +167,7 @@ fn lattice_fill(system: &SurfaceDensitySystem, cx: i32, cz: i32, region: &Region
     .expect("master density");
     let mut chunk = Chunk::new(cx, cz);
     let (ox, oz) = chunk.chunk_origin_world();
+    let drops = system.column_drops_around(ox, oz);
     let mut cells = system.climate_cells();
     for z in 0..CHUNK_SZ {
         for x in 0..CHUNK_SX {
@@ -196,6 +198,7 @@ fn lattice_fill(system: &SurfaceDensitySystem, cx: i32, cz: i32, region: &Region
                     y: wy,
                     surf_y: *run_top.get_or_insert(wy),
                     depth_from_top,
+                    drop: drops[z * CHUNK_SX + x],
                 };
                 blocks[idx(x, y, z)] = system.surface.skin_block(&ctx, rule).id();
                 depth_from_top += 1;
@@ -224,6 +227,7 @@ fn deep_skin_is_depth_independent_and_ignores_underwater_status() {
         y: surf_y - depth as i32,
         surf_y,
         depth_from_top: depth,
+        drop: 0,
     };
 
     for spec in crate::biome::specs() {

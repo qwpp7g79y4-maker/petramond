@@ -46,6 +46,7 @@ enum RawCond {
         threshold: f32,
         period: f32,
     },
+    Steep(u8),
 }
 
 #[derive(Default, Deserialize)]
@@ -120,6 +121,7 @@ impl RawRule {
                         threshold,
                         period,
                     },
+                    RawCond::Steep(n) => SurfaceCond::Steep(n),
                 },
                 then: c.then.resolve(),
             },

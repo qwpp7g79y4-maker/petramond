@@ -64,6 +64,7 @@ mod tests {
 
     fn ctx(y: i32, depth_from_top: u32, _biome: Biome) -> SurfaceCtx {
         SurfaceCtx {
+            drop: 0,
             seed: 0,
             wx: 0,
             wz: 0,

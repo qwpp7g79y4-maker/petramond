@@ -59,6 +59,27 @@ impl RegionTile {
     }
 }
 
+/// Tile `(tcx, tcz)`'s columns' [`crate::surface::rule::SurfaceCtx::drop`]s, read off the raw
+/// surfaces of the tile and its four side tiles, so both sides of a tile edge agree.
+pub(crate) fn cached_tile_drops(
+    surface: &SurfaceDensitySystem,
+    caves: &crate::noise::cave_field::CaveField,
+    tcx: i32,
+    tcz: i32,
+) -> Box<[u8]> {
+    const T: i32 = CHUNK_SX as i32;
+    const SIDES: [[i32; 2]; 5] = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
+    let tiles = SIDES.map(|[dx, dz]| cached_tile(surface, caves, tcx + dx, tcz + dz));
+    crate::density::surface::column_drops(tcx * T, tcz * T, |wx, wz| {
+        let side = [wx.div_euclid(T) - tcx, wz.div_euclid(T) - tcz];
+        let tile = SIDES
+            .iter()
+            .position(|&s| s == side)
+            .expect("a drop reads one column beyond its own tile");
+        tiles[tile].raw[(wz.rem_euclid(T) * T + wx.rem_euclid(T)) as usize]
+    })
+}
+
 pub(crate) fn cached_tile_raw(
     surface: &SurfaceDensitySystem,
     caves: &crate::noise::cave_field::CaveField,

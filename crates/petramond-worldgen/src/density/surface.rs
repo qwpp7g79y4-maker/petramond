@@ -91,7 +91,18 @@ impl SurfaceDensitySystem {
         surface_heights(&self.columns, x0, z0, w, h)
     }
 
-    pub fn fill_section(&self, section: &mut Section, biomes: &[u8], surf: &[i32]) {
+    /// Each of the 16×16 columns at `(ox, oz)`'s [`SurfaceCtx::drop`], read off an 18×18
+    /// halo of surface heights.
+    #[cfg(test)]
+    pub(crate) fn column_drops_around(&self, ox: i32, oz: i32) -> Box<[u8]> {
+        let side = SECTION_SIZE + 2;
+        let halo = self.surface_heights(ox - 1, oz - 1, side, side);
+        column_drops(ox, oz, |wx, wz| {
+            halo[(wz - oz + 1) as usize * side + (wx - ox + 1) as usize]
+        })
+    }
+
+    pub fn fill_section(&self, section: &mut Section, biomes: &[u8], surf: &[i32], drops: &[u8]) {
         let (ox, oy, oz) = section.origin_world();
         let section_top = oy + SECTION_SIZE as i32 - 1;
         let seed = self.seed;
@@ -133,6 +144,7 @@ impl SurfaceDensitySystem {
                                     y: oy,
                                     surf_y: s,
                                     depth_from_top: (s - oy) as u32,
+                                    drop: drops[i],
                                 },
                                 rule,
                             )
@@ -154,6 +166,7 @@ impl SurfaceDensitySystem {
                                 y: wy,
                                 surf_y: s,
                                 depth_from_top: (s - wy) as u32,
+                                drop: drops[i],
                             };
                             skin.block(&ctx).id()
                         } else if wy == SEA_LEVEL {
@@ -270,6 +283,25 @@ impl SurfaceDensitySystem {
             false
         })
     }
+}
+
+/// [`SurfaceCtx::drop`] for the 16×16 columns at `(ox, oz)`; `surf_at` must answer one column
+/// beyond them on every side.
+pub(crate) fn column_drops(ox: i32, oz: i32, surf_at: impl Fn(i32, i32) -> i32) -> Box<[u8]> {
+    (0..SECTION_SIZE * SECTION_SIZE)
+        .map(|i| {
+            let (wx, wz) = (
+                ox + (i % SECTION_SIZE) as i32,
+                oz + (i / SECTION_SIZE) as i32,
+            );
+            let lowest = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+                .into_iter()
+                .map(|[dx, dz]| surf_at(wx + dx, wz + dz))
+                .min()
+                .expect("four side neighbours");
+            (surf_at(wx, wz) - lowest).clamp(0, i32::from(u8::MAX)) as u8
+        })
+        .collect()
 }
 
 pub(crate) const SURFACE_SEARCH_Y: std::ops::Range<i32> = 0..WORLD_MAX_Y;

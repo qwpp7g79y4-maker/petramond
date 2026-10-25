@@ -60,6 +60,7 @@ pub fn place_vegetation_section(
     section: &mut Section,
     biomes: &[u8],
     surf: &[i32],
+    drops: &[u8],
     top: &[i32],
     seed: u32,
 ) {
@@ -96,6 +97,7 @@ pub fn place_vegetation_section(
                     y: anchor,
                     surf_y: column_surf,
                     depth_from_top,
+                    drop: drops[i],
                 },
                 spec(biome).surface,
             );
