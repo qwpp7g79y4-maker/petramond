@@ -104,29 +104,32 @@ fn a_faces_rotation_is_parsed_and_permutes_its_corner_uvs() {
 }
 
 #[test]
-fn element_inflate_grows_the_cube_box() {
+fn a_face_with_a_cleared_texture_is_hidden_and_an_absent_one_falls_back() {
     let tex = one_pixel_texture([255, 255, 255, 255]);
     let src = format!(
         r#"{{
             "resolution": {{ "width": 16, "height": 16 }},
             "textures": [{{ "uv_width": 16, "uv_height": 16, "source": "{tex}" }}],
             "elements": [
-                {{ "uuid": "base", "type": "cube", "from": [0,0,0], "to": [4,4,4],
-                   "faces": {{ "up": {{ "uv": [0,0,16,16], "texture": 0 }} }} }},
-                {{ "uuid": "layer", "type": "cube", "from": [0,0,0], "to": [4,4,4],
-                   "inflate": 0.25,
-                   "faces": {{ "up": {{ "uv": [0,0,16,16], "texture": 0 }} }} }}
+                {{ "uuid": "c", "type": "cube", "from": [0,0,0], "to": [4,4,4],
+                   "faces": {{ "up": {{ "uv": [0,0,16,16], "texture": 0 }},
+                               "down": {{ "uv": [0,0,0,0], "texture": null }},
+                               "east": {{ "uv": [0,0,16,16], "texture": false }},
+                               "west": {{ "uv": [0,0,16,16] }} }} }}
             ],
-            "outliner": ["base", "layer"]
+            "outliner": ["c"]
         }}"#
     );
-    let m = Model::load(&src).expect("inflated model parses");
-    assert_eq!(m.cubes[0].from, Vec3::ZERO, "base box untouched");
-    assert_eq!(m.cubes[0].to, Vec3::splat(4.0));
-    assert_eq!(
-        m.cubes[1].from,
-        Vec3::splat(-0.25),
-        "inflate grows every face outward"
+    let m = Model::load(&src).expect("model parses");
+    let [east, west, up, down, ..] = m.cubes[0].faces;
+    assert!(up.is_some());
+    assert!(
+        down.is_none() && east.is_none(),
+        "cleared textures hide the face"
+    );
+    assert!(
+        west.is_some(),
+        "an absent texture key uses the first texture"
     );
 }
 
@@ -192,7 +195,7 @@ fn position_tracks_translate_the_bone() {
 fn compiled_model_layout_change_requires_a_format_version_bump() {
     use crate::asset_cache::CompiledAsset;
 
-    const PINNED_VERSION: u32 = 11;
+    const PINNED_VERSION: u32 = 12;
     const COMPILED_HEX: &str = "01000000000000000400000000000000726f6f740000004000000040000000400000000000000000000000000001000000000000000400000000000000626f6479000000000000000000000000000080400000804000008040000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000803f0000803f000000000100000000000000090000000000000069646c655f776176650000803f0000000100000000000000000000000000000001000000000000000000803e00002041000000000000a04000002041000000000000a04000000000000001000000000000000000003f00000000000040c00000000000000000000040c00000000000000000000000000000000000000100000000000000090000000000000069646c655f776176650400000000000000ff0000ff0100000001000000";
 
     let tex = one_pixel_texture([255, 0, 0, 255]);
@@ -312,4 +315,48 @@ fn rest_bounds_cover_the_posed_geometry() {
 
     let empty = Model::empty();
     assert_eq!(empty.rest_bounds(), (Vec3::ZERO, Vec3::ZERO));
+}
+
+#[test]
+fn two_cubes_sharing_an_exposed_plane_fight_and_only_a_solid_cap_buries_them() {
+    let tex = one_pixel_texture([255, 255, 255, 255]);
+    let clear = one_pixel_texture([0, 0, 0, 0]);
+    let model = |cap: &str| {
+        let src = format!(
+            r#"{{
+                "resolution": {{ "width": 16, "height": 16 }},
+                "textures": [
+                    {{ "uv_width": 16, "uv_height": 16, "source": "{tex}" }},
+                    {{ "uv_width": 16, "uv_height": 16, "source": "{clear}" }}
+                ],
+                "elements": [
+                    {{ "uuid": "a", "name": "a", "type": "cube", "from": [0,0,0], "to": [4,4,4],
+                       "faces": {{ "up": {{ "uv": [0,0,16,16], "texture": 0 }} }} }},
+                    {{ "uuid": "b", "name": "b", "type": "cube", "from": [2,0,0], "to": [6,4,4],
+                       "faces": {{ "up": {{ "uv": [0,0,16,16], "texture": 0 }} }} }}
+                    {cap}
+                ],
+                "outliner": ["a", "b"]
+            }}"#
+        );
+        Model::load(&src).expect("model parses")
+    };
+    let open = model("").coplanar_faces();
+    assert_eq!(open.len(), 1, "{open:?}");
+    assert!((open[0].area - 8.0).abs() < 1e-3, "{open:?}");
+    let capped =
+        model(r#", { "uuid": "c", "type": "cube", "from": [0,4,0], "to": [6,5,4], "faces": {} }"#);
+    assert!(
+        capped.coplanar_faces().is_empty(),
+        "a cap buries the overlap"
+    );
+    let decal = model(
+        r#", { "uuid": "c", "type": "cube", "from": [0,4,0], "to": [6,5,4],
+               "faces": { "up": { "uv": [0,0,16,16], "texture": 1 } } }"#,
+    );
+    assert_eq!(
+        decal.coplanar_faces().len(),
+        1,
+        "a cut-out cap is seen through"
+    );
 }

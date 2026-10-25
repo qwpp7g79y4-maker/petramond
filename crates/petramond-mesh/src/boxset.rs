@@ -53,7 +53,7 @@ use petramond_world::block::Block;
 
 use super::builder::{boundary_plane, face_axes, self_lit_face, CornerLight};
 use super::face::{quad_ao, should_flip, Face, FaceShading, FACES};
-use super::plane::{cell_uv, FaceUvSpan, PlaneLight};
+use super::plane::{cell_uv, quantize_face_uvs, FaceUvSpan, PlaneLight};
 use super::vertex::{pack_cell_uv, pack_normal_code, pack_vertex, Vertex, UV_MODE_CELL_LOCAL};
 use super::UV_MODE_SHIFT;
 
@@ -271,7 +271,7 @@ pub(super) fn emit_box_set(
                 let mut quad_ao = [3u32; 4];
                 let mut sky = [0u32; 4];
                 let mut light = [petramond_world::light::BlockLight6::DARK; 4];
-                let mut uvs = [(0u32, 0u32); 4];
+                let mut texel_uvs = [(0.0f32, 0.0f32); 4];
                 for (ci, lp) in local.into_iter().enumerate() {
                     let [u, v] = cell_uv(face, lp);
                     let (mut ao, sky6, block) = pl.sample(u, v);
@@ -285,12 +285,12 @@ pub(super) fn emit_box_set(
                     quad_ao[ci] = ao;
                     sky[ci] = sky6;
                     light[ci] = block;
-                    let (uu, vv) = style.texel_uv((u, v), span.fraction((u, v)));
-                    uvs[ci] = (quant_uv(uu), quant_uv(vv));
+                    texel_uvs[ci] = style.texel_uv((u, v), span.fraction((u, v)));
                 }
                 if b.self_lit > 0.0 {
                     self_lit_face(world.emission(), b.self_lit, &mut quad_ao, &mut light);
                 }
+                let uvs = quantize_face_uvs(texel_uvs);
                 let start = vbuf.len() as u32;
                 let rot = usize::from(should_flip(quad_ao));
                 for k in 0..4usize {
@@ -322,10 +322,6 @@ pub(super) fn emit_box_set(
 }
 
 #[inline]
-fn quant_uv(x: f32) -> u32 {
-    super::vertex::round_i32(x * 16.0).clamp(0, 16) as u32
-}
-
 /// One face of a POSED box: its four authored corners carried through the
 /// pose, drawn whole. No subtraction (it lies on no axis plane, so nothing
 /// can be flush against it), and its art is carved in the box's OWN frame so
@@ -369,7 +365,7 @@ fn emit_posed_face(
     let mut quad_ao = [3u32; 4];
     let mut sky = [0u32; 4];
     let mut light = [petramond_world::light::BlockLight6::DARK; 4];
-    let mut uvs = [(0u32, 0u32); 4];
+    let mut texel_uvs = [(0.0f32, 0.0f32); 4];
     let span = FaceUvSpan::of(face, b.aabb.min, b.aabb.max);
     for ci in 0..4 {
         let proj = posed[ci].map(|c| c.clamp(0.0, 1.0));
@@ -383,12 +379,12 @@ fn emit_posed_face(
         sky[ci] = sky6;
         light[ci] = block;
         let [u, v] = cell_uv(face, local[ci]);
-        let (uu, vv) = style.texel_uv((u, v), span.fraction((u, v)));
-        uvs[ci] = (quant_uv(uu), quant_uv(vv));
+        texel_uvs[ci] = style.texel_uv((u, v), span.fraction((u, v)));
     }
     if b.self_lit > 0.0 {
         self_lit_face(world.emission(), b.self_lit, &mut quad_ao, &mut light);
     }
+    let uvs = quantize_face_uvs(texel_uvs);
     let start = vbuf.len() as u32;
     let rot = usize::from(should_flip(quad_ao));
     for k in 0..4usize {

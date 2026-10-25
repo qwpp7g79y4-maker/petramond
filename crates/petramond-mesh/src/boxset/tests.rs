@@ -247,3 +247,37 @@ fn a_posed_plane_lands_on_its_rotated_corners_and_seals_nothing() {
         &mut scratch
     ));
 }
+
+/// A cap half a texel tall (and the half-texel ring it leaves on the top it sits on) would round
+/// both UV ends onto one texel edge, where the face's pixels flicker between the two texels.
+#[test]
+fn a_face_thinner_than_a_texel_still_spans_one() {
+    let px = |v: f32| v / 16.0;
+    let boxes = [
+        plain([px(3.5), px(1.0), px(3.5)], [px(6.5), px(5.0), px(6.5)]),
+        plain([px(4.0), px(5.0), px(4.0)], [px(6.0), px(5.5), px(6.0)]),
+    ];
+    let mut vbuf = Vec::new();
+    emit_box_set(
+        &mut vbuf,
+        BoxCell {
+            cell: IVec3::ZERO,
+            anchor: IVec3::ZERO,
+        },
+        &boxes,
+        &mut BoxSetScratch::default(),
+        &OpenAir,
+    );
+    assert!(!vbuf.is_empty());
+    let uv = |v: &Vertex, shift: u32| (v.packed2 >> shift) & super::super::vertex::CELL_UV_MASK;
+    for quad in vbuf.chunks_exact(4) {
+        for shift in [
+            super::super::vertex::CELL_UV_U_SHIFT,
+            super::super::vertex::CELL_UV_V_SHIFT,
+        ] {
+            let lo = quad.iter().map(|v| uv(v, shift)).min().unwrap();
+            let hi = quad.iter().map(|v| uv(v, shift)).max().unwrap();
+            assert!(hi > lo, "a face collapsed to one texel edge: {quad:?}");
+        }
+    }
+}

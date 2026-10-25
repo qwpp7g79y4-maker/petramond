@@ -17,6 +17,7 @@ source "$repo_root/scripts/lib/named-tests.sh"
 run_named_tests --profile fasttest -p petramond-world --lib -- \
     block::load::tests::shipped_blocks_json_loads_fully \
     block_model::tests::every_registered_model_compiles_with_geometry_and_texture \
+    block_model::tests::every_model_row_keeps_its_faces_apart \
     crafting::load::tests::shipped_catalog_parses_both_interaction_models \
     item::load::tests::shipped_items_json_loads_fully \
     loot::tests::shipped_loot_tables_resolve_and_have_bounded_expansion \
@@ -27,6 +28,7 @@ run_named_tests --profile fasttest -p petramond-audio --no-default-features --li
     music_registry::tests::shipped_music_json_loads_fully_and_every_clip_resolves
 run_named_tests --profile fasttest -p petramond --lib -- \
     mob::load::tests::shipped_mobs_json_loads_fully \
+    mob::tests::every_mob_model_keeps_its_faces_apart \
     player::animator::tests::shipped_player_animators_compile_against_their_rigs \
     player::rigs::tests::the_shipped_rigs_catalog_has_a_rig_per_presenter \
     gui::documents::tests::fit::every_shipped_document_fits_every_window \

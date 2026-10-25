@@ -56,6 +56,10 @@ pub(super) fn parse_faces(
         let Some(face) = faces.get(name) else {
             continue;
         };
+        // Blockbench hides a face whose texture is cleared; only an absent key falls back.
+        if matches!(face.get("texture"), Some(Value::Null | Value::Bool(false))) {
+            continue;
+        }
         if let Some(uv) = face.get("uv").and_then(Value::as_array) {
             if uv.len() == 4 {
                 let v: Vec<f32> = uv.iter().filter_map(num).collect();

@@ -442,3 +442,34 @@ fn a_hitbox_part_picks_by_bounds_where_bare_geometry_defers_to_its_texels() {
         "a cube whose texels are all transparent is not a pick target"
     );
 }
+
+/// Two cubes whose faces share a plane flicker between their textures. Every registered row is
+/// checked as it draws its model: its own part roles, offsets and optional parts.
+#[test]
+fn every_model_row_keeps_its_faces_apart() {
+    use crate::bbmodel::{Model, Shown};
+    let mut fights = Vec::new();
+    for &kind in all() {
+        let d = def(kind);
+        let src = String::from_utf8(model_bytes(kind)).expect("utf-8 model");
+        let mut model = Model::load(&src).unwrap_or_else(|e| panic!("{}: {e}", d.key));
+        for (name, off) in d.part_offsets {
+            for c in model.cubes.iter_mut().filter(|c| c.name == *name) {
+                let off = Vec3::from_array(*off);
+                (c.from, c.to, c.origin) = (c.from + off, c.to + off, c.origin + off);
+            }
+        }
+        let shown = |name: &str| match d.parts.iter().position(|p| *p == name) {
+            Some(i) => Shown::Part(i),
+            None if d.part_role(name).draws() => Shown::Always,
+            None => Shown::Never,
+        };
+        for f in model.coplanar_faces_where(shown) {
+            fights.push(format!(
+                "{} ({}): {} {:?} / {} {:?} over {:.2}",
+                d.key, d.model_file, f.a.0, f.a.1, f.b.0, f.b.1, f.area
+            ));
+        }
+    }
+    assert!(fights.is_empty(), "coplanar faces:\n{}", fights.join("\n"));
+}

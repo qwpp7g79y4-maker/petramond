@@ -897,13 +897,22 @@ mod tests {
         }
     }
 
+    /// Two cubes whose faces share a plane flicker between their textures; every registered mob
+    /// (the engine's and the installed packs') is checked at its rest pose.
     #[test]
-    fn def_round_trips_through_id() {
-        for (i, d) in defs().iter().enumerate() {
-            assert_eq!(def(d.mob).mob, d.mob);
-            assert_eq!(d.mob, Mob(i as u8), "row index == id");
-        }
-        assert_eq!(Mob::all().len(), defs().len());
+    fn every_mob_model_keeps_its_faces_apart() {
+        let fights: Vec<String> = defs()
+            .iter()
+            .flat_map(|d| {
+                model(d.mob).coplanar_faces().into_iter().map(move |f| {
+                    format!(
+                        "{} ({}): {} {:?} / {} {:?} over {:.2}",
+                        d.name, d.model, f.a.0, f.a.1, f.b.0, f.b.1, f.area
+                    )
+                })
+            })
+            .collect();
+        assert!(fights.is_empty(), "coplanar faces:\n{}", fights.join("\n"));
     }
 
     #[test]

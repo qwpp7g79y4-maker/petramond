@@ -10,6 +10,7 @@ use petramond_math::face::Face;
 mod anim;
 pub mod bedrock;
 pub mod clips;
+mod coplanar;
 mod parse;
 mod pose;
 mod self_ao;
@@ -17,6 +18,7 @@ mod self_ao;
 pub(crate) mod tests;
 mod texture;
 
+pub use coplanar::{CoplanarFaces, Shown};
 pub use pose::BodyLean;
 
 pub use anim::{
@@ -37,6 +39,15 @@ pub struct Cube {
     pub rotation: Vec3,
     pub bone: usize,
     pub faces: [Option<FaceUv>; 6],
+}
+
+impl Cube {
+    /// The cube's own rotation about its origin, before its bone's transform.
+    pub fn local_transform(&self) -> Mat4 {
+        Mat4::from_translation(self.origin)
+            * Mat4::from_quat(euler_quat(self.rotation))
+            * Mat4::from_translation(-self.origin)
+    }
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
@@ -345,10 +356,7 @@ impl Model {
         let mut max = Vec3::splat(f32::NEG_INFINITY);
         for cube in &self.cubes {
             let bone = pose.get(cube.bone).copied().unwrap_or(Mat4::IDENTITY);
-            let s_cube = Mat4::from_translation(cube.origin)
-                * Mat4::from_quat(euler_quat(cube.rotation))
-                * Mat4::from_translation(-cube.origin);
-            let m = bone * s_cube;
+            let m = bone * cube.local_transform();
             for i in 0..8 {
                 let corner = Vec3::new(
                     if i & 1 == 0 { cube.from.x } else { cube.to.x },
@@ -471,7 +479,7 @@ impl Model {
 
 impl CompiledAsset for Model {
     const MAGIC: [u8; 8] = *b"LLMOB\0\0\0";
-    const FORMAT_VERSION: u32 = 11;
+    const FORMAT_VERSION: u32 = 12;
     const SUBDIR: &'static str = "models";
     const EXTENSION: &'static str = "llmob";
 

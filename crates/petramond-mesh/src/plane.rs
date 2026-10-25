@@ -11,6 +11,35 @@ pub fn cell_uv(face: Face, p: [f32; 3]) -> [f32; 2] {
     }
 }
 
+/// A face's four corner cell UVs (tile fractions) as the 16ths the vertex lane holds. A face
+/// thinner than a texel would round both ends of an axis onto one texel edge, where nearest
+/// sampling flips between the two texels beside it pixel by pixel; such an axis spans the
+/// texel the face lies in instead.
+pub fn quantize_face_uvs(uvs: [(f32, f32); 4]) -> [(u32, u32); 4] {
+    let q = |x: f32| super::vertex::round_i32(x * 16.0).clamp(0, 16) as u32;
+    let mut out = uvs.map(|(u, v)| (q(u), q(v)));
+    for axis in 0..2 {
+        let at = |p: (f32, f32)| if axis == 0 { p.0 } else { p.1 };
+        let packed = |p: (u32, u32)| if axis == 0 { p.0 } else { p.1 };
+        let lo = uvs.iter().map(|&p| at(p)).fold(f32::INFINITY, f32::min);
+        let hi = uvs.iter().map(|&p| at(p)).fold(f32::NEG_INFINITY, f32::max);
+        if hi - lo <= 1e-6 || out.iter().any(|&p| packed(p) != packed(out[0])) {
+            continue;
+        }
+        let mid = (lo + hi) * 0.5;
+        let texel = ((mid.clamp(0.0, 1.0) * 16.0) as u32).min(15);
+        for (o, &p) in out.iter_mut().zip(&uvs) {
+            let x = texel + u32::from(at(p) > mid);
+            if axis == 0 {
+                o.0 = x;
+            } else {
+                o.1 = x;
+            }
+        }
+    }
+    out
+}
+
 pub fn face_fraction(face: Face, min: [f32; 3], max: [f32; 3], uv: (f32, f32)) -> (f32, f32) {
     FaceUvSpan::of(face, min, max).fraction(uv)
 }

@@ -633,18 +633,21 @@ pub(super) fn push_cell_local_face_styled(
         tint: [1.0; 3],
         uv_rect: art.uv_rect,
     };
-    push_quad_with(verts, indices, corners, |corner, pos| {
-        let [u, v] = petramond_mesh::plane::cell_uv(face, local[corner]);
+    let uvs = petramond_mesh::plane::quantize_face_uvs(local.map(|p| {
+        let [u, v] = petramond_mesh::plane::cell_uv(face, p);
         let (u, v) = style.texel_uv(
             (u, v),
             petramond_mesh::plane::face_fraction(face, min, max, (u, v)),
         );
-        let (u, v) = (u.clamp(0.0, 1.0), v.clamp(0.0, 1.0));
+        (u.clamp(0.0, 1.0), v.clamp(0.0, 1.0))
+    }));
+    push_quad_with(verts, indices, corners, |corner, pos| {
+        let (u, v) = uvs[corner];
         Vertex {
             pos,
             tint: light.block.tint_word(mat.tint),
             packed: bits | ((corner as u32) << petramond_mesh::CORNER_SHIFT),
-            packed2: word2 | pack_cell_uv((u * 16.0).round() as u32, (v * 16.0).round() as u32),
+            packed2: word2 | pack_cell_uv(u, v),
         }
     });
 }
