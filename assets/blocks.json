@@ -298,7 +298,9 @@
         "submerged": {
           "exhale": "petramond:breath_bubbles",
           "release": "petramond:release_bubbles",
-          "wake": "petramond:wake_bubbles"
+          "wake": "petramond:wake_bubbles",
+          "ambience": "petramond:underwater",
+          "muffle": 0.85
         },
         "contact": {
           "clears": [

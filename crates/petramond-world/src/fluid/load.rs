@@ -77,6 +77,10 @@ struct RawSubmerged {
     #[serde(default)]
     exhale: Option<String>,
     #[serde(default)]
+    ambience: Option<String>,
+    #[serde(default)]
+    muffle: f32,
+    #[serde(default)]
     release: Option<String>,
     #[serde(default)]
     wake: Option<String>,
@@ -93,6 +97,16 @@ impl RawSubmerged {
                     .ok_or_else(|| format!("fluid exhale '{key}' is not a looping bundle"))
             })
             .transpose()?;
+        let ambience = self
+            .ambience
+            .map(|key| {
+                crate::sound_registry::by_name(&key)
+                    .ok_or_else(|| format!("fluid ambience names unknown sound '{key}'"))
+            })
+            .transpose()?;
+        if !self.muffle.is_finite() || !(0.0..=1.0).contains(&self.muffle) {
+            return Err("fluid submerged.muffle must be in 0..=1".into());
+        }
         let release = self
             .release
             .map(|key| burst_id(&key, "submerged.release"))
@@ -108,6 +122,8 @@ impl RawSubmerged {
             .transpose()?;
         Ok(FluidSubmerged {
             exhale,
+            ambience,
+            muffle: self.muffle,
             release,
             wake,
         })

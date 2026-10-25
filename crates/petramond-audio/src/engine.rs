@@ -16,6 +16,7 @@ const EAR_HALF_SPACING: f32 = 0.18;
 
 const MUSIC_FADE_SECONDS: f32 = 1.5;
 
+mod muffle;
 mod offline;
 mod tap;
 mod voice;
@@ -113,6 +114,7 @@ pub struct Audio {
     spatial_paused: bool,
     gain_loops: HashMap<Sound, ActiveGainLoop>,
     music: Option<ActiveMusic>,
+    muffle: muffle::MuffleControl,
 }
 
 struct ActiveMusic {
@@ -152,9 +154,11 @@ impl Audio {
     }
 
     fn with_device(device: Option<MixerDeviceSink>, seed: u64) -> Self {
+        let muffle = muffle::MuffleControl::default();
         let submix = device.as_ref().map(|sink| {
             let cfg = sink.config();
-            let (submix, source) = tap::WorldSubmix::new(cfg.channel_count(), cfg.sample_rate());
+            let (submix, source) =
+                tap::WorldSubmix::new(cfg.channel_count(), cfg.sample_rate(), muffle.clone());
             sink.mixer().add(source);
             submix
         });
@@ -205,7 +209,13 @@ impl Audio {
             spatial_paused: false,
             gain_loops: HashMap::new(),
             music: None,
+            muffle,
         }
+    }
+
+    /// How muffled the world lane is (0 = dry, 1 = the listener's head fully under water).
+    pub fn set_world_muffle(&mut self, amount: f32) {
+        self.muffle.set(amount);
     }
 
     fn lane_volumes(&self, lane: Lane) -> Volumes {
@@ -762,6 +772,7 @@ mod tests {
             spatial_paused: false,
             gain_loops: HashMap::new(),
             music: None,
+            muffle: Default::default(),
         }
     }
 

@@ -64,6 +64,10 @@ pub struct Quench {
 pub struct FluidSubmerged {
     /// Looping body emitter worn while the body holds its breath here.
     pub exhale: Option<u8>,
+    /// Loop the listener hears while their head is under it.
+    pub ambience: Option<crate::sound_registry::Sound>,
+    /// How muffled the world sounds to a head under it (0 = clear, 1 = fully).
+    pub muffle: f32,
     /// Burst a container under it lets out as it opens.
     pub release: Option<u8>,
     /// Looping emitter worn by an item moving through it.

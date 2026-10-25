@@ -25,6 +25,7 @@ const CHUNK_SAMPLES: usize = 1024;
 
 pub(super) struct TapSource {
     inner: MixerSource,
+    muffle: super::muffle::Muffle,
     tapped: Arc<AtomicBool>,
     chunk: Vec<f32>,
     out: Sender<Vec<f32>>,
@@ -54,7 +55,7 @@ impl Iterator for TapSource {
 
     #[inline]
     fn next(&mut self) -> Option<Sample> {
-        let sample = self.inner.next().unwrap_or(0.0);
+        let sample = self.muffle.apply(self.inner.next().unwrap_or(0.0));
         if self.tapped.load(Ordering::Relaxed) {
             self.chunk.push(sample);
             if self.chunk.len() >= CHUNK_SAMPLES {
@@ -94,8 +95,13 @@ pub(super) struct WorldSubmix {
 }
 
 impl WorldSubmix {
-    pub(super) fn new(channels: ChannelCount, sample_rate: SampleRate) -> (Self, TapSource) {
+    pub(super) fn new(
+        channels: ChannelCount,
+        sample_rate: SampleRate,
+        muffle: super::muffle::MuffleControl,
+    ) -> (Self, TapSource) {
         let (mixer, inner) = mixer::mixer(channels, sample_rate);
+        let muffle = super::muffle::Muffle::new(muffle, channels.get(), sample_rate.get());
         let tapped = Arc::new(AtomicBool::new(false));
         let (out, copies) = channel();
         let (spent_tx, spent_rx) = channel();
@@ -109,6 +115,7 @@ impl WorldSubmix {
             },
             TapSource {
                 inner,
+                muffle,
                 tapped,
                 chunk: Vec::with_capacity(CHUNK_SAMPLES),
                 out,
@@ -167,7 +174,7 @@ mod tests {
     fn a_tap_copies_exactly_what_the_device_plays_and_changes_none_of_it() {
         let channels = ChannelCount::new(2).unwrap();
         let rate = SampleRate::new(48_000).unwrap();
-        let (submix, mut device_side) = WorldSubmix::new(channels, rate);
+        let (submix, mut device_side) = WorldSubmix::new(channels, rate, Default::default());
         let tone: Vec<f32> = (0..20_000).map(|i| (i as f32 * 0.01).sin() * 0.5).collect();
         submix.mixer().add(rodio::buffer::SamplesBuffer::new(
             channels,
@@ -205,6 +212,7 @@ mod tests {
         let (_submix, mut device_side) = WorldSubmix::new(
             ChannelCount::new(1).unwrap(),
             SampleRate::new(8_000).unwrap(),
+            Default::default(),
         );
         assert!((0..100).all(|_| device_side.next() == Some(0.0)));
     }

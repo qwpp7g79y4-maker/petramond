@@ -399,6 +399,15 @@
       "gain": 0.7,
       "pitch_variation": 0.15,
       "category": "ui"
+    },
+    {
+      "sound": "petramond:underwater",
+      "variants": [
+        "sounds/underwater_loop.ogg"
+      ],
+      "gain": 1.0,
+      "pitch_variation": 0.0,
+      "category": "block"
     }
   ]
 }

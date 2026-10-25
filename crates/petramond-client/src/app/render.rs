@@ -118,6 +118,7 @@ impl App {
         let motion = game.local_motion(hud_fx.hurt_remaining());
         let listener;
         let view_cue;
+        let eye_fluid;
         {
             if let Some(schematic) = game.tools.library.pending_save() {
                 match game.schematic_scene(&schematic, 0) {
@@ -152,6 +153,11 @@ impl App {
                 .unwrap_or_default();
             renderer.set_selection_overlay(overlay.selection, overlay.corners, overlay.face);
             let frame = game.client_frame(now);
+            eye_fluid = frame
+                .environment
+                .eye
+                .filter(|eye| eye.inside)
+                .map(|eye| eye.block);
             listener = frame.listener();
             let mut cam = frame.camera.clone();
             if self.options.settings.screen_shake && !camera_claimed {
@@ -262,6 +268,11 @@ impl App {
             let snapshot =
                 presentation.snapshot(game, (game.world_clock(now) % 3600.0) as f32, &view);
             renderer.set_break_overlays(snapshot.break_overlays);
+            let submerged = eye_fluid
+                .and_then(petramond_world::block::Block::fluid_def)
+                .map(|f| f.submerged);
+            self.sound
+                .set_world_muffle(submerged.map_or(0.0, |s| s.muffle));
             self.sound.render_world(
                 sounds,
                 WorldAudioFrame {
@@ -271,7 +282,10 @@ impl App {
                     footsteps: snapshot.footsteps,
                     current_tick,
                 },
-                |gains| game.client_mod_sound_loops(gains),
+                |gains| {
+                    game.client_mod_sound_loops(gains);
+                    gains.extend(submerged.and_then(|s| s.ambience).map(|s| (s, 1.0)));
+                },
                 dt,
             );
             renderer.set_mood(game.client_mod_mood(), dt);

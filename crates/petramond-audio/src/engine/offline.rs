@@ -17,17 +17,19 @@ impl WorldOutput {
 pub(super) struct OfflineMix {
     mixer: Mixer,
     source: MixerSource,
+    muffle: super::muffle::Muffle,
     carry: f64,
 }
 
 impl OfflineMix {
-    fn new(channels: u16, sample_rate: u32) -> Self {
+    fn new(channels: u16, sample_rate: u32, muffle: super::muffle::MuffleControl) -> Self {
         let channels = ChannelCount::new(channels.max(1)).unwrap_or(ChannelCount::MIN);
         let sample_rate = SampleRate::new(sample_rate.max(1)).unwrap_or(SampleRate::MIN);
         let (mixer, source) = mixer::mixer(channels, sample_rate);
         Self {
             mixer,
             source,
+            muffle: super::muffle::Muffle::new(muffle, channels.get(), sample_rate.get()),
             carry: 0.0,
         }
     }
@@ -40,7 +42,7 @@ impl OfflineMix {
         let samples = frames * self.source.channels().get() as usize;
         out.reserve(samples);
         for _ in 0..samples {
-            out.push(self.source.next().unwrap_or(0.0));
+            out.push(self.muffle.apply(self.source.next().unwrap_or(0.0)));
         }
     }
 }
@@ -57,13 +59,15 @@ const MAX_SLICES: usize = 64;
 impl Audio {
     pub fn new_offline(channels: u16, sample_rate: u32, seed: u64) -> Self {
         let mut audio = Self::with_device(None, seed);
-        audio.world = WorldOutput::Offline(OfflineMix::new(channels, sample_rate));
+        let muffle = audio.muffle.clone();
+        audio.world = WorldOutput::Offline(OfflineMix::new(channels, sample_rate, muffle));
         audio
     }
 
     pub fn begin_offline(&mut self, channels: u16, sample_rate: u32, seed: u64) {
         self.rng = super::Xorshift::new(seed);
-        self.world = WorldOutput::Offline(OfflineMix::new(channels, sample_rate));
+        let muffle = self.muffle.clone();
+        self.world = WorldOutput::Offline(OfflineMix::new(channels, sample_rate, muffle));
         self.rebind_world_voices();
     }
 

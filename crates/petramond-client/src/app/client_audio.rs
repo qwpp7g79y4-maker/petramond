@@ -98,7 +98,12 @@ impl ClientAudio {
             .update(&mut self.audio, in_session, world_frozen, dt);
     }
 
+    pub(super) fn set_world_muffle(&mut self, amount: f32) {
+        self.audio.set_world_muffle(amount);
+    }
+
     pub(super) fn end_session(&mut self, now: f64) {
+        self.audio.set_world_muffle(0.0);
         self.audio.set_loop(None, now);
         self.audio.stop_gain_loops();
         self.audio.clear_spatial();
