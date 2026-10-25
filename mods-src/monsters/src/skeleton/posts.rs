@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 use mod_sdk::MobTagValue;
 
 use super::geometry::distance;
-use crate::post_marker::{PostMarker, PostRole};
+use post_marker::{PostMarker, PostRole};
 
 /// Ticks after a section (re)loads before its posts count as empty.
 pub const SETTLE: u64 = 40;

@@ -16,7 +16,7 @@ use super::ground::natural_top;
 use super::layout::{FortArc, Hut, HutKind};
 use super::survey::Outline;
 use super::Res;
-use crate::post_marker::{self, CampBox, Facing, PostMarker, PostRole};
+use post_marker::{self, CampBox, Facing, PostMarker, PostRole};
 
 /// How far below the lowest ground and above the highest a camp's box reaches: the arena's pit,
 /// and the towers with a flag on top.

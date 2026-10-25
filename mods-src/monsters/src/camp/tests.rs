@@ -233,10 +233,10 @@ fn every_post_is_a_floor_with_room_that_the_emitted_section_carries() {
                 .authored
                 .data
                 .iter()
-                .filter(|d| d.pos == post.floor && d.key == crate::post_marker::KEY)
+                .filter(|d| d.pos == post.floor && d.key == post_marker::KEY)
                 .collect();
             assert_eq!(data.len(), 1, "{ctx}: post {:?} data", post.floor);
-            let marker = crate::post_marker::PostMarker::decode(&data[0].value).expect("a marker");
+            let marker = post_marker::PostMarker::decode(&data[0].value).expect("a marker");
             assert_eq!((marker.role, marker.facing), (post.role, post.facing));
         }
     }
@@ -244,7 +244,7 @@ fn every_post_is_a_floor_with_room_that_the_emitted_section_carries() {
 
 #[test]
 fn a_post_role_needs_its_structure() {
-    use crate::post_marker::PostRole;
+    use post_marker::PostRole;
     let families = families();
     for (_, _, camp) in sample_camps(&families) {
         let count = |role| camp.posts.iter().filter(|p| p.role == role).count();

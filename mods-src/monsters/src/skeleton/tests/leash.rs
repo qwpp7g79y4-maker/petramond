@@ -1,9 +1,9 @@
 use mod_sdk::*;
 
-use crate::post_marker::PostRole;
 use crate::skeleton::keys::{FACING_TAG, POST_TAG, RETURNING_TAG, ROLE_TAG};
 use crate::skeleton::leash::decide;
 use crate::skeleton::posts::role_tag;
+use post_marker::PostRole;
 
 const POST: [i32; 3] = [20, 64, 30];
 const STAND: [i32; 3] = [20, 65, 30];

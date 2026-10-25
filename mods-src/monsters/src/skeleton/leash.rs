@@ -7,7 +7,7 @@ use mod_sdk::*;
 
 use super::keys::{FACING_TAG, POST_TAG, RETURNING_TAG, ROLE_TAG};
 use super::posts::{standing_point, tagged_role};
-use crate::post_marker::PostRole;
+use post_marker::PostRole;
 
 const LEASH: f64 = 6.0;
 const ARRIVE: f64 = 1.2;

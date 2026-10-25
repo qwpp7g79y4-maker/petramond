@@ -24,15 +24,18 @@ pub enum PostRole {
     Centre = 3,
     /// By a hut's door, or inside it.
     Hut = 4,
+    /// The drowned crew of a wreck: not a camp's guard, so no flag calls it.
+    Crew = 5,
 }
 
 impl PostRole {
-    const ALL: [PostRole; 5] = [
+    const ALL: [PostRole; 6] = [
         PostRole::Yard,
         PostRole::Watch,
         PostRole::Gate,
         PostRole::Centre,
         PostRole::Hut,
+        PostRole::Crew,
     ];
 
     pub fn code(self) -> u8 {
@@ -41,6 +44,27 @@ impl PostRole {
 
     pub fn from_code(code: u8) -> Option<PostRole> {
         Self::ALL.into_iter().find(|r| r.code() == code)
+    }
+
+    /// The role's name in content rows.
+    pub fn key(self) -> &'static str {
+        match self {
+            PostRole::Yard => "yard",
+            PostRole::Watch => "watch",
+            PostRole::Gate => "gate",
+            PostRole::Centre => "centre",
+            PostRole::Hut => "hut",
+            PostRole::Crew => "crew",
+        }
+    }
+
+    pub fn from_key(key: &str) -> Option<PostRole> {
+        Self::ALL.into_iter().find(|r| r.key() == key)
+    }
+
+    /// Whether a camp's flag calls this guard: a crew haunts its wreck whatever flies.
+    pub fn answers_standard(self) -> bool {
+        self != PostRole::Crew
     }
 }
 

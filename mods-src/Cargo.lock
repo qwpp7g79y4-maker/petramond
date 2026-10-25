@@ -158,6 +158,7 @@ version = "0.1.0"
 dependencies = [
  "mod-sdk",
  "pack-check",
+ "post-marker",
  "serde",
  "weather-core",
 ]
@@ -168,6 +169,10 @@ version = "0.1.0"
 dependencies = [
  "mod-sdk",
 ]
+
+[[package]]
+name = "post-marker"
+version = "0.1.0"
 
 [[package]]
 name = "postcard"

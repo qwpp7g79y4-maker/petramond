@@ -1,0 +1,12 @@
+[package]
+name = "post-marker"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Shared spawn-post marker: the cell data a structure generator writes where a guard should stand (role, facing, the structure's box) and the monsters garrison reads back. Shared so any pack's structures can call for a guard without copying the byte layout."
+
+[lints]
+workspace = true
+
+[dependencies]

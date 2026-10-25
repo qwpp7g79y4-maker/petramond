@@ -6,7 +6,6 @@ mod camp;
 mod day_clock;
 mod daylight;
 mod keys;
-mod post_marker;
 mod routes;
 mod skeleton;
 mod spawning;

@@ -1,8 +1,8 @@
-use crate::post_marker::{CampBox, Facing, PostMarker, PostRole};
 use crate::skeleton::posts::{
     may_fill, role_tag, tagged_role, Posts, Scan, RESPAWN, RETRY_WINDOW, SETTLE, SIGHT, SPAWN_MAX,
     SPAWN_MIN,
 };
+use post_marker::{CampBox, Facing, PostMarker, PostRole};
 
 const SECTION: [i32; 3] = [2, 4, -1];
 const POST_A: [i32; 3] = [35, 70, -10];

@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use mod_sdk::*;
 
 use crate::keys::SKULL_FLAG;
-use crate::post_marker::CampBox;
+use post_marker::CampBox;
 
 /// Edge of the boxes a camp is searched in, within the host's search cap.
 const PIECE: i32 = 32;

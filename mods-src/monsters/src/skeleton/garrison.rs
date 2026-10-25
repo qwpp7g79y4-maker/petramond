@@ -12,7 +12,7 @@ use super::kit::pick;
 use super::posts::{may_fill, role_tag, standing_point, tagged_role, Scan};
 use super::presence::{self, Presence};
 use super::{Body, Skeletons};
-use crate::post_marker::{self, Facing, PostMarker, PostRole};
+use post_marker::{self, Facing, PostMarker, PostRole};
 
 const CENSUS: Cadence = Cadence::every(20);
 
