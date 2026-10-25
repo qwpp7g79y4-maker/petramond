@@ -33,7 +33,42 @@ mod_sdk::pack_keys! {
     pub(crate) DRIP_VESSEL: Data = "exploration:drip_vessel";
 
     pub(crate) WATER: Block = "petramond:water";
+    pub(crate) GRAVEL: Block = "petramond:gravel";
+
+    pub(crate) OCEAN: SurfaceBiome = "petramond:ocean";
+    pub(crate) DEEP_OCEAN: SurfaceBiome = "petramond:deep_ocean";
+    pub(crate) WARM_OCEAN: SurfaceBiome = "exploration:warm_ocean";
+    pub(crate) KELP_FOREST: SurfaceBiome = "exploration:kelp_forest";
+    pub(crate) CORAL_REEF: SurfaceBiome = "exploration:coral_reef";
+    pub(crate) CORAL: Data = "exploration:coral";
+    pub(crate) COLD_OCEAN: SurfaceBiome = "exploration:cold_ocean";
+    pub(crate) FROZEN_OCEAN: SurfaceBiome = "exploration:frozen_ocean";
+    pub(crate) DEEP_FROZEN_OCEAN: SurfaceBiome = "exploration:deep_frozen_ocean";
+
+    pub(crate) KELP: Block = "exploration:kelp";
+    pub(crate) KELP_HOOK: Behavior = "exploration:kelp";
+    pub(crate) SEAGRASS: Block = "exploration:seagrass";
+    pub(crate) CORAL_BLOCK_PINK: Block = "exploration:coral_block_pink";
+    pub(crate) CORAL_BLOCK_ORANGE: Block = "exploration:coral_block_orange";
+    pub(crate) CORAL_BLOCK_PURPLE: Block = "exploration:coral_block_purple";
+    pub(crate) CORAL_BLOCK_BLUE: Block = "exploration:coral_block_blue";
+    pub(crate) CORAL_FAN_PINK: Block = "exploration:coral_fan_pink";
+    pub(crate) CORAL_FAN_ORANGE: Block = "exploration:coral_fan_orange";
+    pub(crate) CORAL_FAN_PURPLE: Block = "exploration:coral_fan_purple";
+    pub(crate) CORAL_FAN_BLUE: Block = "exploration:coral_fan_blue";
+    pub(crate) GLOWPOD_TEAL: Block = "exploration:glowpod_teal";
+    pub(crate) GLOWPOD_VIOLET: Block = "exploration:glowpod_violet";
+    pub(crate) GLOWPOD_AMBER: Block = "exploration:glowpod_amber";
+    pub(crate) REEF_ROCK: Block = "exploration:reef_rock";
+    pub(crate) LIMESTONE: Block = "exploration:limestone";
+    pub(crate) STAGHORN_CORAL: Block = "exploration:staghorn_coral";
+    pub(crate) ANEMONE: Block = "exploration:anemone";
+    pub(crate) CLAM: Block = "exploration:clam";
+    pub(crate) CLAM_OPEN: Block = "exploration:clam_open";
+
 }
+
+pub(crate) const GLOWPODS: [&str; 2] = [GLOWPOD_TEAL, GLOWPOD_VIOLET];
 
 #[cfg(test)]
 mod tests {

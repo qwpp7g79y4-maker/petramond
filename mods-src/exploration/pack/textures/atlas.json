@@ -167,6 +167,1250 @@
     {
       "name": "exploration:pointed_dripstone_item",
       "file": "pointed_dripstone_item.png"
+    },
+    {
+      "name": "exploration:kelp",
+      "file": "kelp.png"
+    },
+    {
+      "name": "exploration:kelp_tip",
+      "file": "kelp_tip.png"
+    },
+    {
+      "name": "exploration:seagrass",
+      "file": "seagrass.png"
+    },
+    {
+      "name": "exploration:coral_block_pink",
+      "file": "coral_block_pink.png"
+    },
+    {
+      "name": "exploration:coral_block_orange",
+      "file": "coral_block_orange.png"
+    },
+    {
+      "name": "exploration:coral_block_purple",
+      "file": "coral_block_purple.png"
+    },
+    {
+      "name": "exploration:coral_block_blue",
+      "file": "coral_block_blue.png"
+    },
+    {
+      "name": "exploration:coral_fan_pink",
+      "file": "coral_fan_pink.png"
+    },
+    {
+      "name": "exploration:coral_fan_orange",
+      "file": "coral_fan_orange.png"
+    },
+    {
+      "name": "exploration:coral_fan_purple",
+      "file": "coral_fan_purple.png"
+    },
+    {
+      "name": "exploration:coral_fan_blue",
+      "file": "coral_fan_blue.png"
+    },
+    {
+      "name": "exploration:glowpod_teal",
+      "file": "glowpod_teal.png"
+    },
+    {
+      "name": "exploration:glowpod_violet",
+      "file": "glowpod_violet.png"
+    },
+    {
+      "name": "exploration:clam_shell",
+      "file": "clam_shell.png"
+    },
+    {
+      "name": "exploration:clam_shell_side",
+      "file": "clam_shell_side.png"
+    },
+    {
+      "name": "exploration:clam_inside",
+      "file": "clam_inside.png"
+    },
+    {
+      "name": "exploration:glowpod_amber",
+      "file": "glowpod_amber.png"
+    },
+    {
+      "name": "exploration:reef_rock",
+      "file": "reef_rock.png"
+    },
+    {
+      "name": "exploration:brain_coral",
+      "file": "brain_coral.png"
+    },
+    {
+      "name": "exploration:staghorn_coral",
+      "file": "staghorn_coral.png"
+    },
+    {
+      "name": "exploration:anemone",
+      "file": "anemone.png"
+    },
+    {
+      "name": "exploration:coral_block_red",
+      "file": "coral_block_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      }
+    },
+    {
+      "name": "exploration:coral_fan_red",
+      "file": "coral_fan_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      }
+    },
+    {
+      "name": "exploration:brain_coral_red",
+      "file": "brain_coral_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      }
+    },
+    {
+      "name": "exploration:table_coral_red",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_red",
+      "file": "tube_coral_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      }
+    },
+    {
+      "name": "exploration:sea_whip_red",
+      "file": "sea_whip_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_top_red",
+      "file": "tube_coral_top_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      }
+    },
+    {
+      "name": "exploration:brain_coral_orange",
+      "file": "brain_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:table_coral_orange",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_orange",
+      "file": "tube_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:sea_whip_orange",
+      "file": "sea_whip_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_top_orange",
+      "file": "tube_coral_top_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:coral_block_yellow",
+      "file": "coral_block_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:coral_fan_yellow",
+      "file": "coral_fan_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:brain_coral_yellow",
+      "file": "brain_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:table_coral_yellow",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_yellow",
+      "file": "tube_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:sea_whip_yellow",
+      "file": "sea_whip_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_top_yellow",
+      "file": "tube_coral_top_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:coral_block_lime",
+      "file": "coral_block_base.png",
+      "tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      }
+    },
+    {
+      "name": "exploration:coral_fan_lime",
+      "file": "coral_fan_base.png",
+      "tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      }
+    },
+    {
+      "name": "exploration:brain_coral_lime",
+      "file": "brain_coral_base.png",
+      "tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      }
+    },
+    {
+      "name": "exploration:table_coral_lime",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_lime",
+      "file": "tube_coral_base.png",
+      "tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      }
+    },
+    {
+      "name": "exploration:sea_whip_lime",
+      "file": "sea_whip_base.png",
+      "tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_top_lime",
+      "file": "tube_coral_top_base.png",
+      "tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      }
+    },
+    {
+      "name": "exploration:coral_block_teal",
+      "file": "coral_block_base.png",
+      "tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      }
+    },
+    {
+      "name": "exploration:coral_fan_teal",
+      "file": "coral_fan_base.png",
+      "tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      }
+    },
+    {
+      "name": "exploration:brain_coral_teal",
+      "file": "brain_coral_base.png",
+      "tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      }
+    },
+    {
+      "name": "exploration:table_coral_teal",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_teal",
+      "file": "tube_coral_base.png",
+      "tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      }
+    },
+    {
+      "name": "exploration:sea_whip_teal",
+      "file": "sea_whip_base.png",
+      "tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_top_teal",
+      "file": "tube_coral_top_base.png",
+      "tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      }
+    },
+    {
+      "name": "exploration:brain_coral_blue",
+      "file": "brain_coral_base.png",
+      "tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:table_coral_blue",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_blue",
+      "file": "tube_coral_base.png",
+      "tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:sea_whip_blue",
+      "file": "sea_whip_base.png",
+      "tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_top_blue",
+      "file": "tube_coral_top_base.png",
+      "tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:brain_coral_purple",
+      "file": "brain_coral_base.png",
+      "tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:table_coral_purple",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_purple",
+      "file": "tube_coral_base.png",
+      "tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:sea_whip_purple",
+      "file": "sea_whip_base.png",
+      "tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_top_purple",
+      "file": "tube_coral_top_base.png",
+      "tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:coral_block_magenta",
+      "file": "coral_block_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      }
+    },
+    {
+      "name": "exploration:coral_fan_magenta",
+      "file": "coral_fan_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      }
+    },
+    {
+      "name": "exploration:brain_coral_magenta",
+      "file": "brain_coral_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      }
+    },
+    {
+      "name": "exploration:table_coral_magenta",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_magenta",
+      "file": "tube_coral_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      }
+    },
+    {
+      "name": "exploration:sea_whip_magenta",
+      "file": "sea_whip_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_top_magenta",
+      "file": "tube_coral_top_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      }
+    },
+    {
+      "name": "exploration:brain_coral_pink",
+      "file": "brain_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      }
+    },
+    {
+      "name": "exploration:table_coral_pink",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_pink",
+      "file": "tube_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      }
+    },
+    {
+      "name": "exploration:sea_whip_pink",
+      "file": "sea_whip_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      }
+    },
+    {
+      "name": "exploration:tube_coral_top_pink",
+      "file": "tube_coral_top_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      }
+    },
+    {
+      "name": "exploration:limestone",
+      "file": "limestone.png"
+    },
+    {
+      "name": "exploration:limestone_bricks",
+      "file": "limestone_bricks.png"
+    },
+    {
+      "name": "exploration:plate_coral_red",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          61,
+          56
+        ]
+      }
+    },
+    {
+      "name": "exploration:plate_coral_orange",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          133,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:plate_coral_yellow",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          214,
+          41
+        ]
+      }
+    },
+    {
+      "name": "exploration:plate_coral_lime",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          143,
+          242,
+          51
+        ]
+      }
+    },
+    {
+      "name": "exploration:plate_coral_teal",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          36,
+          230,
+          199
+        ]
+      }
+    },
+    {
+      "name": "exploration:plate_coral_blue",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          76,
+          158,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:plate_coral_purple",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          163,
+          97,
+          255
+        ]
+      }
+    },
+    {
+      "name": "exploration:plate_coral_magenta",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          250,
+          66,
+          219
+        ]
+      }
+    },
+    {
+      "name": "exploration:plate_coral_pink",
+      "file": "plate_coral_base.png",
+      "tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      },
+      "icon_tint": {
+        "fixed": [
+          255,
+          117,
+          173
+        ]
+      }
     }
   ]
 }

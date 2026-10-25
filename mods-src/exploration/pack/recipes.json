@@ -180,6 +180,81 @@
         "item": "exploration:dripstone_slab",
         "count": 6
       }
+    },
+    {
+      "type": "crafting",
+      "recipe": "exploration:limestone_stairs",
+      "station": "petramond:chiseling_station",
+      "ingredients": [
+        {
+          "item": "exploration:limestone",
+          "count": 6
+        }
+      ],
+      "result": {
+        "item": "exploration:limestone_stairs",
+        "count": 6
+      }
+    },
+    {
+      "type": "crafting",
+      "recipe": "exploration:limestone_slab",
+      "station": "petramond:chiseling_station",
+      "ingredients": [
+        {
+          "item": "exploration:limestone",
+          "count": 3
+        }
+      ],
+      "result": {
+        "item": "exploration:limestone_slab",
+        "count": 6
+      }
+    },
+    {
+      "type": "crafting",
+      "recipe": "exploration:limestone_bricks",
+      "station": "petramond:inventory",
+      "ingredients": [
+        {
+          "item": "exploration:limestone",
+          "count": 4
+        }
+      ],
+      "result": {
+        "item": "exploration:limestone_bricks",
+        "count": 4
+      }
+    },
+    {
+      "type": "crafting",
+      "recipe": "exploration:limestone_bricks_stairs",
+      "station": "petramond:chiseling_station",
+      "ingredients": [
+        {
+          "item": "exploration:limestone_bricks",
+          "count": 6
+        }
+      ],
+      "result": {
+        "item": "exploration:limestone_bricks_stairs",
+        "count": 6
+      }
+    },
+    {
+      "type": "crafting",
+      "recipe": "exploration:limestone_bricks_slab",
+      "station": "petramond:chiseling_station",
+      "ingredients": [
+        {
+          "item": "exploration:limestone_bricks",
+          "count": 3
+        }
+      ],
+      "result": {
+        "item": "exploration:limestone_bricks_slab",
+        "count": 6
+      }
     }
   ]
 }

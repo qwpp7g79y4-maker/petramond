@@ -8,6 +8,7 @@ mod content;
 mod dripstone;
 mod fluids;
 mod keys;
+mod ocean;
 mod probe;
 mod shroom;
 mod spores;
@@ -17,7 +18,10 @@ use dripstone::Dripstone;
 
 const GEN_CAVERN: u32 = 1;
 const GEN_DRIPSTONE: u32 = 2;
+const GEN_OCEAN_FLORA: u32 = 3;
+const GEN_SHOAL: u32 = 10;
 const HOOK_DRIPSTONE: u32 = 1;
+const HOOK_KELP: u32 = 2;
 const HANDLER_PROJECTILE: u32 = 1;
 const HANDLER_PLAYER_DAMAGE: u32 = 2;
 const HANDLER_MOB_DAMAGE: u32 = 3;
@@ -31,7 +35,21 @@ pub const BIOME_TOP_Y: i32 = 96;
 struct Exploration {
     content: Option<Content>,
     dripstone: Option<Dripstone>,
+    ocean: Option<ocean::Ocean>,
+    shoals: Option<ocean::shoal::Shoals>,
     spores: spores::Spores,
+}
+
+impl Exploration {
+    /// The site-placed sea structures, each registered when its content resolves.
+    fn init_sea_structures(&mut self) {
+        if let Some(shoals) = ocean::shoal::Look::resolve()
+            .and_then(|look| ocean::shoal::Shoals::new(ocean::shoal::warm_seas(), look))
+        {
+            register_worldgen_feature(WorldgenStage::Trees, GEN_SHOAL, ocean::shoal::GEN_FILTER);
+            self.shoals = Some(shoals);
+        }
+    }
 }
 
 impl Mod for Exploration {
@@ -63,6 +81,19 @@ impl Mod for Exploration {
             }
             None => log("exploration: dripstone content failed to resolve; dripstone disabled"),
         }
+        match ocean::Ocean::resolve() {
+            Some(ocean) => {
+                register_worldgen_feature(
+                    WorldgenStage::Vegetation,
+                    GEN_OCEAN_FLORA,
+                    ocean.gen_filter(),
+                );
+                register_block_behavior(keys::KELP_HOOK, HOOK_KELP);
+                self.ocean = Some(ocean);
+            }
+            None => log("exploration: ocean content failed to resolve; seafloor bare"),
+        }
+        self.init_sea_structures();
     }
 
     fn gen_feature(&mut self, feature_id: u32, ctx: &GenCtx) -> GenOutput {
@@ -78,13 +109,23 @@ impl Mod for Exploration {
                 .map_or_else(GenOutput::default, |d| {
                     dripstone::gen::generate(d, ctx).into()
                 }),
+            GEN_SHOAL => self
+                .shoals
+                .as_mut()
+                .map_or_else(GenOutput::default, |s| s.generate(ctx)),
+            GEN_OCEAN_FLORA => self
+                .ocean
+                .as_ref()
+                .map_or_else(GenOutput::default, |o| o.seabed(ctx)),
             _ => GenOutput::default(),
         }
     }
 
     fn block_hook(&mut self, callback_id: u32, kind: BlockHookKind, pos: [i32; 3]) {
-        if let (HOOK_DRIPSTONE, Some(d)) = (callback_id, &self.dripstone) {
-            dripstone::behavior::on_hook(d, kind, pos);
+        match (callback_id, &self.dripstone, &self.ocean) {
+            (HOOK_DRIPSTONE, Some(d), _) => dripstone::behavior::on_hook(d, kind, pos),
+            (HOOK_KELP, _, Some(o)) => ocean::kelp::on_hook(o, kind, pos),
+            _ => {}
         }
     }
 

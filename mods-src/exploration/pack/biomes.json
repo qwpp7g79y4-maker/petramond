@@ -1,0 +1,377 @@
+{
+  "biomes": [
+    {
+      "biome": "exploration:warm_ocean",
+      "fog_color": [
+        0.36,
+        0.66,
+        0.78
+      ],
+      "grass_color": [
+        0.22,
+        0.7,
+        0.08
+      ],
+      "foliage_color": [
+        0.15,
+        0.58,
+        0.05
+      ],
+      "water_color": [
+        0.04,
+        0.52,
+        0.66
+      ],
+      "ambient": {
+        "petramond:plankton": 0.6
+      },
+      "generation": {
+        "surface": [
+          {
+            "if": {
+              "steep": 2
+            },
+            "then": "exploration:limestone"
+          },
+          {
+            "if": {
+              "cluster_noise_below": {
+                "salt": 3184091201,
+                "threshold": 0.14,
+                "period": 11.0
+              }
+            },
+            "then": {
+              "if": {
+                "depth_from_top": 1
+              },
+              "then": "petramond:gravel"
+            }
+          },
+          {
+            "if": {
+              "depth_from_top": 4
+            },
+            "then": "petramond:sand"
+          },
+          "petramond:stone"
+        ],
+        "flags": [
+          "ocean",
+          "no_beach",
+          "wet"
+        ]
+      },
+      "water_clarity": 2.4
+    },
+    {
+      "biome": "exploration:coral_reef",
+      "fog_color": [
+        0.34,
+        0.68,
+        0.8
+      ],
+      "grass_color": [
+        0.22,
+        0.7,
+        0.08
+      ],
+      "foliage_color": [
+        0.15,
+        0.58,
+        0.05
+      ],
+      "water_color": [
+        0.05,
+        0.58,
+        0.68
+      ],
+      "ambient": {
+        "petramond:plankton": 0.8
+      },
+      "generation": {
+        "surface": [
+          {
+            "if": {
+              "steep": 2
+            },
+            "then": "exploration:limestone"
+          },
+          {
+            "if": {
+              "depth_from_top": 4
+            },
+            "then": "petramond:sand"
+          },
+          "petramond:stone"
+        ],
+        "flags": [
+          "ocean",
+          "no_beach",
+          "wet"
+        ]
+      },
+      "water_clarity": 2.6
+    },
+    {
+      "biome": "exploration:kelp_forest",
+      "fog_color": [
+        0.24,
+        0.44,
+        0.58
+      ],
+      "grass_color": [
+        0.2,
+        0.66,
+        0.08
+      ],
+      "foliage_color": [
+        0.14,
+        0.54,
+        0.05
+      ],
+      "water_color": [
+        0.035,
+        0.31,
+        0.53
+      ],
+      "ambient": {
+        "petramond:plankton": 1.0
+      },
+      "generation": {
+        "surface": [
+          {
+            "if": {
+              "steep": 2
+            },
+            "then": "petramond:stone"
+          },
+          {
+            "if": {
+              "cluster_noise_below": {
+                "salt": 2766129043,
+                "threshold": 0.3,
+                "period": 9.0
+              }
+            },
+            "then": {
+              "if": {
+                "depth_from_top": 2
+              },
+              "then": "petramond:gravel"
+            }
+          },
+          {
+            "if": {
+              "depth_from_top": 3
+            },
+            "then": "petramond:sand"
+          },
+          {
+            "if": {
+              "depth_from_top": 5
+            },
+            "then": "petramond:dirt"
+          },
+          "petramond:stone"
+        ],
+        "flags": [
+          "ocean",
+          "no_beach",
+          "wet"
+        ]
+      }
+    },
+    {
+      "biome": "exploration:cold_ocean",
+      "fog_color": [
+        0.27,
+        0.4,
+        0.58
+      ],
+      "grass_color": [
+        0.25,
+        0.58,
+        0.18
+      ],
+      "foliage_color": [
+        0.18,
+        0.46,
+        0.14
+      ],
+      "water_color": [
+        0.04,
+        0.25,
+        0.55
+      ],
+      "ambient": {
+        "petramond:plankton": 0.9
+      },
+      "generation": {
+        "surface": [
+          {
+            "if": {
+              "steep": 2
+            },
+            "then": "petramond:stone"
+          },
+          {
+            "if": {
+              "cluster_noise_below": {
+                "salt": 4011652387,
+                "threshold": 0.32,
+                "period": 8.0
+              }
+            },
+            "then": {
+              "if": {
+                "depth_from_top": 2
+              },
+              "then": "petramond:clay"
+            }
+          },
+          {
+            "if": {
+              "cluster_noise_below": {
+                "salt": 1530977141,
+                "threshold": 0.22,
+                "period": 13.0
+              }
+            },
+            "then": {
+              "if": {
+                "depth_from_top": 2
+              },
+              "then": "petramond:sand"
+            }
+          },
+          {
+            "if": {
+              "depth_from_top": 3
+            },
+            "then": "petramond:gravel"
+          },
+          "petramond:stone"
+        ],
+        "flags": [
+          "ocean",
+          "no_beach",
+          "wet"
+        ]
+      }
+    },
+    {
+      "biome": "exploration:frozen_ocean",
+      "fog_color": [
+        0.52,
+        0.64,
+        0.78
+      ],
+      "grass_color": [
+        0.3,
+        0.55,
+        0.22
+      ],
+      "foliage_color": [
+        0.2,
+        0.44,
+        0.16
+      ],
+      "water_color": [
+        0.075,
+        0.32,
+        0.62
+      ],
+      "ambient": {
+        "petramond:plankton": 0.5
+      },
+      "generation": {
+        "surface": [
+          {
+            "if": {
+              "steep": 2
+            },
+            "then": "petramond:stone"
+          },
+          {
+            "if": {
+              "cluster_noise_below": {
+                "salt": 2207438819,
+                "threshold": 0.25,
+                "period": 10.0
+              }
+            },
+            "then": {
+              "if": {
+                "depth_from_top": 2
+              },
+              "then": "petramond:sand"
+            }
+          },
+          {
+            "if": {
+              "depth_from_top": 3
+            },
+            "then": "petramond:gravel"
+          },
+          "petramond:stone"
+        ],
+        "snow": "always",
+        "flags": [
+          "ocean",
+          "no_beach",
+          "wet"
+        ]
+      }
+    },
+    {
+      "biome": "exploration:deep_frozen_ocean",
+      "fog_color": [
+        0.46,
+        0.58,
+        0.74
+      ],
+      "grass_color": [
+        0.3,
+        0.55,
+        0.22
+      ],
+      "foliage_color": [
+        0.2,
+        0.44,
+        0.16
+      ],
+      "water_color": [
+        0.06,
+        0.26,
+        0.56
+      ],
+      "ambient": {
+        "petramond:plankton": 0.5
+      },
+      "generation": {
+        "surface": [
+          {
+            "if": {
+              "steep": 2
+            },
+            "then": "petramond:stone"
+          },
+          {
+            "if": {
+              "depth_from_top": 2
+            },
+            "then": "petramond:gravel"
+          },
+          "petramond:stone"
+        ],
+        "snow": "always",
+        "flags": [
+          "ocean",
+          "no_beach",
+          "wet"
+        ]
+      }
+    }
+  ]
+}

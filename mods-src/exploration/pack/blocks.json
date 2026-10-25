@@ -1782,6 +1782,6094 @@
           "chance": 1.0
         }
       ]
+    },
+    {
+      "block": "exploration:kelp",
+      "shape": {
+        "run": {
+          "root": "down",
+          "forms": {
+            "tip": [
+              {
+                "from": [
+                  -3.3137,
+                  0,
+                  8
+                ],
+                "to": [
+                  19.3137,
+                  16,
+                  8
+                ],
+                "faces": [
+                  "-z"
+                ],
+                "double_sided": true,
+                "collides": false,
+                "occludes": false,
+                "casts_ao": false,
+                "rotation": [
+                  0,
+                  45,
+                  0
+                ],
+                "origin": [
+                  8,
+                  8,
+                  8
+                ],
+                "uv": {
+                  "-z": [
+                    0,
+                    0,
+                    16,
+                    16
+                  ]
+                },
+                "tiles": {
+                  "-z": "exploration:kelp_tip"
+                }
+              },
+              {
+                "from": [
+                  -3.3137,
+                  0,
+                  8
+                ],
+                "to": [
+                  19.3137,
+                  16,
+                  8
+                ],
+                "faces": [
+                  "-z"
+                ],
+                "double_sided": true,
+                "collides": false,
+                "occludes": false,
+                "casts_ao": false,
+                "rotation": [
+                  0,
+                  -45,
+                  0
+                ],
+                "origin": [
+                  8,
+                  8,
+                  8
+                ],
+                "uv": {
+                  "-z": [
+                    0,
+                    0,
+                    16,
+                    16
+                  ]
+                },
+                "tiles": {
+                  "-z": "exploration:kelp_tip"
+                }
+              }
+            ],
+            "frustum": [
+              {
+                "from": [
+                  -3.3137,
+                  0,
+                  8
+                ],
+                "to": [
+                  19.3137,
+                  16,
+                  8
+                ],
+                "faces": [
+                  "-z"
+                ],
+                "double_sided": true,
+                "collides": false,
+                "occludes": false,
+                "casts_ao": false,
+                "rotation": [
+                  0,
+                  45,
+                  0
+                ],
+                "origin": [
+                  8,
+                  8,
+                  8
+                ],
+                "uv": {
+                  "-z": [
+                    0,
+                    0,
+                    16,
+                    16
+                  ]
+                },
+                "tiles": {
+                  "-z": "exploration:kelp"
+                }
+              },
+              {
+                "from": [
+                  -3.3137,
+                  0,
+                  8
+                ],
+                "to": [
+                  19.3137,
+                  16,
+                  8
+                ],
+                "faces": [
+                  "-z"
+                ],
+                "double_sided": true,
+                "collides": false,
+                "occludes": false,
+                "casts_ao": false,
+                "rotation": [
+                  0,
+                  -45,
+                  0
+                ],
+                "origin": [
+                  8,
+                  8,
+                  8
+                ],
+                "uv": {
+                  "-z": [
+                    0,
+                    0,
+                    16,
+                    16
+                  ]
+                },
+                "tiles": {
+                  "-z": "exploration:kelp"
+                }
+              }
+            ],
+            "middle": [
+              {
+                "from": [
+                  -3.3137,
+                  0,
+                  8
+                ],
+                "to": [
+                  19.3137,
+                  16,
+                  8
+                ],
+                "faces": [
+                  "-z"
+                ],
+                "double_sided": true,
+                "collides": false,
+                "occludes": false,
+                "casts_ao": false,
+                "rotation": [
+                  0,
+                  45,
+                  0
+                ],
+                "origin": [
+                  8,
+                  8,
+                  8
+                ],
+                "uv": {
+                  "-z": [
+                    0,
+                    0,
+                    16,
+                    16
+                  ]
+                },
+                "tiles": {
+                  "-z": "exploration:kelp"
+                }
+              },
+              {
+                "from": [
+                  -3.3137,
+                  0,
+                  8
+                ],
+                "to": [
+                  19.3137,
+                  16,
+                  8
+                ],
+                "faces": [
+                  "-z"
+                ],
+                "double_sided": true,
+                "collides": false,
+                "occludes": false,
+                "casts_ao": false,
+                "rotation": [
+                  0,
+                  -45,
+                  0
+                ],
+                "origin": [
+                  8,
+                  8,
+                  8
+                ],
+                "uv": {
+                  "-z": [
+                    0,
+                    0,
+                    16,
+                    16
+                  ]
+                },
+                "tiles": {
+                  "-z": "exploration:kelp"
+                }
+              }
+            ],
+            "base": [
+              {
+                "from": [
+                  -3.3137,
+                  0,
+                  8
+                ],
+                "to": [
+                  19.3137,
+                  16,
+                  8
+                ],
+                "faces": [
+                  "-z"
+                ],
+                "double_sided": true,
+                "collides": false,
+                "occludes": false,
+                "casts_ao": false,
+                "rotation": [
+                  0,
+                  45,
+                  0
+                ],
+                "origin": [
+                  8,
+                  8,
+                  8
+                ],
+                "uv": {
+                  "-z": [
+                    0,
+                    0,
+                    16,
+                    16
+                  ]
+                },
+                "tiles": {
+                  "-z": "exploration:kelp"
+                }
+              },
+              {
+                "from": [
+                  -3.3137,
+                  0,
+                  8
+                ],
+                "to": [
+                  19.3137,
+                  16,
+                  8
+                ],
+                "faces": [
+                  "-z"
+                ],
+                "double_sided": true,
+                "collides": false,
+                "occludes": false,
+                "casts_ao": false,
+                "rotation": [
+                  0,
+                  -45,
+                  0
+                ],
+                "origin": [
+                  8,
+                  8,
+                  8
+                ],
+                "uv": {
+                  "-z": [
+                    0,
+                    0,
+                    16,
+                    16
+                  ]
+                },
+                "tiles": {
+                  "-z": "exploration:kelp"
+                }
+              }
+            ],
+            "merge": [
+              {
+                "from": [
+                  -3.3137,
+                  0,
+                  8
+                ],
+                "to": [
+                  19.3137,
+                  16,
+                  8
+                ],
+                "faces": [
+                  "-z"
+                ],
+                "double_sided": true,
+                "collides": false,
+                "occludes": false,
+                "casts_ao": false,
+                "rotation": [
+                  0,
+                  45,
+                  0
+                ],
+                "origin": [
+                  8,
+                  8,
+                  8
+                ],
+                "uv": {
+                  "-z": [
+                    0,
+                    0,
+                    16,
+                    16
+                  ]
+                },
+                "tiles": {
+                  "-z": "exploration:kelp"
+                }
+              },
+              {
+                "from": [
+                  -3.3137,
+                  0,
+                  8
+                ],
+                "to": [
+                  19.3137,
+                  16,
+                  8
+                ],
+                "faces": [
+                  "-z"
+                ],
+                "double_sided": true,
+                "collides": false,
+                "occludes": false,
+                "casts_ao": false,
+                "rotation": [
+                  0,
+                  -45,
+                  0
+                ],
+                "origin": [
+                  8,
+                  8,
+                  8
+                ],
+                "uv": {
+                  "-z": [
+                    0,
+                    0,
+                    16,
+                    16
+                  ]
+                },
+                "tiles": {
+                  "-z": "exploration:kelp"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "stacks": true,
+      "sway": 0.16,
+      "behavior": "exploration:kelp",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:kelp",
+        "exploration:kelp",
+        "exploration:kelp"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:kelp",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:seagrass",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:seagrass",
+        "exploration:seagrass",
+        "exploration:seagrass"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:seagrass",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        }
+      },
+      "sway": 0.1
+    },
+    {
+      "block": "exploration:coral_block_pink",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_block_pink",
+        "exploration:coral_block_pink",
+        "exploration:coral_block_pink"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "pink",
+          "hue": 330,
+          "form": "block"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:coral_block_pink",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:coral_block_orange",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_block_orange",
+        "exploration:coral_block_orange",
+        "exploration:coral_block_orange"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "orange",
+          "hue": 30,
+          "form": "block"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:coral_block_orange",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:coral_block_purple",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_block_purple",
+        "exploration:coral_block_purple",
+        "exploration:coral_block_purple"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "purple",
+          "hue": 270,
+          "form": "block"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:coral_block_purple",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:coral_block_blue",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_block_blue",
+        "exploration:coral_block_blue",
+        "exploration:coral_block_blue"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "blue",
+          "hue": 205,
+          "form": "block"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:coral_block_blue",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:coral_fan_pink",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_fan_pink",
+        "exploration:coral_fan_pink",
+        "exploration:coral_fan_pink"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:coral_fan_pink",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "pink",
+          "hue": 330,
+          "form": "fan"
+        }
+      }
+    },
+    {
+      "block": "exploration:coral_fan_orange",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_fan_orange",
+        "exploration:coral_fan_orange",
+        "exploration:coral_fan_orange"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:coral_fan_orange",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "orange",
+          "hue": 30,
+          "form": "fan"
+        }
+      }
+    },
+    {
+      "block": "exploration:coral_fan_purple",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_fan_purple",
+        "exploration:coral_fan_purple",
+        "exploration:coral_fan_purple"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:coral_fan_purple",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "purple",
+          "hue": 270,
+          "form": "fan"
+        }
+      }
+    },
+    {
+      "block": "exploration:coral_fan_blue",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_fan_blue",
+        "exploration:coral_fan_blue",
+        "exploration:coral_fan_blue"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:coral_fan_blue",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "blue",
+          "hue": 205,
+          "form": "fan"
+        }
+      }
+    },
+    {
+      "block": "exploration:glowpod_teal",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 14,
+      "tiles": [
+        "exploration:glowpod_teal",
+        "exploration:glowpod_teal",
+        "exploration:glowpod_teal"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:glowpod_teal",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "light_color": [
+        0.55,
+        1.0,
+        0.86
+      ],
+      "sway": 0.04
+    },
+    {
+      "block": "exploration:glowpod_violet",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 14,
+      "tiles": [
+        "exploration:glowpod_violet",
+        "exploration:glowpod_violet",
+        "exploration:glowpod_violet"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:glowpod_violet",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "light_color": [
+        0.86,
+        0.6,
+        1.0
+      ],
+      "sway": 0.04
+    },
+    {
+      "block": "exploration:clam",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              4,
+              0,
+              4
+            ],
+            "to": [
+              12,
+              2,
+              12
+            ],
+            "tiles": {
+              "+x": "exploration:clam_shell_side",
+              "-x": "exploration:clam_shell_side",
+              "+z": "exploration:clam_shell_side",
+              "-z": "exploration:clam_shell_side",
+              "up": "exploration:clam_shell",
+              "down": "exploration:clam_shell"
+            }
+          },
+          {
+            "from": [
+              4.5,
+              2,
+              4.5
+            ],
+            "to": [
+              11.5,
+              3.5,
+              11.5
+            ],
+            "tiles": {
+              "+x": "exploration:clam_shell_side",
+              "-x": "exploration:clam_shell_side",
+              "+z": "exploration:clam_shell_side",
+              "-z": "exploration:clam_shell_side",
+              "up": "exploration:clam_shell",
+              "down": "exploration:clam_shell"
+            }
+          },
+          {
+            "from": [
+              6,
+              3.5,
+              6
+            ],
+            "to": [
+              10,
+              4,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:clam_shell_side",
+              "-x": "exploration:clam_shell_side",
+              "+z": "exploration:clam_shell_side",
+              "-z": "exploration:clam_shell_side",
+              "up": "exploration:clam_shell",
+              "down": "exploration:clam_shell"
+            }
+          },
+          {
+            "from": [
+              6,
+              1,
+              12
+            ],
+            "to": [
+              10,
+              3,
+              13
+            ],
+            "tiles": {
+              "+x": "exploration:clam_shell_side",
+              "-x": "exploration:clam_shell_side",
+              "+z": "exploration:clam_shell_side",
+              "-z": "exploration:clam_shell_side",
+              "up": "exploration:clam_shell",
+              "down": "exploration:clam_shell"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent",
+        "directional_view"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "exploration:ripens",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:clam_shell",
+        "exploration:clam_shell",
+        "exploration:clam_shell_side"
+      ],
+      "material": "stone",
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:clam",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "exploration:ripens": {
+          "into": "exploration:clam_open",
+          "per_mille": 25
+        }
+      }
+    },
+    {
+      "block": "exploration:clam_open",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              4,
+              0,
+              4
+            ],
+            "to": [
+              12,
+              2,
+              12
+            ],
+            "tiles": {
+              "+x": "exploration:clam_shell_side",
+              "-x": "exploration:clam_shell_side",
+              "+z": "exploration:clam_shell_side",
+              "-z": "exploration:clam_shell_side",
+              "up": "exploration:clam_inside",
+              "down": "exploration:clam_shell"
+            }
+          },
+          {
+            "from": [
+              5,
+              2,
+              6
+            ],
+            "to": [
+              11,
+              3,
+              12
+            ],
+            "tiles": {
+              "+x": "exploration:clam_shell_side",
+              "-x": "exploration:clam_shell_side",
+              "+z": "exploration:clam_shell_side",
+              "-z": "exploration:clam_shell_side",
+              "up": "exploration:clam_shell",
+              "down": "exploration:clam_inside"
+            },
+            "collides": false,
+            "rotation": [
+              62,
+              0,
+              0
+            ],
+            "origin": [
+              8,
+              2,
+              12
+            ]
+          },
+          {
+            "from": [
+              6,
+              1,
+              12
+            ],
+            "to": [
+              10,
+              3,
+              13
+            ],
+            "tiles": {
+              "+x": "exploration:clam_shell_side",
+              "-x": "exploration:clam_shell_side",
+              "+z": "exploration:clam_shell_side",
+              "-z": "exploration:clam_shell_side",
+              "up": "exploration:clam_shell",
+              "down": "exploration:clam_shell"
+            }
+          },
+          {
+            "from": [
+              7,
+              2,
+              7
+            ],
+            "to": [
+              9,
+              4,
+              9
+            ],
+            "tiles": {
+              "+x": "exploration:pearl",
+              "-x": "exploration:pearl",
+              "+z": "exploration:pearl",
+              "-z": "exploration:pearl",
+              "up": "exploration:pearl",
+              "down": "exploration:pearl"
+            },
+            "uv": {
+              "+x": [
+                6,
+                6,
+                8,
+                8
+              ],
+              "-x": [
+                6,
+                6,
+                8,
+                8
+              ],
+              "+z": [
+                6,
+                6,
+                8,
+                8
+              ],
+              "-z": [
+                6,
+                6,
+                8,
+                8
+              ],
+              "up": [
+                6,
+                6,
+                8,
+                8
+              ],
+              "down": [
+                6,
+                6,
+                8,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent",
+        "directional_view"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:clam_shell",
+        "exploration:clam_shell",
+        "exploration:clam_shell_side"
+      ],
+      "material": "stone",
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:clam",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        },
+        {
+          "item": "exploration:pearl",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "exploration:take_out": {
+          "item": "exploration:pearl",
+          "into": "exploration:clam",
+          "sound": "petramond:stone_place"
+        }
+      }
+    },
+    {
+      "block": "exploration:glowpod_amber",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 15,
+      "tiles": [
+        "exploration:glowpod_amber",
+        "exploration:glowpod_amber",
+        "exploration:glowpod_amber"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:glowpod_amber",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "light_color": [
+        1.0,
+        0.72,
+        0.42
+      ],
+      "sway": 0.04
+    },
+    {
+      "block": "exploration:reef_rock",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:reef_rock",
+        "exploration:reef_rock",
+        "exploration:reef_rock"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        }
+      },
+      "hardness": 1.2,
+      "drops": [
+        {
+          "item": "exploration:reef_rock",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:brain_coral",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:brain_coral",
+        "exploration:brain_coral",
+        "exploration:brain_coral"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "ochre",
+          "hue": 48,
+          "form": "brain"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:brain_coral",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:staghorn_coral",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:staghorn_coral",
+        "exploration:staghorn_coral",
+        "exploration:staghorn_coral"
+      ],
+      "material": "stone",
+      "hardness": 0.2,
+      "drops": [
+        {
+          "item": "exploration:staghorn_coral",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        }
+      }
+    },
+    {
+      "block": "exploration:anemone",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:anemone",
+        "exploration:anemone",
+        "exploration:anemone"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:anemone",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        }
+      },
+      "sway": 0.05
+    },
+    {
+      "block": "exploration:coral_block_red",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_block_red",
+        "exploration:coral_block_red",
+        "exploration:coral_block_red"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "red",
+          "hue": 0,
+          "form": "block"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:coral_block_red",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:coral_fan_red",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_fan_red",
+        "exploration:coral_fan_red",
+        "exploration:coral_fan_red"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:coral_fan_red",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "red",
+          "hue": 0,
+          "form": "fan"
+        }
+      }
+    },
+    {
+      "block": "exploration:brain_coral_red",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:brain_coral_red",
+        "exploration:brain_coral_red",
+        "exploration:brain_coral_red"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "red",
+          "hue": 0,
+          "form": "brain"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:brain_coral_red",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:table_coral_red",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              6,
+              0,
+              6
+            ],
+            "to": [
+              10,
+              9,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_red",
+              "-x": "exploration:coral_block_red",
+              "+z": "exploration:coral_block_red",
+              "-z": "exploration:coral_block_red",
+              "up": "exploration:coral_block_red",
+              "down": "exploration:coral_block_red"
+            }
+          },
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_red",
+              "-x": "exploration:coral_block_red",
+              "+z": "exploration:coral_block_red",
+              "-z": "exploration:coral_block_red",
+              "up": "exploration:table_coral_red",
+              "down": "exploration:coral_block_red"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:table_coral_red",
+        "exploration:coral_block_red",
+        "exploration:coral_block_red"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "red",
+          "hue": 0,
+          "form": "table"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:table_coral_red",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:tube_coral_red",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              1,
+              0,
+              1
+            ],
+            "to": [
+              5,
+              10,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_red",
+              "-x": "exploration:tube_coral_red",
+              "+z": "exploration:tube_coral_red",
+              "-z": "exploration:tube_coral_red",
+              "up": "exploration:tube_coral_top_red",
+              "down": "exploration:tube_coral_red"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                0,
+                4,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              7,
+              0,
+              6
+            ],
+            "to": [
+              11,
+              14,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_red",
+              "-x": "exploration:tube_coral_red",
+              "+z": "exploration:tube_coral_red",
+              "-z": "exploration:tube_coral_red",
+              "up": "exploration:tube_coral_top_red",
+              "down": "exploration:tube_coral_red"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                4,
+                0,
+                8,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              1
+            ],
+            "to": [
+              15,
+              8,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_red",
+              "-x": "exploration:tube_coral_red",
+              "+z": "exploration:tube_coral_red",
+              "-z": "exploration:tube_coral_red",
+              "up": "exploration:tube_coral_top_red",
+              "down": "exploration:tube_coral_red"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                8,
+                0,
+                12,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              2,
+              0,
+              10
+            ],
+            "to": [
+              6,
+              12,
+              14
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_red",
+              "-x": "exploration:tube_coral_red",
+              "+z": "exploration:tube_coral_red",
+              "-z": "exploration:tube_coral_red",
+              "up": "exploration:tube_coral_top_red",
+              "down": "exploration:tube_coral_red"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                12,
+                0,
+                16,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              11
+            ],
+            "to": [
+              15,
+              6,
+              15
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_red",
+              "-x": "exploration:tube_coral_red",
+              "+z": "exploration:tube_coral_red",
+              "-z": "exploration:tube_coral_red",
+              "up": "exploration:tube_coral_top_red",
+              "down": "exploration:tube_coral_red"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                4,
+                4,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:tube_coral_top_red",
+        "exploration:tube_coral_red",
+        "exploration:tube_coral_red"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "red",
+          "hue": 0,
+          "form": "tube"
+        }
+      },
+      "hardness": 0.3,
+      "drops": [
+        {
+          "item": "exploration:tube_coral_red",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:sea_whip_red",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:sea_whip_red",
+        "exploration:sea_whip_red",
+        "exploration:sea_whip_red"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:sea_whip_red",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "red",
+          "hue": 0,
+          "form": "whip"
+        }
+      },
+      "sway": 0.12
+    },
+    {
+      "block": "exploration:brain_coral_orange",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:brain_coral_orange",
+        "exploration:brain_coral_orange",
+        "exploration:brain_coral_orange"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "orange",
+          "hue": 30,
+          "form": "brain"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:brain_coral_orange",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:table_coral_orange",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              6,
+              0,
+              6
+            ],
+            "to": [
+              10,
+              9,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_orange",
+              "-x": "exploration:coral_block_orange",
+              "+z": "exploration:coral_block_orange",
+              "-z": "exploration:coral_block_orange",
+              "up": "exploration:coral_block_orange",
+              "down": "exploration:coral_block_orange"
+            }
+          },
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_orange",
+              "-x": "exploration:coral_block_orange",
+              "+z": "exploration:coral_block_orange",
+              "-z": "exploration:coral_block_orange",
+              "up": "exploration:table_coral_orange",
+              "down": "exploration:coral_block_orange"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:table_coral_orange",
+        "exploration:coral_block_orange",
+        "exploration:coral_block_orange"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "orange",
+          "hue": 30,
+          "form": "table"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:table_coral_orange",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:tube_coral_orange",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              1,
+              0,
+              1
+            ],
+            "to": [
+              5,
+              10,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_orange",
+              "-x": "exploration:tube_coral_orange",
+              "+z": "exploration:tube_coral_orange",
+              "-z": "exploration:tube_coral_orange",
+              "up": "exploration:tube_coral_top_orange",
+              "down": "exploration:tube_coral_orange"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                0,
+                4,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              7,
+              0,
+              6
+            ],
+            "to": [
+              11,
+              14,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_orange",
+              "-x": "exploration:tube_coral_orange",
+              "+z": "exploration:tube_coral_orange",
+              "-z": "exploration:tube_coral_orange",
+              "up": "exploration:tube_coral_top_orange",
+              "down": "exploration:tube_coral_orange"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                4,
+                0,
+                8,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              1
+            ],
+            "to": [
+              15,
+              8,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_orange",
+              "-x": "exploration:tube_coral_orange",
+              "+z": "exploration:tube_coral_orange",
+              "-z": "exploration:tube_coral_orange",
+              "up": "exploration:tube_coral_top_orange",
+              "down": "exploration:tube_coral_orange"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                8,
+                0,
+                12,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              2,
+              0,
+              10
+            ],
+            "to": [
+              6,
+              12,
+              14
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_orange",
+              "-x": "exploration:tube_coral_orange",
+              "+z": "exploration:tube_coral_orange",
+              "-z": "exploration:tube_coral_orange",
+              "up": "exploration:tube_coral_top_orange",
+              "down": "exploration:tube_coral_orange"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                12,
+                0,
+                16,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              11
+            ],
+            "to": [
+              15,
+              6,
+              15
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_orange",
+              "-x": "exploration:tube_coral_orange",
+              "+z": "exploration:tube_coral_orange",
+              "-z": "exploration:tube_coral_orange",
+              "up": "exploration:tube_coral_top_orange",
+              "down": "exploration:tube_coral_orange"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                4,
+                4,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:tube_coral_top_orange",
+        "exploration:tube_coral_orange",
+        "exploration:tube_coral_orange"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "orange",
+          "hue": 30,
+          "form": "tube"
+        }
+      },
+      "hardness": 0.3,
+      "drops": [
+        {
+          "item": "exploration:tube_coral_orange",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:sea_whip_orange",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:sea_whip_orange",
+        "exploration:sea_whip_orange",
+        "exploration:sea_whip_orange"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:sea_whip_orange",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "orange",
+          "hue": 30,
+          "form": "whip"
+        }
+      },
+      "sway": 0.12
+    },
+    {
+      "block": "exploration:coral_block_yellow",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_block_yellow",
+        "exploration:coral_block_yellow",
+        "exploration:coral_block_yellow"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "yellow",
+          "hue": 55,
+          "form": "block"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:coral_block_yellow",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:coral_fan_yellow",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_fan_yellow",
+        "exploration:coral_fan_yellow",
+        "exploration:coral_fan_yellow"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:coral_fan_yellow",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "yellow",
+          "hue": 55,
+          "form": "fan"
+        }
+      }
+    },
+    {
+      "block": "exploration:brain_coral_yellow",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:brain_coral_yellow",
+        "exploration:brain_coral_yellow",
+        "exploration:brain_coral_yellow"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "yellow",
+          "hue": 55,
+          "form": "brain"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:brain_coral_yellow",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:table_coral_yellow",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              6,
+              0,
+              6
+            ],
+            "to": [
+              10,
+              9,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_yellow",
+              "-x": "exploration:coral_block_yellow",
+              "+z": "exploration:coral_block_yellow",
+              "-z": "exploration:coral_block_yellow",
+              "up": "exploration:coral_block_yellow",
+              "down": "exploration:coral_block_yellow"
+            }
+          },
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_yellow",
+              "-x": "exploration:coral_block_yellow",
+              "+z": "exploration:coral_block_yellow",
+              "-z": "exploration:coral_block_yellow",
+              "up": "exploration:table_coral_yellow",
+              "down": "exploration:coral_block_yellow"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:table_coral_yellow",
+        "exploration:coral_block_yellow",
+        "exploration:coral_block_yellow"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "yellow",
+          "hue": 55,
+          "form": "table"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:table_coral_yellow",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:tube_coral_yellow",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              1,
+              0,
+              1
+            ],
+            "to": [
+              5,
+              10,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_yellow",
+              "-x": "exploration:tube_coral_yellow",
+              "+z": "exploration:tube_coral_yellow",
+              "-z": "exploration:tube_coral_yellow",
+              "up": "exploration:tube_coral_top_yellow",
+              "down": "exploration:tube_coral_yellow"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                0,
+                4,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              7,
+              0,
+              6
+            ],
+            "to": [
+              11,
+              14,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_yellow",
+              "-x": "exploration:tube_coral_yellow",
+              "+z": "exploration:tube_coral_yellow",
+              "-z": "exploration:tube_coral_yellow",
+              "up": "exploration:tube_coral_top_yellow",
+              "down": "exploration:tube_coral_yellow"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                4,
+                0,
+                8,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              1
+            ],
+            "to": [
+              15,
+              8,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_yellow",
+              "-x": "exploration:tube_coral_yellow",
+              "+z": "exploration:tube_coral_yellow",
+              "-z": "exploration:tube_coral_yellow",
+              "up": "exploration:tube_coral_top_yellow",
+              "down": "exploration:tube_coral_yellow"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                8,
+                0,
+                12,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              2,
+              0,
+              10
+            ],
+            "to": [
+              6,
+              12,
+              14
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_yellow",
+              "-x": "exploration:tube_coral_yellow",
+              "+z": "exploration:tube_coral_yellow",
+              "-z": "exploration:tube_coral_yellow",
+              "up": "exploration:tube_coral_top_yellow",
+              "down": "exploration:tube_coral_yellow"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                12,
+                0,
+                16,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              11
+            ],
+            "to": [
+              15,
+              6,
+              15
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_yellow",
+              "-x": "exploration:tube_coral_yellow",
+              "+z": "exploration:tube_coral_yellow",
+              "-z": "exploration:tube_coral_yellow",
+              "up": "exploration:tube_coral_top_yellow",
+              "down": "exploration:tube_coral_yellow"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                4,
+                4,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:tube_coral_top_yellow",
+        "exploration:tube_coral_yellow",
+        "exploration:tube_coral_yellow"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "yellow",
+          "hue": 55,
+          "form": "tube"
+        }
+      },
+      "hardness": 0.3,
+      "drops": [
+        {
+          "item": "exploration:tube_coral_yellow",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:sea_whip_yellow",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:sea_whip_yellow",
+        "exploration:sea_whip_yellow",
+        "exploration:sea_whip_yellow"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:sea_whip_yellow",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "yellow",
+          "hue": 55,
+          "form": "whip"
+        }
+      },
+      "sway": 0.12
+    },
+    {
+      "block": "exploration:coral_block_lime",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_block_lime",
+        "exploration:coral_block_lime",
+        "exploration:coral_block_lime"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "lime",
+          "hue": 95,
+          "form": "block"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:coral_block_lime",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:coral_fan_lime",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_fan_lime",
+        "exploration:coral_fan_lime",
+        "exploration:coral_fan_lime"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:coral_fan_lime",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "lime",
+          "hue": 95,
+          "form": "fan"
+        }
+      }
+    },
+    {
+      "block": "exploration:brain_coral_lime",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:brain_coral_lime",
+        "exploration:brain_coral_lime",
+        "exploration:brain_coral_lime"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "lime",
+          "hue": 95,
+          "form": "brain"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:brain_coral_lime",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:table_coral_lime",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              6,
+              0,
+              6
+            ],
+            "to": [
+              10,
+              9,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_lime",
+              "-x": "exploration:coral_block_lime",
+              "+z": "exploration:coral_block_lime",
+              "-z": "exploration:coral_block_lime",
+              "up": "exploration:coral_block_lime",
+              "down": "exploration:coral_block_lime"
+            }
+          },
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_lime",
+              "-x": "exploration:coral_block_lime",
+              "+z": "exploration:coral_block_lime",
+              "-z": "exploration:coral_block_lime",
+              "up": "exploration:table_coral_lime",
+              "down": "exploration:coral_block_lime"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:table_coral_lime",
+        "exploration:coral_block_lime",
+        "exploration:coral_block_lime"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "lime",
+          "hue": 95,
+          "form": "table"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:table_coral_lime",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:tube_coral_lime",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              1,
+              0,
+              1
+            ],
+            "to": [
+              5,
+              10,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_lime",
+              "-x": "exploration:tube_coral_lime",
+              "+z": "exploration:tube_coral_lime",
+              "-z": "exploration:tube_coral_lime",
+              "up": "exploration:tube_coral_top_lime",
+              "down": "exploration:tube_coral_lime"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                0,
+                4,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              7,
+              0,
+              6
+            ],
+            "to": [
+              11,
+              14,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_lime",
+              "-x": "exploration:tube_coral_lime",
+              "+z": "exploration:tube_coral_lime",
+              "-z": "exploration:tube_coral_lime",
+              "up": "exploration:tube_coral_top_lime",
+              "down": "exploration:tube_coral_lime"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                4,
+                0,
+                8,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              1
+            ],
+            "to": [
+              15,
+              8,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_lime",
+              "-x": "exploration:tube_coral_lime",
+              "+z": "exploration:tube_coral_lime",
+              "-z": "exploration:tube_coral_lime",
+              "up": "exploration:tube_coral_top_lime",
+              "down": "exploration:tube_coral_lime"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                8,
+                0,
+                12,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              2,
+              0,
+              10
+            ],
+            "to": [
+              6,
+              12,
+              14
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_lime",
+              "-x": "exploration:tube_coral_lime",
+              "+z": "exploration:tube_coral_lime",
+              "-z": "exploration:tube_coral_lime",
+              "up": "exploration:tube_coral_top_lime",
+              "down": "exploration:tube_coral_lime"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                12,
+                0,
+                16,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              11
+            ],
+            "to": [
+              15,
+              6,
+              15
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_lime",
+              "-x": "exploration:tube_coral_lime",
+              "+z": "exploration:tube_coral_lime",
+              "-z": "exploration:tube_coral_lime",
+              "up": "exploration:tube_coral_top_lime",
+              "down": "exploration:tube_coral_lime"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                4,
+                4,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:tube_coral_top_lime",
+        "exploration:tube_coral_lime",
+        "exploration:tube_coral_lime"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "lime",
+          "hue": 95,
+          "form": "tube"
+        }
+      },
+      "hardness": 0.3,
+      "drops": [
+        {
+          "item": "exploration:tube_coral_lime",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:sea_whip_lime",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:sea_whip_lime",
+        "exploration:sea_whip_lime",
+        "exploration:sea_whip_lime"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:sea_whip_lime",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "lime",
+          "hue": 95,
+          "form": "whip"
+        }
+      },
+      "sway": 0.12
+    },
+    {
+      "block": "exploration:coral_block_teal",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_block_teal",
+        "exploration:coral_block_teal",
+        "exploration:coral_block_teal"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "teal",
+          "hue": 170,
+          "form": "block"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:coral_block_teal",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:coral_fan_teal",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_fan_teal",
+        "exploration:coral_fan_teal",
+        "exploration:coral_fan_teal"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:coral_fan_teal",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "teal",
+          "hue": 170,
+          "form": "fan"
+        }
+      }
+    },
+    {
+      "block": "exploration:brain_coral_teal",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:brain_coral_teal",
+        "exploration:brain_coral_teal",
+        "exploration:brain_coral_teal"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "teal",
+          "hue": 170,
+          "form": "brain"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:brain_coral_teal",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:table_coral_teal",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              6,
+              0,
+              6
+            ],
+            "to": [
+              10,
+              9,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_teal",
+              "-x": "exploration:coral_block_teal",
+              "+z": "exploration:coral_block_teal",
+              "-z": "exploration:coral_block_teal",
+              "up": "exploration:coral_block_teal",
+              "down": "exploration:coral_block_teal"
+            }
+          },
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_teal",
+              "-x": "exploration:coral_block_teal",
+              "+z": "exploration:coral_block_teal",
+              "-z": "exploration:coral_block_teal",
+              "up": "exploration:table_coral_teal",
+              "down": "exploration:coral_block_teal"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:table_coral_teal",
+        "exploration:coral_block_teal",
+        "exploration:coral_block_teal"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "teal",
+          "hue": 170,
+          "form": "table"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:table_coral_teal",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:tube_coral_teal",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              1,
+              0,
+              1
+            ],
+            "to": [
+              5,
+              10,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_teal",
+              "-x": "exploration:tube_coral_teal",
+              "+z": "exploration:tube_coral_teal",
+              "-z": "exploration:tube_coral_teal",
+              "up": "exploration:tube_coral_top_teal",
+              "down": "exploration:tube_coral_teal"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                0,
+                4,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              7,
+              0,
+              6
+            ],
+            "to": [
+              11,
+              14,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_teal",
+              "-x": "exploration:tube_coral_teal",
+              "+z": "exploration:tube_coral_teal",
+              "-z": "exploration:tube_coral_teal",
+              "up": "exploration:tube_coral_top_teal",
+              "down": "exploration:tube_coral_teal"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                4,
+                0,
+                8,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              1
+            ],
+            "to": [
+              15,
+              8,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_teal",
+              "-x": "exploration:tube_coral_teal",
+              "+z": "exploration:tube_coral_teal",
+              "-z": "exploration:tube_coral_teal",
+              "up": "exploration:tube_coral_top_teal",
+              "down": "exploration:tube_coral_teal"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                8,
+                0,
+                12,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              2,
+              0,
+              10
+            ],
+            "to": [
+              6,
+              12,
+              14
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_teal",
+              "-x": "exploration:tube_coral_teal",
+              "+z": "exploration:tube_coral_teal",
+              "-z": "exploration:tube_coral_teal",
+              "up": "exploration:tube_coral_top_teal",
+              "down": "exploration:tube_coral_teal"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                12,
+                0,
+                16,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              11
+            ],
+            "to": [
+              15,
+              6,
+              15
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_teal",
+              "-x": "exploration:tube_coral_teal",
+              "+z": "exploration:tube_coral_teal",
+              "-z": "exploration:tube_coral_teal",
+              "up": "exploration:tube_coral_top_teal",
+              "down": "exploration:tube_coral_teal"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                4,
+                4,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:tube_coral_top_teal",
+        "exploration:tube_coral_teal",
+        "exploration:tube_coral_teal"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "teal",
+          "hue": 170,
+          "form": "tube"
+        }
+      },
+      "hardness": 0.3,
+      "drops": [
+        {
+          "item": "exploration:tube_coral_teal",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:sea_whip_teal",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:sea_whip_teal",
+        "exploration:sea_whip_teal",
+        "exploration:sea_whip_teal"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:sea_whip_teal",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "teal",
+          "hue": 170,
+          "form": "whip"
+        }
+      },
+      "sway": 0.12
+    },
+    {
+      "block": "exploration:brain_coral_blue",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:brain_coral_blue",
+        "exploration:brain_coral_blue",
+        "exploration:brain_coral_blue"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "blue",
+          "hue": 205,
+          "form": "brain"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:brain_coral_blue",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:table_coral_blue",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              6,
+              0,
+              6
+            ],
+            "to": [
+              10,
+              9,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_blue",
+              "-x": "exploration:coral_block_blue",
+              "+z": "exploration:coral_block_blue",
+              "-z": "exploration:coral_block_blue",
+              "up": "exploration:coral_block_blue",
+              "down": "exploration:coral_block_blue"
+            }
+          },
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_blue",
+              "-x": "exploration:coral_block_blue",
+              "+z": "exploration:coral_block_blue",
+              "-z": "exploration:coral_block_blue",
+              "up": "exploration:table_coral_blue",
+              "down": "exploration:coral_block_blue"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:table_coral_blue",
+        "exploration:coral_block_blue",
+        "exploration:coral_block_blue"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "blue",
+          "hue": 205,
+          "form": "table"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:table_coral_blue",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:tube_coral_blue",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              1,
+              0,
+              1
+            ],
+            "to": [
+              5,
+              10,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_blue",
+              "-x": "exploration:tube_coral_blue",
+              "+z": "exploration:tube_coral_blue",
+              "-z": "exploration:tube_coral_blue",
+              "up": "exploration:tube_coral_top_blue",
+              "down": "exploration:tube_coral_blue"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                0,
+                4,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              7,
+              0,
+              6
+            ],
+            "to": [
+              11,
+              14,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_blue",
+              "-x": "exploration:tube_coral_blue",
+              "+z": "exploration:tube_coral_blue",
+              "-z": "exploration:tube_coral_blue",
+              "up": "exploration:tube_coral_top_blue",
+              "down": "exploration:tube_coral_blue"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                4,
+                0,
+                8,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              1
+            ],
+            "to": [
+              15,
+              8,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_blue",
+              "-x": "exploration:tube_coral_blue",
+              "+z": "exploration:tube_coral_blue",
+              "-z": "exploration:tube_coral_blue",
+              "up": "exploration:tube_coral_top_blue",
+              "down": "exploration:tube_coral_blue"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                8,
+                0,
+                12,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              2,
+              0,
+              10
+            ],
+            "to": [
+              6,
+              12,
+              14
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_blue",
+              "-x": "exploration:tube_coral_blue",
+              "+z": "exploration:tube_coral_blue",
+              "-z": "exploration:tube_coral_blue",
+              "up": "exploration:tube_coral_top_blue",
+              "down": "exploration:tube_coral_blue"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                12,
+                0,
+                16,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              11
+            ],
+            "to": [
+              15,
+              6,
+              15
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_blue",
+              "-x": "exploration:tube_coral_blue",
+              "+z": "exploration:tube_coral_blue",
+              "-z": "exploration:tube_coral_blue",
+              "up": "exploration:tube_coral_top_blue",
+              "down": "exploration:tube_coral_blue"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                4,
+                4,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:tube_coral_top_blue",
+        "exploration:tube_coral_blue",
+        "exploration:tube_coral_blue"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "blue",
+          "hue": 205,
+          "form": "tube"
+        }
+      },
+      "hardness": 0.3,
+      "drops": [
+        {
+          "item": "exploration:tube_coral_blue",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:sea_whip_blue",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:sea_whip_blue",
+        "exploration:sea_whip_blue",
+        "exploration:sea_whip_blue"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:sea_whip_blue",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "blue",
+          "hue": 205,
+          "form": "whip"
+        }
+      },
+      "sway": 0.12
+    },
+    {
+      "block": "exploration:brain_coral_purple",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:brain_coral_purple",
+        "exploration:brain_coral_purple",
+        "exploration:brain_coral_purple"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "purple",
+          "hue": 270,
+          "form": "brain"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:brain_coral_purple",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:table_coral_purple",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              6,
+              0,
+              6
+            ],
+            "to": [
+              10,
+              9,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_purple",
+              "-x": "exploration:coral_block_purple",
+              "+z": "exploration:coral_block_purple",
+              "-z": "exploration:coral_block_purple",
+              "up": "exploration:coral_block_purple",
+              "down": "exploration:coral_block_purple"
+            }
+          },
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_purple",
+              "-x": "exploration:coral_block_purple",
+              "+z": "exploration:coral_block_purple",
+              "-z": "exploration:coral_block_purple",
+              "up": "exploration:table_coral_purple",
+              "down": "exploration:coral_block_purple"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:table_coral_purple",
+        "exploration:coral_block_purple",
+        "exploration:coral_block_purple"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "purple",
+          "hue": 270,
+          "form": "table"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:table_coral_purple",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:tube_coral_purple",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              1,
+              0,
+              1
+            ],
+            "to": [
+              5,
+              10,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_purple",
+              "-x": "exploration:tube_coral_purple",
+              "+z": "exploration:tube_coral_purple",
+              "-z": "exploration:tube_coral_purple",
+              "up": "exploration:tube_coral_top_purple",
+              "down": "exploration:tube_coral_purple"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                0,
+                4,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              7,
+              0,
+              6
+            ],
+            "to": [
+              11,
+              14,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_purple",
+              "-x": "exploration:tube_coral_purple",
+              "+z": "exploration:tube_coral_purple",
+              "-z": "exploration:tube_coral_purple",
+              "up": "exploration:tube_coral_top_purple",
+              "down": "exploration:tube_coral_purple"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                4,
+                0,
+                8,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              1
+            ],
+            "to": [
+              15,
+              8,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_purple",
+              "-x": "exploration:tube_coral_purple",
+              "+z": "exploration:tube_coral_purple",
+              "-z": "exploration:tube_coral_purple",
+              "up": "exploration:tube_coral_top_purple",
+              "down": "exploration:tube_coral_purple"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                8,
+                0,
+                12,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              2,
+              0,
+              10
+            ],
+            "to": [
+              6,
+              12,
+              14
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_purple",
+              "-x": "exploration:tube_coral_purple",
+              "+z": "exploration:tube_coral_purple",
+              "-z": "exploration:tube_coral_purple",
+              "up": "exploration:tube_coral_top_purple",
+              "down": "exploration:tube_coral_purple"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                12,
+                0,
+                16,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              11
+            ],
+            "to": [
+              15,
+              6,
+              15
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_purple",
+              "-x": "exploration:tube_coral_purple",
+              "+z": "exploration:tube_coral_purple",
+              "-z": "exploration:tube_coral_purple",
+              "up": "exploration:tube_coral_top_purple",
+              "down": "exploration:tube_coral_purple"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                4,
+                4,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:tube_coral_top_purple",
+        "exploration:tube_coral_purple",
+        "exploration:tube_coral_purple"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "purple",
+          "hue": 270,
+          "form": "tube"
+        }
+      },
+      "hardness": 0.3,
+      "drops": [
+        {
+          "item": "exploration:tube_coral_purple",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:sea_whip_purple",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:sea_whip_purple",
+        "exploration:sea_whip_purple",
+        "exploration:sea_whip_purple"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:sea_whip_purple",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "purple",
+          "hue": 270,
+          "form": "whip"
+        }
+      },
+      "sway": 0.12
+    },
+    {
+      "block": "exploration:coral_block_magenta",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_block_magenta",
+        "exploration:coral_block_magenta",
+        "exploration:coral_block_magenta"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "magenta",
+          "hue": 300,
+          "form": "block"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:coral_block_magenta",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:coral_fan_magenta",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:coral_fan_magenta",
+        "exploration:coral_fan_magenta",
+        "exploration:coral_fan_magenta"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:coral_fan_magenta",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "magenta",
+          "hue": 300,
+          "form": "fan"
+        }
+      }
+    },
+    {
+      "block": "exploration:brain_coral_magenta",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:brain_coral_magenta",
+        "exploration:brain_coral_magenta",
+        "exploration:brain_coral_magenta"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "magenta",
+          "hue": 300,
+          "form": "brain"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:brain_coral_magenta",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:table_coral_magenta",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              6,
+              0,
+              6
+            ],
+            "to": [
+              10,
+              9,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_magenta",
+              "-x": "exploration:coral_block_magenta",
+              "+z": "exploration:coral_block_magenta",
+              "-z": "exploration:coral_block_magenta",
+              "up": "exploration:coral_block_magenta",
+              "down": "exploration:coral_block_magenta"
+            }
+          },
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_magenta",
+              "-x": "exploration:coral_block_magenta",
+              "+z": "exploration:coral_block_magenta",
+              "-z": "exploration:coral_block_magenta",
+              "up": "exploration:table_coral_magenta",
+              "down": "exploration:coral_block_magenta"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:table_coral_magenta",
+        "exploration:coral_block_magenta",
+        "exploration:coral_block_magenta"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "magenta",
+          "hue": 300,
+          "form": "table"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:table_coral_magenta",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:tube_coral_magenta",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              1,
+              0,
+              1
+            ],
+            "to": [
+              5,
+              10,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_magenta",
+              "-x": "exploration:tube_coral_magenta",
+              "+z": "exploration:tube_coral_magenta",
+              "-z": "exploration:tube_coral_magenta",
+              "up": "exploration:tube_coral_top_magenta",
+              "down": "exploration:tube_coral_magenta"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                0,
+                4,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              7,
+              0,
+              6
+            ],
+            "to": [
+              11,
+              14,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_magenta",
+              "-x": "exploration:tube_coral_magenta",
+              "+z": "exploration:tube_coral_magenta",
+              "-z": "exploration:tube_coral_magenta",
+              "up": "exploration:tube_coral_top_magenta",
+              "down": "exploration:tube_coral_magenta"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                4,
+                0,
+                8,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              1
+            ],
+            "to": [
+              15,
+              8,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_magenta",
+              "-x": "exploration:tube_coral_magenta",
+              "+z": "exploration:tube_coral_magenta",
+              "-z": "exploration:tube_coral_magenta",
+              "up": "exploration:tube_coral_top_magenta",
+              "down": "exploration:tube_coral_magenta"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                8,
+                0,
+                12,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              2,
+              0,
+              10
+            ],
+            "to": [
+              6,
+              12,
+              14
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_magenta",
+              "-x": "exploration:tube_coral_magenta",
+              "+z": "exploration:tube_coral_magenta",
+              "-z": "exploration:tube_coral_magenta",
+              "up": "exploration:tube_coral_top_magenta",
+              "down": "exploration:tube_coral_magenta"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                12,
+                0,
+                16,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              11
+            ],
+            "to": [
+              15,
+              6,
+              15
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_magenta",
+              "-x": "exploration:tube_coral_magenta",
+              "+z": "exploration:tube_coral_magenta",
+              "-z": "exploration:tube_coral_magenta",
+              "up": "exploration:tube_coral_top_magenta",
+              "down": "exploration:tube_coral_magenta"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                4,
+                4,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:tube_coral_top_magenta",
+        "exploration:tube_coral_magenta",
+        "exploration:tube_coral_magenta"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "magenta",
+          "hue": 300,
+          "form": "tube"
+        }
+      },
+      "hardness": 0.3,
+      "drops": [
+        {
+          "item": "exploration:tube_coral_magenta",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:sea_whip_magenta",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:sea_whip_magenta",
+        "exploration:sea_whip_magenta",
+        "exploration:sea_whip_magenta"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:sea_whip_magenta",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "magenta",
+          "hue": 300,
+          "form": "whip"
+        }
+      },
+      "sway": 0.12
+    },
+    {
+      "block": "exploration:brain_coral_pink",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:brain_coral_pink",
+        "exploration:brain_coral_pink",
+        "exploration:brain_coral_pink"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "pink",
+          "hue": 330,
+          "form": "brain"
+        }
+      },
+      "hardness": 0.8,
+      "drops": [
+        {
+          "item": "exploration:brain_coral_pink",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:table_coral_pink",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              6,
+              0,
+              6
+            ],
+            "to": [
+              10,
+              9,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_pink",
+              "-x": "exploration:coral_block_pink",
+              "+z": "exploration:coral_block_pink",
+              "-z": "exploration:coral_block_pink",
+              "up": "exploration:coral_block_pink",
+              "down": "exploration:coral_block_pink"
+            }
+          },
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_pink",
+              "-x": "exploration:coral_block_pink",
+              "+z": "exploration:coral_block_pink",
+              "-z": "exploration:coral_block_pink",
+              "up": "exploration:table_coral_pink",
+              "down": "exploration:coral_block_pink"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:table_coral_pink",
+        "exploration:coral_block_pink",
+        "exploration:coral_block_pink"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "pink",
+          "hue": 330,
+          "form": "table"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:table_coral_pink",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:tube_coral_pink",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              1,
+              0,
+              1
+            ],
+            "to": [
+              5,
+              10,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_pink",
+              "-x": "exploration:tube_coral_pink",
+              "+z": "exploration:tube_coral_pink",
+              "-z": "exploration:tube_coral_pink",
+              "up": "exploration:tube_coral_top_pink",
+              "down": "exploration:tube_coral_pink"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                0,
+                4,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              7,
+              0,
+              6
+            ],
+            "to": [
+              11,
+              14,
+              10
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_pink",
+              "-x": "exploration:tube_coral_pink",
+              "+z": "exploration:tube_coral_pink",
+              "-z": "exploration:tube_coral_pink",
+              "up": "exploration:tube_coral_top_pink",
+              "down": "exploration:tube_coral_pink"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                4,
+                0,
+                8,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              1
+            ],
+            "to": [
+              15,
+              8,
+              5
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_pink",
+              "-x": "exploration:tube_coral_pink",
+              "+z": "exploration:tube_coral_pink",
+              "-z": "exploration:tube_coral_pink",
+              "up": "exploration:tube_coral_top_pink",
+              "down": "exploration:tube_coral_pink"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                8,
+                0,
+                12,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              2,
+              0,
+              10
+            ],
+            "to": [
+              6,
+              12,
+              14
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_pink",
+              "-x": "exploration:tube_coral_pink",
+              "+z": "exploration:tube_coral_pink",
+              "-z": "exploration:tube_coral_pink",
+              "up": "exploration:tube_coral_top_pink",
+              "down": "exploration:tube_coral_pink"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                12,
+                0,
+                16,
+                4
+              ]
+            }
+          },
+          {
+            "from": [
+              11,
+              0,
+              11
+            ],
+            "to": [
+              15,
+              6,
+              15
+            ],
+            "tiles": {
+              "+x": "exploration:tube_coral_pink",
+              "-x": "exploration:tube_coral_pink",
+              "+z": "exploration:tube_coral_pink",
+              "-z": "exploration:tube_coral_pink",
+              "up": "exploration:tube_coral_top_pink",
+              "down": "exploration:tube_coral_pink"
+            },
+            "collides": false,
+            "uv": {
+              "up": [
+                0,
+                4,
+                4,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:tube_coral_top_pink",
+        "exploration:tube_coral_pink",
+        "exploration:tube_coral_pink"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "pink",
+          "hue": 330,
+          "form": "tube"
+        }
+      },
+      "hardness": 0.3,
+      "drops": [
+        {
+          "item": "exploration:tube_coral_pink",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:sea_whip_pink",
+      "shape": "cross",
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "fragile",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "fragile",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:sea_whip_pink",
+        "exploration:sea_whip_pink",
+        "exploration:sea_whip_pink"
+      ],
+      "material": "plant",
+      "hardness": 0,
+      "drops": [
+        {
+          "item": "exploration:sea_whip_pink",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ],
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "pink",
+          "hue": 330,
+          "form": "whip"
+        }
+      },
+      "sway": 0.12
+    },
+    {
+      "block": "exploration:plate_coral_red",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_red",
+              "-x": "exploration:coral_block_red",
+              "+z": "exploration:coral_block_red",
+              "-z": "exploration:coral_block_red",
+              "up": "exploration:plate_coral_red",
+              "down": "exploration:coral_block_red"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:plate_coral_red",
+        "exploration:coral_block_red",
+        "exploration:coral_block_red"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "red",
+          "hue": 0,
+          "form": "plate"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:plate_coral_red",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:plate_coral_orange",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_orange",
+              "-x": "exploration:coral_block_orange",
+              "+z": "exploration:coral_block_orange",
+              "-z": "exploration:coral_block_orange",
+              "up": "exploration:plate_coral_orange",
+              "down": "exploration:coral_block_orange"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:plate_coral_orange",
+        "exploration:coral_block_orange",
+        "exploration:coral_block_orange"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "orange",
+          "hue": 30,
+          "form": "plate"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:plate_coral_orange",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:plate_coral_yellow",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_yellow",
+              "-x": "exploration:coral_block_yellow",
+              "+z": "exploration:coral_block_yellow",
+              "-z": "exploration:coral_block_yellow",
+              "up": "exploration:plate_coral_yellow",
+              "down": "exploration:coral_block_yellow"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:plate_coral_yellow",
+        "exploration:coral_block_yellow",
+        "exploration:coral_block_yellow"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "yellow",
+          "hue": 55,
+          "form": "plate"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:plate_coral_yellow",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:plate_coral_lime",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_lime",
+              "-x": "exploration:coral_block_lime",
+              "+z": "exploration:coral_block_lime",
+              "-z": "exploration:coral_block_lime",
+              "up": "exploration:plate_coral_lime",
+              "down": "exploration:coral_block_lime"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:plate_coral_lime",
+        "exploration:coral_block_lime",
+        "exploration:coral_block_lime"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "lime",
+          "hue": 95,
+          "form": "plate"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:plate_coral_lime",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:plate_coral_teal",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_teal",
+              "-x": "exploration:coral_block_teal",
+              "+z": "exploration:coral_block_teal",
+              "-z": "exploration:coral_block_teal",
+              "up": "exploration:plate_coral_teal",
+              "down": "exploration:coral_block_teal"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:plate_coral_teal",
+        "exploration:coral_block_teal",
+        "exploration:coral_block_teal"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "teal",
+          "hue": 170,
+          "form": "plate"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:plate_coral_teal",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:plate_coral_blue",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_blue",
+              "-x": "exploration:coral_block_blue",
+              "+z": "exploration:coral_block_blue",
+              "-z": "exploration:coral_block_blue",
+              "up": "exploration:plate_coral_blue",
+              "down": "exploration:coral_block_blue"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:plate_coral_blue",
+        "exploration:coral_block_blue",
+        "exploration:coral_block_blue"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "blue",
+          "hue": 205,
+          "form": "plate"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:plate_coral_blue",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:plate_coral_purple",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_purple",
+              "-x": "exploration:coral_block_purple",
+              "+z": "exploration:coral_block_purple",
+              "-z": "exploration:coral_block_purple",
+              "up": "exploration:plate_coral_purple",
+              "down": "exploration:coral_block_purple"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:plate_coral_purple",
+        "exploration:coral_block_purple",
+        "exploration:coral_block_purple"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "purple",
+          "hue": 270,
+          "form": "plate"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:plate_coral_purple",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:plate_coral_magenta",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_magenta",
+              "-x": "exploration:coral_block_magenta",
+              "+z": "exploration:coral_block_magenta",
+              "-z": "exploration:coral_block_magenta",
+              "up": "exploration:plate_coral_magenta",
+              "down": "exploration:coral_block_magenta"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:plate_coral_magenta",
+        "exploration:coral_block_magenta",
+        "exploration:coral_block_magenta"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "magenta",
+          "hue": 300,
+          "form": "plate"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:plate_coral_magenta",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:plate_coral_pink",
+      "shape": {
+        "boxes": [
+          {
+            "from": [
+              0,
+              9,
+              0
+            ],
+            "to": [
+              16,
+              11,
+              16
+            ],
+            "tiles": {
+              "+x": "exploration:coral_block_pink",
+              "-x": "exploration:coral_block_pink",
+              "+z": "exploration:coral_block_pink",
+              "-z": "exploration:coral_block_pink",
+              "up": "exploration:plate_coral_pink",
+              "down": "exploration:coral_block_pink"
+            }
+          }
+        ]
+      },
+      "flags": [
+        "transparent"
+      ],
+      "tags": [
+        "exploration:coral",
+        "no_pane_connect"
+      ],
+      "contained_fluid": "petramond:water",
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:plate_coral_pink",
+        "exploration:coral_block_pink",
+        "exploration:coral_block_pink"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:harvest": {
+          "tier": 1
+        },
+        "exploration:coral": {
+          "colour": "pink",
+          "hue": 330,
+          "form": "plate"
+        }
+      },
+      "hardness": 0.4,
+      "drops": [
+        {
+          "item": "exploration:plate_coral_pink",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:limestone",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [
+        "exploration:coral"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:limestone",
+        "exploration:limestone",
+        "exploration:limestone"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:material": {
+          "family": "limestone",
+          "form": "block"
+        },
+        "petramond:harvest": {
+          "tier": 1
+        }
+      },
+      "hardness": 1.2,
+      "drops": [
+        {
+          "item": "exploration:limestone",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:limestone_stairs",
+      "shape": "stair",
+      "flags": [
+        "solid"
+      ],
+      "tags": [
+        "no_grass_decay"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:limestone",
+        "exploration:limestone",
+        "exploration:limestone"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:material": {
+          "family": "limestone",
+          "form": "stairs"
+        },
+        "petramond:harvest": {
+          "tier": 1
+        }
+      },
+      "hardness": 1.2,
+      "drops": [
+        {
+          "item": "exploration:limestone_stairs",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:limestone_slab",
+      "shape": "slab",
+      "flags": [
+        "solid"
+      ],
+      "tags": [
+        "no_grass_decay"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:limestone",
+        "exploration:limestone",
+        "exploration:limestone"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:material": {
+          "family": "limestone",
+          "form": "slab"
+        },
+        "petramond:harvest": {
+          "tier": 1
+        }
+      },
+      "hardness": 1.2,
+      "drops": [
+        {
+          "item": "exploration:limestone_slab",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:limestone_bricks",
+      "shape": "cube",
+      "flags": [
+        "solid",
+        "opaque",
+        "ao_occluder"
+      ],
+      "tags": [],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "emission": 0,
+      "tiles": [
+        "exploration:limestone_bricks",
+        "exploration:limestone_bricks",
+        "exploration:limestone_bricks"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:material": {
+          "family": "limestone_bricks",
+          "form": "block"
+        },
+        "petramond:harvest": {
+          "tier": 1
+        }
+      },
+      "hardness": 1.2,
+      "drops": [
+        {
+          "item": "exploration:limestone_bricks",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:limestone_bricks_stairs",
+      "shape": "stair",
+      "flags": [
+        "solid"
+      ],
+      "tags": [
+        "no_grass_decay"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:limestone_bricks",
+        "exploration:limestone_bricks",
+        "exploration:limestone_bricks"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:material": {
+          "family": "limestone_bricks",
+          "form": "stairs"
+        },
+        "petramond:harvest": {
+          "tier": 1
+        }
+      },
+      "hardness": 1.2,
+      "drops": [
+        {
+          "item": "exploration:limestone_bricks_stairs",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
+    },
+    {
+      "block": "exploration:limestone_bricks_slab",
+      "shape": "slab",
+      "flags": [
+        "solid"
+      ],
+      "tags": [
+        "no_grass_decay"
+      ],
+      "behavior": "inert",
+      "interaction": "none",
+      "collision": [],
+      "emission": 0,
+      "tiles": [
+        "exploration:limestone_bricks",
+        "exploration:limestone_bricks",
+        "exploration:limestone_bricks"
+      ],
+      "material": "stone",
+      "data": {
+        "petramond:material": {
+          "family": "limestone_bricks",
+          "form": "slab"
+        },
+        "petramond:harvest": {
+          "tier": 1
+        }
+      },
+      "hardness": 1.2,
+      "drops": [
+        {
+          "item": "exploration:limestone_bricks_slab",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
     }
   ]
 }

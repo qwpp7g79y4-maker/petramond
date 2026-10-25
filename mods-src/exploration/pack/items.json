@@ -429,6 +429,1034 @@
       },
       "tags": [],
       "block": "exploration:dripstone_slab"
+    },
+    {
+      "item": "exploration:kelp",
+      "key": "exploration:kelp",
+      "name": "Kelp",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "sprite": "exploration:kelp_tip",
+      "tags": [],
+      "block": "exploration:kelp"
+    },
+    {
+      "item": "exploration:seagrass",
+      "key": "exploration:seagrass",
+      "name": "Seagrass",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:seagrass"
+    },
+    {
+      "item": "exploration:coral_block_pink",
+      "key": "exploration:coral_block_pink",
+      "name": "Pink Coral Block",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_block_pink"
+    },
+    {
+      "item": "exploration:coral_block_orange",
+      "key": "exploration:coral_block_orange",
+      "name": "Orange Coral Block",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_block_orange"
+    },
+    {
+      "item": "exploration:coral_block_purple",
+      "key": "exploration:coral_block_purple",
+      "name": "Purple Coral Block",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_block_purple"
+    },
+    {
+      "item": "exploration:coral_block_blue",
+      "key": "exploration:coral_block_blue",
+      "name": "Blue Coral Block",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_block_blue"
+    },
+    {
+      "item": "exploration:coral_fan_pink",
+      "key": "exploration:coral_fan_pink",
+      "name": "Pink Coral Fan",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_fan_pink"
+    },
+    {
+      "item": "exploration:coral_fan_orange",
+      "key": "exploration:coral_fan_orange",
+      "name": "Orange Coral Fan",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_fan_orange"
+    },
+    {
+      "item": "exploration:coral_fan_purple",
+      "key": "exploration:coral_fan_purple",
+      "name": "Purple Coral Fan",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_fan_purple"
+    },
+    {
+      "item": "exploration:coral_fan_blue",
+      "key": "exploration:coral_fan_blue",
+      "name": "Blue Coral Fan",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_fan_blue"
+    },
+    {
+      "item": "exploration:glowpod_teal",
+      "key": "exploration:glowpod_teal",
+      "name": "Teal Glowpod",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:glowpod_teal"
+    },
+    {
+      "item": "exploration:glowpod_violet",
+      "key": "exploration:glowpod_violet",
+      "name": "Violet Glowpod",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:glowpod_violet"
+    },
+    {
+      "item": "exploration:clam",
+      "key": "exploration:clam",
+      "name": "Clam",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:clam"
+    },
+    {
+      "item": "exploration:reef_rock",
+      "key": "exploration:reef_rock",
+      "name": "Reef Rock",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:reef_rock"
+    },
+    {
+      "item": "exploration:brain_coral",
+      "key": "exploration:brain_coral",
+      "name": "Brain Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:brain_coral"
+    },
+    {
+      "item": "exploration:staghorn_coral",
+      "key": "exploration:staghorn_coral",
+      "name": "Staghorn Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:staghorn_coral"
+    },
+    {
+      "item": "exploration:anemone",
+      "key": "exploration:anemone",
+      "name": "Anemone",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:anemone"
+    },
+    {
+      "item": "exploration:glowpod_amber",
+      "key": "exploration:glowpod_amber",
+      "name": "Amber Glowpod",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:glowpod_amber"
+    },
+    {
+      "item": "exploration:coral_block_red",
+      "key": "exploration:coral_block_red",
+      "name": "Red Coral Block",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_block_red"
+    },
+    {
+      "item": "exploration:coral_fan_red",
+      "key": "exploration:coral_fan_red",
+      "name": "Red Coral Fan",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_fan_red"
+    },
+    {
+      "item": "exploration:brain_coral_red",
+      "key": "exploration:brain_coral_red",
+      "name": "Red Brain Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:brain_coral_red"
+    },
+    {
+      "item": "exploration:table_coral_red",
+      "key": "exploration:table_coral_red",
+      "name": "Red Table Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:table_coral_red"
+    },
+    {
+      "item": "exploration:tube_coral_red",
+      "key": "exploration:tube_coral_red",
+      "name": "Red Tube Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:tube_coral_red"
+    },
+    {
+      "item": "exploration:sea_whip_red",
+      "key": "exploration:sea_whip_red",
+      "name": "Red Sea Whip",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:sea_whip_red"
+    },
+    {
+      "item": "exploration:brain_coral_orange",
+      "key": "exploration:brain_coral_orange",
+      "name": "Orange Brain Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:brain_coral_orange"
+    },
+    {
+      "item": "exploration:table_coral_orange",
+      "key": "exploration:table_coral_orange",
+      "name": "Orange Table Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:table_coral_orange"
+    },
+    {
+      "item": "exploration:tube_coral_orange",
+      "key": "exploration:tube_coral_orange",
+      "name": "Orange Tube Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:tube_coral_orange"
+    },
+    {
+      "item": "exploration:sea_whip_orange",
+      "key": "exploration:sea_whip_orange",
+      "name": "Orange Sea Whip",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:sea_whip_orange"
+    },
+    {
+      "item": "exploration:coral_block_yellow",
+      "key": "exploration:coral_block_yellow",
+      "name": "Yellow Coral Block",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_block_yellow"
+    },
+    {
+      "item": "exploration:coral_fan_yellow",
+      "key": "exploration:coral_fan_yellow",
+      "name": "Yellow Coral Fan",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_fan_yellow"
+    },
+    {
+      "item": "exploration:brain_coral_yellow",
+      "key": "exploration:brain_coral_yellow",
+      "name": "Yellow Brain Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:brain_coral_yellow"
+    },
+    {
+      "item": "exploration:table_coral_yellow",
+      "key": "exploration:table_coral_yellow",
+      "name": "Yellow Table Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:table_coral_yellow"
+    },
+    {
+      "item": "exploration:tube_coral_yellow",
+      "key": "exploration:tube_coral_yellow",
+      "name": "Yellow Tube Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:tube_coral_yellow"
+    },
+    {
+      "item": "exploration:sea_whip_yellow",
+      "key": "exploration:sea_whip_yellow",
+      "name": "Yellow Sea Whip",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:sea_whip_yellow"
+    },
+    {
+      "item": "exploration:coral_block_lime",
+      "key": "exploration:coral_block_lime",
+      "name": "Lime Coral Block",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_block_lime"
+    },
+    {
+      "item": "exploration:coral_fan_lime",
+      "key": "exploration:coral_fan_lime",
+      "name": "Lime Coral Fan",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_fan_lime"
+    },
+    {
+      "item": "exploration:brain_coral_lime",
+      "key": "exploration:brain_coral_lime",
+      "name": "Lime Brain Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:brain_coral_lime"
+    },
+    {
+      "item": "exploration:table_coral_lime",
+      "key": "exploration:table_coral_lime",
+      "name": "Lime Table Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:table_coral_lime"
+    },
+    {
+      "item": "exploration:tube_coral_lime",
+      "key": "exploration:tube_coral_lime",
+      "name": "Lime Tube Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:tube_coral_lime"
+    },
+    {
+      "item": "exploration:sea_whip_lime",
+      "key": "exploration:sea_whip_lime",
+      "name": "Lime Sea Whip",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:sea_whip_lime"
+    },
+    {
+      "item": "exploration:coral_block_teal",
+      "key": "exploration:coral_block_teal",
+      "name": "Teal Coral Block",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_block_teal"
+    },
+    {
+      "item": "exploration:coral_fan_teal",
+      "key": "exploration:coral_fan_teal",
+      "name": "Teal Coral Fan",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_fan_teal"
+    },
+    {
+      "item": "exploration:brain_coral_teal",
+      "key": "exploration:brain_coral_teal",
+      "name": "Teal Brain Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:brain_coral_teal"
+    },
+    {
+      "item": "exploration:table_coral_teal",
+      "key": "exploration:table_coral_teal",
+      "name": "Teal Table Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:table_coral_teal"
+    },
+    {
+      "item": "exploration:tube_coral_teal",
+      "key": "exploration:tube_coral_teal",
+      "name": "Teal Tube Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:tube_coral_teal"
+    },
+    {
+      "item": "exploration:sea_whip_teal",
+      "key": "exploration:sea_whip_teal",
+      "name": "Teal Sea Whip",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:sea_whip_teal"
+    },
+    {
+      "item": "exploration:brain_coral_blue",
+      "key": "exploration:brain_coral_blue",
+      "name": "Blue Brain Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:brain_coral_blue"
+    },
+    {
+      "item": "exploration:table_coral_blue",
+      "key": "exploration:table_coral_blue",
+      "name": "Blue Table Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:table_coral_blue"
+    },
+    {
+      "item": "exploration:tube_coral_blue",
+      "key": "exploration:tube_coral_blue",
+      "name": "Blue Tube Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:tube_coral_blue"
+    },
+    {
+      "item": "exploration:sea_whip_blue",
+      "key": "exploration:sea_whip_blue",
+      "name": "Blue Sea Whip",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:sea_whip_blue"
+    },
+    {
+      "item": "exploration:brain_coral_purple",
+      "key": "exploration:brain_coral_purple",
+      "name": "Purple Brain Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:brain_coral_purple"
+    },
+    {
+      "item": "exploration:table_coral_purple",
+      "key": "exploration:table_coral_purple",
+      "name": "Purple Table Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:table_coral_purple"
+    },
+    {
+      "item": "exploration:tube_coral_purple",
+      "key": "exploration:tube_coral_purple",
+      "name": "Purple Tube Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:tube_coral_purple"
+    },
+    {
+      "item": "exploration:sea_whip_purple",
+      "key": "exploration:sea_whip_purple",
+      "name": "Purple Sea Whip",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:sea_whip_purple"
+    },
+    {
+      "item": "exploration:coral_block_magenta",
+      "key": "exploration:coral_block_magenta",
+      "name": "Magenta Coral Block",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_block_magenta"
+    },
+    {
+      "item": "exploration:coral_fan_magenta",
+      "key": "exploration:coral_fan_magenta",
+      "name": "Magenta Coral Fan",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:coral_fan_magenta"
+    },
+    {
+      "item": "exploration:brain_coral_magenta",
+      "key": "exploration:brain_coral_magenta",
+      "name": "Magenta Brain Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:brain_coral_magenta"
+    },
+    {
+      "item": "exploration:table_coral_magenta",
+      "key": "exploration:table_coral_magenta",
+      "name": "Magenta Table Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:table_coral_magenta"
+    },
+    {
+      "item": "exploration:tube_coral_magenta",
+      "key": "exploration:tube_coral_magenta",
+      "name": "Magenta Tube Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:tube_coral_magenta"
+    },
+    {
+      "item": "exploration:sea_whip_magenta",
+      "key": "exploration:sea_whip_magenta",
+      "name": "Magenta Sea Whip",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:sea_whip_magenta"
+    },
+    {
+      "item": "exploration:brain_coral_pink",
+      "key": "exploration:brain_coral_pink",
+      "name": "Pink Brain Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:brain_coral_pink"
+    },
+    {
+      "item": "exploration:table_coral_pink",
+      "key": "exploration:table_coral_pink",
+      "name": "Pink Table Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:table_coral_pink"
+    },
+    {
+      "item": "exploration:tube_coral_pink",
+      "key": "exploration:tube_coral_pink",
+      "name": "Pink Tube Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:tube_coral_pink"
+    },
+    {
+      "item": "exploration:sea_whip_pink",
+      "key": "exploration:sea_whip_pink",
+      "name": "Pink Sea Whip",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:sea_whip_pink"
+    },
+    {
+      "item": "exploration:plate_coral_red",
+      "key": "exploration:plate_coral_red",
+      "name": "Red Plate Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:plate_coral_red"
+    },
+    {
+      "item": "exploration:plate_coral_orange",
+      "key": "exploration:plate_coral_orange",
+      "name": "Orange Plate Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:plate_coral_orange"
+    },
+    {
+      "item": "exploration:plate_coral_yellow",
+      "key": "exploration:plate_coral_yellow",
+      "name": "Yellow Plate Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:plate_coral_yellow"
+    },
+    {
+      "item": "exploration:plate_coral_lime",
+      "key": "exploration:plate_coral_lime",
+      "name": "Lime Plate Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:plate_coral_lime"
+    },
+    {
+      "item": "exploration:plate_coral_teal",
+      "key": "exploration:plate_coral_teal",
+      "name": "Teal Plate Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:plate_coral_teal"
+    },
+    {
+      "item": "exploration:plate_coral_blue",
+      "key": "exploration:plate_coral_blue",
+      "name": "Blue Plate Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:plate_coral_blue"
+    },
+    {
+      "item": "exploration:plate_coral_purple",
+      "key": "exploration:plate_coral_purple",
+      "name": "Purple Plate Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:plate_coral_purple"
+    },
+    {
+      "item": "exploration:plate_coral_magenta",
+      "key": "exploration:plate_coral_magenta",
+      "name": "Magenta Plate Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:plate_coral_magenta"
+    },
+    {
+      "item": "exploration:plate_coral_pink",
+      "key": "exploration:plate_coral_pink",
+      "name": "Pink Plate Coral",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:plate_coral_pink"
+    },
+    {
+      "item": "exploration:limestone",
+      "key": "exploration:limestone",
+      "name": "Limestone",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:limestone"
+    },
+    {
+      "item": "exploration:limestone_stairs",
+      "key": "exploration:limestone_stairs",
+      "name": "Limestone Stairs",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:limestone_stairs"
+    },
+    {
+      "item": "exploration:limestone_slab",
+      "key": "exploration:limestone_slab",
+      "name": "Limestone Slab",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:limestone_slab"
+    },
+    {
+      "item": "exploration:limestone_bricks",
+      "key": "exploration:limestone_bricks",
+      "name": "Limestone Bricks",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:limestone_bricks"
+    },
+    {
+      "item": "exploration:limestone_bricks_stairs",
+      "key": "exploration:limestone_bricks_stairs",
+      "name": "Limestone Brick Stairs",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:limestone_bricks_stairs"
+    },
+    {
+      "item": "exploration:limestone_bricks_slab",
+      "key": "exploration:limestone_bricks_slab",
+      "name": "Limestone Brick Slab",
+      "max_stack_size": 64,
+      "held_pose": {
+        "pitch": 0,
+        "yaw": 1.8,
+        "roll": 0
+      },
+      "tags": [],
+      "block": "exploration:limestone_bricks_slab"
     }
   ]
 }
