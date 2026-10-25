@@ -5,6 +5,7 @@ use crate::events::ProjectileHit;
 use crate::mob::EntityRef;
 use crate::world::{ImpactTarget, ItemImpact};
 use petramond_math::math::Vec3;
+use petramond_math::world_pos::WorldPos;
 
 const BODY_DROP_SPEED: f32 = 0.1;
 
@@ -54,7 +55,30 @@ impl ServerGame {
             .projectile_hit(world, sessions, actor, events, ev);
     }
 
+    /// Where a struck body stands and which way it turns, the frame a lodged item rides in.
+    fn body_frame(&self, target: ImpactTarget) -> Option<(EntityRef, (WorldPos, f32))> {
+        match target {
+            ImpactTarget::Mob(id) => self
+                .world
+                .mobs()
+                .instances()
+                .iter()
+                .find(|m| m.id() == id && !m.is_dead())
+                .map(|m| (EntityRef::Mob(id), (m.pos, m.yaw))),
+            ImpactTarget::Player(id) => self
+                .sessions
+                .by_id(id)
+                .map(|s| &s.player)
+                .filter(|p| p.health() > 0)
+                .map(|p| (EntityRef::Player(id), (p.body_center(), p.yaw))),
+            ImpactTarget::Block { .. } => None,
+        }
+    }
+
     fn apply_fate(&mut self, impact: ItemImpact, fate: Fate) {
+        let body = (fate == Fate::Lodge)
+            .then(|| self.body_frame(impact.target))
+            .flatten();
         let drops = self.world.dropped_items_mut();
         if fate == Fate::Consume {
             drops.remove(impact.id);
@@ -83,18 +107,13 @@ impl ServerGame {
                 it.vel = Vec3::ZERO;
                 it.release();
             }
-            (fate, ImpactTarget::Mob(_) | ImpactTarget::Player(_)) => {
-                if fate == Fate::Lodge {
-                    log::warn!(
-                        "projectile_hit: a handler answered Lodge for {} striking {:?}; \
-                         only a block can hold an item (mod bug) — dropping instead",
-                        it.stack.item.key(),
-                        impact.target
-                    );
+            (_, ImpactTarget::Mob(_) | ImpactTarget::Player(_)) => match body {
+                Some((body, (at, yaw))) => it.embed(body, at, yaw),
+                None => {
+                    it.vel *= BODY_DROP_SPEED;
+                    it.release();
                 }
-                it.vel *= BODY_DROP_SPEED;
-                it.release();
-            }
+            },
         }
     }
 }

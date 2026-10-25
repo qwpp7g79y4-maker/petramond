@@ -561,6 +561,8 @@ fn record_session(side: i32, last_tick: u64, seed: u64, full_every: u64) -> Sess
                 pos: petramond_math::world_pos::WorldPos::new(t as f64 * 0.1, 65.0, 0.0),
                 spin: t as f32,
                 flight: None,
+                tether: None,
+                draw: Default::default(),
             }]
             .into(),
         });

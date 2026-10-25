@@ -55,6 +55,17 @@ pub struct Flight {
     pub heading: Heading,
     pub contact: Option<crate::mob::EntityRef>,
     pub control_ticks: Option<u8>,
+    /// The heading a steering controller holds, in place of the motion's.
+    pub facing: Option<Heading>,
+}
+
+impl Flight {
+    fn turn_with(&mut self, vel: Vec3) {
+        let held = self.facing.filter(|_| self.control_ticks.is_some());
+        if let Some(heading) = held.or_else(|| Heading::of(vel)) {
+            self.heading = heading;
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -64,11 +75,27 @@ pub struct Stuck {
     pub verified: bool,
 }
 
+/// Lodged in a living body: rides it at `offset` and `yaw` in the body's turning frame.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Embedded {
+    pub flight: Flight,
+    pub body: crate::mob::EntityRef,
+    pub offset: Vec3,
+    pub yaw: f32,
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Motion {
     Loose,
     Flight(Flight),
     Stuck(Stuck),
+    Embedded(Embedded),
+}
+
+/// Turns `v` about +Y so a heading of yaw `y` comes out at `y + by`.
+pub fn turn_y(v: Vec3, by: f32) -> Vec3 {
+    let (s, c) = by.sin_cos();
+    Vec3::new(v.x * c + v.z * s, v.y, -v.x * s + v.z * c)
 }
 
 impl Motion {
@@ -82,6 +109,7 @@ impl Motion {
             }),
             contact: None,
             control_ticks: None,
+            facing: None,
         })
     }
 
@@ -89,6 +117,7 @@ impl Motion {
         match self {
             Motion::Flight(f) => Some(f),
             Motion::Stuck(s) => Some(s.flight),
+            Motion::Embedded(e) => Some(e.flight),
             Motion::Loose => None,
         }
     }
@@ -126,6 +155,10 @@ pub struct DroppedItem {
     pub motion: Motion,
     pub prev_pos: petramond_math::world_pos::WorldPos,
     pub prev_spin: f32,
+    /// Who the item's line runs back to, for an item launched on a tether.
+    pub tether: Option<crate::mob::EntityRef>,
+    /// Prims a mod draws in place of the item's own art.
+    pub draw: crate::world::draw::BodyDraw,
     rules: super::item_rules::ItemRules,
     escape: petramond_world::collision::EscapeRoute,
 }
@@ -150,6 +183,8 @@ impl DroppedItem {
             motion,
             prev_pos: pos,
             prev_spin: 0.0,
+            tether: None,
+            draw: Default::default(),
             rules: super::item_rules::ItemRules::of(stack),
             escape: Default::default(),
         }
@@ -183,7 +218,37 @@ impl DroppedItem {
         vel: Vec3,
         owner: Option<crate::mob::EntityRef>,
     ) -> Self {
-        Self::with_motion(pos, stack, vel, Motion::flying(vel, owner))
+        let mut item = Self::with_motion(pos, stack, vel, Motion::flying(vel, owner));
+        item.tether = owner.filter(|_| item.rules.tether.is_some());
+        item
+    }
+
+    /// Replaces the item's `petramond:item_entity` rules, keeping its other data; `None` drops
+    /// them, so it behaves like a plain stack. A line, once let go, is not picked back up.
+    pub fn set_rules(&mut self, rules: Option<&[u8]>) -> Result<(), String> {
+        use petramond_world::item::{variant, ITEM_ENTITY_DATA_KEY};
+        let parsed = match rules {
+            Some(raw) => serde_json::from_slice::<super::item_rules::ItemRules>(raw)
+                .map_err(|e| format!("item rules: {e}"))?,
+            None => Default::default(),
+        };
+        let mut data = variant::get(self.stack.variant)
+            .map(|m| (*m).clone())
+            .unwrap_or_default();
+        match rules {
+            Some(raw) => data.insert(ITEM_ENTITY_DATA_KEY.to_owned(), raw.to_vec()),
+            None => data.remove(ITEM_ENTITY_DATA_KEY),
+        };
+        self.stack.variant = if data.is_empty() {
+            variant::VariantId::NONE
+        } else {
+            variant::intern(&data).map_err(|e| format!("item rules: {e:?}"))?
+        };
+        self.rules = parsed;
+        if parsed.tether.is_none() {
+            self.tether = None;
+        }
+        Ok(())
     }
 
     pub fn heading(&self) -> Option<Heading> {
@@ -191,7 +256,7 @@ impl DroppedItem {
     }
 
     pub fn collectable(&self) -> bool {
-        self.rules.pickup && !matches!(self.motion, Motion::Flight(_))
+        self.rules.pickup && matches!(self.motion, Motion::Loose | Motion::Stuck(_))
     }
 
     pub fn lifetime_ticks(&self) -> Option<u32> {
@@ -211,6 +276,45 @@ impl DroppedItem {
         self.vel = Vec3::ZERO;
     }
 
+    /// Lodges in `body`, whose frame is at `at` turned by `yaw`, keeping the item's pose there.
+    pub fn embed(
+        &mut self,
+        body: crate::mob::EntityRef,
+        at: petramond_math::world_pos::WorldPos,
+        yaw: f32,
+    ) {
+        let Some(flight) = self.motion.projectile() else {
+            self.motion = Motion::Loose;
+            return;
+        };
+        self.motion = Motion::Embedded(Embedded {
+            flight,
+            body,
+            offset: turn_y(self.pos - at, -yaw),
+            yaw: flight.heading.yaw - yaw,
+        });
+        self.vel = Vec3::ZERO;
+    }
+
+    /// Follows the body an embedded item is lodged in; falls loose when the body is gone.
+    pub fn ride(&mut self, frame: Option<(petramond_math::world_pos::WorldPos, f32)>) {
+        self.prev_pos = self.pos;
+        self.prev_spin = self.spin;
+        let Motion::Embedded(e) = &mut self.motion else {
+            return;
+        };
+        match frame {
+            Some((at, yaw)) => {
+                self.pos = at + turn_y(e.offset, yaw);
+                e.flight.heading.yaw = e.yaw + yaw;
+            }
+            None => {
+                self.vel = Vec3::ZERO;
+                self.release();
+            }
+        }
+    }
+
     pub fn release(&mut self) {
         self.motion = Motion::Loose;
     }
@@ -218,9 +322,7 @@ impl DroppedItem {
     pub fn deflect(&mut self, vel: Vec3) {
         if let Motion::Flight(flight) = &mut self.motion {
             self.vel = vel;
-            if let Some(heading) = Heading::of(vel) {
-                flight.heading = heading;
-            }
+            flight.turn_with(vel);
         }
     }
 
@@ -237,6 +339,19 @@ impl DroppedItem {
         } else {
             false
         }
+    }
+
+    /// Holds a steered flight's heading along `facing` (`None`: along its motion again).
+    pub fn face(&mut self, facing: Option<Vec3>) -> bool {
+        let Motion::Flight(flight) = &mut self.motion else {
+            return false;
+        };
+        if flight.control_ticks.is_none() {
+            return false;
+        }
+        flight.facing = facing.and_then(Heading::of);
+        flight.turn_with(self.vel);
+        true
     }
 
     pub fn request_pickup(&mut self, by: crate::player::PlayerId) {
@@ -272,11 +387,12 @@ impl DroppedItem {
         self.prev_spin = self.spin;
         let params = self.stack.item.projectile();
         self.spin = (self.spin + params.sprite_spin * dt).rem_euclid(std::f32::consts::TAU);
-        self.vel.y -= params.gravity * dt;
-        self.vel *= params.drag_factor(dt);
-        if let Some(heading) = Heading::of(self.vel) {
-            flight.heading = heading;
+        // A steered flight moves at the velocity its controller set: the controller is its physics.
+        if flight.control_ticks.is_none() {
+            self.vel.y -= params.gravity * dt;
+            self.vel *= params.drag_factor(dt);
         }
+        flight.turn_with(self.vel);
         Some(self.vel * dt)
     }
 
@@ -501,5 +617,96 @@ mod tests {
             "free fall should still apply outside attract range"
         );
         assert!(d.vel.y < 0.0);
+    }
+
+    #[test]
+    fn an_embedded_item_rides_its_body_and_falls_loose_when_it_is_gone() {
+        let body = WorldPos::new(10.0, 64.0, 10.0);
+        let mut it = DroppedItem::launched(
+            body + Vec3::new(0.0, 1.0, -0.5),
+            stack(),
+            Vec3::new(0.0, 0.0, 8.0),
+            None,
+        );
+        it.embed(crate::mob::EntityRef::Mob(7), body, 0.0);
+        assert!(matches!(it.motion, Motion::Embedded(_)));
+        assert!(
+            !it.collectable(),
+            "a lodged item is not picked off the body"
+        );
+
+        let moved = body + Vec3::new(3.0, 0.0, 0.0);
+        it.ride(Some((moved, std::f32::consts::FRAC_PI_2)));
+        let rel = it.pos - moved;
+        assert!(
+            (rel - Vec3::new(-0.5, 1.0, 0.0)).length() < 1e-4,
+            "the quarter turn carries the offset round: {rel}"
+        );
+        let heading = it.heading().expect("a lodged item keeps its heading");
+        assert!(
+            (heading.yaw - std::f32::consts::FRAC_PI_2).abs() < 1e-4,
+            "and turns its heading with the body: {}",
+            heading.yaw
+        );
+
+        it.ride(None);
+        assert_eq!(it.motion, Motion::Loose, "no body, no hold");
+    }
+
+    #[test]
+    fn a_steered_flight_holds_its_facing_until_the_steering_lets_go() {
+        let mut it = DroppedItem::launched(
+            WorldPos::new(0.0, 64.0, 0.0),
+            stack(),
+            Vec3::new(0.0, 0.0, 8.0),
+            None,
+        );
+        let yaw = |it: &DroppedItem| it.heading().expect("in flight").yaw;
+        assert!(
+            !it.face(Some(-Vec3::Z)),
+            "only a steered flight takes a facing"
+        );
+
+        let home = Vec3::new(0.0, 0.0, -8.0);
+        assert!(it.steer(Some(home)) && it.face(Some(-home)));
+        it.advance_flight(0.05);
+        assert!(yaw(&it).abs() < 1e-4, "faces away from where it goes");
+        it.steer(Some(Vec3::new(8.0, 0.0, 0.0)));
+        it.advance_flight(0.05);
+        assert!(yaw(&it).abs() < 1e-4, "whichever way it is steered");
+
+        it.face(None);
+        assert!(
+            (yaw(&it) - std::f32::consts::FRAC_PI_2).abs() < 1e-4,
+            "and turns with its motion again"
+        );
+    }
+
+    #[test]
+    fn rules_set_after_launch_cut_the_line_and_clear_back_to_a_plain_stack() {
+        let rules = br#"{"pickup":false,"tether":{}}"#;
+        let data = [(
+            petramond_world::item::ITEM_ENTITY_DATA_KEY.to_owned(),
+            rules.to_vec(),
+        )]
+        .into_iter()
+        .collect();
+        let variant = petramond_world::item::variant::intern(&data).expect("interns");
+        let launched = ItemStack::with_variant(ItemType::Dirt, 1, variant);
+        let mut it = DroppedItem::launched(
+            WorldPos::new(0.0, 64.0, 0.0),
+            launched,
+            Vec3::X,
+            Some(crate::mob::EntityRef::Player(crate::player::PlayerId(1))),
+        );
+        assert!(it.tether.is_some());
+        it.release();
+        assert!(!it.collectable());
+
+        it.set_rules(None).expect("clears");
+        assert_eq!(it.tether, None, "the line is cut");
+        assert!(it.collectable());
+        assert_eq!(it.stack, stack(), "and the stack is plain again");
+        assert!(it.set_rules(Some(b"not json")).is_err());
     }
 }

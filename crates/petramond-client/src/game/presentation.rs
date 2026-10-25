@@ -4,7 +4,7 @@ use petramond::mob::Mob;
 use petramond::world::PlacedEmitter;
 use petramond_math::math::Tilt;
 use petramond_render::camera::ViewVolume;
-use petramond_render::{AnimLayer, ArenaRange, GaitFade, MobArena};
+use petramond_render::{AnimLayer, ArenaRange, GaitFade, MobArena, TetherFrom};
 use petramond_world::block::Block;
 
 use super::remote_players;
@@ -150,6 +150,7 @@ impl GamePresentationScratch {
         self.collect_block_draws(game, view);
         self.collect_cloths(game, view);
         self.collect_mob_draws(game, tick_alpha, view);
+        self.collect_item_draws(game, tick_alpha, view);
         self.collect_mobs(game, tick_alpha);
         if game.fx.particles.count_scale() > 0.0 {
             self.collect_mob_emitters(game, tick_alpha, view);
@@ -195,10 +196,29 @@ impl GamePresentationScratch {
     fn collect_item_entities(&mut self, game: &Game) {
         self.item_entities.clear();
         let world = &game.replica.world;
+        let me = game.replica.entities.self_id();
+        let tether = |wire: petramond::net::protocol::TetherWire| match wire {
+            petramond::net::protocol::TetherWire::Player(id) if id == me => {
+                Some(if game.presents_local_body() {
+                    TetherFrom::Body(petramond_render::LOCAL_BODY_KEY)
+                } else {
+                    TetherFrom::Viewmodel
+                })
+            }
+            petramond::net::protocol::TetherWire::Player(id) => {
+                Some(TetherFrom::Body(u32::from(id.0)))
+            }
+            petramond::net::protocol::TetherWire::Mob(_) => None,
+        };
         self.item_entities
             .extend(game.replica.entities.items().iter().map(|entry| {
                 let c = entry.curr.pos.block();
                 DroppedItemPresentation {
+                    tether: entry.curr.tether.and_then(tether),
+                    drawn_top: entry
+                        .draw
+                        .as_ref()
+                        .map(|set| set.bounds.map_or(0.0, |(_, hi)| hi[1])),
                     prev_pos: entry.prev.pos,
                     pos: entry.curr.pos,
                     item: petramond_world::item::ItemType(entry.curr.item_id),
@@ -358,35 +378,34 @@ impl GamePresentationScratch {
         let world = &game.replica.world;
         for entry in game.replica.entities.mobs().iter() {
             let Some(set) = &entry.draw else { continue };
-            let Some((lo, hi)) = set.bounds else { continue };
             if entry.curr.dead {
                 continue;
             }
             let (pos, yaw) = entry.interpolated_pose(tick_alpha);
-            let anchor = pos.block();
             let turn = if entry.curr.draw.turns { yaw } else { 0.0 };
-            let frame = petramond::world::draw::BlockLocalFrame {
-                anchor,
-                transform: petramond_math::math::Mat4::from_translation(pos.relative_to(anchor))
-                    * petramond_math::math::Mat4::from_rotation_y(turn),
-            };
-            let (mn, mx) = petramond::world::draw::world_bounds(&frame, lo, hi);
-            if !view.aabb_visible(mn, mx) {
-                continue;
-            }
-            let c = ((mn.block() + mx.block()).as_vec3() * 0.5)
-                .floor()
-                .as_ivec3();
             self.block_draws
-                .push(petramond::world::draw::BlockDrawInstance {
-                    pos: anchor,
-                    set: std::sync::Arc::clone(set),
-                    frame,
-                    skylight: world.data().skylight6_at_world(c.x, c.y, c.z),
-                    blocklight: petramond_world::light::BlockLight6::from_x2(
-                        world.data().blocklight_rgb_at_world(c.x, c.y, c.z),
-                    ),
-                });
+                .extend(placed_body_draw(world, set, pos, turn, view));
+        }
+    }
+
+    fn collect_item_draws(&mut self, game: &Game, tick_alpha: f32, view: &ViewVolume) {
+        let world = &game.replica.world;
+        for entry in game.replica.entities.items().iter() {
+            let Some(set) = &entry.draw else { continue };
+            let pos = entry.prev.pos.lerp(entry.curr.pos, tick_alpha);
+            let turn = match (entry.curr.draw.turns, entry.prev.flight, entry.curr.flight) {
+                (false, _, _) => 0.0,
+                (true, prev, Some([yaw, ..])) => petramond_math::math::lerp_angle(
+                    prev.map_or(yaw, |[py, ..]| py),
+                    yaw,
+                    tick_alpha,
+                ),
+                (true, _, None) => {
+                    petramond_math::math::lerp_angle(entry.prev.spin, entry.curr.spin, tick_alpha)
+                }
+            };
+            self.block_draws
+                .extend(placed_body_draw(world, set, pos, turn, view));
         }
     }
 
@@ -887,4 +906,36 @@ fn break_overlay_at(
         model,
         stage,
     }
+}
+
+/// A body's draw set about `pos`, turned `turn` about +Y, lit at its middle; `None` off screen.
+fn placed_body_draw(
+    world: &petramond::world::ReplicaWorld,
+    set: &petramond::world::draw::BlockDraw,
+    pos: petramond_math::world_pos::WorldPos,
+    turn: f32,
+    view: &ViewVolume,
+) -> Option<petramond::world::draw::BlockDrawInstance> {
+    let (lo, hi) = set.bounds?;
+    let anchor = pos.block();
+    let frame = petramond::world::draw::BlockLocalFrame {
+        anchor,
+        transform: petramond_math::math::Mat4::from_translation(pos.relative_to(anchor))
+            * petramond_math::math::Mat4::from_rotation_y(turn),
+    };
+    let (mn, mx) = petramond::world::draw::world_bounds(&frame, lo, hi);
+    if !view.aabb_visible(mn, mx) {
+        return None;
+    }
+    let c = ((mn.block() + mx.block()).as_vec3() * 0.5)
+        .floor()
+        .as_ivec3();
+    let (skylight, blocklight) = world.data().dynamic_light_at_world(c.x, c.y, c.z);
+    Some(petramond::world::draw::BlockDrawInstance {
+        pos: anchor,
+        set: std::sync::Arc::clone(set),
+        frame,
+        skylight,
+        blocklight,
+    })
 }

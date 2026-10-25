@@ -16,6 +16,10 @@ use petramond_world::bbmodel::Model;
 /// two fists stay symmetric by construction.
 const HAND_GRIP_PX: Vec3 = Vec3::new(6.0, 11.0, -1.5);
 
+/// The middle of the fist in the main grip's rest frame: the hand end of the lower arm (x 4..8,
+/// y 12..15, z -2..2), where a line held in an empty hand leaves from.
+pub(super) const FIST_PX: Vec3 = Vec3::new(6.0, 13.5, 0.0);
+
 fn mirror_local(m: Mat4) -> Mat4 {
     let s = Mat4::from_scale(Vec3::new(-1.0, 1.0, 1.0));
     s * m * s

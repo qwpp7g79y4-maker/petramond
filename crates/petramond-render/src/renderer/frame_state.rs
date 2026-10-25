@@ -78,6 +78,7 @@ impl Renderer {
         let view_proj = relative_view_proj(cam, render_origin, view_offset);
         let inv_view_proj = view_proj.inverse();
         self.view.frustum = Frustum::from_view_proj(view_proj);
+        self.view.inv_view_proj = inv_view_proj;
         self.view.proj_y_scale = cam.proj().y_axis.y;
         self.view.cam_pos = cam.pos;
         self.view.render_origin = render_origin;

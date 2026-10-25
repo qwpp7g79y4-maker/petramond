@@ -41,6 +41,17 @@ use petramond_world::tile_alpha::tile_alpha_opaque;
 /// `view_sort`, when `Some(dir)`, orders the cubes far→near along `dir` so a DEPTHLESS
 /// pass (the iso inventory icon) gets correct overlap by painter's algorithm; the
 /// depth-tested hand/world contexts pass `None`.
+/// The highest point of a model item's cubes, in the unit frame [`build_block_model_item`]
+/// draws it in (centred on the origin, longest footprint side 1).
+pub fn block_model_item_top(kind: BlockModelKind) -> f32 {
+    let inst = block_model::instance(kind);
+    let span = inst.footprint.iter().copied().max().unwrap_or(1).max(1) as f32;
+    let Some(top) = inst.cubes.iter().map(|c| c.to.y).reduce(f32::max) else {
+        return 0.0;
+    };
+    (top - inst.footprint[1] as f32 * 0.5) / span
+}
+
 pub fn build_block_model_item(
     kind: BlockModelKind,
     transform: Mat4,
@@ -219,6 +230,30 @@ pub(crate) fn grip_point(tile: Tile, tool: bool) -> glam::Vec3 {
     match GRIPS.get(tile.index()) {
         Some(grips) => *grips[usize::from(tool)].get_or_init(|| find_grip_point(tile, tool)),
         None => find_grip_point(tile, tool),
+    }
+}
+
+/// The far end of a held sprite: its opaque texel farthest from the grip (a rod's tip), where a
+/// line the item trails starts.
+pub(crate) fn tip_point(tile: Tile, tool: bool) -> glam::Vec3 {
+    static TIPS: std::sync::LazyLock<Box<[[std::sync::OnceLock<glam::Vec3>; 2]]>> =
+        std::sync::LazyLock::new(|| Tile::all().map(|_| Default::default()).collect());
+    let find = || {
+        let grip = grip_point(tile, tool).truncate();
+        (0..GRID as i32)
+            .flat_map(|ty| (0..GRID as i32).map(move |tx| (tx, ty)))
+            .filter(|&(tx, ty)| opaque(tile, tx, ty))
+            .map(|(tx, ty)| glam::Vec2::new(px(tx) + 0.5 / GRID as f32, py(ty) - 0.5 / GRID as f32))
+            .max_by(|a, b| {
+                a.distance_squared(grip)
+                    .total_cmp(&b.distance_squared(grip))
+            })
+            .unwrap_or(grip)
+            .extend(0.0)
+    };
+    match TIPS.get(tile.index()) {
+        Some(tips) => *tips[usize::from(tool)].get_or_init(find),
+        None => find(),
     }
 }
 

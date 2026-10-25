@@ -82,6 +82,24 @@ impl StepCtx<'_> {
         }
     }
 
+    /// Where a body stands and which way it turns, while it lives.
+    fn body_frame(&self, body: EntityRef) -> Option<(WorldPos, f32)> {
+        match body {
+            EntityRef::Player(id) => self
+                .anchors
+                .iter()
+                .find(|a| a.id == id && a.alive)
+                .map(|a| (a.pos, a.yaw)),
+            EntityRef::Mob(id) => self
+                .world
+                .mobs()
+                .instances()
+                .iter()
+                .find(|m| m.id() == id && !m.is_dead())
+                .map(|m| (m.pos, m.yaw)),
+        }
+    }
+
     fn magnet_for(&self, item: &DroppedItem) -> Option<WorldPos> {
         let by = item.pickup_requested?;
         self.anchors.iter().find(|a| a.id == by).map(|a| a.pos)
@@ -122,6 +140,10 @@ impl DroppedItem {
             }
             Motion::Stuck(_) => {
                 self.step_stuck(ctx);
+                None
+            }
+            Motion::Embedded(e) => {
+                self.ride(ctx.body_frame(e.body));
                 None
             }
         }

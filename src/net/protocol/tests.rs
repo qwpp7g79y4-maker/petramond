@@ -92,6 +92,8 @@ fn item(id: u64, x: f64) -> ItemStateRow {
         pos: WorldPos::new(x, 64.0, 0.0),
         spin: 0.0,
         flight: None,
+        tether: None,
+        draw: Default::default(),
     }
 }
 

@@ -58,7 +58,7 @@ pub(crate) fn flag(on: bool) -> f32 {
 }
 
 fn kind_fact(item: Option<ItemType>) -> f32 {
-    intern(item.map_or("none", |item| item.render_kind().name()))
+    intern(item.map_or("none", |item| item.held_render_kind().name()))
 }
 
 fn item_facts(item: Option<ItemType>) -> [f32; 3] {

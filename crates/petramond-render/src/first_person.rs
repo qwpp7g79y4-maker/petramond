@@ -92,9 +92,16 @@ impl FirstPersonRig {
             * seat
     }
 
+    /// The fist's grip point in view space.
+    pub fn fist(&self, bones: &[Mat4], hand: Hand) -> Option<Vec3> {
+        let grip = self.row.grips[hand as usize];
+        let pivot = self.row.model.bones()[grip].pivot;
+        Some(to_view().transform_point3(bones.get(grip)?.transform_point3(pivot)))
+    }
+
     pub fn carry(&self, bones: &[Mat4], hand: Hand, item: ItemType) -> Option<Mat4> {
         let grip = *bones.get(self.row.grips[hand as usize])?;
-        let hold: Option<ClipId> = self.row.hold(item.render_kind());
+        let hold: Option<ClipId> = self.row.hold(item.held_render_kind());
         Some(to_view() * grip * self.hold_inverse(hand, hold))
     }
 

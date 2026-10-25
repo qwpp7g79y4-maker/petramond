@@ -345,6 +345,27 @@ pub(super) fn handle_block_call(mod_id: &str, call: BlockCall) -> HostRet {
                 )
             })
         }
+        BlockCall::FluidSurfaceAt { positions } => {
+            if let Some(err) = batch_guard("FluidSurfaceAt position", positions.len()) {
+                return err;
+            }
+            sim_read(|ctx| {
+                HostRet::FluidSurfaces(
+                    positions
+                        .iter()
+                        .map(|&pos| {
+                            let p = IVec3::from(pos);
+                            ctx.world.block_if_stream_final(p.x, p.y, p.z)?;
+                            let at = ctx.world.data().fluid_surface_at(p)?;
+                            Some((
+                                mod_api::BlockId(at.fluid.block.id()),
+                                f64::from(at.surface_y),
+                            ))
+                        })
+                        .collect(),
+                )
+            })
+        }
         BlockCall::BreakNaturally { pos } => sim_query(|ctx| {
             let p = IVec3::from(pos);
             match stream_final_cell(ctx, p) {

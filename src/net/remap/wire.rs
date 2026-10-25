@@ -298,6 +298,8 @@ impl Remap for ItemStateRow {
             pos: _,
             spin: _,
             flight: _,
+            tether: _,
+            draw: _,
         } = self;
         IdRemap::rewrite(item_id, |id| map.item(id))
     }

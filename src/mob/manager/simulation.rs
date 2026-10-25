@@ -18,6 +18,9 @@ pub struct PlayerAnchor {
     pub body: Option<Body>,
     pub sneaking: bool,
     pub held: Option<petramond_world::item::ItemType>,
+    /// Look yaw: the frame an item lodged in this body turns with.
+    pub yaw: f32,
+    pub alive: bool,
 }
 
 impl Default for PlayerAnchor {
@@ -28,6 +31,8 @@ impl Default for PlayerAnchor {
             body: None,
             sneaking: false,
             held: None,
+            yaw: 0.0,
+            alive: true,
         }
     }
 }

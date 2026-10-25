@@ -411,6 +411,14 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::ItemImpulses", &HostCall::from(calls::ItemImpulses { impulses: vec![(9, [1.0, 0.0, -1.0])] }));
     s.pin("HostCall::SteerItem", &HostCall::from(calls::SteerItem { entity: 9, vel: Some([1.0, 0.0, -1.0]) }));
     s.pin("HostCall::TakeItemEntity", &HostCall::from(calls::TakeItemEntity { entity: 9 }));
+    s.pin("HostCall::SetItemDraw", &HostCall::from(calls::SetItemDraw {
+        entity: 9, frame: crate::DrawFrame::Body,
+        prims: vec![crate::DrawPrim::Cuboid {
+            min: [-0.25, 0.0, -0.25], max: [0.25, 0.5, 0.25], tile: "m:t".into(), tint: [1, 2, 3], emissive: false,
+        }],
+    }));
+    s.pin("HostCall::SetItemRules", &HostCall::from(calls::SetItemRules { entity: 9, rules: Some(b"{}".to_vec()) }));
+    s.pin("HostCall::SetItemFacing", &HostCall::from(calls::SetItemFacing { entity: 9, facing: Some([0.0, 0.0, -1.0]) }));
     s.pin("HostCall::SectionKvFind", &HostCall::from(calls::SectionKvFind { section: [-1, -2, 3], key: "fixture:marker".into() }));
     s.pin("HostCall::StructureInfo", &HostCall::from(calls::StructureInfo { key: "fixture:room".into() }));
     s.pin("HostCall::LootRoll", &HostCall::from(calls::LootRoll { key: "fixture:loot".into(), seed: 7 }));
@@ -1147,6 +1155,8 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::LightAtMany", &HostCall::from(calls::LightAtMany { positions: vec![[1, 2, 3]] }));
     s.pin("HostCall::SupportedAt", &HostCall::from(calls::SupportedAt { positions: vec![[1, 2, 3]] }));
     s.pin("HostCall::BreakNaturally", &HostCall::from(calls::BreakNaturally { pos: [1, 2, 3] }));
+    s.pin("HostCall::FluidSurfaceAt", &HostCall::from(calls::FluidSurfaceAt { positions: vec![[1, -2, 3]] }));
+    s.pin("HostRet::FluidSurfaces", &HostRet::FluidSurfaces(vec![None, Some((BlockId(9), 64.875))]));
     s.pin("HostCall::MobTagsGetMany", &HostCall::from(calls::MobTagsGetMany { mob_ids: vec![7] }));
     s.pin("HostCall::MobTagsWrite", &HostCall::from(calls::MobTagsWrite { writes: vec![MobTagOp::Delete { mob_id: 7, key: "m:k".into() }] }));
     s.pin("HostCall::MobDriveMany", &HostCall::from(calls::MobDriveMany { drives: vec![MobDriveData::horizontal(7, [1.0, 2.0], None)] }));

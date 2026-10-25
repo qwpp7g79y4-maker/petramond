@@ -136,6 +136,8 @@ impl ServerGame {
             .map(|sess| crate::mob::PlayerAnchor {
                 id: sess.id,
                 pos: sess.player.body_center(),
+                yaw: sess.player.yaw,
+                alive: sess.player.health() > 0,
                 body: (!sess.player.is_spectator() && sess.sim.mount.is_none())
                     .then(|| sess.player.body()),
                 sneaking: sess.sneaking(),

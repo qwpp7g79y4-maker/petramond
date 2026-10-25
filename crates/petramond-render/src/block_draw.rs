@@ -80,7 +80,16 @@ pub fn build_block_draws(draws: VisibleDraws<'_>, verts: &mut Vec<Vertex>, indic
                     // asked for u = 19/16ths: a debug assert in the packer, and
                     // in a release build a face sampling a quarter of a tile
                     // past its own art.
-                    let cell = [min[0].floor(), min[1].floor(), min[2].floor()];
+                    // A box straddling a cell line (a body's prims sit about its origin) fits
+                    // in no cell, so it maps from its own corner instead.
+                    let cell = min.map(f32::floor);
+                    let cell = if (0..3).any(|a| max[a] - cell[a] > 1.0)
+                        && (0..3).all(|a| max[a] - min[a] <= 1.0)
+                    {
+                        *min
+                    } else {
+                        cell
+                    };
                     let rel = |p: &[f32; 3]| [p[0] - cell[0], p[1] - cell[1], p[2] - cell[2]];
                     for face in Face::ALL {
                         push_cell_local_face(
@@ -328,7 +337,7 @@ fn orient(centre: Vec3, yaw: f32, pitch: f32) -> Mat4 {
         * Mat4::from_translation(-centre)
 }
 
-fn multiply_tint(verts: &mut [Vertex], tint: [u8; 3]) {
+pub(crate) fn multiply_tint(verts: &mut [Vertex], tint: [u8; 3]) {
     if tint == [255, 255, 255] {
         return;
     }

@@ -57,7 +57,7 @@ impl ServerWorld {
             .enumerate()
             .filter(|(_, item)| {
                 requested.contains(&item.id)
-                    && !matches!(item.motion, Motion::Stuck(_))
+                    && !matches!(item.motion, Motion::Stuck(_) | Motion::Embedded(_))
                     && item.pickup_requested.is_none()
                     && terrain_under_drop_is_final(self, item.pos)
             })

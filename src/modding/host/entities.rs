@@ -97,6 +97,13 @@ pub(super) fn item_entity_data(it: &DroppedItem) -> mod_api::ItemEntityData {
                 cell: s.anchor.to_array(),
             },
         ),
+        // A body holds it like a block would: mods see it stuck where it is.
+        Motion::Embedded(e) => (
+            e.flight.owner,
+            mod_api::ItemMotion::Stuck {
+                cell: it.pos.block().to_array(),
+            },
+        ),
     };
     mod_api::ItemEntityData {
         id: it.id,

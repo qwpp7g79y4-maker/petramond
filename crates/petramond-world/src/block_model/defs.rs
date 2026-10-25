@@ -152,6 +152,9 @@ pub struct BlockModelDef {
     pub parts: &'static [&'static str],
     pub tint_parts: &'static [&'static str],
     pub surfaces: &'static [super::SurfaceMaterial],
+    /// Its item, dropped or flying, is drawn by the model's authored `ground` display pose at its
+    /// own size, instead of shrunk to the standard item size.
+    pub ground_pose: bool,
 }
 
 impl BlockModelDef {
@@ -198,6 +201,8 @@ struct RawModelDef {
     tint_parts: Vec<String>,
     #[serde(default)]
     surfaces: Vec<super::SurfaceMaterial>,
+    #[serde(default)]
+    ground_pose: bool,
 }
 
 pub(crate) struct ModelDefs {
@@ -312,6 +317,7 @@ fn parse_layers(texts: &[&str]) -> Result<crate::registry::Catalog<BlockModelDef
                 parts: Box::leak(parts.into_boxed_slice()),
                 tint_parts: Box::leak(tint_parts.into_boxed_slice()),
                 surfaces: Box::leak(r.surfaces.into_boxed_slice()),
+                ground_pose: r.ground_pose,
             })
         },
     )

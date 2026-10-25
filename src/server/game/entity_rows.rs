@@ -258,5 +258,7 @@ fn item_row(it: &crate::entity::DroppedItem) -> ItemStateRow {
         pos: it.pos,
         spin: it.spin,
         flight: it.heading().map(|h| [h.yaw, h.pitch, it.vel.length()]),
+        tether: it.tether.map(crate::net::protocol::TetherWire::of),
+        draw: it.draw.clone(),
     }
 }

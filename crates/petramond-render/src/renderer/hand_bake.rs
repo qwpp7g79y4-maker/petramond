@@ -46,6 +46,7 @@ impl Renderer {
         hi.clear();
         iv.clear();
         let (rig, bones) = (&first_person.rig, &first_person.bones);
+        let mut main_tip = None;
 
         for (hand, view) in [
             (Hand::Main, self.hand.held_item),
@@ -58,7 +59,7 @@ impl Renderer {
                 view.item
                     .zip(crate::hand::rest_seat(&view, off))
                     .and_then(|(item, seat)| {
-                        let seat = match item.render_kind() {
+                        let seat = match item.held_render_kind() {
                             ItemRenderKind::Sprite(tile) => rig.sprite_in_fist(
                                 hand,
                                 seat,
@@ -68,10 +69,21 @@ impl Renderer {
                             ),
                             _ => seat,
                         };
-                        rig.carry(bones, hand, item)
-                            .map(|carry| (item.render_kind(), crate::hand::carried(seat, carry)))
+                        rig.carry(bones, hand, item).map(|carry| {
+                            (item.held_render_kind(), crate::hand::carried(seat, carry))
+                        })
                     });
             if let Some((kind, at)) = seated {
+                if !off {
+                    let tip = match kind {
+                        ItemRenderKind::Sprite(tile) => crate::item_model::tip_point(
+                            tile,
+                            view.item.and_then(|i| i.tool()).is_some(),
+                        ),
+                        _ => glam::Vec3::ZERO,
+                    };
+                    main_tip = Some(at.transform_point3(tip));
+                }
                 match kind {
                     ItemRenderKind::BlockCube(block) => {
                         let first = hv.len();
@@ -110,6 +122,9 @@ impl Renderer {
                     }
                 }
             }
+            if !off && seated.is_none() {
+                main_tip = rig.fist(bones, hand);
+            }
             let count = iv.len() as u32 - start;
             if off {
                 self.hand.off_item3d_start = start;
@@ -137,6 +152,7 @@ impl Renderer {
             glam::Mat4::IDENTITY
         };
         let mvp = shake * crate::hand::model_hand_view_proj(aspect) * view_offset;
+        self.hand.main_tip = main_tip.map(|tip| (mvp.project_point3(tip).truncate(), tip.length()));
         self.upload_hand(&hv, &hi, &iv, mvp);
         self.hand.verts = hv;
         self.hand.indices = hi;

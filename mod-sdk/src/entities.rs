@@ -331,8 +331,23 @@ host_fn! {
 }
 
 host_fn! {
+    pub fn set_item_draw(entity: u64, frame: mod_api::DrawFrame, prims: Vec<mod_api::DrawPrim>) -> bool
+        => SetItemDraw { entity, frame, prims } => Bool
+}
+
+host_fn! {
     pub fn take_item_entity(entity: u64) -> Option<mod_api::ItemStackData>
         => TakeItemEntity { entity } => ItemStack
+}
+
+host_fn! {
+    pub fn set_item_rules(entity: u64, rules: Option<Vec<u8>>) -> bool
+        => SetItemRules { entity, rules } => Bool
+}
+
+host_fn! {
+    pub fn set_item_facing(entity: u64, facing: Option<[f32; 3]>) -> bool
+        => SetItemFacing { entity, facing } => Bool
 }
 
 host_fn! {

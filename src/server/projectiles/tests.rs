@@ -130,7 +130,7 @@ fn an_impact_with_no_sessions_takes_the_default_fate() {
 }
 
 #[test]
-fn a_lodge_on_a_body_drops_clear_instead() {
+fn a_lodge_on_a_missing_body_drops_clear_instead() {
     let mut server = fresh_server();
     let at = server.sessions[0].player.pos + Vec3::new(2.0, 1.0, 0.0);
     let id = launch(&mut server, at);
@@ -206,5 +206,48 @@ fn a_deflection_keeps_the_projectile_and_reverses_its_flight() {
     assert!(
         it.vel.y < outgoing.y,
         "gravity still acts on the bounced shot"
+    );
+}
+
+#[test]
+fn a_lodge_on_a_mob_rides_it_until_it_is_gone() {
+    let mut server = fresh_server();
+    let at = server.sessions[0].player.pos + Vec3::new(3.0, 0.0, 0.0);
+    assert!(server
+        .world
+        .mobs_mut()
+        .spawn(crate::mob::Mob::Sheep, at, 0.0));
+    let mob = server.world.mobs().instances()[0].id();
+    let id = launch(&mut server, at + Vec3::new(-0.5, 0.6, 0.0));
+    server.mods.bus_mut().on_projectile_hit(0, |_, ev| {
+        ev.fate = Fate::Lodge;
+        Outcome::Continue
+    });
+    let mut events = TickEvents::default();
+    server.resolve_item_impacts(
+        vec![ItemImpact {
+            id,
+            target: ImpactTarget::Mob(mob),
+            point: at,
+            vel: Vec3::new(30.0, 0.0, 0.0),
+        }],
+        &mut events,
+    );
+    let lodged = server.world.dropped_items().get(id).expect("kept");
+    assert!(
+        matches!(lodged.motion, Motion::Embedded(_)),
+        "{:?}",
+        lodged.motion
+    );
+
+    server.world.mobs_mut().remove(mob);
+    server
+        .world
+        .tick_item_physics(crate::events::tick::TICK_DT, &[]);
+    let fallen = server.world.dropped_items().get(id).expect("kept");
+    assert_eq!(
+        fallen.motion,
+        Motion::Loose,
+        "the body is gone, so it drops"
     );
 }

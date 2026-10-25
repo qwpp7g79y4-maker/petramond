@@ -177,6 +177,17 @@ impl ItemType {
         }
     }
 
+    /// What the item looks like in use, held or launched. A row declaring both a sprite and a
+    /// model shows the sprite as its icon ([`Self::render_kind`]: menus, a dropped stack) and the
+    /// model in use.
+    #[inline]
+    pub fn held_render_kind(self) -> ItemRenderKind {
+        match (self.def().sprite, self.item_model()) {
+            (Some(_), Some(kind)) => ItemRenderKind::Model(kind),
+            _ => self.render_kind(),
+        }
+    }
+
     #[inline]
     pub fn held_pose(self) -> HeldPose {
         self.def().held_pose

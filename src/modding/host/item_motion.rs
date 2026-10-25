@@ -61,6 +61,51 @@ pub(super) fn handle(call: ItemMotionCall) -> HostRet {
                 )
             })
         }
+        ItemMotionCall::SetItemDraw {
+            entity,
+            frame,
+            prims,
+        } => {
+            if let Some(err) = super::blocks::check_draw_set("SetItemDraw", &prims) {
+                return err;
+            }
+            sim_query(|ctx| {
+                let Some(item) = ctx.world.dropped_items_mut().get_mut(entity) else {
+                    return HostRet::Bool(false);
+                };
+                item.draw = crate::world::draw::BodyDraw {
+                    prims: prims.into(),
+                    turns: frame == mod_api::DrawFrame::Body,
+                };
+                HostRet::Bool(true)
+            })
+        }
+        ItemMotionCall::SetItemRules { entity, rules } => sim_query(|ctx| {
+            let Some(item) = ctx.world.dropped_items_mut().get_mut(entity) else {
+                return HostRet::Bool(false);
+            };
+            match item.set_rules(rules.as_deref()) {
+                Ok(()) => HostRet::Bool(true),
+                Err(e) => HostRet::invalid(format!("SetItemRules: {e}")),
+            }
+        }),
+        ItemMotionCall::SetItemFacing { entity, facing } => {
+            let facing = match facing
+                .map(|v| finite3(v, "SetItemFacing.facing"))
+                .transpose()
+            {
+                Ok(facing) => facing,
+                Err(error) => return error,
+            };
+            sim_query(|ctx| {
+                HostRet::Bool(
+                    ctx.world
+                        .dropped_items_mut()
+                        .get_mut(entity)
+                        .is_some_and(|item| item.face(facing)),
+                )
+            })
+        }
         ItemMotionCall::TakeItemEntity { entity } => sim_query(|ctx| {
             let stack = ctx.world.dropped_items().get(entity).map(|item| item.stack);
             if stack.is_some() {

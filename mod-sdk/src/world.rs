@@ -124,6 +124,11 @@ host_fn! {
 }
 
 host_fn! {
+    pub fn fluid_surface_at(positions: Vec<[i32; 3]>) -> Vec<Option<(BlockId, f64)>>
+        => FluidSurfaceAt { positions } => FluidSurfaces
+}
+
+host_fn! {
     pub fn break_naturally(pos: [i32; 3]) -> bool => BreakNaturally { pos } => Bool
 }
 

@@ -227,7 +227,8 @@ impl PlayerAnimation {
                     inputs: local.inputs(),
                     dt,
                 });
-                let row = pose_row(rig, &body, local.held, &frame.bone_offsets, drive, poses);
+                let mut row = pose_row(rig, &body, local.held, &frame.bone_offsets, drive, poses);
+                row.key = petramond_render::LOCAL_BODY_KEY;
                 rows.push(row);
             }
             None => {
@@ -249,7 +250,7 @@ impl PlayerAnimation {
                         inputs,
                         dt,
                     });
-                    let row = pose_row(
+                    let mut row = pose_row(
                         rig,
                         &remote.body,
                         remote.held,
@@ -257,6 +258,7 @@ impl PlayerAnimation {
                         drive,
                         poses,
                     );
+                    row.key = remote.key;
                     rows.push(row);
                 }
                 None => {
@@ -302,6 +304,7 @@ fn pose_row(
     );
     let held = drive.map_or(held, |d| d.animator.present_hands(held));
     PlayerBodyRender {
+        key: petramond_render::LOCAL_BODY_KEY,
         body: PlayerRenderInstance {
             emitter_tint: body.emitter_tint,
             emitter_self_lit: body.emitter_self_lit,

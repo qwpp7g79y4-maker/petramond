@@ -147,6 +147,27 @@ fn a_flight_strikes_the_first_body_on_its_path_and_stops_there() {
 }
 
 #[test]
+fn a_steered_flight_moves_at_its_steered_velocity_without_gravity() {
+    let mut w = open_world();
+    let start = WorldPos::new(3.5, 70.0, 5.5);
+    let id = w.spawn_item(launched(start, Vec3::ZERO, None));
+    for _ in 0..10 {
+        assert!(w
+            .dropped_items_mut()
+            .get_mut(id)
+            .unwrap()
+            .steer(Some(Vec3::new(2.0, 0.5, 0.0))));
+        w.tick_item_physics(0.05, &[]);
+    }
+    let item = w.dropped_items().get(id).unwrap();
+    let moved = item.pos - start;
+    assert!(
+        (moved.x - 1.0).abs() < 1e-4 && (moved.y - 0.25).abs() < 1e-4,
+        "the controller's velocity, not one sagging under gravity: {moved:?}"
+    );
+}
+
+#[test]
 fn controlled_flights_keep_the_collision_sweep_and_drop_when_the_controller_stops() {
     let mut w = open_world();
     w.set_block_world(5, 64, 5, petramond_world::block::Block::Stone);

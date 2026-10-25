@@ -64,6 +64,7 @@ fn impulses_compose_without_stealing_reserved_or_lodged_items() {
             left_owner: true,
             contact: None,
             control_ticks: None,
+            facing: None,
             heading: Heading {
                 yaw: 0.0,
                 pitch: 0.0,

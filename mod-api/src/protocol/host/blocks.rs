@@ -99,5 +99,11 @@ host_domain! {
         BreakNaturally {
             pos: [i32; 3],
         } => legal(SERVER, Sim, Write),
+        /// For each cell holding fluid, that fluid and the world height of its open surface (the
+        /// top of the column the cell is in, as the world renders and floats bodies on it).
+        /// `None` = no fluid or unreadable. → [`HostRet::FluidSurfaces`](crate::HostRet::FluidSurfaces).
+        FluidSurfaceAt {
+            positions: Vec<[i32; 3]>,
+        } => legal(SERVER, Sim, Read),
     }
 }

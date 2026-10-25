@@ -111,10 +111,12 @@ pub struct ReplicatedMob {
     emitters: BodyEmitters,
 }
 
-fn resolve_draw(row: &MobStateRow) -> Option<petramond::world::draw::BlockDraw> {
-    (!row.draw.prims.is_empty()).then(|| {
+fn resolve_draw(
+    draw: &petramond::world::draw::BodyDraw,
+) -> Option<petramond::world::draw::BlockDraw> {
+    (!draw.prims.is_empty()).then(|| {
         std::sync::Arc::new(petramond::world::draw::BlockDrawSet::new(
-            row.draw.prims.clone(),
+            draw.prims.clone(),
         ))
     })
 }
@@ -159,7 +161,7 @@ impl Replica<MobStateRow> for ReplicatedMob {
             curr_anims: Vec::new(),
             anim_blend: Vec::new(),
             gait_blend: Vec::new(),
-            draw: resolve_draw(row),
+            draw: resolve_draw(&row.draw),
             emitters: BodyEmitters::default(),
         };
         intern_anims(&row.anims, &[], &[], interner, &mut mob.curr_anims);
@@ -171,7 +173,7 @@ impl Replica<MobStateRow> for ReplicatedMob {
 
     fn advance(&mut self, row: &MobStateRow, interner: &mut AnimInterner) {
         if !same_draw(&self.curr.draw.prims, &row.draw.prims) {
-            self.draw = resolve_draw(row);
+            self.draw = resolve_draw(&row.draw);
         }
         std::mem::swap(&mut self.prev_anims, &mut self.curr_anims);
         intern_anims(
@@ -347,6 +349,7 @@ impl ReplicatedMobs {
 pub struct ReplicatedItem {
     pub prev: ItemStateRow,
     pub curr: ItemStateRow,
+    pub draw: Option<petramond::world::draw::BlockDraw>,
 }
 
 #[derive(Default)]
@@ -361,15 +364,22 @@ impl Replica<ItemStateRow> for ReplicatedItem {
         ReplicatedItem {
             prev: row.clone(),
             curr: row.clone(),
+            draw: resolve_draw(&row.draw),
         }
     }
 
     fn advance(&mut self, row: &ItemStateRow, _: &mut ()) {
+        if !same_draw(&self.curr.draw.prims, &row.draw.prims) {
+            self.draw = resolve_draw(&row.draw);
+        }
         std::mem::swap(&mut self.prev, &mut self.curr);
         self.curr.assign_from(row);
     }
 
     fn reseed(&mut self, row: &ItemStateRow, _: &mut ()) {
+        if !same_draw(&self.curr.draw.prims, &row.draw.prims) {
+            self.draw = resolve_draw(&row.draw);
+        }
         self.curr.assign_from(row);
         self.prev.assign_from(row);
     }

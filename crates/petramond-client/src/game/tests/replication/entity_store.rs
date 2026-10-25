@@ -199,6 +199,69 @@ fn burst_before_a_boundary_does_not_shift_the_committed_pair() {
 }
 
 #[test]
+fn an_item_draw_set_replaces_its_art_follows_it_and_clears() {
+    let mut game = game_on_empty_chunk();
+    let mut drop = DroppedItem::new(
+        WorldPos::new(2.5, 70.0, 2.5),
+        ItemStack::new(ItemType::Dirt, 1),
+        1,
+    );
+    drop.vel = Vec3::ZERO;
+    drop.draw = petramond::world::draw::BodyDraw {
+        prims: vec![mod_api::DrawPrim::Cuboid {
+            min: [-0.125, 0.0, -0.125],
+            max: [0.125, 0.4, 0.125],
+            tile: "stone".into(),
+            tint: [255; 3],
+            emissive: false,
+        }]
+        .into(),
+        turns: false,
+    };
+    game.server_world_mut().spawn_item(drop);
+    let mut scratch = GamePresentationScratch::new();
+    let view = petramond_render::camera::ViewVolume::unbounded();
+    let mut present = |game: &mut super::common::TestGame| {
+        let batch = pump_one_tick(game);
+        game.apply_tick_update(batch);
+        game.commit_replication_window_for_test();
+        let p = scratch.snapshot(game, 0.0, &view);
+        let item = p
+            .item_entities
+            .iter()
+            .find(|i| i.item == ItemType::Dirt)
+            .expect("the drop replicates");
+        let draws: Vec<_> = p
+            .block_draws
+            .iter()
+            .map(|d| d.frame.to_world(Vec3::ZERO))
+            .collect();
+        (item.pos, item.drawn_top, draws)
+    };
+
+    let (pos, top, draws) = present(&mut game);
+    assert_eq!(
+        top,
+        Some(0.4),
+        "the set stands in for the art, its top for the line"
+    );
+    let [origin] = draws[..] else {
+        panic!("one item set, got {}", draws.len());
+    };
+    assert!((origin.y - pos.y).abs() < 1e-4 && (origin.x - pos.x).abs() < 1e-4);
+
+    let id = game.server_world().item_entities()[0].id;
+    game.server_world_mut()
+        .dropped_items_mut()
+        .get_mut(id)
+        .unwrap()
+        .draw = Default::default();
+    let (_, top, draws) = present(&mut game);
+    assert_eq!(top, None, "an emptied set gives the art back");
+    assert!(draws.is_empty());
+}
+
+#[test]
 fn staged_overflow_resyncs_at_a_boundary_and_catch_up_stays_one_per_segment() {
     use petramond::net::protocol::{ItemStateRow, PlayerActionKind, PlayerStateRow, TickUpdate};
     use petramond::player::PlayerId;
@@ -223,6 +286,8 @@ fn staged_overflow_resyncs_at_a_boundary_and_catch_up_stays_one_per_segment() {
                         pos: WorldPos::new(f64::from(x), 69.0, 0.0),
                         spin: 0.0,
                         flight: None,
+                        tether: None,
+                        draw: Default::default(),
                     }]
                     .into(),
                 ),

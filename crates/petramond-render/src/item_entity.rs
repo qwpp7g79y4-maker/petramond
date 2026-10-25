@@ -164,7 +164,7 @@ pub fn build_item_entities(
     indices.clear();
     for inst in instances {
         let layers = layers(inst);
-        match inst.item.render_kind() {
+        match drawn_kind(inst) {
             ItemRenderKind::BlockCube(block) => {
                 for &offset in &STACK_LAYER_OFFSETS[..layers] {
                     push_posed_cube(verts, indices, inst, render_origin, block, offset);
@@ -202,7 +202,7 @@ pub fn build_item_sprite_entities(
     indices.clear();
     for inst in instances {
         push_flight_trail(inst, render_origin, env, verts, indices);
-        let ItemRenderKind::Sprite(tile) = inst.item.render_kind() else {
+        let ItemRenderKind::Sprite(tile) = drawn_kind(inst) else {
             continue;
         };
         let count = super::item_model::build_extruded_stack_lit(
@@ -251,14 +251,13 @@ pub fn build_item_model_entities(
     verts.clear();
     indices.clear();
     for inst in instances {
-        let ItemRenderKind::Model(kind) = inst.item.render_kind() else {
+        let ItemRenderKind::Model(kind) = drawn_kind(inst) else {
             continue;
         };
         let placement = Placement::of(inst, render_origin).matrix();
+        let size = ground_pose(kind).unwrap_or(Mat4::from_scale(Vec3::splat(ITEM_CUBE_SIZE)));
         for &offset in &STACK_LAYER_OFFSETS[..layers(inst)] {
-            let transform = placement
-                * Mat4::from_translation(offset)
-                * Mat4::from_scale(Vec3::splat(ITEM_CUBE_SIZE));
+            let transform = placement * Mat4::from_translation(offset) * size;
             super::item_model::build_block_model_item(
                 kind,
                 transform,
@@ -271,6 +270,78 @@ pub fn build_item_model_entities(
         }
     }
     indices.len() as u32
+}
+
+/// A model whose row asks for it is drawn by its authored `ground` display pose at its own size:
+/// the centred-unit bake space to the item's placed frame.
+fn ground_pose(kind: petramond_world::block_model::BlockModelKind) -> Option<Mat4> {
+    petramond_world::block_model::def(kind)
+        .ground_pose
+        .then(|| {
+            petramond_world::block_model::display(kind)
+                .ground
+                .base_matrix()
+                * petramond_world::block_model::instance(kind).display_from_unit
+        })
+}
+
+/// The middle of a ground-posed model's trailing end (its back along local -X, the end that
+/// follows its flight), in the item's placed frame: where a line on it ties.
+fn trailing_end(kind: petramond_world::block_model::BlockModelKind, pose: Mat4) -> Vec3 {
+    let inst = petramond_world::block_model::instance(kind);
+    let fp = Vec3::new(
+        inst.footprint[0] as f32,
+        inst.footprint[1] as f32,
+        inst.footprint[2] as f32,
+    );
+    let bake = pose
+        * Mat4::from_scale(Vec3::splat(1.0 / fp.max_element().max(1.0)))
+        * Mat4::from_translation(-fp * 0.5);
+    let (lo, hi) = (Vec3::from(inst.bounds_min), Vec3::from(inst.bounds_max));
+    let (mut min, mut max) = (Vec3::splat(f32::MAX), Vec3::splat(f32::MIN));
+    for i in 0..8 {
+        let corner = Vec3::new(
+            if i & 1 == 0 { lo.x } else { hi.x },
+            if i & 2 == 0 { lo.y } else { hi.y },
+            if i & 4 == 0 { lo.z } else { hi.z },
+        );
+        let p = bake.transform_point3(corner);
+        min = min.min(p);
+        max = max.max(p);
+    }
+    Vec3::new(min.x, (min.y + max.y) * 0.5, (min.z + max.z) * 0.5)
+}
+
+/// Where a tethered item's line ties on: the top of the item as drawn, so a floating bobber's
+/// line leaves from above the water rather than from its submerged middle; a ground-posed model
+/// ties on at its trailing end.
+pub(crate) fn tether_anchor(inst: &ItemEntityInstance, render_origin: glam::IVec3) -> Vec3 {
+    if let Some(top) = inst.drawn_top {
+        return inst.pos.relative_to(render_origin) + Vec3::Y * top;
+    }
+    if let ItemRenderKind::Model(kind) = drawn_kind(inst) {
+        if let Some(pose) = ground_pose(kind) {
+            return Placement::of(inst, render_origin)
+                .matrix()
+                .transform_point3(trailing_end(kind, pose));
+        }
+    }
+    let top = match drawn_kind(inst) {
+        ItemRenderKind::Sprite(_) => ITEM_SPRITE_SIZE * 0.5,
+        ItemRenderKind::BlockCube(_) => ITEM_CUBE_SIZE * 0.5,
+        ItemRenderKind::Model(kind) => {
+            super::item_model::block_model_item_top(kind) * ITEM_CUBE_SIZE
+        }
+    };
+    Placement::of(inst, render_origin).origin + Vec3::Y * top
+}
+
+/// A launched (aimed) item flies as it looks in use; a loose one lies as its icon.
+fn drawn_kind(inst: &ItemEntityInstance) -> ItemRenderKind {
+    match inst.pose {
+        ItemEntityPose::Aimed { .. } => inst.item.held_render_kind(),
+        ItemEntityPose::Spin(_) => inst.item.render_kind(),
+    }
 }
 
 #[inline]
@@ -363,6 +434,8 @@ mod tests {
     fn an_aimed_cube_pitches_about_its_centre_and_trails() {
         let pos = WorldPos::new(4.0, 70.0, -3.0);
         let inst = ItemEntityInstance {
+            tether: None,
+            drawn_top: None,
             pos,
             item: ItemType::Stone,
             variant: petramond_world::item::VariantId::NONE,
@@ -420,6 +493,8 @@ mod tests {
         let mut v = Vec::new();
         let mut i = Vec::new();
         let inst = ItemEntityInstance {
+            tether: None,
+            drawn_top: None,
             pos: WorldPos::ZERO,
             item: ItemType::Stone,
             variant: petramond_world::item::VariantId::NONE,

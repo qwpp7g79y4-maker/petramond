@@ -444,6 +444,8 @@ struct SharedBinds {
 
 struct ViewState {
     frustum: Frustum,
+    /// Clip space back to render-relative world space.
+    inv_view_proj: glam::Mat4,
     cam_pos: petramond_math::world_pos::WorldPos,
     render_origin: glam::IVec3,
     visual_time: f32,

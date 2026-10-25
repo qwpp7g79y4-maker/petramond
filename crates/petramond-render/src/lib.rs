@@ -35,6 +35,7 @@ pub mod selection;
 mod selection_highlight;
 pub mod shader_pack;
 pub(crate) mod skinned;
+pub(crate) mod tether;
 pub mod texture_mips;
 pub mod ui;
 pub mod uniforms;
@@ -269,8 +270,22 @@ pub enum ItemEntityPose {
     },
 }
 
+/// Where a tethered item's line starts: a presented body's main hand, or the first-person
+/// viewmodel's.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum TetherFrom {
+    Body(u32),
+    Viewmodel,
+}
+
+/// The local player's [`PlayerBodyRender::key`]; remote bodies are keyed by player id.
+pub const LOCAL_BODY_KEY: u32 = u32::MAX;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct ItemEntityInstance {
+    pub tether: Option<TetherFrom>,
+    /// Set when a draw set replaces the item's art: that set's top above `pos`.
+    pub drawn_top: Option<f32>,
     pub pos: petramond_math::world_pos::WorldPos,
     pub item: ItemType,
     pub variant: petramond_world::item::VariantId,
@@ -356,6 +371,7 @@ pub struct PlayerRenderInstance {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct PlayerBodyRender {
+    pub key: u32,
     pub body: PlayerRenderInstance,
     pub held: HeldItemView,
     pub held_off: HeldItemView,

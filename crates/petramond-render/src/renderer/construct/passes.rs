@@ -36,6 +36,7 @@ impl ViewState {
     pub(super) fn initial() -> Self {
         Self {
             frustum: Frustum::permissive(),
+            inv_view_proj: glam::Mat4::IDENTITY,
             cam_pos: petramond_math::world_pos::WorldPos::ZERO,
             render_origin: glam::IVec3::ZERO,
             visual_time: 0.0,
@@ -229,6 +230,7 @@ impl HandPass {
             item3d_verts: Vec::new(),
             item3d_vertex_count: 0,
             held_is_model: false,
+            main_tip: None,
             index_count: 0,
             verts: Vec::new(),
             indices: Vec::new(),
@@ -392,6 +394,7 @@ impl ActorPass {
             bodies: Vec::new(),
             body_poses: Vec::new(),
             player_visible: Vec::new(),
+            tether_tips: Vec::new(),
             item_draw: DynamicDraw::new(device, mob.clone(), "player item"),
             item_verts: Vec::new(),
             item_indices: Vec::new(),

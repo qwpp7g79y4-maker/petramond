@@ -40,6 +40,24 @@ pub struct ItemStateRow {
     pub pos: petramond_math::world_pos::WorldPos,
     pub spin: f32,
     pub flight: Option<[f32; 3]>,
+    pub tether: Option<TetherWire>,
+    pub draw: crate::world::draw::BodyDraw,
+}
+
+/// Who a tethered item's line runs back to.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TetherWire {
+    Player(crate::player::PlayerId),
+    Mob(u64),
+}
+
+impl TetherWire {
+    pub fn of(entity: crate::mob::EntityRef) -> Self {
+        match entity {
+            crate::mob::EntityRef::Player(id) => Self::Player(id),
+            crate::mob::EntityRef::Mob(id) => Self::Mob(id),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

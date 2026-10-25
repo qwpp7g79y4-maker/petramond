@@ -46,6 +46,8 @@ fn item(id: u64, step: u32) -> ItemStateRow {
         pos: WorldPos::new(id as f64, 70.0 - f64::from(step.min(5)), 3.0),
         spin: step as f32 * 0.3,
         flight: None,
+        tether: None,
+        draw: Default::default(),
     }
 }
 

@@ -176,6 +176,8 @@ fn bake_item_entities(
 ) {
     out.clear();
     out.extend(items.iter().map(|d| ItemEntityInstance {
+        tether: d.tether,
+        drawn_top: d.drawn_top,
         pos: d.prev_pos.lerp(d.pos, alpha),
         item: d.item,
         variant: d.variant,

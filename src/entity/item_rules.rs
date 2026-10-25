@@ -7,6 +7,8 @@ use serde::Deserialize;
 pub(super) struct ItemRules {
     pub pickup: bool,
     pub lifetime_ticks: Option<u32>,
+    /// Present when the item trails a line back to its launcher; the style is the client's.
+    pub tether: Option<serde::de::IgnoredAny>,
 }
 
 impl Default for ItemRules {
@@ -14,6 +16,7 @@ impl Default for ItemRules {
         Self {
             pickup: true,
             lifetime_ticks: None,
+            tether: None,
         }
     }
 }
@@ -22,7 +25,7 @@ impl ItemRules {
     pub fn of(stack: ItemStack) -> Self {
         variant::get(stack.variant)
             .and_then(|data| {
-                data.get("petramond:item_entity")
+                data.get(petramond_world::item::ITEM_ENTITY_DATA_KEY)
                     .and_then(|raw| serde_json::from_slice(raw).ok())
             })
             .unwrap_or_default()

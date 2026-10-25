@@ -65,7 +65,13 @@ impl Renderer {
             };
 
         self.item_entity.visible.clear();
-        for inst in &self.item_entity.instances {
+        // An item a mod draws (`drawn_top`) shows only its draw set; it stays an instance for its line.
+        for inst in self
+            .item_entity
+            .instances
+            .iter()
+            .filter(|i| i.drawn_top.is_none())
+        {
             let c = inst.pos;
             let min = c - glam::Vec3::splat(0.5);
             let max = c + glam::Vec3::new(0.5, 1.0, 0.5);
@@ -280,6 +286,14 @@ impl Renderer {
         streams.block_indices.clear();
         let body_rig = petramond::player::rigs::presented(petramond::player::Presenter::Body)
             .map(|(_, rig)| rig);
+        // Where each body's main-hand item ends, for the lines tethered items trail. A culled
+        // body keeps a point at its chest so a line from it still reaches a visible item.
+        let mut tips = std::mem::take(&mut self.actor.tether_tips);
+        tips.clear();
+        tips.extend(self.actor.bodies.iter().map(|b| {
+            let chest = b.body.pos.relative_to(render_origin) + glam::Vec3::Y * 1.3;
+            (b.key, chest)
+        }));
         let bodies_first = self.actor.skin.batch.next_instance();
         for body in &self.actor.player_visible {
             let Some(rig) = body_rig else { break };
@@ -317,6 +331,37 @@ impl Renderer {
             }
         }
         self.actor.player_gpu.drawn = bodies_first..self.actor.skin.batch.next_instance();
+        let viewmodel_tip = self.viewmodel_tip_world(render_origin);
+        for inst in &self.item_entity.instances {
+            let Some(tether) = inst.tether else {
+                continue;
+            };
+            let (from, near) = match tether {
+                crate::TetherFrom::Viewmodel => (
+                    viewmodel_tip.map(|(at, _)| at),
+                    viewmodel_tip.map(|(_, n)| n),
+                ),
+                crate::TetherFrom::Body(key) => (
+                    tips.iter().find(|(k, _)| *k == key).map(|(_, tip)| *tip),
+                    None,
+                ),
+            };
+            let (Some(from), Some(style)) =
+                (from, petramond_world::item::TetherStyle::of(inst.variant))
+            else {
+                continue;
+            };
+            crate::tether::push(
+                &mut streams.block_verts,
+                &mut streams.block_indices,
+                from,
+                crate::item_entity::tether_anchor(inst, render_origin),
+                style,
+                crate::lighting::DynLight::at(inst.skylight, inst.blocklight, inst.pos),
+                near,
+            );
+        }
+        self.actor.tether_tips = tips;
         self.actor.skin.upload(&self.device, &self.queue);
         for held in mob_held {
             streams.push(
@@ -469,7 +514,7 @@ impl HeldStreams {
         light: crate::lighting::DynLight,
         env: crate::lighting::LightEnv,
     ) {
-        match item.render_kind() {
+        match item.held_render_kind() {
             petramond_world::item::ItemRenderKind::BlockCube(block) => {
                 let m = if off_side {
                     crate::player_model::held_block_off_at(grip)

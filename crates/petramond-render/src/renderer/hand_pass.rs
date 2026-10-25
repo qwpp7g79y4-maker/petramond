@@ -34,6 +34,9 @@ pub(super) struct HandPass {
     pub(super) first_person: Option<crate::first_person::FirstPersonHand>,
     pub(super) arm_start: u32,
     pub(super) arm_count: u32,
+    /// Where the main hand's held item ends on screen (NDC) and how far from the eye, for a line
+    /// it trails: the hand pass has its own camera, so the world finds the tip through the screen.
+    pub(super) main_tip: Option<(glam::Vec2, f32)>,
 }
 
 impl HandPass {
@@ -56,5 +59,6 @@ impl HandPass {
         }
         self.arm_start = 0;
         self.arm_count = 0;
+        self.main_tip = None;
     }
 }

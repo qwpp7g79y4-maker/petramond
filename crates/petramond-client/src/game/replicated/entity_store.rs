@@ -179,6 +179,8 @@ impl AssignFrom for ItemStateRow {
             pos,
             spin,
             flight,
+            tether,
+            draw,
         } = src;
         self.id = *id;
         self.item_id = *item_id;
@@ -187,6 +189,8 @@ impl AssignFrom for ItemStateRow {
         self.pos = *pos;
         self.spin = *spin;
         self.flight = *flight;
+        self.tether = *tether;
+        self.draw.clone_from(draw);
     }
 }
 

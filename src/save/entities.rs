@@ -55,6 +55,8 @@ impl EntityRecord {
             Motion::Loose => (MotionKind::Loose, None),
             Motion::Flight(f) if f.control_ticks.is_some() => (MotionKind::Loose, None),
             Motion::Flight(_) => (MotionKind::Flight, None),
+            // A body's id does not outlive the session, so a lodged item reloads where it was.
+            Motion::Embedded(_) => (MotionKind::Loose, None),
             Motion::Stuck(s) => (
                 MotionKind::Stuck,
                 Some(StuckRecord {
@@ -97,6 +99,7 @@ impl EntityRecord {
                     left_owner: true,
                     contact: None,
                     control_ticks: None,
+                    facing: None,
                     heading: Heading {
                         yaw: s.yaw,
                         pitch: s.pitch,
@@ -245,6 +248,7 @@ mod tests {
                 left_owner: true,
                 contact: None,
                 control_ticks: None,
+                facing: None,
             },
             anchor,
             verified: true,

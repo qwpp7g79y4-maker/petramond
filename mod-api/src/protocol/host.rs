@@ -459,6 +459,7 @@ host_rets! {
     TerrainHeightGrid(#[serde(with = "serde_bytes")] Vec<u8>),
     LeafMask(crate::LeafMask),
     ClientMenu(Option<crate::ClientMenuData>),
+    FluidSurfaces(Vec<Option<(BlockId, f64)>>),
     }
 }
 

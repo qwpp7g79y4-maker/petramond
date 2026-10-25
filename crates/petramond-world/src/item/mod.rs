@@ -13,6 +13,7 @@ mod stack;
 mod tags;
 #[cfg(test)]
 mod tests;
+mod tether;
 mod tool;
 mod uses;
 pub mod variant;
@@ -27,6 +28,7 @@ pub use render::{HeldPose, ItemRenderKind, SpriteHeldPose, DEFAULT_SPRITE_AXIS_D
 pub use set::ItemSet;
 pub use stack::ItemStack;
 pub use tags::ItemTag;
+pub use tether::{TetherStyle, ITEM_ENTITY_DATA_KEY};
 #[allow(unused_imports)]
 pub use tool::FIST_DAMAGE;
 pub use tool::{

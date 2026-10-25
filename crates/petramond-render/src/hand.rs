@@ -35,7 +35,7 @@ pub(crate) fn rest_seat(view: &HeldItemView, off: bool) -> Option<Mat4> {
     // under the 70° camera on the same pixel under the rig's camera.
     let focal = RIG_CAMERA_SLOPE / (HAND_FOV_Y * 0.5).tan();
     let widen = Mat4::from_scale(Vec3::new(focal, focal, 1.0));
-    Some(match item.render_kind() {
+    Some(match item.held_render_kind() {
         ItemRenderKind::BlockCube(_) => {
             let seat = legacy_anchor(view) * block_base();
             widen * if off { mirror_x(seat) } else { seat }
