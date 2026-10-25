@@ -4,7 +4,9 @@ use crate::world::{World, WorldSide};
 use petramond_math::facing::Facing;
 use petramond_math::math::{IVec3, Vec3};
 use petramond_math::view_volume::ViewVolume;
-use petramond_world::block::{Block, CellView, ParticleEmitter, ParticleEmitterAnchor};
+use petramond_world::block::{
+    Block, CellView, EmitterKill, ParticleEmitter, ParticleEmitterAnchor,
+};
 use petramond_world::block_model::{self, BlockModelKind};
 use petramond_world::chunk::{section_local, SectionPos, SECTION_SIZE};
 use petramond_world::light::BlockLight6;
@@ -24,6 +26,8 @@ pub struct PlacedEmitter {
     /// The origin is in a fluid cell, so a fluid surface separates these particles from an eye
     /// on the other side.
     pub submerged: bool,
+    /// Particles above this height are not drawn (`kill: dry`: the fluid's surface).
+    pub ceiling_y: f32,
     /// Where a moving emitter has been, in the frame's trail arena. Empty for one that stays put.
     pub trail: TrailSpan,
 }
@@ -70,6 +74,26 @@ pub fn trail_origin(
     let (a, b) = (trail[after - 1], trail[after]);
     let t = ((time - a.time) / (b.time - a.time).max(f32::EPSILON)).clamp(0.0, 1.0);
     a.origin.lerp(b.origin, t)
+}
+
+/// How far an emitter's particles rise above the origin.
+pub fn rise_reach(e: &ParticleEmitter) -> f32 {
+    let max_life = e.lifetime[1].max(e.lifetime[0]);
+    e.spawn_box[1]
+        + (e.velocity[1].max(0.0) + e.velocity_jitter[1]) * max_life
+        + (-fall_reach(e)).max(0.0)
+}
+
+/// `ceiling_y` for an emitter at `origin` in `world`.
+pub fn emitter_ceiling_y(
+    world: &WorldData,
+    origin: petramond_math::world_pos::WorldPos,
+    e: &ParticleEmitter,
+) -> f32 {
+    match e.kill {
+        EmitterKill::None => f32::INFINITY,
+        EmitterKill::Dry => world.fluid_ceiling(origin, rise_reach(e)),
+    }
 }
 
 pub fn emitter_envelope(e: &ParticleEmitter) -> Vec3 {
@@ -230,6 +254,7 @@ impl<S: WorldSide> World<S> {
                         blocklight: block_light,
                         floor_y,
                         submerged: self.data.fluid_cell_at(sample.x, sample.y, sample.z),
+                        ceiling_y: emitter_ceiling_y(&self.data, origin, &emitter),
                         trail: TrailSpan::default(),
                     });
                 }

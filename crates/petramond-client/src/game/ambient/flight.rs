@@ -160,7 +160,7 @@ pub(super) fn derive_flight(
             };
             let Some([u0, v0, u1, v1]) = sprite else {
                 out.push(ParticlePresentation {
-                    atlas: ParticleAtlas::Solid,
+                    atlas: ParticleAtlas::Solid(petramond_world::block::ParticleLook::Cube),
                     quad_axes: None,
                     pos,
                     uv_min: [0.0, 0.0],

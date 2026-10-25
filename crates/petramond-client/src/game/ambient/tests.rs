@@ -1,5 +1,6 @@
 use super::*;
 use petramond_math::world_pos::WorldPos;
+use petramond_world::block::ParticleLook;
 
 fn rain_spec(hit: AmbientHit) -> AmbientSpec {
     AmbientSpec {
@@ -10,8 +11,11 @@ fn rain_spec(hit: AmbientHit) -> AmbientSpec {
         fall_speed: [16.0, 22.0],
         drift_wind: 1.0,
         flutter: [0.0, 0.0],
+        wobble: [0.0, 0.0],
         size: [0.04, 0.06],
+        size_bias: 1.0,
         stretch: 6.0,
+        look: petramond_world::block::ParticleLook::Cube,
         alpha: [0.4, 0.7],
         color: [[0.5, 0.6, 0.7], [0.7, 0.8, 0.9]],
         color_bias: 1.0,
@@ -19,6 +23,7 @@ fn rain_spec(hit: AmbientHit) -> AmbientSpec {
         hit,
         motion: AmbientMotion::Precipitation,
         kill: AmbientKill::Ceiling,
+        eye: petramond_world::particle_emitters::AmbientEye::Anywhere,
         light: AmbientLight::Sky,
         biomes: Vec::new(),
         exclude_biomes: Vec::new(),
@@ -671,4 +676,104 @@ fn biome_filter_gates_columns() {
             "biome filter must gate the derive"
         );
     }
+}
+
+/// Water life: a `kill: "dry"` volume fills the water around the camera and nothing above it.
+#[test]
+fn a_dry_volume_lives_only_in_fluid() {
+    use petramond_world::block::Block;
+    use petramond_world::chunk::{Chunk, ChunkPos, CHUNK_SX, CHUNK_SZ};
+    let mut world = petramond::world::ReplicaWorld::new(0, 1);
+    for cz in -1..=1 {
+        for cx in -1..=1 {
+            let mut c = Chunk::new(cx, cz);
+            for z in 0..CHUNK_SZ {
+                for x in 0..CHUNK_SX {
+                    c.set_block(x, 59, z, Block::Stone);
+                    for y in 60..70 {
+                        c.set_block(x, y, z, Block::Water);
+                    }
+                }
+            }
+            world.insert_chunk_for_test(ChunkPos::new(cx, cz), c);
+        }
+    }
+    let mut spec = rain_spec(AmbientHit::Die);
+    spec.motion = AmbientMotion::Volume;
+    spec.height = [6.0, 6.0];
+    spec.kill = AmbientKill::Dry;
+    let mut out = Vec::new();
+    derive_volume(
+        &spec,
+        None,
+        &Activation {
+            seed: 7,
+            intensity: 1.0,
+            wind: [0.0, 0.0],
+            adv: [0.0, 0.0],
+            biome_weight: None,
+        },
+        &View {
+            world: &world,
+            cam: WorldPos::new(8.0, 70.0, 8.0),
+            time: 1.0,
+        },
+        &mut DeriveCache::default(),
+        &mut out,
+    );
+    assert!(
+        out.len() > 50,
+        "the water half of the band fills: {}",
+        out.len()
+    );
+    for p in &out {
+        assert!(p.pos.y < 70.0, "a mote above the water at {}", p.pos.y);
+    }
+}
+
+#[test]
+fn a_volume_fades_out_toward_its_rim_and_the_eye() {
+    let world = petramond::world::testutil::flat_replica_world();
+    let mut spec = rain_spec(AmbientHit::Die);
+    spec.motion = AmbientMotion::Volume;
+    spec.height = [8.0, 10.0];
+    spec.kill = AmbientKill::Interior;
+    spec.stretch = 1.0;
+    spec.count_per_intensity = 4000.0;
+    spec.max_count = 4000;
+    let cam = WorldPos::new(8.0, 120.0, 8.0);
+    let mut out = Vec::new();
+    derive_volume(
+        &spec,
+        None,
+        &Activation {
+            seed: 11,
+            intensity: 1.0,
+            wind: [0.0, 0.0],
+            adv: [0.0, 0.0],
+            biome_weight: None,
+        },
+        &View {
+            world: &world,
+            cam,
+            time: 37.0,
+        },
+        &mut DeriveCache::default(),
+        &mut out,
+    );
+    let mut rim = 0;
+    for p in &out {
+        let (dx, dy, dz) = (p.pos.x - cam.x, p.pos.y - cam.y, p.pos.z - cam.z);
+        let horizontal = (dx * dx + dz * dz).sqrt() as f32;
+        let eye = (dx * dx + dy * dy + dz * dz).sqrt() as f32;
+        let rim_cap = (1.0 - horizontal / spec.radius) / RIM_FADE * spec.alpha[1];
+        assert!(
+            p.alpha <= rim_cap + 1e-4,
+            "a mote {horizontal} out shows {}",
+            p.alpha
+        );
+        assert!(eye >= NEAR_FADE[0], "a mote drawn {eye} from the eye");
+        rim += usize::from(horizontal > spec.radius * (1.0 - RIM_FADE));
+    }
+    assert!(rim > 0, "the rim band holds fading motes");
 }

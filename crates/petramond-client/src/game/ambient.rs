@@ -32,7 +32,7 @@ use petramond::entity::hash01;
 use petramond::world::ReplicaWorld;
 use petramond_world::chunk::{ChunkPos, SectionPos, SECTION_MIN_CY};
 use petramond_world::particle_emitters::{
-    self, AmbientHit, AmbientKill, AmbientLight, AmbientMotion, AmbientSpec, BurstSpec,
+    self, AmbientEye, AmbientHit, AmbientKill, AmbientLight, AmbientMotion, AmbientSpec, BurstSpec,
 };
 
 use super::presentation::{ParticleAtlas, ParticlePresentation};
@@ -43,6 +43,12 @@ const SPLASH_RADIUS_SQ: f32 = 16.0 * 16.0;
 const SPLASH_DROPLETS: usize = 4;
 const SKY_OPEN_LIGHT: u8 = 63;
 const EDGE_FADE: f32 = 0.08;
+/// The outer share of the volume's radius over which particles fade out, so its rim never shows.
+const RIM_FADE: f32 = 0.18;
+/// Particles fade out across this many blocks in front of the eye instead of filling the view.
+const NEAR_FADE: [f32; 2] = [0.3, 1.2];
+/// Each particle sways at its own share of the bundle's rate, so the field never moves in step.
+const SWAY_RATE_SPREAD: [f32; 2] = [0.7, 1.3];
 
 /// One activated volume: the client mod's latest target + the eased actual.
 struct Drive {
@@ -211,6 +217,9 @@ fn derive(
     cache: &mut DeriveCache,
     out: &mut Vec<ParticlePresentation>,
 ) {
+    if spec.eye == AmbientEye::Submerged && view.world.data().eye_fluid(view.cam).is_none() {
+        return;
+    }
     match &spec.motion {
         AmbientMotion::Flight(flight) => {
             flight::derive_flight(spec, flight, act, view, &mut cache.columns, out)
@@ -384,6 +393,8 @@ struct DropStatics {
     phase: f32,
     biome_roll: f32,
     fphase: [f32; 2],
+    wphase: [f32; 2],
+    sway_rate: f32,
     base_y: f32,
     /// A world-anchored volume's column, which never reseeds.
     anchored: [f32; 2],
@@ -446,6 +457,7 @@ fn drop_statics<'a>(
     let span = spec.height[0] + spec.height[1];
     let diameter = spec.radius * 2.0;
     let has_flutter = spec.flutter[0] != 0.0;
+    let has_wobble = spec.wobble[0] != 0.0;
     for i in set.drops.len()..count {
         let seed = seed ^ (i as u64 + 1).wrapping_mul(0xD1B5_4A32_D192_ED03);
         let fall_speed = lerp_range(spec.fall_speed, hash01(seed ^ 0x01));
@@ -459,13 +471,19 @@ fn drop_statics<'a>(
             } else {
                 [0.0, 0.0]
             },
+            wphase: if has_wobble {
+                [hash01(seed ^ 0x0C), hash01(seed ^ 0x0D)]
+            } else {
+                [0.0, 0.0]
+            },
+            sway_rate: lerp_range(SWAY_RATE_SPREAD, hash01(seed ^ 0x0E)),
             base_y: hash01(seed ^ 0x0A) * span,
             anchored: [
                 hash01(seed ^ 0x03) * diameter,
                 hash01(seed ^ 0x04) * diameter,
             ],
             alpha: lerp_range(spec.alpha, hash01(seed ^ 0x09)),
-            size: lerp_range(spec.size, hash01(seed ^ 0x08)),
+            size: lerp_range(spec.size, hash01(seed ^ 0x08).powf(spec.size_bias)),
             tint: colour(spec, seed ^ 0x07),
             rolls: [None; 2],
             next_roll: 0,
@@ -475,6 +493,21 @@ fn drop_statics<'a>(
 }
 
 impl DropStatics {
+    /// The horizontal sway off the particle's path at `time`: `flutter` plus the faster `wobble`.
+    #[inline]
+    fn sway(&self, spec: &AmbientSpec, time: f32) -> (f32, f32) {
+        let tau = std::f32::consts::TAU;
+        let mut out = (0.0, 0.0);
+        for ([amp, hz], [px, pz]) in [(spec.flutter, self.fphase), (spec.wobble, self.wphase)] {
+            if amp != 0.0 {
+                let turn = tau * hz * self.sway_rate * time;
+                out.0 += amp * (turn + tau * px).sin();
+                out.1 += amp * (turn + tau * pz).cos();
+            }
+        }
+        out
+    }
+
     /// `hash01` of the cycle's reseeded column (`seed ^ idx * K`), scaled to the box diameter —
     /// memoized for the two most recent cycles, which is all the fall and its splash look at.
     #[inline]
@@ -590,7 +623,6 @@ fn derive_volume(
     let wind_x = wind[0] * spec.drift_wind;
     let wind_z = wind[1] * spec.drift_wind;
     let (adv_x, adv_z) = (adv[0], adv[1]);
-    let has_flutter = spec.flutter[0] != 0.0;
     let biome_gated = act.biome_weight.is_some();
     let DeriveCache { columns, sets } = cache;
     let drops = drop_statics(sets, spec, drive_seed, count as usize);
@@ -598,7 +630,6 @@ fn derive_volume(
         let seed = drive_seed ^ (i as u64 + 1).wrapping_mul(0xD1B5_4A32_D192_ED03);
         let (fall_speed, cycle, phase, biome_roll) =
             (drop.fall_speed, drop.cycle, drop.phase, drop.biome_roll);
-        let [fphase_x, fphase_z] = drop.fphase;
         let band_phase = phase + if volume { 0.0 } else { y_top / span };
         let cycle_pos = time / cycle + band_phase;
         let cycle_idx = floor_f32(cycle_pos);
@@ -615,16 +646,7 @@ fn derive_volume(
         };
         let base_x = roll_x + adv_x;
         let base_z = roll_z + adv_z;
-        let (flutter_x, flutter_z) = if has_flutter {
-            (
-                spec.flutter[0]
-                    * (std::f32::consts::TAU * (spec.flutter[1] * time + fphase_x)).sin(),
-                spec.flutter[0]
-                    * (std::f32::consts::TAU * (spec.flutter[1] * time + fphase_z)).cos(),
-            )
-        } else {
-            (0.0, 0.0)
-        };
+        let (flutter_x, flutter_z) = drop.sway(spec, time);
         let dx = wrap_offset(base_x, cam_x_mod, diameter) + flutter_x;
         let dz = wrap_offset(base_z, cam_z_mod, diameter) + flutter_z;
         let (x, z) = (cam.x + f64::from(dx), cam.z + f64::from(dz));
@@ -705,18 +727,7 @@ fn derive_volume(
                 let t_hit = (idx - kill_y / span - phase) * cycle;
                 let age = time - t_hit;
                 if age >= 0.0 {
-                    let (fh_x, fh_z) = if has_flutter {
-                        (
-                            spec.flutter[0]
-                                * (std::f32::consts::TAU * (spec.flutter[1] * t_hit + fphase_x))
-                                    .sin(),
-                            spec.flutter[0]
-                                * (std::f32::consts::TAU * (spec.flutter[1] * t_hit + fphase_z))
-                                    .cos(),
-                        )
-                    } else {
-                        (0.0, 0.0)
-                    };
+                    let (fh_x, fh_z) = drop.sway(spec, t_hit);
                     let light = match spec.light {
                         AmbientLight::Sky => {
                             (SKY_OPEN_LIGHT, petramond_world::light::BlockLight6::DARK)
@@ -753,6 +764,12 @@ fn derive_volume(
         } {
             continue;
         }
+        if spec.kill == AmbientKill::Dry && {
+            let (cx, cy, cz) = cell();
+            !world.data().fluid_cell_at(cx, cy, cz)
+        } {
+            continue;
+        }
         if spec.kill == AmbientKill::Ceiling || spec.biome_allow.is_some() || biome_gated {
             let Some((kill_y, biome)) = column_info(world, columns, x, z) else {
                 continue;
@@ -780,6 +797,13 @@ fn derive_volume(
         let mut alpha = drop.alpha;
         alpha *= (t_band / EDGE_FADE).min(1.0);
         alpha *= ((1.0 - t_band) / EDGE_FADE).min(1.0);
+        alpha *= ((1.0 - dist_sq.sqrt() / spec.radius) / RIM_FADE).min(1.0);
+        let dy = y - cam.y as f32;
+        let eye_dist = (dist_sq + dy * dy).sqrt();
+        alpha *= ((eye_dist - NEAR_FADE[0]) / (NEAR_FADE[1] - NEAR_FADE[0])).clamp(0.0, 1.0);
+        if alpha <= 0.0 {
+            continue;
+        }
         let (skylight, blocklight) = match spec.light {
             AmbientLight::Sky => (SKY_OPEN_LIGHT, petramond_world::light::BlockLight6::DARK),
             AmbientLight::World => {
@@ -789,7 +813,7 @@ fn derive_volume(
         };
         out.push(ParticlePresentation {
             quad_axes: None,
-            atlas: ParticleAtlas::Solid,
+            atlas: ParticleAtlas::Solid(spec.look),
             pos: petramond_math::world_pos::WorldPos::new(x, f64::from(y), z),
             uv_min: [0.0, 0.0],
             uv_size: [0.0; 2],

@@ -44,6 +44,7 @@ const ENGINE_EMITTER_NAMES: &[&str] = &[
     "petramond:block_dust",
     "petramond:block_break",
     "petramond:breath_bubbles",
+    "petramond:plankton",
     "petramond:splash_bubbles",
     "petramond:release_bubbles",
     "petramond:wake_bubbles",
@@ -176,9 +177,17 @@ pub struct AmbientSpec {
     pub drift_wind: f32,
     #[serde(default)]
     pub flutter: [f32; 2],
+    /// A second, faster sway layered over `flutter`: [amplitude, hz].
+    #[serde(default)]
+    pub wobble: [f32; 2],
     pub size: [f32; 2],
+    /// Skews the size roll toward the small end (`hash^bias`), so a few large flecks stand out.
+    #[serde(default = "default_size_bias")]
+    pub size_bias: f32,
     #[serde(default = "default_stretch")]
     pub stretch: f32,
+    #[serde(default)]
+    pub look: crate::block::ParticleLook,
     pub alpha: [f32; 2],
     pub color: [[f32; 3]; 2],
     #[serde(default = "default_color_bias")]
@@ -193,6 +202,8 @@ pub struct AmbientSpec {
     pub kill: AmbientKill,
     #[serde(default)]
     pub light: AmbientLight,
+    #[serde(default)]
+    pub eye: AmbientEye,
     #[serde(default)]
     pub biomes: Vec<String>,
     #[serde(default)]
@@ -240,6 +251,10 @@ pub struct FlightSpec {
     pub ground: Vec<BlockTag>,
 }
 
+fn default_size_bias() -> f32 {
+    1.0
+}
+
 fn default_stretch() -> f32 {
     1.0
 }
@@ -276,6 +291,18 @@ pub enum AmbientKill {
     #[default]
     Ceiling,
     Interior,
+    /// Drawn only inside fluid: drifting life in water.
+    Dry,
+}
+
+/// Where the camera must be for the bundle to show at all.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum AmbientEye {
+    #[default]
+    Anywhere,
+    /// Only while the camera is inside a fluid: life in the water, seen from in it.
+    Submerged,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize, Default)]
@@ -555,8 +582,13 @@ fn validate_ambient(key: &str, a: &AmbientSpec) -> Result<(), String> {
                      omit count_per_intensity, max_count and fall_speed",
                 );
             }
-            if a.flutter != [0.0, 0.0] || a.stretch != 1.0 || a.hit != AmbientHit::Die {
-                return err("flutter, stretch and hit do not apply to a flight");
+            if a.flutter != [0.0, 0.0]
+                || a.wobble != [0.0, 0.0]
+                || a.stretch != 1.0
+                || a.hit != AmbientHit::Die
+                || a.look != crate::block::ParticleLook::Cube
+            {
+                return err("flutter, wobble, stretch, look and hit do not apply to a flight");
             }
             validate_flight(key, flight)?;
         }
@@ -600,15 +632,25 @@ fn validate_ambient(key: &str, a: &AmbientSpec) -> Result<(), String> {
     if !a.drift_wind.is_finite() || !(0.0..=4.0).contains(&a.drift_wind) {
         return err("drift_wind must be in 0..=4");
     }
-    if !a.flutter[0].is_finite()
-        || !a.flutter[1].is_finite()
-        || !(0.0..=4.0).contains(&a.flutter[0])
-        || !(0.0..=8.0).contains(&a.flutter[1])
-    {
-        return err("flutter must be [amplitude 0..=4, hz 0..=8]");
+    for (label, sway) in [("flutter", a.flutter), ("wobble", a.wobble)] {
+        if !sway[0].is_finite()
+            || !sway[1].is_finite()
+            || !(0.0..=4.0).contains(&sway[0])
+            || !(0.0..=8.0).contains(&sway[1])
+        {
+            return Err(format!(
+                "emitter '{key}' ambient: {label} must be [amplitude 0..=4, hz 0..=8]"
+            ));
+        }
     }
     if !a.stretch.is_finite() || !(1.0..=16.0).contains(&a.stretch) {
         return err("stretch must be in 1..=16");
+    }
+    if a.look != crate::block::ParticleLook::Cube && a.stretch != 1.0 {
+        return err("a speck or ring faces the camera, so it has no stretch");
+    }
+    if !a.size_bias.is_finite() || !(0.25..=8.0).contains(&a.size_bias) {
+        return err("size_bias must be in 0.25..=8");
     }
     for stop in a.color {
         for channel in stop {
@@ -630,8 +672,8 @@ fn validate_ambient(key: &str, a: &AmbientSpec) -> Result<(), String> {
             }
         }
     }
-    if a.kill == AmbientKill::Interior && a.hit != AmbientHit::Die {
-        return err("kill 'interior' has no impact point, so hit must be 'die'");
+    if matches!(a.kill, AmbientKill::Interior | AmbientKill::Dry) && a.hit != AmbientHit::Die {
+        return err("kill 'interior' or 'dry' has no impact point, so hit must be 'die'");
     }
     if a.motion == AmbientMotion::Volume && a.hit != AmbientHit::Die {
         return err("motion 'volume' does not fall onto anything, so hit must be 'die'");
