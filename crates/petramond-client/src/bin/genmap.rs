@@ -1,7 +1,7 @@
 use petramond::tooling::biome::Biome;
 use petramond::tooling::block::Block;
 use petramond::tooling::chunk::{Chunk, CHUNK_SX, CHUNK_SY, CHUNK_SZ};
-use petramond::tooling::worldgen::{generate_chunk, macro_surface_map};
+use petramond::tooling::worldgen::{generate_chunk, macro_surface_map, surface_map_around};
 use petramond_world::tile::{map_rgb as tile_map_rgb, TileTint};
 
 fn top_block(c: &Chunk, x: usize, z: usize) -> (u16, i32) {
@@ -66,11 +66,92 @@ fn biome_color(id: u8) -> [u8; 3] {
     }
 }
 
+/// Each biome's share of the map and its sample nearest the origin (a place to look at it).
+fn print_biome_shares(biomes: &[u8], side: usize, stride: i32) {
+    let half = (side as i32 / 2) * stride;
+    let mut stats = std::collections::BTreeMap::<u8, (usize, [i32; 2])>::new();
+    for (i, &b) in biomes.iter().enumerate() {
+        let at = [
+            (i % side) as i32 * stride - half,
+            (i / side) as i32 * stride - half,
+        ];
+        let entry = stats.entry(b).or_insert((0, at));
+        entry.0 += 1;
+        let d = |p: [i32; 2]| i64::from(p[0]).pow(2) + i64::from(p[1]).pow(2);
+        if d(at) < d(entry.1) {
+            entry.1 = at;
+        }
+    }
+    let mut rows: Vec<_> = stats.into_iter().collect();
+    rows.sort_by_key(|row| std::cmp::Reverse(row.1 .0));
+    for (id, (n, at)) in rows {
+        let share = 100.0 * n as f64 / biomes.len().max(1) as f64;
+        eprintln!(
+            "  {share:5.2}%  {:<32} nearest {},{}",
+            Biome::from_id(id).key(),
+            at[0],
+            at[1]
+        );
+    }
+}
+
 fn save(out: &str, buf: &[u8], w: usize, h: usize) {
     if out == "/dev/null" {
         return;
     }
     image::save_buffer(out, buf, w as u32, h as u32, image::ColorType::Rgb8).expect("write png");
+}
+
+/// The topmost block that is not air or fluid: the sea floor and whatever grows on it.
+fn floor_block(c: &Chunk, x: usize, z: usize) -> (u16, i32) {
+    for y in (0..CHUNK_SY).rev() {
+        let b = c.block_raw(x, y, z);
+        if b != 0 && !Block::from_id(b).is_fluid() {
+            return (b, y as i32);
+        }
+    }
+    (0, 0)
+}
+
+/// Top-down through the water: 384×384 blocks of sea floor around `(x, z)`, shaded by depth.
+fn render_seabed(seed: u32, out: &str, x: i32, z: i32) {
+    let n = 24usize;
+    let (w, h) = (n * CHUNK_SX, n * CHUNK_SZ);
+    let (cx0, cz0) = (
+        x.div_euclid(16) - n as i32 / 2,
+        z.div_euclid(16) - n as i32 / 2,
+    );
+    let mut buf = vec![0u8; w * h * 3];
+    let mut tops: std::collections::BTreeMap<u16, usize> = Default::default();
+    for cz in 0..n {
+        for cx in 0..n {
+            let chunk = generate_chunk(seed, cx0 + cx as i32, cz0 + cz as i32);
+            for lz in 0..CHUNK_SZ {
+                for lx in 0..CHUNK_SX {
+                    let (b, y) = floor_block(&chunk, lx, lz);
+                    *tops.entry(b).or_default() += 1;
+                    let mut col = block_color(b);
+                    let shade = (0.45 + 0.012 * (y - 20) as f32).clamp(0.3, 1.25);
+                    for c in &mut col {
+                        *c = (*c as f32 * shade).clamp(0.0, 255.0) as u8;
+                    }
+                    let px = (cz * CHUNK_SZ + lz) * w + (cx * CHUNK_SX + lx);
+                    buf[px * 3..px * 3 + 3].copy_from_slice(&col);
+                }
+            }
+        }
+    }
+    save(out, &buf, w, h);
+    println!("wrote {out} ({w}x{h}, seed {seed:#x}, seabed around {x},{z})");
+    let mut tops: Vec<(u16, usize)> = tops.into_iter().collect();
+    tops.sort_by_key(|&(_, n)| std::cmp::Reverse(n));
+    for (b, n) in tops.into_iter().take(12) {
+        println!(
+            "  {:>32} {:>6.2}%",
+            format!("{:?}", Block::from_id(b)),
+            100.0 * n as f64 / (w * h) as f64
+        );
+    }
 }
 
 fn render_topdown(seed: u32, out: &str, by_biome: bool) {
@@ -669,9 +750,100 @@ fn render_view(seed: u32, out: &str, cam_x: i32, cam_y: i32, cam_z: i32, scale: 
     println!("wrote {out} ({w}x{h}, seed {seed:#x}, view cam=({cam_x},{cam_y},{cam_z}))");
 }
 
+/// The density sea floor around `(x, z)`, hillshaded and coloured by water depth, with each sea
+/// biome's depth spread printed. No chunks are generated: features never show.
+fn render_seafloor(seed: u32, out: &str, x: i32, z: i32, stride: i32) {
+    const SEA: f64 = 63.0;
+    let side = 512usize;
+    let stride = stride.max(1);
+    let map = surface_map_around(seed, [x, z], side, stride);
+    let at = |gx: i32, gz: i32| {
+        let gx = gx.clamp(0, side as i32 - 1) as usize;
+        let gz = gz.clamp(0, side as i32 - 1) as usize;
+        map.heights[gz * side + gx]
+    };
+    let mut buf = vec![0u8; side * side * 3];
+    let mut depths: std::collections::BTreeMap<u8, Vec<f64>> = Default::default();
+    let mut steep_cols: std::collections::BTreeMap<u8, usize> = Default::default();
+    let mut tall_cols: std::collections::BTreeMap<u8, usize> = Default::default();
+    for gz in 0..side as i32 {
+        for gx in 0..side as i32 {
+            let i = gz as usize * side + gx as usize;
+            let h = map.heights[i];
+            let (dx, dz) = (
+                (at(gx + 1, gz) - at(gx - 1, gz)) / (2.0 * f64::from(stride)),
+                (at(gx, gz + 1) - at(gx, gz - 1)) / (2.0 * f64::from(stride)),
+            );
+            let n = [-dx, 1.0, -dz];
+            let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
+            let lambert = ((n[0] * -0.55 + n[1] * 0.62 + n[2] * -0.55) / len).clamp(0.0, 1.0);
+            let shade = (0.3 + 1.0 * lambert) as f32;
+            let lowest = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+                .map(|(ox, oz)| at(gx + ox, gz + oz).round())
+                .into_iter()
+                .fold(f64::MAX, f64::min);
+            let steep = stride == 1 && h.round() - lowest >= 2.0;
+            if stride == 1 && h < SEA - 2.0 && h.round() - lowest >= 4.0 {
+                let tall = tall_cols.entry(map.biomes[i]).or_default();
+                if *tall % 400 == 199 {
+                    println!(
+                        "  tall cliff: {} at {},{} (floor {:.0}, drop {:.0})",
+                        Biome::from_id(map.biomes[i]).name(),
+                        x + gx - side as i32 / 2,
+                        z + gz - side as i32 / 2,
+                        h,
+                        h.round() - lowest
+                    );
+                }
+                *tall += 1;
+            }
+            let base: [f32; 3] = if h >= SEA {
+                [150.0, 170.0, 110.0]
+            } else if steep {
+                *steep_cols.entry(map.biomes[i]).or_default() += 1;
+                depths.entry(map.biomes[i]).or_default().push(SEA - h);
+                [120.0, 120.0, 128.0]
+            } else {
+                let depth = SEA - h;
+                depths.entry(map.biomes[i]).or_default().push(depth);
+                let t = (depth / 40.0).clamp(0.0, 1.0) as f32;
+                [
+                    150.0 * (1.0 - t) + 10.0 * t,
+                    225.0 * (1.0 - t) + 40.0 * t,
+                    205.0 * (1.0 - t) + 100.0 * t,
+                ]
+            };
+            for c in 0..3 {
+                buf[i * 3 + c] = (base[c] * shade).clamp(0.0, 255.0) as u8;
+            }
+        }
+    }
+    save(out, &buf, side, side);
+    println!(
+        "wrote {out} ({side}x{side}, seed {seed:#x}, sea floor around {x},{z}, stride {stride})"
+    );
+    for (biome, mut d) in depths {
+        d.sort_by(f64::total_cmp);
+        let q = |p: f64| d[((d.len() - 1) as f64 * p) as usize];
+        println!(
+            "  {:>28}: {:>6} cols  steep {:>4.1}%  tall {:>4.1}%  depth p5 {:>5.1}  p25 {:>5.1}  p50 {:>5.1}  p75 {:>5.1}  p95 {:>5.1}",
+            Biome::from_id(biome).name(),
+            d.len(),
+            100.0 * steep_cols.get(&biome).copied().unwrap_or(0) as f64 / d.len() as f64,
+            100.0 * tall_cols.get(&biome).copied().unwrap_or(0) as f64 / d.len() as f64,
+            q(0.05),
+            q(0.25),
+            q(0.5),
+            q(0.75),
+            q(0.95)
+        );
+    }
+}
+
 fn render_macro(seed: u32, out: &str, stride: i32) {
     let side = 512usize;
     let map = macro_surface_map(seed, side, stride.max(1));
+    print_biome_shares(&map.biomes, side, stride.max(1));
     let mut buf = vec![0u8; side * side * 3];
     for i in 0..side * side {
         let mut col = biome_color(map.biomes[i]);
@@ -715,6 +887,10 @@ fn main() {
 
     match mode.as_str() {
         "biome" => render_topdown(seed, &out, true),
+        // `seabed X _ Z`: the zoom slot is unused.
+        "seabed" => render_seabed(seed, &out, arg.unwrap_or(0), center_x),
+        // `seafloor X STRIDE Z`.
+        "seafloor" => render_seafloor(seed, &out, arg.unwrap_or(0), center_x, zoom.max(1) as i32),
         "macro" => render_macro(seed, &out, arg.unwrap_or(16)),
         "side" => render_side(seed, &out, arg.unwrap_or(0), zoom, center_x, proj),
         "deep" => render_deep(seed, &out, arg.unwrap_or(0), zoom, center_x),

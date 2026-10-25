@@ -140,3 +140,119 @@ pub mod chunk {
 pub mod worldgen {
     pub use petramond_worldgen::preview::*;
 }
+
+pub mod sim {
+    use petramond_math::world_pos::WorldPos;
+    use petramond_world::chunk::ChunkPos;
+
+    pub use crate::mob::MobCategory;
+
+    /// The real game without a window: an unsaved listen server with the installed packs and
+    /// one local player that a tool holds in place while the world runs around it.
+    pub struct Sim {
+        server: crate::server::game::ServerGame,
+    }
+
+    /// One live mob as a tool sees it.
+    #[derive(Clone, Debug)]
+    pub struct SimMob {
+        pub id: u64,
+        pub key: &'static str,
+        pub category: MobCategory,
+        pub pos: [f64; 3],
+        pub vel: [f32; 3],
+        /// The cell at the middle of its body holds a fluid.
+        pub in_fluid: bool,
+        /// Its tags, values written out.
+        pub tags: Vec<(String, String)>,
+    }
+
+    impl Sim {
+        pub fn new(seed: u32, render_dist: i32) -> Sim {
+            let local = crate::server::session_build::LocalPlayer {
+                key: crate::net::identity::PlayerIdentity::generate()
+                    .expect("os randomness")
+                    .key(),
+                name: "sim".into(),
+            };
+            let (server, ..) =
+                crate::server::session_build::build_server("", seed, render_dist, Some(local));
+            Sim { server }
+        }
+
+        /// Runs `ticks` fixed ticks with the player held at `pos`.
+        pub fn run(&mut self, pos: [f64; 3], ticks: u32) {
+            let at = WorldPos::new(pos[0], pos[1], pos[2]);
+            for _ in 0..ticks {
+                self.server.hold_local_player(at);
+                self.server
+                    .pump_tagged(crate::events::tick::TICK_DT, &mut Vec::new(), &[]);
+            }
+        }
+
+        /// Whether the world around `pos` has streamed in far enough for mobs to spawn there.
+        pub fn ready_at(&self, pos: [f64; 3]) -> bool {
+            let chunk = ChunkPos::new(
+                (pos[0].floor() as i32).div_euclid(16),
+                (pos[2].floor() as i32).div_euclid(16),
+            );
+            self.server.world().mob_census_loaded_around(chunk, 9)
+        }
+
+        pub fn tick(&self) -> u64 {
+            self.server.world().current_tick()
+        }
+
+        /// The highest cell in the column that blocks movement, once its chunk is loaded.
+        pub fn floor_y(&self, x: i32, z: i32) -> Option<i32> {
+            let data = self.server.world().data();
+            data.chunk_loaded(x.div_euclid(16), z.div_euclid(16))
+                .then(|| {
+                    (-64..=256)
+                        .rev()
+                        .find(|&y| data.blocks_movement_at(x, y, z))
+                })
+                .flatten()
+        }
+
+        pub fn mobs(&self) -> Vec<SimMob> {
+            let world = self.server.world();
+            world
+                .mobs()
+                .instances()
+                .iter()
+                .filter(|m| !m.is_dead())
+                .map(|m| {
+                    let def = crate::mob::def(m.kind);
+                    let mid = m.pos.y + f64::from(def.size.height) * 0.5;
+                    let v = m.vel();
+                    SimMob {
+                        id: m.id(),
+                        key: def.key,
+                        category: def.category,
+                        pos: [m.pos.x, m.pos.y, m.pos.z],
+                        vel: [v.x, v.y, v.z],
+                        in_fluid: world.data().fluid_cell_at(
+                            m.pos.x.floor() as i32,
+                            mid.floor() as i32,
+                            m.pos.z.floor() as i32,
+                        ),
+                        tags: m
+                            .tags()
+                            .iter()
+                            .map(|(k, v)| {
+                                let v = match v {
+                                    crate::mob::MobTagValue::String(s) => s.clone(),
+                                    crate::mob::MobTagValue::Bool(b) => b.to_string(),
+                                    crate::mob::MobTagValue::Int(i) => i.to_string(),
+                                    crate::mob::MobTagValue::Float(f) => f.to_string(),
+                                };
+                                (k.clone(), v)
+                            })
+                            .collect(),
+                    }
+                })
+                .collect()
+        }
+    }
+}

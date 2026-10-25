@@ -35,6 +35,16 @@ pub struct MacroSurfaceMap {
 }
 
 pub fn macro_surface_map(seed: u32, side: usize, stride: i32) -> MacroSurfaceMap {
+    surface_map_around(seed, [0, 0], side, stride)
+}
+
+/// Biome and density base height for `side`² columns `stride` apart, centred on `center`.
+pub fn surface_map_around(
+    seed: u32,
+    center: [i32; 2],
+    side: usize,
+    stride: i32,
+) -> MacroSurfaceMap {
     use crate::biome::climate::{BiomeClimateIndex, ClimateSampleCell, ClimateSampler};
     use crate::density::terrain::{channels, TerrainDensitySpec};
     use crate::graph::SamplePoint;
@@ -47,8 +57,8 @@ pub fn macro_surface_map(seed: u32, side: usize, stride: i32) -> MacroSurfaceMap
     let mut heights = Vec::with_capacity(side * side);
     for gz in 0..side as i32 {
         for gx in 0..side as i32 {
-            let wx = gx * stride - half;
-            let wz = gz * stride - half;
+            let wx = center[0] + gx * stride - half;
+            let wz = center[1] + gz * stride - half;
             let biome = sampler
                 .sample_surface_cell(ClimateSampleCell::surface(wx, wz))
                 .and_then(|sample| index.classify_surface(sample.climate))

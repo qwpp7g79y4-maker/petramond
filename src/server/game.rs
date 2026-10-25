@@ -17,6 +17,7 @@ mod clock;
 mod entity_rows;
 mod event_scope;
 mod fixed_tick;
+mod held_player;
 mod interest;
 mod isolation;
 mod player_actions;

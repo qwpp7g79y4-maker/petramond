@@ -18,6 +18,11 @@ name = "genmap"
 path = "src/bin/genmap.rs"
 required-features = ["tools"]
 
+[[bin]]
+name = "mobcensus"
+path = "src/bin/mobcensus.rs"
+required-features = ["tools"]
+
 [features]
 default = ["audio"]
 # The genmap previewer (worldgen audits and previews).
