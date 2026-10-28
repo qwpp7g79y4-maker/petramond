@@ -1,38 +1,57 @@
 use std::io::Read;
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::time::Duration;
+
+use petramond_util::test_time::TEST_HARD_DEADLINE;
 
 use super::http::Stream;
 
-struct Stalls(Vec<u8>);
+struct Stalls {
+    bytes: Vec<u8>,
+    stalled: Sender<()>,
+    resume: Receiver<()>,
+}
 
 impl Read for Stalls {
     fn read(&mut self, out: &mut [u8]) -> std::io::Result<usize> {
-        if self.0.is_empty() {
-            std::thread::sleep(Duration::from_secs(30));
+        if self.bytes.is_empty() {
+            let _ = self.stalled.send(());
+            let _ = self.resume.recv_timeout(TEST_HARD_DEADLINE);
             return Ok(0);
         }
-        let n = out.len().min(self.0.len());
-        out[..n].copy_from_slice(&self.0[..n]);
-        self.0.drain(..n);
+        let n = out.len().min(self.bytes.len());
+        out[..n].copy_from_slice(&self.bytes[..n]);
+        self.bytes.drain(..n);
         Ok(n)
     }
 }
 
 #[test]
 fn a_stalled_body_fails_the_read_after_the_idle_budget() {
+    let (stalled, ready) = mpsc::channel();
+    let (release, resume) = mpsc::channel();
     let mut stream = Stream::for_test(
         200,
         &[],
-        Stalls(b"partial".to_vec()),
+        Stalls {
+            bytes: b"partial".to_vec(),
+            stalled,
+            resume,
+        },
         Duration::from_millis(50),
     );
+    // The worker sends each chunk before reading again, so reaching the stall proves readiness.
+    ready
+        .recv_timeout(TEST_HARD_DEADLINE)
+        .expect("body worker reached its stall after queuing the initial bytes");
     let mut got = [0u8; 7];
     stream.read_exact(&mut got).unwrap();
     assert_eq!(&got, b"partial");
     let started = std::time::Instant::now();
     let e = stream.read(&mut [0u8; 8]).expect_err("a stall is an error");
     assert_eq!(e.kind(), std::io::ErrorKind::TimedOut);
-    assert!(started.elapsed() < Duration::from_secs(5));
+    assert!(started.elapsed() < TEST_HARD_DEADLINE);
+    drop(release);
 }
 
 #[test]
