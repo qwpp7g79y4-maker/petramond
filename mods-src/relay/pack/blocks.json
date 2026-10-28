@@ -2,12 +2,31 @@
   "blocks": [
     {
       "block": "relay:relay",
-      "behaviors": ["relay:relay"],
+      "shape": "cube",
+      "behaviors": [
+        "relay:relay"
+      ],
       "flags": [
-        "solid"
+        "solid",
+        "opaque",
+        "ao_occluder"
       ],
       "tags": [
         "no_grass_decay"
+      ],
+      "collision": [
+        {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            1,
+            1,
+            1
+          ]
+        }
       ],
       "emission": 0,
       "tiles": [
