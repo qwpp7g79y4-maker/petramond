@@ -80,7 +80,7 @@ impl ChaseSoundAi {
             return;
         }
         let nearest_mob = nearest(ctx, self.radius, |n: &Noise| {
-            let EntityRef::Mob(id) = n.source else {
+            let EntityRef::Entity(id) = n.source else {
                 return false;
             };
             id != ctx.mob_id
@@ -445,11 +445,11 @@ mod tests {
 
         let mut ai = ChaseSoundAi::new(12.0, 40, 1.0, vec![Mob::Sheep]);
         let noises = NoiseField::from_noises([
-            step(mob, EntityRef::Mob(1)),
-            step(prey_pos, EntityRef::Mob(9)),
+            step(mob, EntityRef::Entity(1)),
+            step(prey_pos, EntityRef::Entity(9)),
         ]);
         let out = ai.tick(&mut ctx(&world, &mut rng, mob, &[], &noises, &mobs));
-        assert_eq!(out.target, Some(EntityRef::Mob(9)));
+        assert_eq!(out.target, Some(EntityRef::Entity(9)));
         assert!(out.goal.is_some(), "locked prey is chased");
 
         let mut deaf = ChaseSoundAi::new(12.0, 40, 1.0, Vec::new());
@@ -477,7 +477,7 @@ mod tests {
             tags: Default::default(),
         }]);
         let noises = NoiseField::from_noises([
-            step(prey_pos, EntityRef::Mob(9)),
+            step(prey_pos, EntityRef::Entity(9)),
             step(player, EntityRef::Player(PlayerId(3))),
         ]);
         let mut ai = ChaseSoundAi::new(12.0, 40, 1.0, vec![Mob::Sheep]);
@@ -509,7 +509,7 @@ mod tests {
             active: false,
             tags: Default::default(),
         }]);
-        let noises = NoiseField::from_noises([step(prey_pos, EntityRef::Mob(9))]);
+        let noises = NoiseField::from_noises([step(prey_pos, EntityRef::Entity(9))]);
         let mut ai = ChaseSoundAi::new(12.0, 40, 1.0, vec![Mob::Sheep]);
         assert!(ai
             .tick(&mut ctx(&world, &mut rng, mob, &[], &noises, &alive))

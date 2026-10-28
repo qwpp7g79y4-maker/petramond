@@ -108,7 +108,7 @@ fn earth(home: [i32; 3], t: u32) {
         );
     }
     if t.is_multiple_of(12) {
-        sound_play_at("petramond:dirt_break", feet, 0.9, 0.7);
+        sound_play("petramond:dirt_break", SoundAt::Point(feet), 0.9, 0.7);
     }
 }
 
@@ -129,7 +129,7 @@ pub fn emerge(projects: &mut Projects, job: &mut Job, body: &Body) {
         container_transfer(
             ContainerAddress::Block(project.table),
             0,
-            ContainerAddress::Mob(body.id),
+            ContainerAddress::Entity(body.id),
             1,
         );
         projects.update(job.id, Project::emerged);
@@ -257,7 +257,7 @@ pub fn burrow(projects: &mut Projects, job: &mut Job, body: &Body) {
                 .position(|s| s.as_ref().is_some_and(bound))
             {
                 let tabled = container_transfer(
-                    ContainerAddress::Mob(body.id),
+                    ContainerAddress::Entity(body.id),
                     slot as u32,
                     ContainerAddress::Block(project.table),
                     1,
@@ -270,7 +270,7 @@ pub fn burrow(projects: &mut Projects, job: &mut Job, body: &Body) {
                         .collect();
                     let at = [body.pos[0], body.pos[1] + 0.5, body.pos[2]];
                     if spawn_item_data(&plans.item, 1, at, &data) {
-                        container_set(ContainerAddress::Mob(body.id), vec![(slot as u32, None)]);
+                        container_set(ContainerAddress::Entity(body.id), vec![(slot as u32, None)]);
                     }
                 }
             }
@@ -291,9 +291,9 @@ pub fn burrow(projects: &mut Projects, job: &mut Job, body: &Body) {
             .map(|(slot, _)| (slot as u32, None))
             .collect();
         if !plans.is_empty() {
-            container_set(ContainerAddress::Mob(body.id), plans);
+            container_set(ContainerAddress::Entity(body.id), plans);
         }
-        despawn_mob(body.id);
+        despawn_entity(body.id);
         projects.update(job.id, Project::gone_home);
         job.crew = Crew::default();
         return;

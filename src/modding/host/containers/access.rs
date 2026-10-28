@@ -9,7 +9,7 @@ use crate::events::SimCtx;
 #[derive(Clone, Copy)]
 pub(super) enum Target {
     Block(IVec3),
-    Mob(u64),
+    Entity(u64),
 }
 
 pub(super) fn resolve_read(ctx: &SimCtx<'_>, at: ContainerAddress) -> Option<Target> {
@@ -17,8 +17,8 @@ pub(super) fn resolve_read(ctx: &SimCtx<'_>, at: ContainerAddress) -> Option<Tar
         ContainerAddress::Block(pos) => Some(Target::Block(
             ctx.world.container_anchor(IVec3::from_array(pos)),
         )),
-        ContainerAddress::Mob(id) => {
-            super::super::guards::live_mob(ctx, id).map(|_| Target::Mob(id))
+        ContainerAddress::Entity(id) => {
+            super::super::guards::live_mob(ctx, id).map(|_| Target::Entity(id))
         }
     }
 }
@@ -27,7 +27,7 @@ pub(super) fn resolve_write(ctx: &SimCtx<'_>, at: ContainerAddress) -> Option<Ta
     let target = resolve_read(ctx, at)?;
     let cell = match target {
         Target::Block(p) => p,
-        Target::Mob(id) => ctx.world.mobs().get(id)?.pos.block(),
+        Target::Entity(id) => ctx.world.mobs().get(id)?.pos.block(),
     };
     ctx.world
         .physics_cell_final_at(cell.x, cell.y, cell.z)
@@ -37,14 +37,14 @@ pub(super) fn resolve_write(ctx: &SimCtx<'_>, at: ContainerAddress) -> Option<Ta
 pub(super) fn slots<'a>(ctx: &'a SimCtx<'_>, target: Target) -> Option<&'a Container> {
     match target {
         Target::Block(p) => ctx.world.container_at(p),
-        Target::Mob(id) => ctx.world.mobs().get(id).map(|m| m.container()),
+        Target::Entity(id) => ctx.world.mobs().get(id).map(|m| m.container()),
     }
 }
 
 pub(super) fn slots_mut<'a>(ctx: &'a mut SimCtx<'_>, target: Target) -> Option<&'a mut Container> {
     match target {
         Target::Block(p) => ctx.world.container_at_mut(p),
-        Target::Mob(id) => ctx.world.mobs_mut().container_mut(id),
+        Target::Entity(id) => ctx.world.mobs_mut().container_mut(id),
     }
 }
 
@@ -52,14 +52,11 @@ pub(super) fn insert_specs(ctx: &mut SimCtx<'_>, target: Target) -> Option<Arc<V
     match target {
         Target::Block(p) => {
             let block = ctx.world.block_if_stream_final(p.x, p.y, p.z)?;
-            let petramond_world::block::BlockInteraction::OpenGui(kind) = block.interaction()
-            else {
-                return None;
-            };
+            let kind = block.open_gui()?;
             let specs = crate::menu::slot_specs_for_kind(kind);
             (!specs.is_empty() && ctx.world.ensure_container(p, specs.len())).then_some(specs)
         }
-        Target::Mob(id) => {
+        Target::Entity(id) => {
             let len = ctx.world.mobs().get(id)?.container().slots.len();
             (len > 0).then(|| Arc::new(vec![SlotSpec::default(); len]))
         }
@@ -78,7 +75,7 @@ pub(super) fn owner_name(ctx: &SimCtx<'_>, target: Target) -> Option<&'static st
             let block = ctx.world.block_if_stream_final(p.x, p.y, p.z)?;
             petramond_world::registry::names().blocks.name(block.id())
         }
-        Target::Mob(id) => ctx
+        Target::Entity(id) => ctx
             .world
             .mobs()
             .get(id)

@@ -1,8 +1,8 @@
 use mod_sdk::*;
 
 use machine_core::{
-    consume_one, merge_output, output_accepts, write_changed_slots, Burner, Caches, Machine,
-    MachineSpec, Presentation, StepCtx,
+    consume_one, merge_output, output_accepts, Burner, Caches, Machine, MachineSpec, Presentation,
+    StepCtx,
 };
 
 use crate::keys;
@@ -66,29 +66,25 @@ pub type Oven = Machine<OvenSpec>;
 pub struct OvenSpec;
 
 impl MachineSpec for OvenSpec {
-    const KIND_KEY: &'static str = keys::OVEN_GUI;
     const BLOCK_KEY: &'static str = keys::OVEN_BLOCK;
     const VARIANT_KEYS: &'static [&'static str] = &[keys::OVEN_LIT_BLOCK];
-    const ANCHORS_KEY: &'static str = "kitchen:ovens";
     const STATE_KEY: &'static str = STATE_KEY;
 
     fn step(
         &mut self,
         ctx: &StepCtx<'_>,
         caches: &mut Caches,
-        slots: Option<Vec<Option<ItemStackData>>>,
+        slots: &mut Vec<Option<ItemStackData>>,
         stored: &mut Vec<u8>,
         out: &mut Presentation,
     ) {
-        let Some(mut slots) = slots else {
+        if slots.is_empty() {
             return;
-        };
+        }
         slots.resize(3, None);
         let mut state = OvenState::load(stored);
         let before_state = state;
-        let before_slots = slots.clone();
 
-        let was_lit = state.fire.lit();
         state.fire.tick();
 
         let result = slots[SLOT_INPUT]
@@ -114,15 +110,13 @@ impl MachineSpec for OvenSpec {
             state.cook_progress = state.cook_progress.saturating_sub(COOK_REGRESS);
         }
 
-        write_changed_slots(ctx.pos, &before_slots, &slots);
         if state != before_state {
             *stored = encode_versioned(&state);
         }
-        let now_lit = state.fire.lit();
-        if was_lit != now_lit {
-            if let Some(lit) = ctx.variant(0) {
-                swap_block(ctx.pos, if now_lit { lit } else { ctx.block });
-            }
+        if state.fire.lit() {
+            out.row(ctx.pos, ctx.variant_or_base(0));
+        } else {
+            out.row(ctx.pos, ctx.block);
         }
         out.draw(
             ctx.pos,

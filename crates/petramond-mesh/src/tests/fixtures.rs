@@ -78,7 +78,6 @@ pub(super) fn standalone(section: &Section) -> Scene {
 }
 
 pub(super) fn showcase() -> (Section, Scene) {
-    use petramond_world::furnace::Furnace;
     let mut section = floor_section(Block::Stone);
     section.set_block(2, 1, 2, Block::Grass);
     section.set_block(3, 1, 2, Block::OakLeaves);
@@ -86,15 +85,6 @@ pub(super) fn showcase() -> (Section, Scene) {
     section.set_fluid(5, 1, 2, Block::Water, 4);
     section.set_fluid(5, SECTION_SIZE - 1, 2, Block::Water, 0);
     section.set_block(6, 1, 2, Block::FurnaceLit);
-    section.insert_furnace(
-        6,
-        1,
-        2,
-        Furnace {
-            burn_remaining: 10,
-            ..Default::default()
-        },
-    );
     section.insert_entity_facing(6, 1, 2, Facing::East);
     section.set_block(7, 1, 2, Block::Cactus);
     section.set_block(8, 1, 2, Block::OakStairs);

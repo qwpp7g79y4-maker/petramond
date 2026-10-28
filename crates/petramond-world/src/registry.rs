@@ -532,7 +532,6 @@ impl TagTable {
             .map(|i| (self.engine.len() + i) as u8)
     }
 
-    #[allow(dead_code)]
     pub fn name(&self, id: u8) -> &'static str {
         let id = id as usize;
         if id < self.engine.len() {

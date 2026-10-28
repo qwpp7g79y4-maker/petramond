@@ -84,23 +84,14 @@ fn sparse_maps_walk_in_cell_order_whatever_the_insertion_order() {
         let mut section = Section::new(0, 0, 0);
         for i in order {
             let (x, y, z) = (i % 16, i / 16, (i * 5) % 16);
-            section.set_block(x, y, z, Block::FurnaceLit);
-            section.insert_furnace(x, y, z, Furnace::default());
             section.insert_container(x, y, z, Container::with_len(3));
         }
         section
     }
-    let mut forward = build(0..CELLS);
-    let mut reverse = build((0..CELLS).rev());
-    assert!(forward.furnaces().keys().is_sorted());
+    let forward = build(0..CELLS);
+    let reverse = build((0..CELLS).rev());
+    assert!(forward.containers().keys().is_sorted());
     assert!(reverse.containers().keys().is_sorted());
-    let reskin = forward.tick_furnaces(|_| None);
-    assert_eq!(reskin.len(), CELLS);
-    assert!(reskin
-        .iter()
-        .map(|&(x, y, z, _)| section_idx(x, y, z))
-        .is_sorted());
-    assert_eq!(reskin, reverse.tick_furnaces(|_| None));
 }
 
 #[test]

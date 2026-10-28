@@ -8,6 +8,9 @@ pub const SLOT_FUEL: usize = 1;
 pub const SLOT_OUTPUT: usize = 2;
 pub const FURNACE_SLOTS: usize = 3;
 
+/// The cell data key a furnace keeps its counters under.
+pub const KV_KEY: &str = "petramond:furnace";
+
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct Furnace {
     pub cook_progress: u16,
@@ -16,6 +19,23 @@ pub struct Furnace {
 }
 
 impl Furnace {
+    pub fn to_bytes(self) -> Vec<u8> {
+        [self.cook_progress, self.burn_remaining, self.burn_max]
+            .iter()
+            .flat_map(|n| n.to_le_bytes())
+            .collect()
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        let n = |i: usize| Some(u16::from_le_bytes(bytes.get(i..i + 2)?.try_into().ok()?));
+        (bytes.len() == 6).then_some(())?;
+        Some(Self {
+            cook_progress: n(0)?,
+            burn_remaining: n(2)?,
+            burn_max: n(4)?,
+        })
+    }
+
     #[inline]
     pub fn is_lit(&self) -> bool {
         self.burn_remaining > 0

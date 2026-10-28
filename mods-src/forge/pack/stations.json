@@ -1,0 +1,8 @@
+{
+  "stations": [
+    {
+      "station": "forge:pottery_table",
+      "screen": "petramond:crafting_table"
+    }
+  ]
+}

@@ -2,7 +2,17 @@
   "blocks": [
     {
       "block": "furniture:chair",
-      "data": { "furniture:seats": { "footprint": [1, 2, 1], "seats": [[0.5, -0.1, 0.25]] } },
+      "data": {
+        "furniture:seats": {
+          "seats": [
+            [
+              0.5,
+              -0.1,
+              0.25
+            ]
+          ]
+        }
+      },
       "shape": {
         "model": "furniture:chair"
       },
@@ -13,8 +23,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -35,7 +43,22 @@
     },
     {
       "block": "furniture:bench",
-      "data": { "furniture:seats": { "footprint": [2, 2, 1], "seats": [[0.5, -0.1, 0.25], [1.5, -0.1, 0.25]] } },
+      "data": {
+        "furniture:seats": {
+          "seats": [
+            [
+              0.5,
+              -0.1,
+              0.25
+            ],
+            [
+              1.5,
+              -0.1,
+              0.25
+            ]
+          ]
+        }
+      },
       "shape": {
         "model": "furniture:bench"
       },
@@ -46,8 +69,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -73,8 +94,6 @@
         "transparent"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -106,8 +125,6 @@
         "transparent"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -117,7 +134,9 @@
       ],
       "material": "stone",
       "data": {
-        "petramond:construction": { "item": "furniture:chain" },
+        "petramond:construction": {
+          "item": "furniture:chain"
+        },
         "petramond:harvest": {
           "tier": 1
         }
@@ -140,8 +159,6 @@
         "transparent"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -151,7 +168,9 @@
       ],
       "material": "stone",
       "data": {
-        "petramond:construction": { "item": "furniture:chain" },
+        "petramond:construction": {
+          "item": "furniture:chain"
+        },
         "petramond:harvest": {
           "tier": 1
         }
@@ -176,8 +195,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -210,8 +227,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -221,7 +236,9 @@
       ],
       "material": "stone",
       "data": {
-        "petramond:construction": { "form": "furniture:cauldron" },
+        "petramond:construction": {
+          "form": "furniture:cauldron"
+        },
         "petramond:harvest": {
           "tier": 1
         }
@@ -245,8 +262,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -256,7 +271,9 @@
       ],
       "material": "stone",
       "data": {
-        "petramond:construction": { "form": "furniture:cauldron" },
+        "petramond:construction": {
+          "form": "furniture:cauldron"
+        },
         "petramond:harvest": {
           "tier": 1
         }
@@ -280,8 +297,6 @@
         "solid"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -393,8 +408,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": { "open_gui": "furniture:cabinet" },
+      "open_gui": "furniture:cabinet",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -509,8 +523,6 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -571,8 +583,6 @@
       ],
       "tags": [],
       "corners": true,
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -687,8 +697,6 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -796,8 +804,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": { "open_gui": "furniture:counter_cabinet" },
+      "open_gui": "furniture:counter_cabinet",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -831,9 +838,10 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
+      "behaviors": [
+        "fragile"
+      ],
       "roots_face": "solid_face",
-      "interaction": "none",
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -866,8 +874,9 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -891,7 +900,11 @@
         }
       ],
       "support": "above",
-      "data": { "petramond:construction": { "item": "furniture:lantern" } }
+      "data": {
+        "petramond:construction": {
+          "item": "furniture:lantern"
+        }
+      }
     },
     {
       "block": "furniture:lantern_wall_north",
@@ -902,8 +915,9 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -927,7 +941,11 @@
         }
       ],
       "support": "north",
-      "data": { "petramond:construction": { "item": "furniture:lantern" } }
+      "data": {
+        "petramond:construction": {
+          "item": "furniture:lantern"
+        }
+      }
     },
     {
       "block": "furniture:lantern_wall_south",
@@ -938,8 +956,9 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -963,7 +982,11 @@
         }
       ],
       "support": "south",
-      "data": { "petramond:construction": { "item": "furniture:lantern" } }
+      "data": {
+        "petramond:construction": {
+          "item": "furniture:lantern"
+        }
+      }
     },
     {
       "block": "furniture:lantern_wall_west",
@@ -974,8 +997,9 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -999,7 +1023,11 @@
         }
       ],
       "support": "west",
-      "data": { "petramond:construction": { "item": "furniture:lantern" } }
+      "data": {
+        "petramond:construction": {
+          "item": "furniture:lantern"
+        }
+      }
     },
     {
       "block": "furniture:lantern_wall_east",
@@ -1010,8 +1038,9 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -1035,7 +1064,11 @@
         }
       ],
       "support": "east",
-      "data": { "petramond:construction": { "item": "furniture:lantern" } }
+      "data": {
+        "petramond:construction": {
+          "item": "furniture:lantern"
+        }
+      }
     },
     {
       "patch": "petramond:wool_block",
@@ -1061,25 +1094,72 @@
         ]
       }
     },
-    {"patch": "furniture:chain_ns", "data": {"petramond:rotate_y": "furniture:chain_ew"}},
-    {"patch": "furniture:chain_ew", "data": {"petramond:rotate_y": "furniture:chain_ns"}},
-    {"patch": "furniture:lantern_wall_north", "data": {"petramond:rotate_y": "furniture:lantern_wall_east"}},
-    {"patch": "furniture:lantern_wall_east", "data": {"petramond:rotate_y": "furniture:lantern_wall_south"}},
-    {"patch": "furniture:lantern_wall_south", "data": {"petramond:rotate_y": "furniture:lantern_wall_west"}},
-    {"patch": "furniture:lantern_wall_west", "data": {"petramond:rotate_y": "furniture:lantern_wall_north"}},
+    {
+      "patch": "furniture:chain_ns",
+      "data": {
+        "petramond:rotate_y": "furniture:chain_ew"
+      }
+    },
+    {
+      "patch": "furniture:chain_ew",
+      "data": {
+        "petramond:rotate_y": "furniture:chain_ns"
+      }
+    },
+    {
+      "patch": "furniture:lantern_wall_north",
+      "data": {
+        "petramond:rotate_y": "furniture:lantern_wall_east"
+      }
+    },
+    {
+      "patch": "furniture:lantern_wall_east",
+      "data": {
+        "petramond:rotate_y": "furniture:lantern_wall_south"
+      }
+    },
+    {
+      "patch": "furniture:lantern_wall_south",
+      "data": {
+        "petramond:rotate_y": "furniture:lantern_wall_west"
+      }
+    },
+    {
+      "patch": "furniture:lantern_wall_west",
+      "data": {
+        "petramond:rotate_y": "furniture:lantern_wall_north"
+      }
+    },
     {
       "block": "furniture:painting_table",
-      "shape": {"model": "furniture:painting_table"},
-      "flags": ["solid", "directional_view"],
-      "tags": ["no_grass_decay"],
-      "behavior": "inert",
-      "interaction": {"open_gui": "furniture:painting_table"},
+      "shape": {
+        "model": "furniture:painting_table"
+      },
+      "flags": [
+        "solid",
+        "directional_view"
+      ],
+      "tags": [
+        "no_grass_decay"
+      ],
+      "open_gui": "furniture:painting_table",
       "collision": [],
       "emission": 0,
-      "tiles": ["oak_planks", "oak_planks", "oak_planks"],
+      "tiles": [
+        "oak_planks",
+        "oak_planks",
+        "oak_planks"
+      ],
       "material": "wood",
       "hardness": 2.0,
-      "drops": [{"item": "furniture:painting_table", "min": 1, "max": 1, "chance": 1.0}]
+      "drops": [
+        {
+          "item": "furniture:painting_table",
+          "min": 1,
+          "max": 1,
+          "chance": 1.0
+        }
+      ]
     }
   ]
 }

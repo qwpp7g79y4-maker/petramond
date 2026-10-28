@@ -6,17 +6,7 @@ use petramond_world::item::variant::{self, VariantMap};
 use petramond_world::item::{ItemStack, ItemType};
 
 use super::entities::give_item_to;
-use super::guards::{
-    actor_for, batch_guard, finite3, item_by_name, sim_mutate, sim_query, sim_read,
-};
-use super::intern_mod_id;
-
-fn pose_anchor_of(world: &crate::world::ServerWorld, id: u8) -> Option<[f64; 3]> {
-    match world.riding().mount_of(id)?.target {
-        crate::mob::riding::MountTarget::Anchor(a) => Some(a.pos.to_array()),
-        crate::mob::riding::MountTarget::Mob(_) => None,
-    }
-}
+use super::guards::{batch_guard, item_by_name, sim_query, sim_read};
 
 fn player_snapshot(ctx: &mut SimCtx<'_>, id: PlayerId, mod_id: &str) -> Option<PlayerSnapshot> {
     let (sneak, use_held, swing) = ctx
@@ -26,7 +16,14 @@ fn player_snapshot(ctx: &mut SimCtx<'_>, id: PlayerId, mod_id: &str) -> Option<P
         .find(|r| r.id == id.0)
         .map(|r| (r.sneak, r.use_held, r.swing))
         .unwrap_or_default();
-    let pose_anchor = pose_anchor_of(ctx.world, id.0);
+    let attached = ctx
+        .world
+        .riding()
+        .mount_of(id.0)
+        .map(|m| mod_api::Attachment {
+            to: m.attach_to(),
+            posture: m.posture,
+        });
     ctx.with_player(id, |p| PlayerSnapshot {
         id: Some(mod_api::PlayerId(id.0)),
         pos: p.pos.to_array(),
@@ -45,7 +42,7 @@ fn player_snapshot(ctx: &mut SimCtx<'_>, id: PlayerId, mod_id: &str) -> Option<P
             .inventory
             .off_hand()
             .map(|st| mod_api::ItemId(st.item.id())),
-        pose_anchor,
+        attached,
         swing,
         half_width: crate::player::HALF_W,
         height: crate::player::HEIGHT,
@@ -128,9 +125,6 @@ fn player_input(ctx: &SimCtx<'_>, player: mod_api::PlayerId) -> Option<mod_api::
 
 pub(super) fn handle_player_call(mod_id: &str, call: PlayerCall) -> HostRet {
     match call {
-        PlayerCall::PlayerStateOf { player } => sim_query(|ctx| {
-            HostRet::PlayerOf(player_snapshot(ctx, PlayerId(player.0), mod_id).map(Box::new))
-        }),
         PlayerCall::PlayerIdentity { player } => sim_read(|ctx| {
             HostRet::Identity(
                 ctx.world
@@ -156,81 +150,19 @@ pub(super) fn handle_player_call(mod_id: &str, call: PlayerCall) -> HostRet {
                 .collect();
             HostRet::Players(entries)
         }),
-        PlayerCall::DamagePlayer {
-            player,
-            amount,
-            origin,
-            attacker,
-        } => match origin
-            .map(|p| super::guards::finite_pos(p, "DamagePlayer.origin"))
-            .transpose()
-        {
-            Err(e) => e,
-            Ok(origin) => {
-                let mod_id = intern_mod_id(mod_id);
-                sim_mutate(|ctx| {
-                    let source =
-                        super::entities::attack_source(ctx, mod_id, attacker, "DamagePlayer")?;
-                    ctx.queue.push_action(DeferredAction::DamagePlayer {
-                        player: crate::player::PlayerId(player.0),
-                        amount,
-                        source,
-                        origin,
-                    });
-                    Ok(())
-                })
-            }
-        },
-        PlayerCall::ApplyKnockback { impulse } => {
-            match finite3(impulse, "ApplyKnockback.impulse") {
-                Err(e) => e,
-                Ok(impulse) => sim_mutate(|ctx| {
-                    let id = actor_for(ctx, "ApplyKnockback", "ApplyKnockbackTo")?;
-                    ctx.with_player(id, |p| p.apply_knockback(impulse));
-                    Ok(())
-                }),
-            }
-        }
-        PlayerCall::ApplyKnockbackTo { player, impulse } => {
-            match finite3(impulse, "ApplyKnockbackTo.impulse") {
-                Err(e) => e,
-                Ok(impulse) => sim_query(|ctx| {
-                    let hit = ctx.with_player(PlayerId(player.0), |p| p.apply_knockback(impulse));
-                    HostRet::Bool(hit.is_some())
-                }),
-            }
-        }
-        PlayerCall::GiveItem { item, count, data } => {
-            let variant = match super::guards::intern_abi_data("GiveItem", &data) {
-                Ok(v) => v,
-                Err(e) => return e,
-            };
-            sim_query(|ctx| {
-                let id = match actor_for(ctx, "GiveItem", "GiveItemTo") {
-                    Ok(id) => id,
-                    Err(e) => return e,
-                };
-                let Some(item_ty) = item_by_name(&item) else {
-                    log::warn!("[mod {mod_id}] GiveItem: unknown item '{item}'");
-                    return HostRet::Bool(false);
-                };
-                give_item_to(ctx, id, item_ty, count, variant);
-                HostRet::Bool(true)
-            })
-        }
-        PlayerCall::GiveItemTo {
+        PlayerCall::GiveItem {
             player,
             item,
             count,
             data,
         } => {
-            let variant = match super::guards::intern_abi_data("GiveItemTo", &data) {
+            let variant = match super::guards::intern_abi_data("GiveItem", &data) {
                 Ok(v) => v,
                 Err(e) => return e,
             };
             sim_query(move |ctx| {
                 let Some(item_ty) = item_by_name(&item) else {
-                    log::warn!("[mod {mod_id}] GiveItemTo: unknown item '{item}'");
+                    log::warn!("[mod {mod_id}] GiveItem: unknown item '{item}'");
                     return HostRet::Bool(false);
                 };
                 let id = crate::player::PlayerId(player.0);
@@ -303,26 +235,12 @@ pub(super) fn handle_player_call(mod_id: &str, call: PlayerCall) -> HostRet {
                 HostRet::Bool(ok)
             })
         }
-        PlayerCall::ConsumeHeld { item, count } => {
-            sim_query(|ctx| match actor_for(ctx, "ConsumeHeld", "ConsumeHeldBy") {
-                Ok(id) => HostRet::Bool(consume_held(ctx, id, item, count)),
-                Err(e) => e,
-            })
-        }
-        PlayerCall::ConsumeHeldBy {
+        PlayerCall::ConsumeHeld {
             player,
             item,
             count,
         } => sim_query(|ctx| HostRet::Bool(consume_held(ctx, PlayerId(player.0), item, count))),
-        PlayerCall::ReplaceHeldOne { item, replacement } => {
-            sim_query(
-                |ctx| match actor_for(ctx, "ReplaceHeldOne", "ReplaceHeldOneBy") {
-                    Ok(id) => HostRet::Bool(replace_held_one(ctx, mod_id, id, item, &replacement)),
-                    Err(e) => e,
-                },
-            )
-        }
-        PlayerCall::ReplaceHeldOneBy {
+        PlayerCall::ReplaceHeldOne {
             player,
             item,
             replacement,
@@ -330,9 +248,6 @@ pub(super) fn handle_player_call(mod_id: &str, call: PlayerCall) -> HostRet {
             let id = PlayerId(player.0);
             HostRet::Bool(replace_held_one(ctx, mod_id, id, item, &replacement))
         }),
-        PlayerCall::PlayerInput { player_id } => {
-            sim_read(|ctx| HostRet::PlayerInput(player_input(ctx, player_id)))
-        }
         PlayerCall::PlayerInputs { player_ids } => {
             if let Some(err) = batch_guard("PlayerInputs player", player_ids.len()) {
                 return err;
@@ -341,25 +256,12 @@ pub(super) fn handle_player_call(mod_id: &str, call: PlayerCall) -> HostRet {
                 HostRet::PlayerInputs(player_ids.iter().map(|&id| player_input(ctx, id)).collect())
             })
         }
-        PlayerCall::SetHealth { value } => sim_mutate(|ctx| {
-            let id = actor_for(ctx, "SetHealth", "SetHealthOf")?;
-            ctx.with_player(id, |p| p.set_health(value));
-            Ok(())
-        }),
-        PlayerCall::SetHealthOf { player, value } => sim_query(|ctx| {
+        PlayerCall::SetHealth { player, value } => sim_query(|ctx| {
             let hit = ctx.with_player(PlayerId(player.0), |p| p.set_health(value));
             HostRet::Bool(hit.is_some())
         }),
-        PlayerCall::Teleport { pos } => match super::guards::finite_pos(pos, "Teleport.pos") {
-            Err(e) => e,
-            Ok(pos) => sim_mutate(|ctx| {
-                let id = actor_for(ctx, "Teleport", "TeleportPlayer")?;
-                ctx.with_player(id, |p| p.teleport(pos));
-                Ok(())
-            }),
-        },
-        PlayerCall::TeleportPlayer { player, pos } => {
-            match super::guards::finite_pos(pos, "TeleportPlayer.pos") {
+        PlayerCall::Teleport { player, pos } => {
+            match super::guards::finite_pos(pos, "Teleport.pos") {
                 Err(e) => e,
                 Ok(pos) => sim_query(|ctx| {
                     let hit = ctx.with_player(PlayerId(player.0), |p| p.teleport(pos));
@@ -367,25 +269,11 @@ pub(super) fn handle_player_call(mod_id: &str, call: PlayerCall) -> HostRet {
                 }),
             }
         }
-        PlayerCall::EffectApply { key, ticks } => {
-            sim_query(|ctx| match actor_for(ctx, "EffectApply", "EffectApplyTo") {
-                Ok(id) => HostRet::Bool(apply_effect(ctx, mod_id, id, &key, ticks)),
-                Err(e) => e,
-            })
-        }
-        PlayerCall::EffectApplyTo { player, key, ticks } => sim_query(|ctx| {
+        PlayerCall::EffectApply { player, key, ticks } => sim_query(|ctx| {
             HostRet::Bool(apply_effect(ctx, mod_id, PlayerId(player.0), &key, ticks))
         }),
-        PlayerCall::EffectsActive => {
-            sim_query(
-                |ctx| match actor_for(ctx, "EffectsActive", "EffectsActiveOf") {
-                    Ok(id) => HostRet::Effects(effects_of(ctx, id).unwrap_or_default()),
-                    Err(e) => e,
-                },
-            )
-        }
-        PlayerCall::EffectsActiveOf { player } => {
-            sim_query(|ctx| HostRet::EffectsOf(effects_of(ctx, PlayerId(player.0))))
+        PlayerCall::EffectsActive { player } => {
+            sim_query(|ctx| HostRet::Effects(effects_of(ctx, PlayerId(player.0))))
         }
         PlayerCall::SetPlayerAttribute {
             player,
@@ -490,15 +378,8 @@ pub(super) fn handle_body_call(mod_id: &str, call: BodyCall) -> HostRet {
         BodyCall::ActingPlayer => {
             sim_read(|ctx| HostRet::ActingPlayer(ctx.actor.map(|id| mod_api::PlayerId(id.0))))
         }
-        BodyCall::PlayerState => sim_query(|ctx| {
-            let id = match actor_for(ctx, "PlayerState", "PlayerStateOf") {
-                Ok(id) => id,
-                Err(e) => return e,
-            };
-            match player_snapshot(ctx, id, mod_id) {
-                Some(snapshot) => HostRet::Player(Box::new(snapshot)),
-                None => HostRet::invalid(format!("PlayerState: actor {} is not connected", id.0)),
-            }
+        BodyCall::PlayerState { player } => sim_query(|ctx| {
+            HostRet::Player(player_snapshot(ctx, PlayerId(player.0), mod_id).map(Box::new))
         }),
         BodyCall::SetPlayerHeldPose { player, main, off } => {
             let mod_id = mod_id.to_owned();
@@ -575,17 +456,26 @@ pub(super) fn handle_body_call(mod_id: &str, call: BodyCall) -> HostRet {
                 HostRet::Bool(wrote.is_some())
             })
         }
-        BodyCall::SetPlayerHeldDisplay { player, main, off } => {
+        BodyCall::SetHeldDisplay { body, main, off } => {
             let mod_id = mod_id.to_owned();
             let (main, off) = match (display_item(&main), display_item(&off)) {
                 (Ok(main), Ok(off)) => (main, off),
                 (Err(e), _) | (_, Err(e)) => return e,
             };
-            sim_query(move |ctx| {
-                let wrote = ctx.with_player(crate::player::PlayerId(player.0), |p| {
-                    p.claims.set_held_display(&mod_id, main, off);
-                });
-                HostRet::Bool(wrote.is_some())
+            sim_query(move |ctx| match body {
+                mod_api::EntityRef::Player(player) => {
+                    let wrote = ctx.with_player(crate::player::PlayerId(player.0), |p| {
+                        p.claims.set_held_display(&mod_id, main, off);
+                    });
+                    HostRet::Bool(wrote.is_some())
+                }
+                mod_api::EntityRef::Entity(id) => {
+                    if super::guards::live_mob(ctx, id).is_none() {
+                        return HostRet::Bool(false);
+                    }
+                    ctx.world.mobs_mut().set_held(id, [main, off]);
+                    HostRet::Bool(true)
+                }
             })
         }
         BodyCall::PlayerInventory { player } => sim_query(move |ctx| {
@@ -611,9 +501,9 @@ pub(super) fn handle_body_call(mod_id: &str, call: BodyCall) -> HostRet {
 fn display_item(name: &Option<String>) -> Result<Option<ItemType>, HostRet> {
     match name {
         None => Ok(None),
-        Some(name) => item_by_name(name).map(Some).ok_or_else(|| {
-            HostRet::invalid(format!("SetPlayerHeldDisplay: unknown item '{name}'"))
-        }),
+        Some(name) => item_by_name(name)
+            .map(Some)
+            .ok_or_else(|| HostRet::invalid(format!("SetHeldDisplay: unknown item '{name}'"))),
     }
 }
 
@@ -873,7 +763,7 @@ mod tests {
     }
 
     #[test]
-    fn implicit_calls_act_for_the_actor_and_refuse_an_actorless_dispatch() {
+    fn calls_address_the_named_session_and_the_actor_is_reported() {
         use crate::player::PlayerId;
 
         let mut data = ModStoreData::new("alpha", 1);
@@ -911,37 +801,19 @@ mod tests {
                 handle_host_call(&mut data, HostCall::from(calls::ActingPlayer)),
                 HostRet::ActingPlayer(Some(mod_api::PlayerId(1)))
             );
-            let HostRet::Player(state) =
-                handle_host_call(&mut data, HostCall::from(calls::PlayerState))
-            else {
-                panic!("the actor's snapshot");
+            let HostRet::Player(Some(state)) = handle_host_call(
+                &mut data,
+                HostCall::from(calls::PlayerState {
+                    player: mod_api::PlayerId(1),
+                }),
+            ) else {
+                panic!("the named session's snapshot");
             };
-            assert_eq!(state.id, Some(mod_api::PlayerId(1)));
-            assert_eq!(state.pos[0], 4.0, "the actor's body, not session 0's");
-            assert_eq!(
-                handle_host_call(&mut data, HostCall::from(calls::SetHealth { value: 5 })),
-                HostRet::Unit
-            );
-        });
-
-        ctx.actor = None;
-        scope::enter(&mut ctx, || {
-            assert_eq!(
-                handle_host_call(&mut data, HostCall::from(calls::ActingPlayer)),
-                HostRet::ActingPlayer(None)
-            );
-            assert!(matches!(
-                handle_host_call(&mut data, HostCall::from(calls::PlayerState)),
-                HostRet::Err(_)
-            ));
-            assert!(matches!(
-                handle_host_call(&mut data, HostCall::from(calls::SetHealth { value: 1 })),
-                HostRet::Err(_)
-            ));
+            assert_eq!(state.pos[0], 4.0, "session 1's body, not session 0's");
             assert_eq!(
                 handle_host_call(
                     &mut data,
-                    HostCall::from(calls::SetHealthOf {
+                    HostCall::from(calls::SetHealth {
                         player: mod_api::PlayerId(0),
                         value: 7,
                     })
@@ -951,7 +823,7 @@ mod tests {
             assert_eq!(
                 handle_host_call(
                     &mut data,
-                    HostCall::from(calls::SetHealthOf {
+                    HostCall::from(calls::SetHealth {
                         player: mod_api::PlayerId(9),
                         value: 7,
                     })
@@ -959,21 +831,7 @@ mod tests {
                 HostRet::Bool(false),
                 "no such session"
             );
-            let HostRet::PlayerOf(Some(state)) = handle_host_call(
-                &mut data,
-                HostCall::from(calls::PlayerStateOf {
-                    player: mod_api::PlayerId(1),
-                }),
-            ) else {
-                panic!("the named session's snapshot");
-            };
-            assert_eq!(state.health, 5);
         });
-        assert_eq!(
-            first.health(),
-            7,
-            "only the explicit write reached session 0"
-        );
-        assert_eq!(second.health(), 5);
+        assert_eq!(first.health(), 7);
     }
 }

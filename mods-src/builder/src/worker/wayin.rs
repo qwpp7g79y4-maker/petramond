@@ -113,11 +113,7 @@ fn doors_near(
     let mut doors: Vec<[i32; 3]> = Vec::new();
     for (cell, block) in beside.iter().zip(blocks) {
         let Some(block) = block else { continue };
-        if !ctx
-            .caches
-            .block(block)
-            .is_some_and(|info| info.interaction == Some(BlockUse::ToggleDoor))
-        {
+        if !ctx.caches.block(block).is_some_and(super::swings) {
             continue;
         }
         let below = offset(*cell, [0, -1, 0]);
@@ -250,7 +246,7 @@ pub fn off_threshold(ctx: &mut Ctx, hubs: Hubs, body: &Body) -> Option<Step> {
     let doors = paged(halves.to_vec(), get_blocks);
     let standing = doors.iter().any(|b| {
         b.and_then(|b| ctx.caches.block(b))
-            .is_some_and(|info| info.interaction == Some(BlockUse::ToggleDoor))
+            .is_some_and(super::swings)
     });
     if !standing {
         return None;

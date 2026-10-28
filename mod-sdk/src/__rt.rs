@@ -386,23 +386,16 @@ fn dispatch_call<T: crate::Mod>(mod_: &mut T, call: GuestCall) -> GuestRet {
             }
         }
         GuestCall::GuiClick {
+            player,
             kind_key,
             widget_id,
             at,
         } => {
-            mod_.gui_click(&kind_key, &widget_id, at);
+            mod_.gui_click(player, &kind_key, &widget_id, at);
             GuestRet::Unit
         }
-        GuestCall::HostileSpawnCandidate {
-            callback_id,
-            candidate,
-        } => GuestRet::HostileSpawn(mod_.hostile_spawn_candidate(callback_id, &candidate)),
-        GuestCall::BlockBehavior {
-            callback_id,
-            kind,
-            pos,
-        } => {
-            mod_.block_hook(callback_id, kind, pos);
+        GuestCall::BlockBehavior { callback_id, hooks } => {
+            mod_.block_hooks(callback_id, &hooks);
             GuestRet::Unit
         }
         GuestCall::AiNode { callback_id, ctx } => {

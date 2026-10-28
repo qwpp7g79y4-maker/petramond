@@ -38,14 +38,11 @@ pub fn reload() {
     *REGISTRY.lock().unwrap() = None;
 }
 
+/// The document a kind shows: its own, or for a crafting station its row's `screen`.
 pub fn doc_for(kind: GuiKind) -> Option<DocRef> {
-    doc_entry_for(kind).or_else(|| {
-        use petramond_world::crafting::CraftingStation;
-        CraftingStation::of_kind(kind)
-            .is_some_and(|s| s != CraftingStation::Inventory && s != CraftingStation::CraftingTable)
-            .then(|| doc_entry_for(GuiKind::CraftingTable))
-            .flatten()
-    })
+    let screen = petramond_world::crafting::CraftingStation::of_kind(kind)
+        .map_or(kind, |station| station.screen());
+    doc_entry_for(screen)
 }
 
 fn doc_entry_for(kind: GuiKind) -> Option<DocRef> {
@@ -92,8 +89,6 @@ pub fn loaded_documents() -> Vec<(&'static str, usize)> {
 const _: () = {
     use petramond_ui::contract as ui;
     use petramond_world::inventory::{HOTBAR_LEN, TOTAL_SLOTS};
-    assert!(ui::CHEST_SLOTS == crate::world::chest::CHEST_SLOTS);
-    assert!(ui::FURNACE_SLOTS == petramond_world::furnace::FURNACE_SLOTS);
     assert!(ui::HOTBAR_SLOTS == HOTBAR_LEN);
     assert!(ui::MAIN_GRID_SLOTS == TOTAL_SLOTS - HOTBAR_LEN);
     assert!(ui::MAX_CONTAINER_SLOTS == MAX_CONTAINER_SLOTS);

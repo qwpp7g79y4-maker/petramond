@@ -77,7 +77,7 @@ mod_sdk::pack_keys! {
 
     pub COMPOSTABLE_TAG: Tag = "farming:compostable";
     pub SAPLING_TAG: Tag = "petramond:sapling";
-    pub ROOTS_IN_SOIL_TAG: Tag = "petramond:roots_in_soil";
+    pub SOIL_TAG: Tag = "petramond:soil";
     pub HUSBANDRY_DATA: Data = "farming:husbandry";
     pub CROP_DATA: Data = "farming:crop";
     pub WILD_PATCH_DATA: Data = "farming:wild_patch";

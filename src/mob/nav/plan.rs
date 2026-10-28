@@ -407,7 +407,7 @@ fn entity_cell_costs(avoid: &NavInputs, start: IVec3, costs: &mut FxHashMap<IVec
     };
     let origin = petramond_math::world_pos::WorldPos::new(ox, f64::from(start.y), oz);
     for (_, m) in avoid.mobs.near(origin, ENTITY_AVOID_RANGE) {
-        if m.id == avoid.self_id || avoid.target == Some(EntityRef::Mob(m.id)) {
+        if m.id == avoid.self_id || avoid.target == Some(EntityRef::Entity(m.id)) {
             continue;
         }
         let s = def(m.kind).size;

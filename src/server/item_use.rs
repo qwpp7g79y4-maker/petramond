@@ -63,7 +63,12 @@ impl ServerGame {
             return true;
         }
         let target = sess.input.look.map(|h| h.block);
-        let mut pre = ItemUsePre { item, target };
+        let player = sess.id;
+        let mut pre = ItemUsePre {
+            player,
+            item,
+            target,
+        };
         let cancelled = {
             let Self {
                 world,
@@ -150,7 +155,11 @@ impl ServerGame {
             return false;
         };
         let target = click_target.map(|h| h.block);
-        let mut pre = ItemUsePre { item, target };
+        let mut pre = ItemUsePre {
+            player: self.sessions[s].id,
+            item,
+            target,
+        };
         let cancelled = {
             let Self {
                 world,
@@ -191,9 +200,9 @@ impl ServerGame {
     }
 
     pub fn try_shear_mob(&mut self, s: usize, target: Option<u64>) -> bool {
-        if !rules::holds_shears(&self.sessions[s].player) {
+        let Some(tool) = rules::held_tool_kind(&self.sessions[s].player) else {
             return false;
-        }
+        };
         let Some(mob_id) =
             super::mob_target::authoritative_mob_target(&self.world, &self.sessions[s], target)
         else {
@@ -205,7 +214,7 @@ impl ServerGame {
             pos,
             skylight,
             blocklight,
-        }) = self.world.mobs_mut().shear_mob(mob_id)
+        }) = self.world.mobs_mut().shear_mob(mob_id, Some(tool))
         else {
             return false;
         };
@@ -240,7 +249,7 @@ impl ServerGame {
         true
     }
 
-    /// Pour the bucket into `p`. We don't pick the cell here; [`rules::bucket_pour_cell`] does. If
+    /// Pour the bucket into `p`. We don't pick the cell here; [`rules::pour_cell`] does. If
     /// it works you're left holding `becomes`, the empty bucket.
     fn pour_bucket(
         &mut self,

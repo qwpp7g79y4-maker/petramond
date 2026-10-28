@@ -17,7 +17,6 @@ mod decode;
 mod encode;
 pub mod entities;
 pub mod format;
-mod furnace;
 mod io;
 mod journal;
 pub mod level;
@@ -80,6 +79,7 @@ pub enum SectionRecord {
         section: Box<Section>,
         entities: Vec<DroppedItem>,
         mobs: Vec<SavedMob>,
+        ticks: petramond_world::section::CellMap<u64>,
     },
     Unreadable(Unreadable),
 }
@@ -116,14 +116,14 @@ pub struct WorldSave {
     writer_handle: Option<JoinHandle<()>>,
     reader_handles: Vec<JoinHandle<()>>,
     colgen_manifest: rustc_hash::FxHashSet<ChunkPos>,
-    /// Section coords whose written record currently carries live entities — dropped
-    /// items OR mobs. A section leaves the set when re-saved with neither. The persist
-    /// decision consults it so a section whose drops were picked up / despawned (or whose
-    /// mobs wandered off, died, or distance-despawned) is rewritten to clear its
-    /// now-stale record, instead of leaving the disk copy to resurrect them on the next
-    /// load. Populated both when we save such a record and when we read one back (so
-    /// cross-session staleness is seen).
-    entities_on_disk: rustc_hash::FxHashSet<SectionPos>,
+    /// Section coords whose written record carries live content: dropped items, mobs or
+    /// pending block ticks. A section leaves the set when re-saved with none. The persist
+    /// decision consults it so a section whose drops were picked up / despawned, whose mobs
+    /// wandered off, died or distance-despawned, or whose ticks ran, is rewritten to clear its
+    /// now-stale record instead of leaving the disk copy to resurrect them on the next load.
+    /// Populated both when we save such a record and when we read one back (so cross-session
+    /// staleness is seen).
+    live_on_disk: rustc_hash::FxHashSet<SectionPos>,
     players: Arc<PlayerFiles>,
     dir: PathBuf,
     held_writes: Arc<AtomicU64>,
@@ -284,16 +284,16 @@ impl WorldSave {
         }
     }
 
-    pub fn record_holds_entities(&self, pos: SectionPos) -> bool {
-        self.entities_on_disk.contains(&pos)
+    pub fn record_holds_live(&self, pos: SectionPos) -> bool {
+        self.live_on_disk.contains(&pos)
     }
 
-    pub fn sections_holding_entities(&self) -> impl Iterator<Item = SectionPos> + '_ {
-        self.entities_on_disk.iter().copied()
+    pub fn sections_holding_live(&self) -> impl Iterator<Item = SectionPos> + '_ {
+        self.live_on_disk.iter().copied()
     }
 
-    pub fn note_record_holds_entities(&mut self, pos: SectionPos) {
-        self.entities_on_disk.insert(pos);
+    pub fn note_record_holds_live(&mut self, pos: SectionPos) {
+        self.live_on_disk.insert(pos);
     }
 
     pub fn save_sections(
@@ -320,10 +320,10 @@ impl WorldSave {
             if let Some(kept) = kept.get(&s.pos) {
                 s.kept = kept.clone();
             }
-            if s.entities.is_empty() && s.mobs.is_empty() {
-                self.entities_on_disk.remove(&s.pos);
+            if s.entities.is_empty() && s.mobs.is_empty() && s.ticks.is_empty() {
+                self.live_on_disk.remove(&s.pos);
             } else {
-                self.entities_on_disk.insert(s.pos);
+                self.live_on_disk.insert(s.pos);
             }
             authoritative.push(s);
         }
@@ -670,7 +670,7 @@ pub fn open_at(dir: PathBuf) -> std::io::Result<OpenedWorld> {
             writer_handle: Some(writer_handle),
             reader_handles,
             colgen_manifest,
-            entities_on_disk: Default::default(),
+            live_on_disk: Default::default(),
             players,
             dir: world_dir,
             held_writes,

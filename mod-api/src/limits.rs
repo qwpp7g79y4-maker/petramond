@@ -20,6 +20,9 @@ pub const EVENT_MAX_DATA_BYTES: usize = 8 * 1024;
 
 pub const DRAW_PRIMS_MAX: usize = 32;
 
+/// The thickest a [`DrawPrim::Line`](crate::DrawPrim::Line) draws, in texels.
+pub const LINE_WIDTH_MAX: f32 = 4.0;
+
 pub const GUI_IMAGE_MAX_SIDE: u32 = 640;
 
 pub const GUI_IMAGE_MAX_FRAMES: u32 = 64;

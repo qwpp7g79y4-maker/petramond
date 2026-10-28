@@ -41,24 +41,7 @@ pub struct ItemStateRow {
     pub pos: petramond_math::world_pos::WorldPos,
     pub spin: f32,
     pub flight: Option<[f32; 3]>,
-    pub tether: Option<TetherWire>,
     pub draw: crate::world::draw::BodyDraw,
-}
-
-/// Who a tethered item's line runs back to.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TetherWire {
-    Player(crate::player::PlayerId),
-    Mob(u64),
-}
-
-impl TetherWire {
-    pub fn of(entity: crate::mob::EntityRef) -> Self {
-        match entity {
-            crate::mob::EntityRef::Player(id) => Self::Player(id),
-            crate::mob::EntityRef::Mob(id) => Self::Mob(id),
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -68,8 +51,6 @@ pub struct PlayerStateRow {
     pub transform: Transform,
     pub on_ground: bool,
     pub sneaking: bool,
-    pub sleeping: bool,
-    pub sleep_yaw: Option<f32>,
     pub alive: bool,
     pub visible: bool,
     pub held_item: Option<u16>,
@@ -96,24 +77,40 @@ pub enum PlayerMount {
     Mob {
         id: u64,
         seat: u8,
+        posture: mod_api::Posture,
     },
     Anchor {
         pos: petramond_math::world_pos::WorldPos,
         yaw: f32,
-        pose: u8,
+        posture: mod_api::Posture,
     },
 }
 
 impl PlayerMount {
     pub fn from_mount(m: crate::mob::riding::Mount) -> Self {
+        let posture = m.posture;
         match m.target {
-            crate::mob::riding::MountTarget::Mob(id) => PlayerMount::Mob { id, seat: m.seat },
+            crate::mob::riding::MountTarget::Entity(id) => PlayerMount::Mob {
+                id,
+                seat: m.seat,
+                posture,
+            },
             crate::mob::riding::MountTarget::Anchor(a) => PlayerMount::Anchor {
                 pos: a.pos,
                 yaw: a.yaw,
-                pose: a.pose,
+                posture,
             },
         }
+    }
+
+    pub fn posture(self) -> mod_api::Posture {
+        match self {
+            PlayerMount::Mob { posture, .. } | PlayerMount::Anchor { posture, .. } => posture,
+        }
+    }
+
+    pub fn lying(self) -> bool {
+        self.posture() == mod_api::Posture::Lying
     }
 }
 
@@ -154,8 +151,8 @@ pub struct SelfState {
     pub inventory: Option<Vec<Option<ItemSlotWire>>>,
     pub eating: Option<u8>,
     pub eating_off_hand: bool,
+    /// Sleep progress, 0..=255, while the bed holds this player.
     pub sleeping: Option<u8>,
-    pub sleep_bed: Option<IVec3>,
     pub move_scale: f32,
     pub fly_scale: f32,
     pub denied_actions: crate::player::DeniedActions,
@@ -194,12 +191,6 @@ pub enum WorldEventMsg {
         anchor: IVec3,
         open: bool,
     },
-    ChestOpened {
-        pos: IVec3,
-    },
-    ChestClosed {
-        pos: IVec3,
-    },
     ItemPickedUp {
         pos: petramond_math::world_pos::WorldPos,
         by: PlayerId,
@@ -233,10 +224,10 @@ pub enum SpatialSoundMsg {
         volume: f32,
         pitch: f32,
     },
-    PlayOnMob {
+    PlayOnEntity {
         handle: u64,
         sound_id: u8,
-        mob_id: u64,
+        entity: u64,
         volume: f32,
         pitch: f32,
         last_pos: petramond_math::world_pos::WorldPos,

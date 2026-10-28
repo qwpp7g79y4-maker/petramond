@@ -121,7 +121,6 @@ impl<S: WorldSide> World<S> {
 mod tests {
     use super::*;
     use petramond_world::chunk::{Chunk, ChunkPos};
-    use petramond_world::crafting::Recipes;
 
     const DOOR: Block = Block::OakDoor;
 
@@ -135,9 +134,8 @@ mod tests {
     }
 
     fn run_ticks(w: &mut ServerWorld, n: u32) {
-        let r = Recipes::default();
         for _ in 0..n {
-            w.game_tick(&r);
+            w.game_tick();
         }
     }
 
@@ -196,7 +194,7 @@ mod tests {
         );
         let breaks = w.take_natural_breaks();
         assert!(
-            breaks.iter().any(|&(p, b)| p == base && b == DOOR),
+            breaks.iter().any(|&(p, b, _)| p == base && b == DOOR),
             "exactly the lower cell drops one door item",
         );
         assert_eq!(breaks.len(), 1, "a door drops once, not once per cell");

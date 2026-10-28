@@ -1,4 +1,4 @@
-use crate::data::{BlockRecord, EntityRef};
+use crate::data::{CellRecord, EntityRef};
 use crate::legality::prelude::*;
 
 host_domain! {
@@ -12,14 +12,14 @@ host_domain! {
         ActorPlace {
             actor: EntityRef,
             pos: [i32; 3],
-            record: BlockRecord,
+            record: CellRecord,
             pay: bool,
         } => legal(SERVER, Sim, Write),
         ActorPlaceCheck {
             actor: EntityRef,
             from: [f64; 3],
             pos: [i32; 3],
-            record: BlockRecord,
+            record: CellRecord,
             pay: bool,
         } => legal(SERVER, Sim, Read),
         ActorInteract {
@@ -30,7 +30,7 @@ host_domain! {
             actor: EntityRef,
             from: Vec<[f64; 3]>,
             pos: [i32; 3],
-            record: Option<crate::BlockRecord>,
+            record: Option<crate::CellRecord>,
         } => legal(SERVER, Sim, Read),
     }
 }

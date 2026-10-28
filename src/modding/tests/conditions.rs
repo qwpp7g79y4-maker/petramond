@@ -41,7 +41,7 @@ fn a_guest_applies_and_cools_a_condition_on_the_addressed_player_and_mob() {
         .unwrap();
     let mut host = ModHost::from_instances(vec![calling_guest(
         "condition_test",
-        &[EntityRef::Player(PlayerId(1)), EntityRef::Mob(mob)].map(|entity| {
+        &[EntityRef::Player(PlayerId(1)), EntityRef::Entity(mob)].map(|entity| {
             HostCall::from(calls::EntityConditionApply {
                 entity,
                 condition,
@@ -64,7 +64,7 @@ fn a_guest_applies_and_cools_a_condition_on_the_addressed_player_and_mob() {
 
     let mut cool = ModHost::from_instances(vec![calling_guest(
         "cool_test",
-        &[EntityRef::Mob(mob), EntityRef::Player(PlayerId(1))].map(|entity| {
+        &[EntityRef::Entity(mob), EntityRef::Player(PlayerId(1))].map(|entity| {
             HostCall::from(calls::EntityConditionCool {
                 entity,
                 condition,
@@ -136,7 +136,7 @@ fn doused_grant_inner() {
             reply = super::super::host::handle_host_call(
                 &mut store,
                 HostCall::from(calls::EntityConditionApply {
-                    entity: EntityRef::Mob(mob),
+                    entity: EntityRef::Entity(mob),
                     condition: ConditionId(hot.0),
                     stage: 0,
                     ticks: 100,

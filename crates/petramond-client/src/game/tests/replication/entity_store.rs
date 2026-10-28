@@ -286,7 +286,6 @@ fn staged_overflow_resyncs_at_a_boundary_and_catch_up_stays_one_per_segment() {
                         pos: WorldPos::new(f64::from(x), 69.0, 0.0),
                         spin: 0.0,
                         flight: None,
-                        tether: None,
                         draw: Default::default(),
                     }]
                     .into(),
@@ -303,8 +302,6 @@ fn staged_overflow_resyncs_at_a_boundary_and_catch_up_stays_one_per_segment() {
                         },
                         on_ground: true,
                         sneaking: false,
-                        sleeping: false,
-                        sleep_yaw: None,
                         alive: true,
                         visible: true,
                         held_item: None,

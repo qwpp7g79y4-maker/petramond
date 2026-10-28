@@ -146,7 +146,7 @@ impl Serialize for AbiTag<'_> {
     }
 }
 
-const AI_NODE_BATCH_VARIANT: u32 = 17;
+const AI_NODE_BATCH_VARIANT: u32 = 16;
 
 #[derive(Debug)]
 struct AiNodeBatchRef<'a> {
@@ -297,7 +297,7 @@ mod tests {
             player_pos: [4.0, 5.0, 6.0],
             nav_idle: true,
             in_fluid: Some(mod_api::BlockId(3)),
-            target: Some(mod_api::EntityRef::Mob(8)),
+            target: Some(mod_api::EntityRef::Entity(8)),
             attacker: Some((mod_api::EntityRef::Player(mod_api::PlayerId(2)), 3)),
             player_held: Some(mod_api::ItemId(7)),
             player_foothold: Some([4, 5, 6]),

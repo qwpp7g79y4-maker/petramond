@@ -12,7 +12,8 @@ fn joined_catalog_round_trips_namespaced_selectors_and_stable_keys() {
         }],
         ItemStack::new(ItemType::Stick, 4),
     );
-    let bench = CraftingStation::from_key("test:bench").expect("mod station registers");
+    let bench =
+        CraftingStation::from_key("petramond:furniture_workbench").expect("a shipped station");
     let bench_recipe = CraftingRecipe::new(
         "test:bench_sticks".into(),
         bench,
@@ -32,7 +33,9 @@ fn joined_catalog_round_trips_namespaced_selectors_and_stable_keys() {
         sticks.ingredients()[0].selector,
         IngredientSelector::Tag(ItemTag::PLANKS)
     );
-    let bench_sticks = restored.get("test:bench_sticks").expect("mod station row");
+    let bench_sticks = restored
+        .get("test:bench_sticks")
+        .expect("station recipe row");
     assert_eq!(bench_sticks.station(), bench);
 }
 
@@ -42,7 +45,7 @@ fn joined_catalog_rejects_invalid_identity_capacity_and_empty_items() {
         |recipe: &str, ingredient: CraftingIngredientData, result: &str| CraftingRecipeData {
             data: Vec::new(),
             recipe: recipe.into(),
-            station: CraftingStation::INVENTORY_KEY.into(),
+            station: "petramond:inventory".into(),
             ingredients: vec![ingredient],
             result: CraftingStackData {
                 item: result.into(),

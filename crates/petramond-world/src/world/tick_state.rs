@@ -48,6 +48,13 @@ impl ScheduledQueue {
         self.heap.is_empty()
     }
 
+    /// Every pending tick as (cell, due tick), in no particular order.
+    pub fn iter(&self) -> impl Iterator<Item = (IVec3, u64)> + '_ {
+        self.heap
+            .iter()
+            .map(|Reverse((due, _, x, y, z))| (IVec3::new(*x, *y, *z), *due))
+    }
+
     pub fn due_count(&self, now: u64) -> usize {
         self.heap
             .iter()
@@ -63,7 +70,12 @@ pub struct TickState {
     pub update_set: FxHashSet<IVec3>,
     pub scheduled: ScheduledQueue,
     pub fluid: ScheduledQueue,
-    pub pending_breaks: Vec<(IVec3, crate::block::Block)>,
+    pub pending_breaks: Vec<(IVec3, crate::block::Block, super::model::Removal)>,
+    /// Block containers written since the last tick: their behaviors hear `container_changed`.
+    pub containers_touched: FxHashSet<IVec3>,
+    /// Blocks whose GUI a player opened or closed since the last tick: their behaviors hear
+    /// `viewers_changed`.
+    pub viewers_touched: FxHashSet<IVec3>,
     pub rng: u64,
     pub batch_scratch: Vec<IVec3>,
     pub change_log: ChangeLog,

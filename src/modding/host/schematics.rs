@@ -1,5 +1,5 @@
 use mod_api::{
-    BlockRecord, HostRet, SchematicCall, SchematicCellsData, SchematicInfoData, SchematicLookup,
+    CellRecord, HostRet, SchematicCall, SchematicCellsData, SchematicInfoData, SchematicLookup,
 };
 use petramond_math::math::IVec3;
 
@@ -38,11 +38,13 @@ pub(super) fn handle_schematic_call(mod_id: &str, call: SchematicCall) -> HostRe
                         cells,
                         palette: palette
                             .into_iter()
-                            .map(|data| BlockRecord {
+                            .map(|data| CellRecord {
                                 block: data.block,
                                 state: data.state,
                                 refs: data.state_ids.into_iter().collect(),
+                                fluid: data.fluid,
                                 data: data.kv.into_iter().collect(),
+                                container: None,
                             })
                             .collect(),
                     }),

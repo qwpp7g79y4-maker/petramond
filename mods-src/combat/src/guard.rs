@@ -198,7 +198,7 @@ mod tests {
             held,
             off_held,
             held_count: 1,
-            pose_anchor: None,
+            attached: None,
             swing: Default::default(),
             half_width: 0.3,
             height: 1.8,

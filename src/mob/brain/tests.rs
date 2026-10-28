@@ -28,9 +28,9 @@ impl AiBehavior for Combatant {
                 yaw: 0.2,
                 pitch: 0.0,
             }),
-            target: Some(EntityRef::Mob(9)),
+            target: Some(EntityRef::Entity(9)),
             attack: Some(AttackIntent {
-                target: EntityRef::Mob(9),
+                target: EntityRef::Entity(9),
                 damage: 1.0,
                 knockback: 0.0,
             }),

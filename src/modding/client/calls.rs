@@ -15,21 +15,21 @@ use std::sync::Arc;
 
 use mod_api::{
     BodyCall, ClientCall, ClientCaptureCall, ClientFileCall, ClientMediaCall,
-    ClientPresentationCall, ClientStorageScope, ErrorCode, HostRet, CLIENT_ENV_PARAM_MAX,
+    ClientPresentationCall, ClientStorageScope, HostRet, CLIENT_ENV_PARAM_MAX,
 };
 use petramond_world::item::ItemType;
 
-use crate::modding::host::guards::{event_key_guard, key_owned_by_namespace, KV_MAX_KEY_BYTES};
+use crate::modding::host::guards::{event_key_guard, key_owned_by_namespace};
 use crate::modding::host::ModStoreData;
 
 use super::scope as client_scope;
 use super::state::{ClientCommand, ClientImageData, ClientOverlayRegistration, ClientStoreData};
 use validate::{
     client_canvas_element_image_key, client_canvas_element_valid, valid_client_key_id,
-    CLIENT_BLOCKS_QUERY_MAX, CLIENT_CANVAS_MAX, CLIENT_CANVAS_SIDE_MAX, CLIENT_COMMAND_MAX,
-    CLIENT_EVENT_OUTBOX_MAX, CLIENT_IMAGE_SIDE_MAX, CLIENT_OVERLAY_DISPLAY_SIDE_MAX,
-    CLIENT_OVERLAY_MAX, CLIENT_SURFACE_QUERY_MAX, CLIENT_TEXT_BYTES_MAX, CLIENT_TEXT_RUN_MAX,
-    CLIENT_TEXT_SCALE_MAX, CLIENT_WIND_MAX,
+    CLIENT_CANVAS_MAX, CLIENT_CANVAS_SIDE_MAX, CLIENT_COMMAND_MAX, CLIENT_EVENT_OUTBOX_MAX,
+    CLIENT_IMAGE_SIDE_MAX, CLIENT_OVERLAY_DISPLAY_SIDE_MAX, CLIENT_OVERLAY_MAX,
+    CLIENT_SURFACE_QUERY_MAX, CLIENT_TEXT_BYTES_MAX, CLIENT_TEXT_RUN_MAX, CLIENT_TEXT_SCALE_MAX,
+    CLIENT_WIND_MAX,
 };
 
 fn client_store(data: &mut ModStoreData) -> Result<&mut ClientStoreData, HostRet> {
@@ -147,53 +147,6 @@ pub(in crate::modding) fn handle_client_call(data: &mut ModStoreData, call: Clie
             client_scope::with_active(|world| {
                 let params = world.data().environment().shader_params().clone();
                 HostRet::EnvParams(keys.iter().map(|k| params.get(k).copied()).collect())
-            })
-            .unwrap_or_else(|| HostRet::invalid("no client replica is active".into()))
-        }
-        ClientCall::ClientBiomeAt { pos } => client_scope::with_active(|world| {
-            HostRet::MaybeByte(world.data().biome_at_world(pos[0], pos[1]))
-        })
-        .unwrap_or_else(|| HostRet::invalid("no client replica is active".into())),
-        ClientCall::ClientBlocksAt { positions } => {
-            if positions.len() > CLIENT_BLOCKS_QUERY_MAX {
-                return HostRet::invalid(format!(
-                    "ClientBlocksAt position count {} exceeds {CLIENT_BLOCKS_QUERY_MAX}",
-                    positions.len()
-                ));
-            }
-            client_scope::with_active(|world| {
-                HostRet::Blocks(
-                    positions
-                        .iter()
-                        .map(|&[x, y, z]| {
-                            world
-                                .block_if_stream_final(x, y, z)
-                                .map(|b| mod_api::BlockId(b.id()))
-                        })
-                        .collect(),
-                )
-            })
-            .unwrap_or_else(|| HostRet::invalid("no client replica is active".into()))
-        }
-        ClientCall::ClientCellKvAt { key, cells } => {
-            if cells.len() > CLIENT_BLOCKS_QUERY_MAX {
-                return HostRet::invalid(format!(
-                    "ClientCellKvAt cell count {} exceeds {CLIENT_BLOCKS_QUERY_MAX}",
-                    cells.len()
-                ));
-            }
-            if key.is_empty() || key.len() > KV_MAX_KEY_BYTES {
-                return HostRet::invalid(format!("invalid cell KV key '{key}'"));
-            }
-            client_scope::with_active(|world| {
-                HostRet::BytesMany(
-                    cells
-                        .iter()
-                        .map(|&[x, y, z]| {
-                            world.data().cell_kv_get(x, y, z, &key).map(<[u8]>::to_vec)
-                        })
-                        .collect(),
-                )
             })
             .unwrap_or_else(|| HostRet::invalid("no client replica is active".into()))
         }
@@ -764,17 +717,12 @@ pub(in crate::modding) fn handle_media_call(
     }
 }
 
-pub(in crate::modding) fn raycast(
-    from: [f64; 3],
-    dir: [f32; 3],
-    max: f32,
-    filter: mod_api::RayFilter,
+/// A world read answered from this client's replica.
+pub(in crate::modding) fn world_read(
+    f: impl FnOnce(&crate::world::ReplicaWorld) -> HostRet,
 ) -> HostRet {
-    match crate::modding::host::blocks::RaycastQuery::new(from, dir, max, filter) {
-        Ok(query) => client_scope::with_active(|world| query.against(world.data()))
-            .unwrap_or_else(|| HostRet::invalid("no client replica is active".into())),
-        Err(refused) => refused,
-    }
+    client_scope::with_active(f)
+        .unwrap_or_else(|| HostRet::invalid("no client replica is active".into()))
 }
 
 fn bucket(
@@ -859,14 +807,11 @@ pub(in crate::modding) fn handle_body_call(data: &mut ModStoreData, call: BodyCa
         Err(refused) => return refused,
     };
     match call {
-        BodyCall::PlayerState => match super::scope::active_actor() {
-            Some(actor) => HostRet::Player(Box::new(actor)),
-            None => HostRet::error(
-                ErrorCode::NoContext,
-                "PlayerState on a client instance is available during prediction dispatches only"
-                    .into(),
-            ),
-        },
+        BodyCall::PlayerState { player } => HostRet::Player(
+            super::scope::active_actor()
+                .filter(|actor| actor.id == Some(player))
+                .map(Box::new),
+        ),
         BodyCall::ActingPlayer => {
             HostRet::ActingPlayer(super::scope::active_actor().and_then(|actor| actor.id))
         }
@@ -959,18 +904,18 @@ pub(in crate::modding) fn handle_body_call(data: &mut ModStoreData, call: BodyCa
                 None => HostRet::invalid("PlayerInventory: no inventory is published".into()),
             }
         }
-        BodyCall::SetPlayerHeldDisplay { player, main, off } => {
+        BodyCall::SetHeldDisplay { body, main, off } => {
             let local = super::scope::active_actor().and_then(|a| a.id);
-            if local != Some(player) {
+            if local.map(mod_api::EntityRef::Player) != Some(body) {
                 return HostRet::invalid(format!(
-                    "SetPlayerHeldDisplay: a client instance may dress only the LOCAL player \
-                     ({local:?}), not {player:?}"
+                    "SetHeldDisplay: a client instance may dress only the LOCAL player \
+                     ({local:?}), not {body:?}"
                 ));
             }
             let item = |name: &Option<String>| match name {
                 None => Ok(None),
                 Some(name) => ItemType::by_name(name).map(Some).ok_or_else(|| {
-                    HostRet::invalid(format!("SetPlayerHeldDisplay: unknown item '{name}'"))
+                    HostRet::invalid(format!("SetHeldDisplay: unknown item '{name}'"))
                 }),
             };
             let (main, off) = match (item(&main), item(&off)) {

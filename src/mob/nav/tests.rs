@@ -280,7 +280,7 @@ fn a_touching_body_ahead_veers_the_wish_to_a_side() {
         active: true,
         tags: Default::default(),
     }]);
-    let contacts = [EntityRef::Mob(2)];
+    let contacts = [EntityRef::Entity(2)];
 
     let out = Unstick::default().steer(wish, pos, 1, 0.45, &contacts, None, &blocking, &[]);
     assert!(out.z.abs() > 0.5, "veers sideways around the body: {out:?}");
@@ -298,7 +298,7 @@ fn a_touching_body_ahead_veers_the_wish_to_a_side() {
             1,
             0.45,
             &contacts,
-            Some(EntityRef::Mob(2)),
+            Some(EntityRef::Entity(2)),
             &blocking,
             &[]
         ),
@@ -334,7 +334,7 @@ fn the_veer_commits_to_its_side_instead_of_flip_flopping() {
         active: true,
         tags: Default::default(),
     }]);
-    let contacts = [EntityRef::Mob(2)];
+    let contacts = [EntityRef::Entity(2)];
 
     let mut latch = Unstick::default();
     let veered = latch.steer(wish, pos, 1, 0.45, &contacts, None, &blocking, &[]);
@@ -812,7 +812,7 @@ fn the_locked_target_is_never_avoided() {
     }]);
     let obstacles = NavInputs {
         self_id: 1,
-        target: Some(EntityRef::Mob(7)),
+        target: Some(EntityRef::Entity(7)),
         mobs: &mobs,
         players: &[],
         budget: None,

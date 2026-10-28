@@ -40,7 +40,7 @@ impl WorldFx {
                         crate::particle::BurstEvent::broken(pos, block, tint, sky, blk),
                     );
                 }
-                WorldEvent::PanelToggled { anchor, open } => {
+                WorldEvent::PanelToggled { anchor, open, .. } => {
                     self.block_animations.begin(anchor, !open);
                 }
                 WorldEvent::EmitterBurst {
@@ -69,10 +69,7 @@ impl WorldFx {
                         },
                     );
                 }
-                WorldEvent::BlockPlaced { .. }
-                | WorldEvent::ChestOpened { .. }
-                | WorldEvent::ChestClosed { .. }
-                | WorldEvent::ItemPickedUp { .. } => {}
+                WorldEvent::BlockPlaced { .. } | WorldEvent::ItemPickedUp { .. } => {}
             }
         }
     }
@@ -162,8 +159,8 @@ impl WorldFx {
         self.particles.tick(dt, world);
     }
 
-    pub(super) fn set_open_chests(&mut self, open: rustc_hash::FxHashSet<IVec3>) {
-        self.block_animations.set_open_chests(open);
+    pub(super) fn set_held_open(&mut self, open: rustc_hash::FxHashSet<IVec3>) {
+        self.block_animations.set_held_open(open);
     }
 
     pub(super) fn clear_moment(&mut self) {
@@ -174,8 +171,8 @@ impl WorldFx {
         self.block_animations = Default::default();
     }
 
-    pub(super) fn open_chests(&self) -> &rustc_hash::FxHashSet<IVec3> {
-        self.block_animations.open_chests()
+    pub(super) fn held_open(&self) -> &rustc_hash::FxHashSet<IVec3> {
+        self.block_animations.held_open()
     }
 
     #[inline]

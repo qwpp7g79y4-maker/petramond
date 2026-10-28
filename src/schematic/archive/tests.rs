@@ -23,7 +23,6 @@ fn cell() -> CellData {
             }),
             None,
         ]),
-        furnace: Some([33, 21, 55]),
     }
 }
 fn fixture() -> Schematic {
@@ -35,7 +34,6 @@ fn fixture() -> Schematic {
     empty.fluid = 0;
     empty.kv.clear();
     empty.container = None;
-    empty.furnace = None;
     let mut no_slots = empty.clone();
     no_slots.container = Some(Vec::new());
     Schematic::from_cells(

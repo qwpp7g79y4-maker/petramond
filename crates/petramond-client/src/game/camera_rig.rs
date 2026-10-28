@@ -7,7 +7,7 @@ use super::view_bob::ViewBob;
 
 const STEP_CAMERA_SETTLE_SPEED: f32 = 12.0;
 pub(super) const STEP_CAMERA_EPS: f32 = 0.001;
-const SLEEP_EYE_HEIGHT: f32 = 0.25;
+const LYING_EYE_HEIGHT: f32 = 0.25;
 const BOB_EYE_SWAY: f32 = 0.045;
 const BOB_EYE_RISE: f32 = 0.018;
 const SNEAK_EYE_DROP: f32 = 0.3;
@@ -22,7 +22,7 @@ pub(super) struct EyeInputs {
     pub sneaking: bool,
     pub striding: bool,
     pub hspeed: f32,
-    pub sleeping: bool,
+    pub lying: bool,
     pub yaw: f32,
 }
 
@@ -86,8 +86,8 @@ impl CameraRig {
         self.view_bob.advance(dt, body.hspeed, body.striding);
         let [bob_side, bob_up] = self.view_bob.offset();
 
-        let eye_y = if body.sleeping {
-            body.feet_y + f64::from(SLEEP_EYE_HEIGHT)
+        let eye_y = if body.lying {
+            body.feet_y + f64::from(LYING_EYE_HEIGHT)
         } else {
             target.y + f64::from(self.step_y_offset + self.sneak_y_offset + bob_up * BOB_EYE_RISE)
         };

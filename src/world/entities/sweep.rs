@@ -123,7 +123,7 @@ pub(super) fn sweep(
             )
         };
         if let Some(t) = raycast::ray_vs_aabb(Vec3::ZERO, dir, rel(lo), rel(hi)) {
-            consider(t, ImpactTarget::Player(anchor.id));
+            consider(t, ImpactTarget::Body(EntityRef::Player(anchor.id)));
         }
     }
     if let Some(bodies) = &ctx.bodies {
@@ -138,11 +138,11 @@ pub(super) fn sweep(
             .near(from, from + motion)
             .into_iter()
             .map(|i| &instances[i as usize])
-            .filter(|m| !spared.contains(&Some(EntityRef::Mob(m.id()))))
+            .filter(|m| !spared.contains(&Some(EntityRef::Entity(m.id()))))
             .map(|m| (m.id(), m.pos, m.yaw, crate::mob::def(m.kind).size))
             .filter(|(_, pos, _, size)| near(*pos, *size));
         if let Some((id, t)) = crate::mob::closest_body_ray_hit(from, dir, limit, mobs) {
-            consider(t, ImpactTarget::Mob(id));
+            consider(t, ImpactTarget::Body(EntityRef::Entity(id)));
         }
     }
     let (distance, target) = match (body, terrain) {

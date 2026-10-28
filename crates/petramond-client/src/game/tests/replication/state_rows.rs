@@ -133,7 +133,7 @@ fn every_sessions_player_row_reaches_the_local_batch() {
         s1_pos
     );
     assert!(row.alive && row.visible);
-    assert!(!row.sleeping && row.sleep_yaw.is_none());
+    assert!(row.mount.is_none());
     assert!(
         !row.snap,
         "idle gravity is not a teleport snap for observers"
@@ -141,7 +141,7 @@ fn every_sessions_player_row_reaches_the_local_batch() {
 }
 
 #[test]
-fn a_sleeping_sessions_row_carries_the_lying_head_yaw() {
+fn a_sleeping_sessions_row_lies_attached_toward_the_pillow() {
     use petramond_math::math::IVec3;
     use petramond_world::block::Block;
 
@@ -167,7 +167,11 @@ fn a_sleeping_sessions_row_carries_the_lying_head_yaw() {
         .iter()
         .find(|p| p.id == game.session().id())
         .expect("own row ships");
-    assert!(row.sleeping, "the bed interaction started the sleep");
+    let Some(petramond::net::protocol::PlayerMount::Anchor { pos, yaw, posture }) = row.mount
+    else {
+        panic!("the bed interaction attached the sleeper: {:?}", row.mount);
+    };
+    assert_eq!(posture, mod_api::Posture::Lying);
     let (_, _, cells) = game.server_world().model_group(base).expect("bed group");
     let other = cells
         .iter()
@@ -176,11 +180,17 @@ fn a_sleeping_sessions_row_carries_the_lying_head_yaw() {
         .expect("two-cell bed");
     let d = other - base;
     assert_eq!(
-        row.sleep_yaw,
-        Some((d.x as f32).atan2(d.z as f32)),
-        "the lying head yaw points from the bed base toward the pillow"
+        yaw,
+        (d.x as f32).atan2(d.z as f32),
+        "the head points from the bed base toward the pillow"
     );
-    assert!(row.snap, "the tuck teleport must snap interpolation");
+    assert!(
+        cells
+            .iter()
+            .all(|c| (pos.x - (c.x as f64 + 0.5)).abs() <= 0.5),
+        "lying over the bed: {pos:?}"
+    );
+    assert_eq!(row.transform.pos, pos, "the body is held on its point");
 }
 
 #[test]
@@ -261,8 +271,6 @@ fn break_overlays_collect_own_and_visible_remote_miners() {
             },
             on_ground: true,
             sneaking: false,
-            sleeping: false,
-            sleep_yaw: None,
             alive: visible,
             visible,
             held_item: None,

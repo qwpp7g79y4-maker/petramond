@@ -79,7 +79,7 @@ pub(super) fn attack_source(
             }
             DamageSource::PlayerAttack(crate::player::PlayerId(id.0))
         }
-        Some(mod_api::EntityRef::Mob(id)) => match live_mob(ctx, id) {
+        Some(mod_api::EntityRef::Entity(id)) => match live_mob(ctx, id) {
             Some(mob) => DamageSource::MobAttack { kind: mob.kind, id },
             None => DamageSource::Mod(mod_id),
         },
@@ -141,14 +141,14 @@ pub(super) fn handle_entity_call(mod_id: &str, call: EntityCall) -> HostRet {
                 HostRet::SpawnedMob(spawned)
             }),
         },
-        EntityCall::MobInfo { mob_id } => sim_query(|ctx| {
-            let position = ctx.world.mobs().position_of(mob_id);
-            HostRet::Mob(
-                live_mob(ctx, mob_id)
-                    .zip(position)
-                    .map(|(mob, position)| mob_snapshot(position, mob)),
-            )
-        }),
+        EntityCall::EntityInfo { entities } => {
+            if let Some(error) = batch_guard("EntityInfo", entities.len()) {
+                return error;
+            }
+            sim_query(|ctx| {
+                HostRet::EntityInfos(entities.iter().map(|&id| entity_data(ctx, id)).collect())
+            })
+        }
         EntityCall::MobWalkProbe {
             mob_id,
             offsets,
@@ -259,41 +259,27 @@ pub(super) fn handle_entity_call(mod_id: &str, call: EntityCall) -> HostRet {
                 HostRet::Bools(crate::mob::footholds(ctx.world, kind, &cells))
             })
         }
-        EntityCall::MobHeldDisplay { mob_id, main, off } => {
-            let resolve = |name: &Option<String>| match name {
-                None => Ok(None),
-                Some(name) => item_by_name(name).map(Some).ok_or(()),
-            };
-            let (Ok(main), Ok(off)) = (resolve(&main), resolve(&off)) else {
-                return HostRet::Bool(false);
-            };
-            sim_query(|ctx| {
-                if live_mob(ctx, mob_id).is_none() {
-                    return HostRet::Bool(false);
-                }
-                ctx.world.mobs_mut().set_held(mob_id, [main, off]);
-                HostRet::Bool(true)
-            })
-        }
-        EntityCall::SetMobDraw {
-            mob_id,
+        EntityCall::SetEntityDraw {
+            entity,
             frame,
             prims,
         } => {
-            if let Some(err) = super::blocks::check_draw_set("SetMobDraw", &prims) {
+            if let Some(err) = super::blocks::check_draw_set("SetEntityDraw", &prims) {
                 return err;
             }
+            let draw = crate::world::draw::BodyDraw {
+                prims: prims.into(),
+                turns: frame == mod_api::DrawFrame::Body,
+            };
             sim_query(|ctx| {
-                if live_mob(ctx, mob_id).is_none() {
-                    return HostRet::Bool(false);
+                if live_mob(ctx, entity).is_some() {
+                    ctx.world.mobs_mut().set_draw(entity, draw);
+                    return HostRet::Bool(true);
                 }
-                ctx.world.mobs_mut().set_draw(
-                    mob_id,
-                    crate::world::draw::BodyDraw {
-                        prims: prims.into(),
-                        turns: frame == mod_api::DrawFrame::Body,
-                    },
-                );
+                let Some(item) = ctx.world.dropped_items_mut().get_mut(entity) else {
+                    return HostRet::Bool(false);
+                };
+                item.draw = draw;
                 HostRet::Bool(true)
             })
         }
@@ -308,82 +294,88 @@ pub(super) fn handle_entity_call(mod_id: &str, call: EntityCall) -> HostRet {
                 petramond_math::math::IVec3::new(cell[0], cell[1], cell[2]),
             ))
         }),
-        EntityCall::MobsInRadius { pos, radius } => match finite_pos(pos, "MobsInRadius.pos") {
-            Err(e) => e,
-            Ok(pos) => sim_query(|ctx| {
-                if !radius.is_finite() {
-                    return HostRet::invalid("MobsInRadius: non-finite radius".into());
-                }
-                let r2 = radius * radius;
-                let out = ctx
-                    .world
-                    .mobs()
-                    .instances()
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, m)| !m.is_dead())
-                    .filter(|(_, m)| (m.pos - pos).length_squared() <= r2)
-                    .map(|(i, m)| mob_snapshot(i, m))
-                    .collect();
-                HostRet::Mobs(out)
-            }),
-        },
-        EntityCall::MobsInRadiusOf { pos, radius, kinds } => {
-            match finite_pos(pos, "MobsInRadiusOf.pos") {
-                Err(e) => e,
-                Ok(pos) => sim_query(|ctx| {
-                    if !radius.is_finite() {
-                        return HostRet::invalid("MobsInRadiusOf: non-finite radius".into());
-                    }
-                    let r2 = radius * radius;
-                    let out = ctx
-                        .world
-                        .mobs()
-                        .instances()
-                        .iter()
-                        .enumerate()
-                        .filter(|(_, m)| !m.is_dead())
-                        .filter(|(_, m)| kinds.contains(&mod_api::MobId(m.kind.0)))
-                        .filter(|(_, m)| (m.pos - pos).length_squared() <= r2)
-                        .map(|(i, m)| mob_snapshot(i, m))
-                        .collect();
-                    HostRet::Mobs(out)
-                }),
+        EntityCall::EntitiesInRadius {
+            pos,
+            radius,
+            filter,
+            limit,
+        } => {
+            let pos = match finite_pos(pos, "EntitiesInRadius.pos") {
+                Ok(pos) => pos,
+                Err(e) => return e,
+            };
+            if !radius.is_finite() || radius < 0.0 {
+                return HostRet::invalid("EntitiesInRadius: radius must be finite and >= 0".into());
             }
+            if let Some(error) = batch_guard("EntitiesInRadius.limit", limit as usize) {
+                return error;
+            }
+            sim_query(|ctx| {
+                HostRet::Entities(entities_in_radius(
+                    ctx,
+                    pos,
+                    radius,
+                    &filter,
+                    limit as usize,
+                ))
+            })
         }
-        EntityCall::DamageMob {
-            mob_id,
+        EntityCall::Damage {
+            target,
             amount,
             origin,
-            feedback,
             attacker,
-        } => match origin
-            .map(|p| finite_pos(p, "DamageMob.origin"))
-            .transpose()
-        {
-            Err(e) => e,
-            Ok(origin) => {
-                let mod_id = intern_mod_id(mod_id);
-                let feedback = feedback.map(crate::modding::mob_damage_feedback);
-                sim_mutate(|ctx| {
-                    let source = attack_source(ctx, mod_id, attacker, "DamageMob")?;
-                    ctx.queue.push_action(DeferredAction::DamageMob {
-                        mob_id,
-                        amount,
-                        source,
-                        origin,
-                        feedback,
-                    });
-                    Ok(())
-                })
+        } => {
+            if !amount.is_finite() {
+                return HostRet::invalid("Damage: non-finite amount".into());
             }
-        },
-        EntityCall::DespawnMob { mob_id } => sim_query(|ctx| {
-            if live_mob(ctx, mob_id).is_none() {
-                return HostRet::Bool(false);
+            match origin.map(|p| finite_pos(p, "Damage.origin")).transpose() {
+                Err(e) => e,
+                Ok(origin) => {
+                    let mod_id = intern_mod_id(mod_id);
+                    sim_mutate(|ctx| {
+                        let source = attack_source(ctx, mod_id, attacker, "Damage")?;
+                        ctx.queue.push_action(DeferredAction::Damage {
+                            target: crate::modding::convert::entity_ref_in(target),
+                            amount,
+                            source,
+                            origin,
+                        });
+                        Ok(())
+                    })
+                }
             }
-            HostRet::Bool(ctx.world.mobs_mut().remove(mob_id))
+        }
+        EntityCall::DespawnEntity { entity } => sim_query(|ctx| {
+            if live_mob(ctx, entity).is_some() {
+                return HostRet::Despawned(
+                    ctx.world
+                        .mobs_mut()
+                        .remove(entity)
+                        .then_some(mod_api::Despawned { stack: None }),
+                );
+            }
+            let stack = ctx.world.dropped_items().get(entity).map(|item| item.stack);
+            if stack.is_some() {
+                ctx.world.dropped_items_mut().remove(entity);
+            }
+            HostRet::Despawned(stack.map(|stack| mod_api::Despawned {
+                stack: Some(super::guards::item_stack_data(stack)),
+            }))
         }),
+        EntityCall::EntityImpulses { impulses } => {
+            if let Some(error) = batch_guard("EntityImpulses", impulses.len()) {
+                return error;
+            }
+            let deltas: Result<Vec<_>, _> = impulses
+                .into_iter()
+                .map(|(who, delta)| finite3(delta, "EntityImpulses.delta").map(|d| (who, d)))
+                .collect();
+            match deltas {
+                Err(error) => error,
+                Ok(deltas) => sim_query(|ctx| HostRet::Bools(entity_impulses(ctx, &deltas))),
+            }
+        }
         EntityCall::MobEmitterSet {
             mob_id,
             key,
@@ -533,39 +525,32 @@ pub(super) fn handle_entity_call(mod_id: &str, call: EntityCall) -> HostRet {
                 }
             })
         }
-        EntityCall::MobMount {
-            mob_id,
+        EntityCall::Attach {
             player_id,
-            seat,
-        } => sim_query(|ctx| HostRet::Bool(ctx.world.try_mount_player(player_id.0, mob_id, seat))),
-        EntityCall::PlayerPoseSet {
-            player_id,
-            anchor,
-            yaw,
-            pose,
+            to,
+            posture,
         } => {
-            let anchor = match finite_pos(anchor, "PlayerPoseSet.anchor") {
-                Ok(a) => a,
-                Err(e) => return e,
+            let (target, seat) = match to {
+                mod_api::AttachTo::Seat { entity, seat } => {
+                    (crate::mob::riding::MountTarget::Entity(entity), seat)
+                }
+                mod_api::AttachTo::At { pos, yaw } => {
+                    let pos = match finite_pos(pos, "Attach.pos") {
+                        Ok(p) => p,
+                        Err(e) => return e,
+                    };
+                    if !yaw.is_finite() {
+                        return HostRet::invalid("Attach: non-finite yaw".into());
+                    }
+                    let anchor = crate::mob::riding::PoseAnchor { pos, yaw };
+                    (crate::mob::riding::MountTarget::Anchor(anchor), 0)
+                }
             };
-            if !yaw.is_finite() {
-                return HostRet::invalid("PlayerPoseSet: non-finite yaw".into());
-            }
-            if pose == 0 {
-                return HostRet::Bool(false);
-            }
             sim_query(move |ctx| {
-                HostRet::Bool(ctx.world.try_mount_anchor(
-                    player_id.0,
-                    crate::mob::riding::PoseAnchor {
-                        pos: anchor,
-                        yaw,
-                        pose,
-                    },
-                ))
+                HostRet::Bool(ctx.world.try_attach(player_id.0, target, seat, posture))
             })
         }
-        EntityCall::MobDismount { player_id } => {
+        EntityCall::Detach { player_id } => {
             sim_query(|ctx| HostRet::Bool(ctx.world.riding_mut().dismount(player_id.0).is_some()))
         }
         EntityCall::MobRiders { mob_id } => sim_query(|ctx| {
@@ -576,7 +561,7 @@ pub(super) fn handle_entity_call(mod_id: &str, call: EntityCall) -> HostRet {
             let riders = ctx
                 .world
                 .riding()
-                .riders_of(crate::mob::riding::MountTarget::Mob(mob_id))
+                .riders_of(crate::mob::riding::MountTarget::Entity(mob_id))
                 .into_iter()
                 .map(|(seat, player_id)| MobRiderData {
                     seat,
@@ -668,20 +653,6 @@ pub(super) fn handle_entity_call(mod_id: &str, call: EntityCall) -> HostRet {
                 )
             })
         }
-        EntityCall::BlockModelGroup { pos } => sim_query(|ctx| {
-            let p = petramond_math::math::IVec3::new(pos[0], pos[1], pos[2]);
-            HostRet::ModelGroup(ctx.world.model_group(p).map(|(_, base, _)| {
-                mod_api::ModelGroupData {
-                    base: [base.x, base.y, base.z],
-                    facing: match ctx.world.data().model_facing_at(base.x, base.y, base.z) {
-                        petramond_math::facing::Facing::North => mod_api::Facing::North,
-                        petramond_math::facing::Facing::South => mod_api::Facing::South,
-                        petramond_math::facing::Facing::West => mod_api::Facing::West,
-                        petramond_math::facing::Facing::East => mod_api::Facing::East,
-                    },
-                }
-            }))
-        }),
         EntityCall::MobAnimState { mob_id, anim } => {
             if let Err(e) = anim_name_guard("MobAnimState", &anim) {
                 return e;
@@ -704,66 +675,134 @@ pub(super) fn handle_entity_call(mod_id: &str, call: EntityCall) -> HostRet {
             count,
             pos,
             data,
-        } => match finite_pos(pos, "SpawnItem.pos") {
-            Err(e) => e,
-            Ok(pos) => {
-                let variant = match super::guards::intern_abi_data("SpawnItem", &data) {
-                    Ok(v) => v,
-                    Err(e) => return e,
-                };
-                sim_query(|ctx| {
-                    let Some(item) = item_by_name(&item) else {
-                        log::warn!("[mod {mod_id}] SpawnItem: unknown item '{item}'");
-                        return HostRet::Bool(false);
-                    };
-                    if count == 0 {
-                        return HostRet::Bool(false);
-                    }
-                    spawn_item_stacks(ctx, item, count, pos, variant);
-                    HostRet::Bool(true)
-                })
-            }
-        },
-        EntityCall::LaunchItem {
-            item,
-            pos,
             vel,
             owner,
-            data,
-        } => match (
-            finite_pos(pos, "LaunchItem.pos"),
-            finite3(vel, "LaunchItem.vel"),
-        ) {
-            (Err(e), _) | (_, Err(e)) => e,
-            (Ok(pos), Ok(vel)) => {
-                let variant = match super::guards::intern_abi_data("LaunchItem", &data) {
-                    Ok(v) => v,
-                    Err(e) => return e,
+        } => {
+            let pos = match finite_pos(pos, "SpawnItem.pos") {
+                Ok(pos) => pos,
+                Err(e) => return e,
+            };
+            let vel = match vel.map(|v| finite3(v, "SpawnItem.vel")).transpose() {
+                Ok(vel) => vel,
+                Err(e) => return e,
+            };
+            let variant = match super::guards::intern_abi_data("SpawnItem", &data) {
+                Ok(v) => v,
+                Err(e) => return e,
+            };
+            sim_query(|ctx| {
+                let Some(item) = item_by_name(&item) else {
+                    log::warn!("[mod {mod_id}] SpawnItem: unknown item '{item}'");
+                    return HostRet::Ids(Vec::new());
                 };
-                sim_query(|ctx| {
-                    let Some(item) = item_by_name(&item) else {
-                        log::warn!("[mod {mod_id}] LaunchItem: unknown item '{item}'");
-                        return HostRet::U64(0);
-                    };
-                    let owner = owner.map(crate::modding::convert::entity_ref_in);
-                    let stack = petramond_world::item::ItemStack::with_variant(item, 1, variant);
-                    let mut entity = crate::entity::DroppedItem::launched(pos, stack, vel, owner);
-                    let (sky, block) = crate::server::entities::light_at_pos(ctx.world, pos);
-                    entity.skylight = sky;
-                    entity.blocklight = block;
-                    HostRet::U64(ctx.world.spawn_item(entity))
-                })
-            }
-        },
-        EntityCall::ItemEntity { entity } => sim_query(|ctx| {
-            HostRet::ItemEntity(
-                ctx.world
-                    .dropped_items()
-                    .get(entity)
-                    .map(|item| Box::new(item_entity_data(item))),
-            )
-        }),
+                if count == 0 {
+                    return HostRet::Ids(Vec::new());
+                }
+                let Some(vel) = vel else {
+                    return HostRet::Ids(spawn_item_stacks(ctx, item, count, pos, variant));
+                };
+                if count > item.max_stack_size() {
+                    return HostRet::invalid(format!(
+                        "SpawnItem: a flying stack holds at most {} of '{}'",
+                        item.max_stack_size(),
+                        item.key()
+                    ));
+                }
+                let owner = owner.map(crate::modding::convert::entity_ref_in);
+                let stack = ItemStack::with_variant(item, count, variant);
+                let mut entity = DroppedItem::launched(pos, stack, vel, owner);
+                let (sky, block) = crate::server::entities::light_at_pos(ctx.world, pos);
+                entity.skylight = sky;
+                entity.blocklight = block;
+                HostRet::Ids(vec![ctx.world.spawn_item(entity)])
+            })
+        }
     }
+}
+
+/// One entity's snapshot, whichever body it is.
+fn entity_data(ctx: &SimCtx<'_>, id: u64) -> Option<mod_api::EntityData> {
+    if let Some((mob, position)) = live_mob(ctx, id).zip(ctx.world.mobs().position_of(id)) {
+        return Some(mod_api::EntityData::Mob(mob_snapshot(position, mob)));
+    }
+    ctx.world
+        .dropped_items()
+        .get(id)
+        .map(|item| mod_api::EntityData::Item(item_entity_data(item)))
+}
+
+/// The entities `filter` takes within `radius` of `pos`, nearest first, then by id.
+fn entities_in_radius(
+    ctx: &SimCtx<'_>,
+    pos: petramond_math::world_pos::WorldPos,
+    radius: f32,
+    filter: &mod_api::EntityFilter,
+    limit: usize,
+) -> Vec<mod_api::EntityData> {
+    use mod_api::EntityFilter;
+    let r2 = f64::from(radius) * f64::from(radius);
+    let mut found: Vec<(f64, u64, mod_api::EntityData)> = Vec::new();
+    let mobs = match filter {
+        EntityFilter::All | EntityFilter::Mobs => Some(None),
+        EntityFilter::MobsOf(kinds) => Some(Some(kinds)),
+        EntityFilter::Items => None,
+    };
+    if let Some(kinds) = mobs {
+        for (i, m) in ctx.world.mobs().instances().iter().enumerate() {
+            let d2 = (m.pos - pos).length_squared() as f64;
+            if m.is_dead()
+                || d2 > r2
+                || kinds.is_some_and(|k| !k.contains(&mod_api::MobId(m.kind.0)))
+            {
+                continue;
+            }
+            found.push((d2, m.id(), mod_api::EntityData::Mob(mob_snapshot(i, m))));
+        }
+    }
+    if matches!(filter, EntityFilter::All | EntityFilter::Items) {
+        for item in ctx.world.nearest_item_entities(pos, radius, limit) {
+            let d2 = (item.pos - pos).length_squared() as f64;
+            found.push((
+                d2,
+                item.id,
+                mod_api::EntityData::Item(item_entity_data(item)),
+            ));
+        }
+    }
+    found.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+    found.truncate(limit);
+    found.into_iter().map(|(_, _, data)| data).collect()
+}
+
+/// Adds each velocity to its body; `false` where the body is absent or held still.
+fn entity_impulses(
+    ctx: &mut SimCtx<'_>,
+    impulses: &[(mod_api::EntityRef, petramond_math::math::Vec3)],
+) -> Vec<bool> {
+    let items: Vec<(u64, petramond_math::math::Vec3)> = impulses
+        .iter()
+        .filter_map(|&(who, delta)| match who {
+            mod_api::EntityRef::Entity(id) if ctx.world.mobs().live(id).is_none() => {
+                Some((id, delta))
+            }
+            _ => None,
+        })
+        .collect();
+    let mut moved_items = ctx.world.impulse_item_entities(&items).into_iter();
+    impulses
+        .iter()
+        .map(|&(who, delta)| match who {
+            mod_api::EntityRef::Player(player) => ctx
+                .with_player(crate::player::PlayerId(player.0), |p| {
+                    p.apply_knockback(delta)
+                })
+                .is_some(),
+            mod_api::EntityRef::Entity(id) if ctx.world.mobs().live(id).is_some() => {
+                ctx.world.mobs_mut().impulse_mob(id, delta)
+            }
+            mod_api::EntityRef::Entity(_) => moved_items.next().unwrap_or(false),
+        })
+        .collect()
 }
 
 fn spawn_item_stacks(
@@ -772,7 +811,7 @@ fn spawn_item_stacks(
     count: u8,
     pos: petramond_math::world_pos::WorldPos,
     variant: petramond_world::item::VariantId,
-) {
+) -> Vec<u64> {
     let cell = pos.block();
     let (sky, block) = ctx
         .world
@@ -780,6 +819,7 @@ fn spawn_item_stacks(
         .dynamic_light_at_world(cell.x, cell.y, cell.z);
     let mut remaining = count;
     let mut i = 0u32;
+    let mut ids = Vec::new();
     while remaining > 0 {
         let put = remaining.min(item.max_stack_size());
         remaining -= put;
@@ -787,9 +827,10 @@ fn spawn_item_stacks(
         let mut drop = DroppedItem::new(pos, ItemStack::with_variant(item, put, variant), seed);
         drop.skylight = sky;
         drop.blocklight = block;
-        ctx.world.spawn_item(drop);
+        ids.push(ctx.world.spawn_item(drop));
         i += 1;
     }
+    ids
 }
 
 fn drop_seed(tick: u64, pos: petramond_math::world_pos::WorldPos, i: u32) -> u32 {

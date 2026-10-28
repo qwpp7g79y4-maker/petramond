@@ -2,8 +2,11 @@ use crate::world::{ServerWorld, World, WorldSide};
 
 use petramond_math::math::{IVec3, FACE_NEIGHBORS};
 use petramond_world::block::Block;
-use petramond_world::chunk::{SectionPos, SECTION_SIZE, SECTION_VOLUME};
+use petramond_world::chunk::{section_idx, SectionPos, SECTION_SIZE, SECTION_VOLUME};
 use petramond_world::crafting::Recipes;
+use petramond_world::gui_state::GuiValue;
+use petramond_world::section::CellMap;
+use rustc_hash::FxHashMap;
 
 use super::sim_guard::{SimReadiness, SIM_RETRY_DELAY};
 
@@ -110,6 +113,9 @@ impl<S: WorldSide> World<S> {
 
     pub fn schedule_tick(&mut self, pos: IVec3, delay: u64) {
         self.schedule_block_tick(pos, delay);
+        if let Some(sp) = SectionPos::from_world(pos.x, pos.y, pos.z) {
+            self.data.persist_candidates.insert(sp);
+        }
     }
 
     pub(super) fn schedule_block_tick(&mut self, pos: IVec3, delay: u64) {
@@ -122,8 +128,11 @@ impl<S: WorldSide> World<S> {
         self.data.sim.fluid.schedule(pos, due);
     }
 
+    /// Records a break the world made itself, before the cell is cleared: the group it belonged
+    /// to is read now, while it still stands.
     pub fn note_block_destroyed(&mut self, pos: IVec3, block: Block) {
-        self.data.sim.pending_breaks.push((pos, block));
+        let removal = self.data.removal(pos);
+        self.data.sim.pending_breaks.push((pos, block, removal));
         self.forget_block_entity_records(pos);
     }
 
@@ -136,6 +145,15 @@ impl<S: WorldSide> World<S> {
         let residue = self.data.break_residue_at(pos, block);
         self.set_block_world(pos.x, pos.y, pos.z, residue);
     }
+}
+
+#[derive(Copy, Clone)]
+enum BehaviorHook {
+    Neighbor,
+    Scheduled,
+    Random,
+    Container,
+    Viewers,
 }
 
 #[inline]
@@ -151,6 +169,75 @@ impl ServerWorld {
         self.data.sim.tick = tick;
     }
 
+    /// Pending scheduled block ticks by section, as (cell index, ticks left): the form a save
+    /// record keeps them in, since the world clock does not run while a section is unloaded.
+    pub(super) fn scheduled_ticks_by_section(&self) -> FxHashMap<SectionPos, CellMap<u64>> {
+        self.scheduled_ticks_where(|_| true)
+    }
+
+    pub(super) fn scheduled_ticks_in(&self, sp: SectionPos) -> CellMap<u64> {
+        self.scheduled_ticks_where(|s| s == sp)
+            .remove(&sp)
+            .unwrap_or_default()
+    }
+
+    fn scheduled_ticks_where(
+        &self,
+        wanted: impl Fn(SectionPos) -> bool,
+    ) -> FxHashMap<SectionPos, CellMap<u64>> {
+        let now = self.data.sim.tick;
+        let mut out: FxHashMap<SectionPos, CellMap<u64>> = FxHashMap::default();
+        for (pos, due) in self.data.sim.scheduled.iter() {
+            let Some(sp) = SectionPos::from_world(pos.x, pos.y, pos.z).filter(|&sp| wanted(sp))
+            else {
+                continue;
+            };
+            let cell = section_idx(
+                pos.x.rem_euclid(SECTION_SIZE as i32) as usize,
+                pos.y.rem_euclid(SECTION_SIZE as i32) as usize,
+                pos.z.rem_euclid(SECTION_SIZE as i32) as usize,
+            ) as u16;
+            out.entry(sp)
+                .or_default()
+                .insert(cell, due.saturating_sub(now));
+        }
+        out
+    }
+
+    pub(super) fn restore_scheduled_ticks(&mut self, sp: SectionPos, ticks: &CellMap<u64>) {
+        let (ox, oy, oz) = sp.origin_world();
+        for (&cell, &left) in ticks {
+            self.schedule_block_tick(cell_pos(ox, oy, oz, usize::from(cell)), left);
+        }
+    }
+
+    /// The recipe catalog native behaviors read (the same one `RecipeResult` answers from).
+    pub fn recipes(&self) -> std::sync::Arc<Recipes> {
+        self.side.recipes.clone()
+    }
+
+    pub fn set_recipes(&mut self, recipes: std::sync::Arc<Recipes>) {
+        self.side.recipes = recipes;
+    }
+
+    /// Writes GUI values for whoever views `anchor`, handed out by the server after the tick.
+    /// GUI values for every player viewing a GUI anchored at `anchor`: a native behavior's
+    /// `GuiStateSet` to its viewers, applied once the tick hands the world back to the sessions.
+    pub fn publish_gui_values(&mut self, anchor: IVec3, values: Vec<(String, GuiValue)>) {
+        self.side
+            .gui_values
+            .extend(values.into_iter().map(|(key, value)| (anchor, key, value)));
+    }
+
+    pub fn take_gui_values(&mut self) -> Vec<(IVec3, String, GuiValue)> {
+        std::mem::take(&mut self.side.gui_values)
+    }
+
+    /// A player opened or closed a GUI anchored at `anchor`; its behaviors hear it next tick.
+    pub fn note_viewers_changed(&mut self, anchor: IVec3) {
+        self.data.sim.viewers_touched.insert(anchor);
+    }
+
     /// Fixed 50ms step, runs every tick even if nothing's pending, so cadence stays independent of
     /// activity. All per-tick ordering lives here in one place.
     ///
@@ -160,16 +247,32 @@ impl ServerWorld {
     /// 2. Drain the block update queue. Support-loss reactions (fragile, door, grass) decide right
     ///    at the update, and any resulting write queues fresh updates for next tick's batch, so
     ///    the drain always finishes. Support chains still collapse one cell per tick.
-    /// 3. Furnace smelting on the same clock. It needs `recipes`, which storage stays ignorant of
-    ///    (see `World::tick_furnaces`).
-    /// 4. Random block ticks near the player, e.g. leaf decay. Their order relative to the rest
+    /// 3. Random block ticks near the player, e.g. leaf decay. Their order relative to the rest
     ///    doesn't matter.
     ///
     /// Item physics and lifetime/pickup live in `Game` instead (per-frame pacing, needs the player
     /// inventory). Everything the world alone owns gets sequenced here.
-    pub fn game_tick(&mut self, recipes: &Recipes) {
+    pub fn game_tick(&mut self) {
         self.data.sim.tick = self.data.sim.tick.wrapping_add(1);
         let now = self.data.sim.tick;
+
+        for (touched, hook) in [
+            (
+                &mut self.data.sim.containers_touched,
+                BehaviorHook::Container,
+            ),
+            (&mut self.data.sim.viewers_touched, BehaviorHook::Viewers),
+        ]
+        .map(|(set, hook)| (set.drain().collect::<Vec<IVec3>>(), hook))
+        {
+            let mut touched = touched;
+            touched.sort_unstable_by_key(|p| (p.x, p.y, p.z));
+            for pos in touched {
+                if self.sim_readiness_at(pos) == SimReadiness::Ready {
+                    self.run_behaviors(pos, hook);
+                }
+            }
+        }
 
         let mut due = std::mem::take(&mut self.data.sim.batch_scratch);
         due.clear();
@@ -204,22 +307,43 @@ impl ServerWorld {
             self.data.sim.batch_scratch = due;
         }
 
-        self.tick_furnaces(recipes);
-
         self.random_tick_sections();
     }
 
-    pub fn take_natural_breaks(&mut self) -> Vec<(IVec3, Block)> {
+    pub fn take_natural_breaks(
+        &mut self,
+    ) -> Vec<(IVec3, Block, petramond_world::world::model::Removal)> {
         std::mem::take(&mut self.data.sim.pending_breaks)
     }
 
-    fn dispatch_block_update(&mut self, pos: IVec3) {
+    /// Runs each of the cell's behaviors in row order, stopping once one has changed the block:
+    /// the rest belonged to the block that is gone.
+    fn run_behaviors(&mut self, pos: IVec3, hook: BehaviorHook) {
         let block = Block::from_id(self.data.chunk_block(pos.x, pos.y, pos.z));
-        let behavior = block.behavior();
-        match crate::world::engine_behavior::engine_behavior(behavior.key()) {
-            Some(engine) => engine.neighbor_update(self, pos),
-            None => behavior.neighbor_update(self, pos),
+        for behavior in block.behaviors() {
+            match (
+                crate::world::engine_behavior::engine_behavior(behavior.key()),
+                hook,
+            ) {
+                (Some(engine), BehaviorHook::Neighbor) => engine.neighbor_update(self, pos),
+                (Some(engine), BehaviorHook::Scheduled) => engine.scheduled_tick(self, pos),
+                (Some(engine), BehaviorHook::Random) => engine.random_tick(self, pos),
+                (Some(engine), BehaviorHook::Container) => engine.container_changed(self, pos),
+                (Some(engine), BehaviorHook::Viewers) => engine.viewers_changed(self, pos),
+                (None, BehaviorHook::Neighbor) => behavior.neighbor_update(self, pos),
+                (None, BehaviorHook::Scheduled) => behavior.scheduled_tick(self, pos),
+                (None, BehaviorHook::Random) => behavior.random_tick(self, pos),
+                (None, BehaviorHook::Container) => behavior.container_changed(self, pos),
+                (None, BehaviorHook::Viewers) => behavior.viewers_changed(self, pos),
+            }
+            if self.data.chunk_block(pos.x, pos.y, pos.z) != block.id() {
+                return;
+            }
         }
+    }
+
+    fn dispatch_block_update(&mut self, pos: IVec3) {
+        self.run_behaviors(pos, BehaviorHook::Neighbor);
         // A block holding a fluid is also a source of it.
         let now = Block::from_id(self.data.chunk_block(pos.x, pos.y, pos.z));
         if !now.is_fluid() && self.data.cell_fluid(pos.x, pos.y, pos.z).is_some() {
@@ -229,12 +353,7 @@ impl ServerWorld {
     }
 
     fn run_scheduled_tick(&mut self, pos: IVec3) {
-        let block = Block::from_id(self.data.chunk_block(pos.x, pos.y, pos.z));
-        let behavior = block.behavior();
-        match crate::world::engine_behavior::engine_behavior(behavior.key()) {
-            Some(engine) => engine.scheduled_tick(self, pos),
-            None => behavior.scheduled_tick(self, pos),
-        }
+        self.run_behaviors(pos, BehaviorHook::Scheduled);
     }
 
     /// Random ticks: [`RANDOM_TICK_SPEED`] random cells per loaded section with a tickable block.
@@ -320,12 +439,7 @@ impl ServerWorld {
     }
 
     fn run_random_tick(&mut self, pos: IVec3) {
-        let block = Block::from_id(self.data.chunk_block(pos.x, pos.y, pos.z));
-        let behavior = block.behavior();
-        match crate::world::engine_behavior::engine_behavior(behavior.key()) {
-            Some(engine) => engine.random_tick(self, pos),
-            None => behavior.random_tick(self, pos),
-        }
+        self.run_behaviors(pos, BehaviorHook::Random);
     }
 }
 
@@ -486,7 +600,7 @@ mod tests {
     }
 
     fn tick_leaf(world: &mut ServerWorld, p: IVec3) {
-        Block::OakLeaves.behavior().random_tick(world, p);
+        Block::OakLeaves.behaviors()[0].random_tick(world, p);
     }
 
     #[test]
@@ -566,10 +680,9 @@ mod tests {
         let mut world = world_with_centered_chunk();
         let p = IVec3::new(8, 70, 8);
         world.set_block_world(p.x, p.y, p.z, Block::OakLeaves);
-        let recipes = Recipes::default();
         let mut decayed = false;
         for _ in 0..1_000_000 {
-            world.game_tick(&recipes);
+            world.game_tick();
             if world.data.chunk_block(p.x, p.y, p.z) == Block::Air.id() {
                 decayed = true;
                 break;
@@ -587,10 +700,9 @@ mod tests {
         let p = IVec3::new(40 * 16 + 8, 70, 8);
         world.set_block_world(p.x, p.y, p.z, Block::OakLeaves);
 
-        let recipes = Recipes::default();
         let mut decayed = false;
         for _ in 0..1_000_000 {
-            world.game_tick(&recipes);
+            world.game_tick();
             if world.data.chunk_block(p.x, p.y, p.z) == Block::Air.id() {
                 decayed = true;
                 break;

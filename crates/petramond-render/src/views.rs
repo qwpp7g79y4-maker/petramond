@@ -47,8 +47,8 @@ pub struct BlockEntityPresentation {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct DroppedItemPresentation {
-    pub tether: Option<crate::TetherFrom>,
-    /// Set when a draw set replaces the item's art: that set's top above `pos`.
+    pub id: u64,
+    /// A draw set stands in for the item's art; the set's top above `pos`.
     pub drawn_top: Option<f32>,
     pub prev_pos: petramond_math::world_pos::WorldPos,
     pub pos: petramond_math::world_pos::WorldPos,
@@ -284,6 +284,7 @@ pub struct GamePresentation<'a> {
     pub emitter_trails: &'a [petramond::world::TrailPoint],
     pub block_entities: &'a [BlockEntityPresentation],
     pub block_draws: &'a [petramond::world::draw::BlockDrawInstance],
+    pub lines: &'a [crate::LinePresentation],
     pub cloths: &'a [ClothPresentation],
     pub cloth_points: &'a [ClothPoint],
     pub cloth_texels: &'a [Option<[f32; 3]>],

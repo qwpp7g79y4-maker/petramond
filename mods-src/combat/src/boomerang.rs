@@ -49,7 +49,7 @@ impl Boomerangs {
             .iter()
             .map(|(k, v)| (k.as_str(), v.as_slice()))
             .collect();
-        if !consume_held_by(player, row.id, 1) {
+        if !consume_held(player, row.id, 1) {
             return;
         }
         let (from, direction) = crate::projectile_aim::from_hand(
@@ -71,7 +71,7 @@ impl Boomerangs {
             &data,
         );
         if id == 0 {
-            give_item_to(player, &held.item, 1, &data);
+            give_item(player, &held.item, 1, &data);
             return;
         }
         steer_item(id, Some(vel));
@@ -117,42 +117,31 @@ impl Boomerangs {
                 *fate = ProjectileFate::Drop;
                 flights.remove(&id);
             }
-            ProjectileTarget::Player(player) if *player == flight.owner => {
+            ProjectileTarget::Body(EntityRef::Player(player)) if *player == flight.owner => {
                 if let Some(stack) = take_item_entity(id) {
                     let data: Vec<(&str, &[u8])> = stack
                         .data
                         .iter()
                         .map(|(k, v)| (k.as_str(), v.as_slice()))
                         .collect();
-                    give_item_to(*player, &stack.item, stack.count, &data);
+                    give_item(*player, &stack.item, stack.count, &data);
                 }
                 *fate = ProjectileFate::Consume;
                 flights.remove(&id);
             }
-            target => {
-                let body = match target {
-                    ProjectileTarget::Mob(id) => EntityRef::Mob(*id),
-                    ProjectileTarget::Player(id) => EntityRef::Player(*id),
-                    ProjectileTarget::Block { .. } => unreachable!(),
-                };
+            ProjectileTarget::Body(body) => {
+                let body = *body;
                 let origin = std::array::from_fn(|axis| pos[axis] - f64::from(vel[axis]));
                 let fresh = flight.strike(body);
                 let blocked = match body {
                     EntityRef::Player(player) if fresh => blocks(player, origin),
                     EntityRef::Player(_) => false,
-                    EntityRef::Mob(_) => false,
+                    EntityRef::Entity(_) => false,
                 };
                 if fresh && !blocked {
-                    let damage = strike::roll(flight.damage(), rng_u64("boomerang"));
+                    let amount = strike::roll(flight.damage(), rng_u64("boomerang"));
                     let attacker = Some(EntityRef::Player(flight.owner));
-                    match body {
-                        EntityRef::Mob(mob) => {
-                            damage_mob(mob, damage, Some(pos), attacker);
-                        }
-                        EntityRef::Player(player) => {
-                            damage_player(player, damage.round() as i32, Some(pos), attacker);
-                        }
-                    }
+                    damage(body, amount, Some(pos), attacker);
                 }
                 *fate = ProjectileFate::Deflect {
                     vel: flight.reverse(vel),

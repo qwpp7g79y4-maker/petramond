@@ -15,7 +15,7 @@ impl ServerGame {
     }
 
     pub fn game_tick_step(&mut self, events: &mut TickEvents) {
-        let chests_before = events.world.chest_changed.len();
+        let panels_before = events.world.panel_changed.len();
         self.tick_damage_immunity();
         self.settle_before_stages(events);
         self.player_stages(events);
@@ -23,7 +23,7 @@ impl ServerGame {
         self.pickup_stage(events);
         let anchors = self.player_anchors();
         self.entity_stages(&anchors, events);
-        let opened: Vec<_> = events.world.chest_changed[chests_before..]
+        let opened: Vec<_> = events.world.panel_changed[panels_before..]
             .iter()
             .filter(|(_, open)| *open)
             .map(|(cell, _)| *cell)
@@ -95,7 +95,8 @@ impl ServerGame {
 
     fn world_stages(&mut self, events: &mut TickEvents) {
         self.begin_stage(Stage::WorldScheduled, events);
-        self.world.game_tick(self.catalog.recipes());
+        self.world.game_tick();
+        self.publish_world_gui_values();
         self.dispatch_block_hooks(events);
         self.bake_dirty_custom_shapes(events);
         self.end_stage(Stage::WorldScheduled, events);
@@ -200,20 +201,19 @@ impl ServerGame {
             }
         }
         let now = self.world.current_tick();
-        for category in crate::mob::MobCategory::ALL {
-            let due = category
-                .natural_spawn()
-                .is_some_and(|natural| now.is_multiple_of(natural.every));
-            if !due {
-                continue;
-            }
-            for anchor in anchors {
-                for (id, kind, pos) in self.world.spawn_mobs_tick(anchor.pos, category) {
-                    self.mods.emit(PostEvent::MobSpawned { id, kind, pos });
+        for category in crate::mob::SpawnCategory::all() {
+            match category.def().spawner {
+                Some(crate::mob::Spawner::Ring { every, .. }) if now.is_multiple_of(every) => {
+                    for anchor in anchors {
+                        for (id, kind, pos) in self.world.spawn_mobs_tick(anchor.pos, category) {
+                            self.mods.emit(PostEvent::MobSpawned { id, kind, pos });
+                        }
+                    }
                 }
+                Some(crate::mob::Spawner::Scan { .. }) => self.tick_scan_spawns(anchors, category),
+                _ => {}
             }
         }
-        self.tick_hostile_mob_spawns(anchors, events);
         crate::server::progression::detect_obtained_items(&mut self.sessions, &mut self.mods);
         self.end_stage(Stage::Spawning, events);
     }
@@ -249,44 +249,26 @@ impl ServerGame {
         });
     }
 
-    fn tick_hostile_mob_spawns(
+    /// One body at most per tick for a scan category: the first open cell some species takes.
+    fn tick_scan_spawns(
         &mut self,
         anchors: &[crate::mob::PlayerAnchor],
-        events: &mut TickEvents,
+        category: crate::mob::SpawnCategory,
     ) {
-        if !self.mods.host().has_hostile_spawners() {
-            return;
-        }
-
         let player_positions: Vec<_> = anchors.iter().map(|a| a.pos).collect();
-        let Some(plan) = crate::mob::hostile_spawn_plan(
+        let Some(plan) = crate::mob::scan_plan(
             &self.world,
-            &mut self.hostile_spawn_cache,
+            &mut self.scan_spawn_cache,
             &player_positions,
+            category,
         ) else {
             return;
         };
-
-        'attempts: for attempt in 0..crate::mob::HOSTILE_SPAWN_ATTEMPTS {
-            let sites = crate::mob::hostile_attempt_sites(&self.world, &plan, attempt);
-            for site in sites {
-                let kind = {
-                    let Self {
-                        world,
-                        sessions,
-                        mods,
-                        ..
-                    } = self;
-                    mods.dispatch(world, sessions, None, events, |host, ctx| {
-                        host.hostile_spawn_kind(ctx, &site.candidate)
-                    })
-                };
-                let Some(kind) = kind else {
+        for attempt in 0..crate::mob::SCAN_SPAWN_ATTEMPTS {
+            for site in crate::mob::scan_sites(&self.world, &plan, attempt) {
+                let Some(kind) = crate::mob::scan_species(&self.world, &plan, &site) else {
                     continue;
                 };
-                if !crate::mob::hostile_kind_has_room(&self.world, &plan, kind) {
-                    continue;
-                }
                 if let Some(id) = self.world.spawn_mob(kind, site.pos, site.yaw) {
                     self.mods.emit(PostEvent::MobSpawned {
                         id,
@@ -294,7 +276,7 @@ impl ServerGame {
                         pos: site.pos,
                     });
                 }
-                break 'attempts;
+                return;
             }
         }
     }

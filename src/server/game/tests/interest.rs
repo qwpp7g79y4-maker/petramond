@@ -142,8 +142,9 @@ fn a_tracked_riders_mount_is_always_replicated() {
     let (mut server, _) = two_sessions(1000.0);
     let mount = spawn_sheep(&mut server, 500.5);
     server.sessions[0].sim.mount = Some(crate::mob::riding::Mount {
-        target: crate::mob::riding::MountTarget::Mob(mount),
+        target: crate::mob::riding::MountTarget::Entity(mount),
         seat: 0,
+        posture: crate::mob::riding::Posture::Seated,
     });
     assert_eq!(mob_ids(&window(&mut server)[0]), [mount]);
     server.sessions[0].sim.mount = None;

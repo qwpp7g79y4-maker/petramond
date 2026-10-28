@@ -10,6 +10,17 @@ pub use dropped_item::{DroppedItem, Fate, Flight, Heading, Motion, Stuck};
 
 pub const VELOCITY_SLACK: f32 = 1.25;
 
+/// The one id space every entity draws from, mobs and item entities alike, so an id names one
+/// body whatever kind it is. Session-scoped: no store persists ids.
+#[derive(Clone, Debug, Default)]
+pub struct EntityIds(std::sync::Arc<std::sync::atomic::AtomicU64>);
+
+impl EntityIds {
+    pub fn next(&self) -> u64 {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1
+    }
+}
+
 #[inline]
 pub fn hash01(seed: u64) -> f32 {
     let mut z = seed.wrapping_add(0x9E37_79B9_7F4A_7C15);

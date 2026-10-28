@@ -36,7 +36,13 @@ impl Action {
     }
 }
 
-pub fn click(builder: &mut Builder, kind: &str, widget: &str, at: Option<ContainerAddress>) {
+pub fn click(
+    builder: &mut Builder,
+    player: PlayerId,
+    kind: &str,
+    widget: &str,
+    at: Option<ContainerAddress>,
+) {
     let Some(ContainerAddress::Block(pos)) = at else {
         return;
     };
@@ -46,16 +52,16 @@ pub fn click(builder: &mut Builder, kind: &str, widget: &str, at: Option<Contain
     if get_block(pos) != Some(builder.content.table) {
         return;
     }
-    let (Some(player), Some(action)) = (acting_player(), Action::parse(widget)) else {
+    let Some(action) = Action::parse(widget) else {
         return;
     };
     match action {
         Action::Materials => {
-            gui_open(materials::KIND, Some(ContainerAddress::Block(pos)));
+            gui_open(player, materials::KIND, Some(ContainerAddress::Block(pos)));
             return;
         }
         Action::Back => {
-            gui_open(table::KIND, Some(ContainerAddress::Block(pos)));
+            gui_open(player, table::KIND, Some(ContainerAddress::Block(pos)));
             return;
         }
         _ => {}
@@ -177,10 +183,7 @@ pub fn positioned(
     });
 }
 
-pub fn use_blueprint(builder: &mut Builder) -> Outcome {
-    let Some(player) = acting_player() else {
-        return Outcome::Continue;
-    };
+pub fn use_blueprint(builder: &mut Builder, player: PlayerId) -> Outcome {
     let Some(held) = player_held(player) else {
         return Outcome::Continue;
     };

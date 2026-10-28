@@ -18,7 +18,7 @@ fn world_anchored_sounds_come_from_events_once_never_from_one_shots() {
         placed_block: Some(petramond_world::block::Block::Dirt),
         toggled_panel: Some(true),
         open_gui: Some((
-            petramond_world::gui_state::GuiKind::Chest,
+            petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
             Some(petramond::menu::MenuAnchor::Block(pos)),
         )),
         interacted: true,
@@ -29,10 +29,19 @@ fn world_anchored_sounds_come_from_events_once_never_from_one_shots() {
             },
             WorldEvent::PanelToggled {
                 anchor: pos,
+                block: petramond_world::block::Block::OakDoor,
                 open: true,
             },
-            WorldEvent::ChestOpened { pos },
-            WorldEvent::ChestClosed { pos },
+            WorldEvent::PanelToggled {
+                anchor: pos,
+                block: petramond_world::block::Block::Chest,
+                open: true,
+            },
+            WorldEvent::PanelToggled {
+                anchor: pos,
+                block: petramond_world::block::Block::Chest,
+                open: false,
+            },
             WorldEvent::ItemPickedUp {
                 pos: WorldPos::new(4.5, 64.5, 4.5),
                 by_self: false,
@@ -81,7 +90,7 @@ fn idle_sound_deadlines_are_consumed_while_inventory_is_open() {
     test_app
         .sess_mut()
         .sounds
-        .set_mob_positions_for_test(positions);
+        .set_entity_positions_for_test(positions);
     let first_handle = test_app.sess_mut().sounds.next_handle();
     let listener = SpatialListener {
         pos: WorldPos::ZERO,

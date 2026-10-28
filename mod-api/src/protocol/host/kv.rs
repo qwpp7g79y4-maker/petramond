@@ -5,31 +5,21 @@ host_domain! {
         WorldKvGet {
             key: String,
         } => legal(SERVER, Sim, Read),
+        /// Writes `key`; `None` deletes it. → [`HostRet::Bool`](crate::HostRet::Bool): a write
+        /// answers `true`, a delete whether the key was there.
         WorldKvSet {
             key: String,
-            value: Vec<u8>,
+            value: Option<Vec<u8>>,
         } => legal(SERVER, Sim, Write),
-        WorldKvDelete {
-            key: String,
-        } => legal(SERVER, Sim, Write),
+        /// `key` at each cell. → [`HostRet::BytesMany`](crate::HostRet::BytesMany).
         SectionKvGet {
-            pos: [i32; 3],
-            key: String,
-        } => legal(SERVER, Sim, Read),
-        SectionKvSet {
-            pos: [i32; 3],
-            key: String,
-            value: Vec<u8>,
-        } => legal(SERVER, Sim, Write),
-        SectionKvDelete {
-            pos: [i32; 3],
-            key: String,
-        } => legal(SERVER, Sim, Write),
-        SectionKvGetMany {
             key: String,
             positions: Vec<[i32; 3]>,
-        } => legal(SERVER, Sim, Read),
-        SectionKvSetMany {
+        } => legal(SERVER_CLIENT, Sim, Read),
+        /// Writes `key` at each cell; `None` deletes it there. Per entry: `false` = unloaded, a
+        /// full cell (a new key past `CELL_KV_MAX_KEYS`) or deleting an absent key.
+        /// → [`HostRet::Bools`](crate::HostRet::Bools).
+        SectionKvSet {
             key: String,
             writes: Vec<([i32; 3], Option<Vec<u8>>)>,
         } => legal(SERVER, Sim, Write),

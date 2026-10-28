@@ -82,11 +82,7 @@ impl ServerGame {
                 continue;
             }
             let sess = &self.sessions[s];
-            if (sneak && !prev_sneak)
-                || sess.player.health() <= 0
-                || sess.player.is_spectator()
-                || sess.sim.sleep.is_some()
-            {
+            if (sneak && !prev_sneak) || sess.player.health() <= 0 || sess.player.is_spectator() {
                 self.world.riding_mut().dismount(id);
             }
         }
@@ -98,7 +94,7 @@ impl ServerGame {
             .filter_map(|p| {
                 let m = self.world.riding().mount_of(p)?;
                 let mount_live = match m.target {
-                    MountTarget::Mob(mob_id) => self.world.mobs().live(mob_id).is_some(),
+                    MountTarget::Entity(mob_id) => self.world.mobs().live(mob_id).is_some(),
                     MountTarget::Anchor(_) => true,
                 };
                 let has_session = self.sessions.iter().any(|sess| sess.id.0 == p);
@@ -115,8 +111,8 @@ impl ServerGame {
             let id = self.sessions[s].id.0;
             let now = self.world.riding().mount_of(id);
             let before = std::mem::replace(&mut self.sessions[s].sim.mount, now);
-            if before.is_some() && before != now {
-                self.place_dismounted_player(s);
+            if let Some(before) = before.filter(|b| Some(*b) != now) {
+                self.place_dismounted_player(s, before);
             }
             if let Some(m) = now {
                 self.slave_rider_to_seat(s, m);
@@ -127,7 +123,7 @@ impl ServerGame {
     pub fn publish_dismounted(&mut self) {
         let detached: Vec<_> = self.world.riding_mut().drain_dismounted().collect();
         for (player, mount) in detached {
-            self.mods.emit(PostEvent::PlayerDismounted {
+            self.mods.emit(PostEvent::PlayerDetached {
                 player: crate::player::PlayerId(player),
                 mount,
             });
@@ -137,8 +133,8 @@ impl ServerGame {
     pub fn detach_departing_session(&mut self, s: usize) {
         let id = self.sessions[s].id.0;
         self.world.riding_mut().dismount(id);
-        if self.sessions[s].sim.mount.take().is_some() {
-            self.place_dismounted_player(s);
+        if let Some(before) = self.sessions[s].sim.mount.take() {
+            self.place_dismounted_player(s, before);
         }
         self.publish_dismounted();
     }
@@ -162,7 +158,7 @@ impl ServerGame {
 
     fn slave_rider_to_seat(&mut self, s: usize, m: Mount) {
         let pos = match m.target {
-            MountTarget::Mob(mob_id) => {
+            MountTarget::Entity(mob_id) => {
                 let Some(mob) = self.world.mobs().get(mob_id) else {
                     return;
                 };
@@ -183,28 +179,30 @@ impl ServerGame {
         sess.sim.pending_splash = 0.0;
     }
 
-    fn place_dismounted_player(&mut self, s: usize) {
+    /// Sets a released body down beside its seat, trying the seat's own sides first (a bed's long
+    /// sides, a boat's beam), else the way the player looks once the seat is gone.
+    fn place_dismounted_player(&mut self, s: usize, from: Mount) {
         let sess = &self.sessions[s];
         if sess.player.health() <= 0 || sess.player.is_spectator() {
             return;
         }
+        let facing = match from.target {
+            MountTarget::Anchor(a) => a.yaw,
+            MountTarget::Entity(id) => self
+                .world
+                .mobs()
+                .get(id)
+                .map_or(sess.player.yaw, |mob| mob.yaw + std::f32::consts::PI),
+        };
         let obstacles = self.world.mobs().solid_obstacles();
-        if let Some(feet) = self.dismount_spot_for(&sess.player, &obstacles) {
+        if let Some(feet) = dismount_spot(
+            sess.player.pos,
+            facing,
+            |feet| player_body_free(self.world.data(), feet, &obstacles),
+            |feet| dismount_footing_safe(self.world.data(), feet),
+        ) {
             self.sessions[s].player.teleport(feet);
         }
-    }
-
-    fn dismount_spot_for(
-        &self,
-        player: &Player,
-        obstacles: &[petramond_world::collision::DynBox],
-    ) -> Option<petramond_math::world_pos::WorldPos> {
-        dismount_spot(
-            player.pos,
-            player.yaw,
-            |feet| player_body_free(self.world.data(), feet, obstacles),
-            |feet| dismount_footing_safe(self.world.data(), feet),
-        )
     }
 
     fn save_dismount_spot_for(

@@ -23,10 +23,10 @@ fn scaffolding_is_what_is_most_spare_in_hand_softest_first() {
     let (mut session, id, golem) = working(AT);
     session
         .world
-        .give(ContainerAddress::Mob(golem), "petramond:dirt", 10);
+        .give(ContainerAddress::Entity(golem), "petramond:dirt", 10);
     session
         .world
-        .give(ContainerAddress::Mob(golem), "petramond:oak_planks", 5);
+        .give(ContainerAddress::Entity(golem), "petramond:oak_planks", 5);
     let body = session.body(golem);
     at_work(&mut session, id, |ctx, _, job| {
         let picked = scaffold::pick(ctx, job, &body).map(|k| k.item.clone());
@@ -46,7 +46,7 @@ fn scaffolding_is_what_is_most_spare_in_hand_softest_first() {
 
     let (mut session, id, golem) = working(AT);
     for item in ["petramond:oak_planks", "petramond:dirt"] {
-        session.world.give(ContainerAddress::Mob(golem), item, 5);
+        session.world.give(ContainerAddress::Entity(golem), item, 5);
     }
     let body = session.body(golem);
     at_work(&mut session, id, |ctx, _, job| {
@@ -248,7 +248,7 @@ fn the_right_tool_is_taken_up_and_a_trip_is_made_for_one_the_chests_hold() {
     });
     session
         .world
-        .give(ContainerAddress::Mob(golem), "petramond:stone_shovel", 1);
+        .give(ContainerAddress::Entity(golem), "petramond:stone_shovel", 1);
     let body = session.body(golem);
     at_work(&mut session, id, |ctx, _, job| {
         assert!(cargo::tools_waiting(ctx, job, &body, &project).is_empty());

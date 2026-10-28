@@ -54,7 +54,7 @@ const SPAWN_RNG_SALT: u64 = 0x5EED_5EED_5EED_5EED;
 pub struct Mobs {
     list: Vec<Instance>,
     slot_by_id: FxHashMap<MobId, usize>,
-    spawn_counter: u64,
+    ids: crate::entity::EntityIds,
     rng: MobRng,
     sim_distance: SimDistance,
     step_scratch: Vec<lod::SimStep>,
@@ -87,10 +87,14 @@ impl Mobs {
         }
     }
     pub fn new(seed: u64) -> Self {
+        Self::with_ids(seed, crate::entity::EntityIds::default())
+    }
+
+    pub fn with_ids(seed: u64, ids: crate::entity::EntityIds) -> Self {
         Mobs {
             list: Vec::new(),
             slot_by_id: FxHashMap::default(),
-            spawn_counter: 0,
+            ids,
             rng: MobRng::new(seed ^ SPAWN_RNG_SALT),
             sim_distance: SimDistance::UNLIMITED,
             step_scratch: Vec::new(),

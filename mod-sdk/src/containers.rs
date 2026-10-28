@@ -2,14 +2,13 @@ use mod_api::{ContainerAddress, ItemStackData};
 
 use crate::__rt::host_fn;
 
-host_fn! {
-    pub fn container_get(at: ContainerAddress) -> Option<Vec<Option<ItemStackData>>>
-        => ContainerGet { at } => ContainerSlots
+pub fn container_get(at: ContainerAddress) -> Option<Vec<Option<ItemStackData>>> {
+    container_get_many(vec![at]).pop().flatten()
 }
 
 host_fn! {
     pub fn container_get_many(addresses: Vec<ContainerAddress>) -> Vec<Option<Vec<Option<ItemStackData>>>>
-        => ContainerGetMany { addresses } => Containers
+        => ContainerGet { addresses } => Containers
 }
 
 host_fn! {

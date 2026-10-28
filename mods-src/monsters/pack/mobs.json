@@ -16,12 +16,12 @@
       "jump_speed": 7.2,
       "turn_rate": 2.0,
       "walk_anim_rate": 0.9,
-      "category": "hostile",
+      "category": "monsters:hostile",
       "cap": 70,
       "despawn_radius": 128.0,
       "spawn": {
-        "biomes": [],
-        "ground": []
+        "light_below": 24,
+        "crowd": {"radius": 24, "limit": 4}
       },
       "spawn_group": {
         "min": 1,
@@ -111,12 +111,15 @@
       "jump_speed": 7.2,
       "turn_rate": 5.0,
       "walk_anim_rate": 1.4,
-      "category": "hostile",
+      "category": "monsters:hostile",
       "cap": 6,
       "despawn_radius": 128.0,
       "spawn": {
-        "biomes": [],
-        "ground": []
+        "y": [-63, -17],
+        "light_below": 24,
+        "player_beyond": 32,
+        "crowd": {"radius": 32, "limit": 1},
+        "chance": 0.2
       },
       "spawn_group": {
         "min": 1,
@@ -221,15 +224,11 @@
       "jump_speed": 7.2,
       "turn_rate": 4.0,
       "walk_anim_rate": 1.0,
-      "category": "hostile",
+      "category": "monsters:hostile",
       "cap": 40,
       "despawn_radius": 128.0,
       "random_despawn": false,
       "edge_guard": true,
-      "spawn": {
-        "biomes": [],
-        "ground": []
-      },
       "spawn_group": {
         "min": 1,
         "max": 1
@@ -397,15 +396,11 @@
       "jump_speed": 7.2,
       "turn_rate": 4.0,
       "walk_anim_rate": 1.0,
-      "category": "hostile",
+      "category": "monsters:hostile",
       "cap": 40,
       "despawn_radius": 128.0,
       "random_despawn": false,
       "edge_guard": true,
-      "spawn": {
-        "biomes": [],
-        "ground": []
-      },
       "spawn_group": {
         "min": 1,
         "max": 1

@@ -188,9 +188,8 @@ mod tests {
     use petramond_world::chunk::{Chunk, ChunkPos, SectionPos, CHUNK_SX, CHUNK_SZ, SECTION_SIZE};
 
     fn run_ticks(w: &mut ServerWorld, n: u32) {
-        let recipes = petramond_world::crafting::Recipes::default();
         for _ in 0..n {
-            w.game_tick(&recipes);
+            w.game_tick();
         }
     }
 

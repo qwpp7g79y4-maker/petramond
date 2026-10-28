@@ -1,0 +1,120 @@
+{
+  "materials": [
+    {
+      "material": "none"
+    },
+    {
+      "material": "dirt",
+      "sounds": {
+        "dig": "petramond:dirt_punch",
+        "break": "petramond:dirt_break",
+        "place": "petramond:dirt_place",
+        "step": "petramond:dirt_step"
+      },
+      "tool": "shovel"
+    },
+    {
+      "material": "sand",
+      "sounds": {
+        "dig": "petramond:sand_punch",
+        "break": "petramond:sand_break",
+        "place": "petramond:sand_place",
+        "step": "petramond:sand_step"
+      },
+      "tool": "shovel"
+    },
+    {
+      "material": "snow",
+      "sounds": {
+        "dig": "petramond:snow_punch",
+        "break": "petramond:snow_break",
+        "place": "petramond:snow_place",
+        "step": "petramond:snow_step"
+      },
+      "tool": "shovel"
+    },
+    {
+      "material": "stone",
+      "sounds": {
+        "dig": "petramond:stone_punch",
+        "break": "petramond:stone_break",
+        "place": "petramond:stone_place",
+        "step": "petramond:stone_step"
+      },
+      "tool": "pickaxe",
+      "tags": [
+        "stony"
+      ]
+    },
+    {
+      "material": "ore",
+      "sounds": {
+        "dig": "petramond:stone_punch",
+        "break": "petramond:stone_break",
+        "place": "petramond:stone_place",
+        "step": "petramond:stone_step"
+      },
+      "tool": "pickaxe",
+      "tags": [
+        "stony"
+      ]
+    },
+    {
+      "material": "wood",
+      "sounds": {
+        "dig": "petramond:wood_punch",
+        "break": "petramond:wood_break",
+        "place": "petramond:wood_place",
+        "step": "petramond:wood_step"
+      },
+      "tool": "axe"
+    },
+    {
+      "material": "wool",
+      "tool": "shears"
+    },
+    {
+      "material": "foliage",
+      "sounds": {
+        "dig": "petramond:leaf_punch",
+        "break": "petramond:leaf_break",
+        "place": "petramond:leaf_place",
+        "step": "petramond:leaf_step"
+      },
+      "tool": "shears",
+      "cut": true
+    },
+    {
+      "material": "plant",
+      "sounds": {
+        "dig": "petramond:leaf_punch",
+        "break": "petramond:leaf_break",
+        "place": "petramond:leaf_place",
+        "step": "petramond:leaf_step"
+      },
+      "tool": "shears"
+    },
+    {
+      "material": "glass",
+      "sounds": {
+        "dig": "petramond:glass_punch",
+        "break": "petramond:glass_break",
+        "place": "petramond:glass_place",
+        "step": "petramond:glass_step"
+      }
+    },
+    {
+      "material": "ice",
+      "sounds": {
+        "dig": "petramond:glass_punch",
+        "break": "petramond:glass_break",
+        "place": "petramond:glass_place",
+        "step": "petramond:glass_step"
+      },
+      "tool": "pickaxe"
+    },
+    {
+      "material": "other"
+    }
+  ]
+}

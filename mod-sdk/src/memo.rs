@@ -4,12 +4,12 @@ mod blob;
 pub use blob::{memo_blob_claim, memo_blob_put, MEMO_BLOB_MAX_BYTES};
 
 host_fn! {
-    pub fn memo_get(key: &[u8]) -> Option<Vec<u8>> => MemoGet { key: key.to_vec() } => Bytes
+    pub fn memo_get_many(keys: Vec<Vec<u8>>) -> Vec<Option<Vec<u8>>>
+        => MemoGet { keys } => BytesMany
 }
 
-host_fn! {
-    pub fn memo_get_many(keys: Vec<Vec<u8>>) -> Vec<Option<Vec<u8>>>
-        => MemoGetMany { keys } => BytesMany
+pub fn memo_get(key: &[u8]) -> Option<Vec<u8>> {
+    memo_get_many(vec![key.to_vec()]).pop().flatten()
 }
 
 host_fn! {

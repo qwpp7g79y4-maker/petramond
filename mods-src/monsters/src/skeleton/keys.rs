@@ -9,8 +9,6 @@ mod_sdk::pack_keys! {
     pub BLOCK_SOUND: Sound = "petramond:wood_punch";
 }
 
-pub const PROJECTILE_DATA: &str = "petramond:projectile";
-
 pub const LOADOUT_TAG: &str = "monsters:loadout";
 pub const POST_TAG: &str = "monsters:post";
 pub const ROLE_TAG: &str = "monsters:role";

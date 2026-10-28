@@ -5,7 +5,7 @@
 use std::f32::consts::TAU;
 
 /// The cell data key a marker is stored under.
-pub const KEY: &str = "monsters:camp_post";
+pub const KEY: &str = "monsters:post";
 
 /// The facing byte of a post whose guard may face any way.
 const ANY_WAY: u8 = 0xFF;

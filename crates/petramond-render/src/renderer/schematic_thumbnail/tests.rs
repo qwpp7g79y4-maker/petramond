@@ -26,7 +26,6 @@ fn schematic_thumbnail_smoke() {
                 fluid: 0,
                 kv: Default::default(),
                 container: None,
-                furnace: None,
             }),
         })
     };

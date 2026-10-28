@@ -176,6 +176,7 @@ struct ItemEntityPass {
     indices: Vec<u32>,
     visible: Vec<ItemEntityInstance>,
     instances: Vec<ItemEntityInstance>,
+    lines: Vec<crate::LinePresentation>,
     block_draws: Vec<crate::BlockDrawInstance>,
     block_draws_visible: Vec<u32>,
     model_draw: DynamicDraw,

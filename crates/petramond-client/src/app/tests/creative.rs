@@ -213,7 +213,6 @@ fn schematic_fixture() -> petramond::schematic::Schematic {
                 fluid: 0,
                 kv: Default::default(),
                 container: None,
-                furnace: None,
             }),
         }],
     )

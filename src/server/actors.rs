@@ -24,7 +24,7 @@ impl ServerGame {
             .actor_break(mob_id, pos, target, tool_slot, collect, events)
             .err();
         self.mods.emit(PostEvent::ActorActed {
-            actor: EntityRef::Mob(mob_id),
+            actor: EntityRef::Entity(mob_id),
             pos,
             action: ActorAction::Dig,
             refusal,
@@ -52,7 +52,7 @@ impl ServerGame {
             harvested: petramond_world::mining::harvests(now.block, tool),
         };
         let breaker = Breaker {
-            actor: EntityRef::Mob(mob_id),
+            actor: EntityRef::Entity(mob_id),
             yields: true,
             collector: collect.then_some(mob_id),
             normal: None,
@@ -72,7 +72,7 @@ impl ServerGame {
     ) {
         let refusal = self.actor_use(mob_id, pos, events).err();
         self.mods.emit(PostEvent::ActorActed {
-            actor: EntityRef::Mob(mob_id),
+            actor: EntityRef::Entity(mob_id),
             pos,
             action: ActorAction::Use,
             refusal,
@@ -87,20 +87,13 @@ impl ServerGame {
     ) -> Result<(), ActionRefusal> {
         let actor = self.world.actor(mob_id)?;
         self.world.block_click(&actor, pos)?;
-        let block = self
-            .world
+        self.world
             .block_if_stream_final(pos.x, pos.y, pos.z)
             .ok_or(ActionRefusal::Unloaded)?;
-        match block.interaction() {
-            petramond_world::block::BlockInteraction::ToggleDoor => self
-                .swing_door(pos, events)
-                .map(drop)
-                .ok_or(ActionRefusal::NothingToDo),
-            petramond_world::block::BlockInteraction::ToggleTrapdoor => self
-                .swing_trapdoor(pos, events)
-                .map(drop)
-                .ok_or(ActionRefusal::NothingToDo),
-            _ => Err(ActionRefusal::NothingToDo),
+        if self.use_block(None, pos, events) {
+            Ok(())
+        } else {
+            Err(ActionRefusal::NothingToDo)
         }
     }
 
@@ -114,7 +107,7 @@ impl ServerGame {
     ) {
         let refusal = self.actor_place(mob_id, pos, &record, pay, events).err();
         self.mods.emit(PostEvent::ActorActed {
-            actor: EntityRef::Mob(mob_id),
+            actor: EntityRef::Entity(mob_id),
             pos,
             action: ActorAction::Place,
             refusal,
@@ -140,7 +133,7 @@ impl ServerGame {
             pos: ready.plan.anchor,
             block,
             facing: ready.click.facing,
-            actor: EntityRef::Mob(mob_id),
+            actor: EntityRef::Entity(mob_id),
         };
         let cancelled = {
             let Self {
@@ -161,7 +154,7 @@ impl ServerGame {
         let Placement {
             plan: writes, paid, ..
         } = ready;
-        if !self.world.commit_placement(&writes, true) {
+        if !self.world.commit_placement(&writes) {
             return Err(ActionRefusal::Unloaded);
         }
         let carried = paid.item.as_block().unwrap_or(block);
@@ -183,7 +176,7 @@ impl ServerGame {
             player: None,
         });
         self.push_noise_from(
-            EntityRef::Mob(mob_id),
+            EntityRef::Entity(mob_id),
             writes.anchor,
             crate::mob::NoiseKind::BlockPlaced,
         );

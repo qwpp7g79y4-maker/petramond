@@ -73,7 +73,7 @@ impl Game {
                 mob.prev.head_pitch + (mob.curr.head_pitch - mob.prev.head_pitch) * alpha;
             let step = mob.curr.pos - mob.prev.pos;
             rows.push(ClientEntityData {
-                id: EntityRef::Mob(mob.curr.id),
+                id: EntityRef::Entity(mob.curr.id),
                 mob_kind: Some(mod_api::MobId(mob.curr.kind_id)),
                 name: None,
                 feet: feet.to_array(),

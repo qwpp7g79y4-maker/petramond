@@ -33,7 +33,7 @@ pub struct Moment {
     pub env: BTreeMap<String, [f32; 4]>,
     pub loops: LiveSpatialLoops,
     pub dig: Option<IVec3>,
-    pub open_chests: Vec<IVec3>,
+    pub held_open: Vec<IVec3>,
     pub viewer: Option<SelfState>,
     pub local_player: Option<PlayerId>,
     pub sleep: Option<SleepTally>,
@@ -65,11 +65,11 @@ impl Moment {
             StateBody::Activity(CapturedActivity {
                 loops,
                 dig,
-                open_chests,
+                held_open,
             }) => {
                 self.loops = loops.iter().map(|l| (loop_handle(l), *l)).collect();
                 self.dig = *dig;
-                self.open_chests = open_chests.clone();
+                self.held_open = held_open.clone();
             }
             StateBody::Viewer(own) => self.viewer = Some(own.clone()),
             StateBody::Session(session) => {
@@ -154,7 +154,7 @@ impl Moment {
         if let Some(lane) = t.players() {
             lane.apply_to(&mut self.players);
         }
-        self.open_chests = t.open_chests().cloned().unwrap_or_default();
+        self.held_open = t.held_open().cloned().unwrap_or_default();
         if let Some(tally) = t.sleep_tally() {
             self.sleep = Some(*tally);
         }
@@ -215,7 +215,7 @@ impl Moment {
                 .map(|(k, v)| (k.clone(), *v))
                 .collect::<Vec<_>>(),
         );
-        newest.push_list(self.open_chests.clone());
+        newest.push_list(self.held_open.clone());
         newest.push_list(loop_restarts(&self.loops).collect::<Vec<WorldEventMsg>>());
         out.push(ServerToClient::Tick(Box::new(newest)));
         out
@@ -237,7 +237,7 @@ fn lane_from<R: EntityRow>(before: Option<&[R]>, now: &BTreeMap<R::Id, R>) -> En
 fn loop_handle(cmd: &SpatialSoundMsg) -> u64 {
     match *cmd {
         SpatialSoundMsg::PlayAt { handle, .. }
-        | SpatialSoundMsg::PlayOnMob { handle, .. }
+        | SpatialSoundMsg::PlayOnEntity { handle, .. }
         | SpatialSoundMsg::Stop { handle }
         | SpatialSoundMsg::Set { handle, .. } => handle,
     }

@@ -43,8 +43,8 @@ pub(super) struct ActorPass {
     pub(super) bodies: Vec<PlayerBodyRender>,
     pub(super) body_poses: Vec<glam::Mat4>,
     pub(super) player_visible: Vec<PlayerBodyRender>,
-    /// Each body's main-hand item tip this frame, by body key, for tether lines.
-    pub(super) tether_tips: Vec<(u32, glam::Vec3)>,
+    /// Each body's main-hand item tip this frame, by body key, for lines ending on a body.
+    pub(super) line_tips: Vec<(u32, glam::Vec3)>,
     pub(super) item_draw: DynamicDraw,
     pub(super) item_verts: Vec<crate::item_model::ItemVertex>,
     pub(super) item_indices: Vec<u32>,

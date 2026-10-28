@@ -257,9 +257,13 @@ impl Furniture {
         CauldronSwap::None
     }
 
-    pub(super) fn try_use_cauldron(&self, pos: [i32; 3], actor: &PlayerSnapshot) -> bool {
-        let Some((cauldron, block, dye, swap)) = self.cauldron_gate(&SideWorld::Server, pos, actor)
-        else {
+    pub(super) fn try_use_cauldron(
+        &self,
+        pos: [i32; 3],
+        player: PlayerId,
+        actor: &PlayerSnapshot,
+    ) -> bool {
+        let Some((cauldron, block, dye, swap)) = self.cauldron_gate(pos, actor) else {
             return false;
         };
         match swap {
@@ -273,12 +277,12 @@ impl Furniture {
                     BucketSwap::Pour => cauldron.water,
                     BucketSwap::Scoop => cauldron.empty,
                 };
-                buckets.perform(swap, pos, || {
+                buckets.perform(player, swap, pos, || {
                     set_block(pos, next);
                 })
             }
             CauldronSwap::Dye(flower, pigment, dilute) => {
-                if !consume_held(flower, 1) {
+                if !consume_held(player, flower, 1) {
                     return false;
                 }
                 let color = if block == cauldron.dye {
@@ -304,10 +308,10 @@ impl Furniture {
                 let Some((held_id, dyed_name)) = self.dyeables.get(dyeable) else {
                     return false;
                 };
-                if !consume_held(*held_id, count as u32) {
+                if !consume_held(player, *held_id, count as u32) {
                     return false;
                 }
-                give_item_data(dyed_name, count, &[(TINT_KEY, &color)]);
+                give_item(player, dyed_name, count, &[(TINT_KEY, &color)]);
                 let uses = section_kv_get(pos, USES_KEY)
                     .and_then(|v| v.first().copied())
                     .unwrap_or(DYE_USES);
@@ -338,7 +342,7 @@ impl Furniture {
         if dye_cells.is_empty() {
             return HashMap::new();
         }
-        let values = client_cell_kv_at(USES_KEY, dye_cells.clone());
+        let values = section_kv_get_many(USES_KEY, dye_cells.clone());
         dye_cells
             .into_iter()
             .zip(values)
@@ -380,26 +384,20 @@ impl Furniture {
 
     fn cauldron_gate(
         &self,
-        world: &impl WorldView,
         pos: [i32; 3],
         actor: &PlayerSnapshot,
     ) -> Option<(&Cauldron, BlockId, Option<[u8; 3]>, CauldronSwap)> {
         let cauldron = self.cauldron.as_ref()?;
-        let block = world.block(pos)?;
+        let block = get_block(pos)?;
         let dye = (block == cauldron.dye)
-            .then(|| world.cell_kv(pos, DYE_KEY).and_then(parse_dye))
+            .then(|| section_kv_get(pos, DYE_KEY).and_then(parse_dye))
             .flatten();
         let swap = self.cauldron_action(cauldron, block, actor, dye);
         Some((cauldron, block, dye, swap))
     }
 
-    pub(super) fn cauldron_claims(
-        &self,
-        world: &impl WorldView,
-        pos: [i32; 3],
-        actor: &PlayerSnapshot,
-    ) -> bool {
-        self.cauldron_gate(world, pos, actor)
+    pub(super) fn cauldron_claims(&self, pos: [i32; 3], actor: &PlayerSnapshot) -> bool {
+        self.cauldron_gate(pos, actor)
             .is_some_and(|(.., swap)| !matches!(swap, CauldronSwap::None))
     }
 }

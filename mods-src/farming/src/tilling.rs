@@ -5,20 +5,14 @@ use crate::content::Content;
 use crate::farmland::{self, Hydration};
 use crate::keys;
 
-pub fn gate(
-    content: &Content,
-    world: &impl WorldView,
-    item: ItemId,
-    pos: [i32; 3],
-    block: BlockId,
-) -> Option<BlockId> {
+pub fn gate(content: &Content, item: ItemId, pos: [i32; 3], block: BlockId) -> Option<BlockId> {
     if item != content.iron_hoe {
         return None;
     }
     if block != content.grass && block != content.dirt && block != content.grass_fertilized {
         return None;
     }
-    let cover = world.block([pos[0], pos[1] + 1, pos[2]])?;
+    let cover = get_block([pos[0], pos[1] + 1, pos[2]])?;
     (cover == BlockId::AIR || content.is_clearable_cover(cover)).then_some(cover)
 }
 

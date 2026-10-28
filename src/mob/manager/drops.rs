@@ -52,10 +52,15 @@ impl Mobs {
         Some(drop)
     }
 
-    pub fn shear_mob(&mut self, id: MobId) -> Option<ShearDrop> {
+    /// Takes the coat off mob `id` when `tool` is the kind its row names.
+    pub fn shear_mob(
+        &mut self,
+        id: MobId,
+        tool: Option<petramond_world::material::ToolKind>,
+    ) -> Option<ShearDrop> {
         let mob = self.mob_mut(id)?;
         let spec = super::def(mob.kind).shear?;
-        let count = mob.shear()?;
+        let count = mob.shear(tool)?;
         Some(ShearDrop {
             item: spec.drop,
             count,

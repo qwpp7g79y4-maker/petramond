@@ -1,21 +1,17 @@
-use crate::mob::Mobs;
 use crate::net::protocol::WorldEventMsg;
 use crate::net::spatial_loops::{fold_spatial_loops, is_looped};
 
 use super::replication::Broadcast;
 
 impl Broadcast {
-    pub fn track_spatial_loops(&mut self, mobs: &Mobs, world_events: &mut Vec<WorldEventMsg>) {
-        fold_spatial_loops(
-            self.spatial_loops_mut(),
-            world_events,
-            is_looped,
-            |mob_id| {
-                mobs.instances()
-                    .iter()
-                    .any(|m| m.id() == mob_id && !m.is_dead())
-            },
-        );
+    /// Folds this window's spatial sound commands into the live loops, ending each loop whose
+    /// body `alive` no longer finds.
+    pub fn track_spatial_loops(
+        &mut self,
+        alive: impl Fn(u64) -> bool,
+        world_events: &mut Vec<WorldEventMsg>,
+    ) {
+        fold_spatial_loops(self.spatial_loops_mut(), world_events, is_looped, alive);
     }
 }
 

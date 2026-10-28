@@ -201,7 +201,6 @@ fn own_state(n: u64) -> SelfState {
         bone_poses: Vec::new(),
         animator: Default::default(),
         sleeping: None,
-        sleep_bed: None,
         transform: None,
     }
 }
@@ -297,7 +296,7 @@ fn state_pieces(truth: &ReplicaWorld, moment: &Moment, tick: u64) -> Vec<Vec<u8>
         &CapturedActivity {
             loops: moment.loops.values().copied().collect(),
             dig: moment.dig,
-            open_chests: moment.open_chests.clone(),
+            held_open: moment.held_open.clone(),
         },
     ));
     if let Some(own) = &moment.viewer {
@@ -562,7 +561,6 @@ fn record_session(side: i32, last_tick: u64, seed: u64, full_every: u64) -> Sess
                 pos: petramond_math::world_pos::WorldPos::new(t as f64 * 0.1, 65.0, 0.0),
                 spin: t as f32,
                 flight: None,
-                tether: None,
                 draw: Default::default(),
             }]
             .into(),

@@ -22,8 +22,8 @@ fn fluid_row(name: &str, tiles: &str) -> String {
                 "surface_alpha": 1.0
             }}
         }},
-        "shape": "cube", "flags": ["transparent", "fluid"], "tags": ["replaceable"],
-        "behavior": "fluid", "interaction": "none", "collision": [], "emission": 0,
+        "shape": "cube", "flags": ["transparent", "fluid", "dims_sky"], "tags": ["replaceable"],
+        "behaviors": ["fluid"], "collision": [], "emission": 0,
         "tiles": ["{tiles}_still", "{tiles}_still", "{tiles}_still"],
         "flow_tile": "{tiles}_flow",
         "material": "none", "hardness": -1, "drops": []

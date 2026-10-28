@@ -4,11 +4,11 @@ use super::guards::batch_guard;
 
 pub(super) fn handle_registry_call(call: RegistryCall) -> HostRet {
     match call {
-        RegistryCall::BlockRecordPlans { records } => {
-            if let Some(err) = batch_guard("BlockRecordPlans record", records.len()) {
+        RegistryCall::RecordPlans { records } => {
+            if let Some(err) = batch_guard("RecordPlans record", records.len()) {
                 return err;
             }
-            HostRet::RecordPlans(records.iter().map(super::construction::plan_out).collect())
+            HostRet::RecordPlans(records.iter().map(super::records::plan_out).collect())
         }
         RegistryCall::MobDataGet { mob, key } => HostRet::Bytes(
             crate::mob::defs()
@@ -171,10 +171,7 @@ pub(super) fn handle_registry_call(call: RegistryCall) -> HostRet {
                 .data_value(&key)
                 .map(|v| v.as_bytes().to_vec()),
         ),
-        RegistryCall::BlockInfo { block } => {
-            HostRet::BlockInfo(block_info_data(block).map(Box::new))
-        }
-        RegistryCall::BlockInfos { blocks } => match batch_guard("BlockInfos id", blocks.len()) {
+        RegistryCall::BlockInfo { blocks } => match batch_guard("BlockInfo id", blocks.len()) {
             Some(err) => err,
             None => HostRet::BlockInfos(blocks.into_iter().map(block_info_data).collect()),
         },
@@ -194,7 +191,7 @@ fn block_info_data(block: mod_api::BlockId) -> Option<mod_api::BlockInfoData> {
     petramond_world::registry::names().blocks.name(block.0)?;
     let b = petramond_world::block::Block::from_id(block.0);
     Some(mod_api::BlockInfoData {
-        material: material_name(b.material()).to_owned(),
+        material: b.material().name().to_owned(),
         hardness: b.hardness(),
         harvest_tier: b.harvest_tier(),
         preferred_tool: b.preferred_tool().map(|t| t.name().to_owned()),
@@ -206,19 +203,13 @@ fn block_info_data(block: mod_api::BlockId) -> Option<mod_api::BlockInfoData> {
         fluid: b.fluid_def().map(fluid_info),
         medium: b.fluid().map(|f| mod_api::BlockId(f.id())),
         replaceable: b.is_replaceable(),
-        interaction: match b.interaction() {
-            petramond_world::block::BlockInteraction::None => None,
-            petramond_world::block::BlockInteraction::OpenGui(_) => {
-                Some(mod_api::BlockUse::OpenGui)
-            }
-            petramond_world::block::BlockInteraction::ToggleDoor => {
-                Some(mod_api::BlockUse::ToggleDoor)
-            }
-            petramond_world::block::BlockInteraction::ToggleTrapdoor => {
-                Some(mod_api::BlockUse::ToggleTrapdoor)
-            }
-            petramond_world::block::BlockInteraction::Sleep => Some(mod_api::BlockUse::Sleep),
-        },
+        open_gui: b
+            .open_gui()
+            .and_then(petramond_world::gui_state::kind_key)
+            .map(str::to_owned),
+        behaviors: b.behaviors().iter().map(|h| h.key().to_owned()).collect(),
+        answers_use: petramond_world::block::builtin_claims_click(b, false),
+        roots_on: b.roots_on().iter().map(|t| t.key()).collect(),
     })
 }
 
@@ -226,7 +217,6 @@ fn item_info_data(stack: &petramond_world::item::ItemStack) -> mod_api::ItemInfo
     let item = stack.item;
     mod_api::ItemInfoData {
         max_stack: item.max_stack_size(),
-        fuel_burn_ticks: item.fuel_burn_ticks() as u32,
         tags: item.tags().iter().map(|t| t.name().to_owned()).collect(),
         display_name: item.name().to_owned(),
         block: item.as_block().map(|b| mod_api::BlockId(b.id())),
@@ -248,35 +238,6 @@ fn item_info_data(stack: &petramond_world::item::ItemStack) -> mod_api::ItemInfo
                 })
                 .collect(),
         }),
-        item_use: item.item_use().map(|u| item_use_key(u).to_owned()),
-    }
-}
-
-fn material_name(m: petramond_world::block::BlockMaterial) -> &'static str {
-    use petramond_world::block::BlockMaterial;
-    match m {
-        BlockMaterial::None => "none",
-        BlockMaterial::Dirt => "dirt",
-        BlockMaterial::Sand => "sand",
-        BlockMaterial::Snow => "snow",
-        BlockMaterial::Stone => "stone",
-        BlockMaterial::Ore => "ore",
-        BlockMaterial::Wood => "wood",
-        BlockMaterial::Wool => "wool",
-        BlockMaterial::Foliage => "foliage",
-        BlockMaterial::Plant => "plant",
-        BlockMaterial::Glass => "glass",
-        BlockMaterial::Ice => "ice",
-        BlockMaterial::Other => "other",
-    }
-}
-
-fn item_use_key(u: petramond_world::item::ItemUse) -> &'static str {
-    use petramond_world::item::ItemUse;
-    match u {
-        ItemUse::BucketFill { .. } => "bucket_fill",
-        ItemUse::BucketPour { .. } => "bucket_pour",
-        ItemUse::Shear => "shear",
     }
 }
 

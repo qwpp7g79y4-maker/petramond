@@ -376,6 +376,7 @@ fn an_overspending_mod_is_throttled_then_resumes_and_is_never_disabled() {
 
     let tick = mod_api::GuestCall::TickSystem { id: 7 };
     let click = mod_api::GuestCall::GuiClick {
+        player: mod_api::PlayerId(0),
         kind_key: "throttle:panel".into(),
         widget_id: "go".into(),
         at: None,
@@ -591,29 +592,29 @@ fn dressing_calls(pos: petramond_math::math::IVec3, parts: u32, tint: [u8; 3]) -
     let pos = [pos.x, pos.y, pos.z];
     vec![
         HostCall::from(calls::SetModelParts {
-            pos,
-            parts,
-            tint: Some(tint),
+            sets: vec![(pos, parts, Some(tint))],
         }),
-        HostCall::from(calls::SetBlockDraw {
-            pos,
-            prims: vec![
-                mod_api::DrawPrim::Cuboid {
-                    min: [0.2, 0.0, 0.2],
-                    max: [0.8, 0.5, 0.8],
-                    tile: "stone".into(),
-                    tint: [255, 0, 0],
-                    emissive: true,
-                },
-                mod_api::DrawPrim::Item {
-                    at: [0.5, 0.6, 0.5],
-                    scale: 0.4,
-                    yaw: 0.0,
-                    pitch: 0.0,
-                    item,
-                    tint: [255, 255, 255],
-                },
-            ],
+        HostCall::from(calls::SetBlockDraws {
+            sets: vec![(
+                pos,
+                vec![
+                    mod_api::DrawPrim::Cuboid {
+                        min: [0.2, 0.0, 0.2],
+                        max: [0.8, 0.5, 0.8],
+                        tile: "stone".into(),
+                        tint: [255, 0, 0],
+                        emissive: true,
+                    },
+                    mod_api::DrawPrim::Item {
+                        at: [0.5, 0.6, 0.5],
+                        scale: 0.4,
+                        yaw: 0.0,
+                        pitch: 0.0,
+                        item,
+                        tint: [255, 255, 255],
+                    },
+                ],
+            )],
         }),
     ]
 }
@@ -733,7 +734,7 @@ fn a_projectile_hit_handler_rewrites_the_fate_through_the_abi() {
         payload: Some(EventPayload::ProjectileHit {
             entity: 9,
             item: mod_api::ItemId(1),
-            target: ProjectileTarget::Mob(7),
+            target: ProjectileTarget::Body(mod_api::EntityRef::Entity(7)),
             pos: [0.0; 3],
             vel: [0.0; 3],
             fate: ProjectileFate::Deflect {
@@ -753,7 +754,7 @@ fn a_projectile_hit_handler_rewrites_the_fate_through_the_abi() {
         entity: 9,
         item: petramond_world::item::ItemType::Dirt,
         owner: None,
-        target: ImpactTarget::Mob(7),
+        target: ImpactTarget::Body(crate::mob::EntityRef::Entity(7)),
         pos: WorldPos::ZERO,
         vel: Vec3::ZERO,
         fate: Fate::Lodge,
@@ -811,6 +812,7 @@ fn gui_click_inventory_and_navigation_use_the_acting_session() {
                 data: Some(Vec::new()),
             }),
             HostCall::from(calls::GuiOpen {
+                player: mod_api::PlayerId(player_id.0),
                 kind_key: "hostile:second".into(),
                 at: Some(mod_api::ContainerAddress::Block(anchor.to_array())),
             }),

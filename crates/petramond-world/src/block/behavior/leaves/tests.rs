@@ -45,7 +45,7 @@ fn a_decaying_leaf_breaks_naturally_so_its_drop_can_roll() {
     assert!(
         breaks
             .iter()
-            .any(|&(bp, b)| bp == p && b == Block::OakLeaves),
+            .any(|&(bp, b, _)| bp == p && b == Block::OakLeaves),
         "a decayed leaf is recorded as a natural break so its sapling drop rolls",
     );
 }

@@ -38,10 +38,9 @@ use mod_sdk::*;
 
 use furnace::ForgingFurnace;
 
-const TICK_SYSTEM: u32 = 1;
-const ANVIL_TICK_SYSTEM: u32 = 2;
-const ON_BLOCK_PLACED: u32 = 1;
-const ON_CONTAINER_OPENED: u32 = 2;
+const FURNACE_HOOK: u32 = 1;
+const ANVIL_HOOK: u32 = 2;
+const ON_BLOCK_BROKEN: u32 = 1;
 const ON_BLOCK_BREAK: u32 = 4;
 const ON_MOB_DAMAGED: u32 = 5;
 const ON_PLAYER_DAMAGE: u32 = 6;
@@ -89,10 +88,13 @@ impl Mod for Forge {
         if !furnace_ok && !anvil_ok {
             return;
         }
-        register_event_handler(EventKind::BlockPlaced, 0, ON_BLOCK_PLACED);
-        register_event_handler(EventKind::ContainerOpened, 0, ON_CONTAINER_OPENED);
-        register_tick_system(Stage::WorldScheduled, AttachSide::After, 0, TICK_SYSTEM);
-        register_tick_system(Stage::Menu, AttachSide::After, 0, ANVIL_TICK_SYSTEM);
+        if furnace_ok {
+            register_block_behavior(keys::FURNACE_BEHAVIOR, FURNACE_HOOK);
+        }
+        if anvil_ok {
+            register_block_behavior(keys::ANVIL_BEHAVIOR, ANVIL_HOOK);
+        }
+        register_event_handler(EventKind::BlockBroken, 0, ON_BLOCK_BROKEN);
     }
 
     fn handle_event(&mut self, handler_id: u32, payload: &mut EventPayload) -> Outcome {
@@ -123,71 +125,83 @@ impl Mod for Forge {
             ) => {
                 let spec = self.anvil.spec();
                 if !*killed {
-                    spec.inflict_held(*id, EntityRef::Mob(*mob_id));
+                    spec.inflict_held(*id, EntityRef::Entity(*mob_id));
                 }
                 spec.wear_held(*id, anvil::WearOn::Hit, None);
             }
             (
                 ON_PLAYER_DAMAGE,
                 EventPayload::PlayerDamagePre {
+                    player: victim,
                     amount,
                     source: DamageSource::PlayerAttack { id },
                     ..
                 },
             ) if *amount > 0 => {
-                if let Some(victim) = player_state().id {
-                    let spec = self.anvil.spec();
-                    spec.inflict_held(*id, EntityRef::Player(victim));
-                    spec.wear_held(*id, anvil::WearOn::Hit, None);
-                }
+                let spec = self.anvil.spec();
+                spec.inflict_held(*id, EntityRef::Player(*victim));
+                spec.wear_held(*id, anvil::WearOn::Hit, None);
             }
-            (ON_BLOCK_PLACED, EventPayload::BlockPlaced { pos, block }) => {
-                self.furnace.on_placed(*pos, *block);
-                self.anvil.on_placed(*pos, *block);
-            }
-            (ON_CONTAINER_OPENED, EventPayload::ContainerOpened { kind, at }) => {
-                self.furnace.on_container_opened(kind, *at);
-                self.anvil.on_container_opened(kind, *at);
+            (
+                ON_BLOCK_BROKEN,
+                EventPayload::BlockBroken {
+                    pos,
+                    block,
+                    group,
+                    data,
+                    ..
+                },
+            ) => {
+                self.furnace.on_broken(*pos, *block, group.as_ref(), data);
+                self.anvil.on_broken(*pos, *block, group.as_ref(), data);
             }
             _ => {}
         }
         Outcome::Continue
     }
 
-    fn gui_click(&mut self, kind_key: &str, widget_id: &str, at: Option<ContainerAddress>) {
+    fn gui_click(
+        &mut self,
+        player: PlayerId,
+        kind_key: &str,
+        widget_id: &str,
+        at: Option<ContainerAddress>,
+    ) {
         let Some(ContainerAddress::Block(pos)) = at else {
             return;
         };
         if kind_key == keys::FURNACE_GUI && widget_id == keys::WIDGET_LEVER {
             self.furnace.spec().pull_lever(pos, &mut self.caches);
+            self.furnace.wake(pos);
         }
         if kind_key == keys::FURNACE_GUI && widget_id == keys::WIDGET_FITTINGS {
-            gui_open(keys::FITTINGS_GUI, Some(pos));
+            gui_open(player, keys::FITTINGS_GUI, Some(pos));
         }
         if kind_key == keys::FITTINGS_GUI {
             if widget_id == keys::WIDGET_BACK {
-                gui_open(keys::FURNACE_GUI, Some(pos));
+                gui_open(player, keys::FURNACE_GUI, Some(pos));
             }
             if let Some(index) = keys::fittings::TABLE
                 .iter()
                 .position(|fitting| fitting.widget == widget_id)
             {
                 if self.furnace.is_present(pos) {
-                    self.furnace.spec().fittings.buy(pos, index);
+                    self.furnace.spec().fittings.buy(player, pos, index);
+                    self.furnace.wake(pos);
                 }
             }
         }
         if kind_key == keys::ANVIL_GUI && widget_id == keys::WIDGET_AUGMENT {
             self.anvil.spec_mut().request_apply(pos);
+            self.anvil.wake(pos);
         }
     }
 
-    fn tick_system(&mut self, system_id: u32) {
-        if system_id == TICK_SYSTEM {
-            self.furnace.tick(&mut self.caches);
-        }
-        if system_id == ANVIL_TICK_SYSTEM {
-            self.anvil.tick(&mut self.caches);
+    fn block_hooks(&mut self, callback_id: u32, hooks: &[(BlockHookKind, [i32; 3])]) {
+        match callback_id {
+            FURNACE_HOOK => self.furnace.on_hooks(&mut self.caches, hooks),
+            ANVIL_HOOK => self.anvil.on_hooks(&mut self.caches, hooks),
+            _ => {}
         }
     }
 

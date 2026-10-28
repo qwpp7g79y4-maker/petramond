@@ -36,54 +36,87 @@ pub(super) struct NodeSpec {
     pub default_priority: u8,
 }
 
-pub(super) fn node_spec(name: &str) -> Option<NodeSpec> {
-    Some(match name {
-        "wander" => NodeSpec {
+/// The engine's own nodes, by the name brain rows use. The world crate's admission check
+/// (`petramond_world::ai_vocab::ENGINE_AI_NODE_NAMES`) must name exactly these.
+const ENGINE_NODES: &[(&str, NodeSpec)] = &[
+    (
+        "wander",
+        NodeSpec {
             factory: wander_node,
             default_priority: PRIORITY_WANDER,
         },
-        "head_look" => NodeSpec {
+    ),
+    (
+        "head_look",
+        NodeSpec {
             factory: head_look_node,
             default_priority: PRIORITY_EXPRESSION,
         },
-        "idle_anim" => NodeSpec {
+    ),
+    (
+        "idle_anim",
+        NodeSpec {
             factory: idle_anim_node,
             default_priority: PRIORITY_EXPRESSION,
         },
-        "chase_player" => NodeSpec {
+    ),
+    (
+        "chase_player",
+        NodeSpec {
             factory: chase_player_node,
             default_priority: PRIORITY_CHASE,
         },
-        "chase_sound" => NodeSpec {
+    ),
+    (
+        "chase_sound",
+        NodeSpec {
             factory: chase_sound_node,
             default_priority: PRIORITY_CHASE,
         },
-        "chase_contact" => NodeSpec {
+    ),
+    (
+        "chase_contact",
+        NodeSpec {
             factory: chase_contact_node,
             default_priority: PRIORITY_CONTACT,
         },
-        "panic" => NodeSpec {
+    ),
+    (
+        "panic",
+        NodeSpec {
             factory: panic_node,
             default_priority: PRIORITY_DAMAGE_RESPONSE,
         },
-        "retaliate" => NodeSpec {
+    ),
+    (
+        "retaliate",
+        NodeSpec {
             factory: retaliate_node,
             default_priority: PRIORITY_DAMAGE_RESPONSE,
         },
-        "melee_attack" => NodeSpec {
+    ),
+    (
+        "melee_attack",
+        NodeSpec {
             factory: melee_attack_node,
             default_priority: PRIORITY_ATTACK,
         },
-        _ if petramond_world::registry::namespace(name)
-            .is_some_and(|ns| ns != petramond_world::registry::ENGINE_NAMESPACE) =>
-        {
-            NodeSpec {
-                factory: wasm_node,
-                default_priority: PRIORITY_WANDER,
-            }
-        }
-        _ => return None,
-    })
+    ),
+];
+
+pub(super) fn node_spec(name: &str) -> Option<NodeSpec> {
+    if let Some((_, spec)) = ENGINE_NODES.iter().find(|(n, _)| *n == name) {
+        return Some(NodeSpec {
+            factory: spec.factory,
+            default_priority: spec.default_priority,
+        });
+    }
+    petramond_world::registry::namespace(name)
+        .is_some_and(|ns| ns != petramond_world::registry::ENGINE_NAMESPACE)
+        .then_some(NodeSpec {
+            factory: wasm_node,
+            default_priority: PRIORITY_WANDER,
+        })
 }
 
 fn wander_node(
@@ -217,4 +250,16 @@ fn wasm_node(
 ) -> Result<Box<dyn AiBehavior>, String> {
     no_params(params)?;
     Ok(Box::new(wasm::WasmNodeAi::new(node, inputs)))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn the_admission_vocabulary_names_exactly_the_engine_nodes() {
+        let mut engine: Vec<&str> = super::ENGINE_NODES.iter().map(|(n, _)| *n).collect();
+        let mut admitted = petramond_world::ai_vocab::ENGINE_AI_NODE_NAMES.to_vec();
+        engine.sort_unstable();
+        admitted.sort_unstable();
+        assert_eq!(engine, admitted);
+    }
 }

@@ -82,22 +82,6 @@ pub(super) fn public_write_key_guard(mod_id: &str, key: &str) -> Option<HostRet>
     None
 }
 
-pub(super) fn actor_for(
-    ctx: &SimCtx<'_>,
-    call: &str,
-    twin: &str,
-) -> Result<crate::player::PlayerId, HostRet> {
-    ctx.actor.ok_or_else(|| {
-        HostRet::error(
-            ErrorCode::NoActor,
-            format!(
-                "{call} addresses the acting player, and this dispatch (a tick system, block \
-                 hook, spawn pick, mod_init or mob action) has none; name the player with {twin}"
-            ),
-        )
-    })
-}
-
 fn read_only_refusal() -> HostRet {
     HostRet::error(
         ErrorCode::ReadOnly,

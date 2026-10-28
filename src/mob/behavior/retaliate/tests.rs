@@ -97,13 +97,13 @@ fn a_fresh_grudge_chases_the_attacker_and_ages_out() {
         tags: Default::default(),
     };
     let mobs = MobSnapshot::from_mobs([biter]);
-    let grudge = Some((EntityRef::Mob(9), 0));
+    let grudge = Some((EntityRef::Entity(9), 0));
 
     let out = ai.tick(&mut ctx(&world, &mut rng, mob, &[], &mobs, grudge));
-    assert_eq!(out.target, Some(EntityRef::Mob(9)));
+    assert_eq!(out.target, Some(EntityRef::Entity(9)));
     assert!(out.goal.is_some(), "the grudge chases the biter");
 
-    let stale = Some((EntityRef::Mob(9), 201));
+    let stale = Some((EntityRef::Entity(9), 201));
     let out = ai.tick(&mut ctx(&world, &mut rng, mob, &[], &mobs, stale));
     assert_eq!(out.target, None, "an aged-out grudge is forgotten");
 }
@@ -121,7 +121,7 @@ fn a_dead_or_absent_attacker_ends_the_grudge() {
         active: false,
         tags: Default::default(),
     }]);
-    let grudge = Some((EntityRef::Mob(9), 0));
+    let grudge = Some((EntityRef::Entity(9), 0));
     let out = ai.tick(&mut ctx(&world, &mut rng, mob, &[], &corpse, grudge));
     assert_eq!(out.target, None, "no vengeance on a corpse");
 
@@ -153,7 +153,7 @@ fn the_warmup_delays_the_counter_and_rehits_cannot_rewind_it() {
 
     for tick in 0..20u32 {
         let age = if tick < 10 { tick } else { tick - 10 };
-        let grudge = Some((EntityRef::Mob(9), age));
+        let grudge = Some((EntityRef::Entity(9), age));
         let out = ai.tick(&mut ctx(&world, &mut rng, mob, &[], &biter, grudge));
         assert_eq!(out.target, None, "still warming up at tick {tick}");
     }
@@ -163,11 +163,11 @@ fn the_warmup_delays_the_counter_and_rehits_cannot_rewind_it() {
         mob,
         &[],
         &biter,
-        Some((EntityRef::Mob(9), 11)),
+        Some((EntityRef::Entity(9), 11)),
     ));
     assert_eq!(
         out.target,
-        Some(EntityRef::Mob(9)),
+        Some(EntityRef::Entity(9)),
         "the warmup elapsed exactly once despite the re-hit"
     );
 
@@ -220,16 +220,16 @@ fn same_species_filter_releases_retaliation_but_keeps_other_attackers() {
         pos,
         &[],
         &mobs,
-        Some((EntityRef::Mob(10), 0)),
+        Some((EntityRef::Entity(10), 0)),
     ));
-    assert_eq!(out.target, Some(EntityRef::Mob(10)));
+    assert_eq!(out.target, Some(EntityRef::Entity(10)));
     let out = ai.tick(&mut ctx(
         &world,
         &mut rng,
         pos,
         &[],
         &mobs,
-        Some((EntityRef::Mob(9), 0)),
+        Some((EntityRef::Entity(9), 0)),
     ));
     assert_eq!(
         out,

@@ -43,7 +43,7 @@ fn actor() -> PlayerSnapshot {
         held: Some(row().id),
         off_held: None,
         held_count: 1,
-        pose_anchor: None,
+        attached: None,
         swing: Default::default(),
         half_width: 0.3,
         height: 1.8,
@@ -106,9 +106,9 @@ fn charge_changes_range_and_damage_and_the_curve_returns_through_the_launch_site
         .last()
         .unwrap();
     assert!(weak_turn[0] > 0.0, "a short charge turns earlier");
-    assert!(weak.strike(EntityRef::Mob(5)));
+    assert!(weak.strike(EntityRef::Entity(5)));
     assert!(
-        !weak.strike(EntityRef::Mob(5)),
+        !weak.strike(EntityRef::Entity(5)),
         "one hit per body across both legs"
     );
 }
@@ -134,9 +134,9 @@ fn an_uncaught_boomerang_drops_sixty_ticks_after_its_expected_catch() {
             }));
             let live = item.clone();
             let _host = testing::install_host(move |call| match call {
-                HostCall::Entity(EntityCall::ItemEntity { entity }) => {
-                    assert_eq!(*entity, 42);
-                    HostRet::ItemEntity(Some(Box::new(live.borrow().clone())))
+                HostCall::Entity(EntityCall::EntityInfo { entities }) => {
+                    assert_eq!(entities, &[42]);
+                    HostRet::EntityInfos(vec![Some(EntityData::Item(live.borrow().clone()))])
                 }
                 HostCall::ItemMotion(ItemMotionCall::SteerItem { entity, vel }) => {
                     assert_eq!(*entity, 42);
@@ -203,20 +203,21 @@ fn release_spends_the_held_variant_once_and_changing_items_cancels_the_charge() 
     let calls = seen.clone();
     let _host = testing::install_host(move |call| match call {
         HostCall::Player(PlayerCall::PlayerHeld { .. }) => HostRet::HeldStack(Some(stack.clone())),
-        HostCall::Player(PlayerCall::ConsumeHeldBy { item, count, .. }) => {
+        HostCall::Player(PlayerCall::ConsumeHeld { item, count, .. }) => {
             assert_eq!(*item, row().id);
             assert_eq!(*count, 1);
             calls.borrow_mut().0 += 1;
             HostRet::Bool(true)
         }
-        HostCall::Entity(EntityCall::LaunchItem { data, .. }) => {
+        HostCall::Entity(EntityCall::SpawnItem { data, vel, .. }) => {
+            assert!(vel.is_some(), "a throw flies");
             assert_eq!(data, &stack.data);
             calls.borrow_mut().1 += 1;
-            HostRet::U64(42)
+            HostRet::Ids(vec![42])
         }
         HostCall::ItemMotion(ItemMotionCall::SteerItem { .. }) => HostRet::Bool(true),
         HostCall::Block(BlockCall::Raycast { .. }) => HostRet::Raycast(None),
-        HostCall::Entity(EntityCall::MobsInRadius { .. }) => HostRet::Mobs(vec![]),
+        HostCall::Entity(EntityCall::EntitiesInRadius { .. }) => HostRet::Entities(vec![]),
         HostCall::Player(PlayerCall::Players) => HostRet::Players(vec![]),
         _ => panic!("unexpected {call:?}"),
     });
@@ -267,10 +268,10 @@ fn terrain_drops_both_legs_and_a_catch_restores_the_stack_once() {
     let gifts = caught.clone();
     let taken = stack.clone();
     let _host = testing::install_host(move |call| match call {
-        HostCall::ItemMotion(ItemMotionCall::TakeItemEntity { .. }) => {
-            HostRet::ItemStack(Some(taken.clone()))
-        }
-        HostCall::Player(PlayerCall::GiveItemTo {
+        HostCall::Entity(EntityCall::DespawnEntity { .. }) => HostRet::Despawned(Some(Despawned {
+            stack: Some(taken.clone()),
+        })),
+        HostCall::Player(PlayerCall::GiveItem {
             item, count, data, ..
         }) => {
             assert_eq!(item, &taken.item);
@@ -305,7 +306,7 @@ fn terrain_drops_both_legs_and_a_catch_restores_the_stack_once() {
         Flight::new(PlayerId(0), row(), [0.0, 0.0, 1.0], [0.0, 1.26, 0.0], 5),
     );
     let mut fate = ProjectileFate::Drop;
-    let target = ProjectileTarget::Player(PlayerId(0));
+    let target = ProjectileTarget::Body(EntityRef::Player(PlayerId(0)));
     assert!(boomerangs.on_hit(43, &target, [0.0; 3], [0.0; 3], &mut fate, |_, _| false));
     assert_eq!(fate, ProjectileFate::Consume);
     assert!(!boomerangs.on_hit(43, &target, [0.0; 3], [0.0; 3], &mut fate, |_, _| false));

@@ -120,8 +120,13 @@ fn shearing_a_sheep_yields_wool_once_until_the_coat_regrows() {
         .shear
         .expect("sheep are shearable");
 
+    let other = petramond_world::material::ToolKind::by_name("pickaxe").expect("engine kind");
+    assert!(
+        mobs.shear_mob(id_at(&mobs, 0), Some(other)).is_none(),
+        "only the row's tool kind takes the coat"
+    );
     let drop = mobs
-        .shear_mob(id_at(&mobs, 0))
+        .shear_mob(id_at(&mobs, 0), Some(spec.tool))
         .expect("a coated sheep shears");
     assert_eq!(drop.item, spec.drop);
     assert!(
@@ -131,7 +136,7 @@ fn shearing_a_sheep_yields_wool_once_until_the_coat_regrows() {
     );
     assert!(mobs.instances()[0].is_shorn());
     assert!(
-        mobs.shear_mob(id_at(&mobs, 0)).is_none(),
+        mobs.shear_mob(id_at(&mobs, 0), Some(spec.tool)).is_none(),
         "no double-shear while shorn"
     );
 
@@ -157,7 +162,7 @@ fn shearing_a_sheep_yields_wool_once_until_the_coat_regrows() {
         "the coat can't regrow before the min duration: {ticks}"
     );
     assert!(
-        mobs.shear_mob(id_at(&mobs, 0)).is_some(),
+        mobs.shear_mob(id_at(&mobs, 0), Some(spec.tool)).is_some(),
         "a regrown sheep can be shorn again"
     );
 }
@@ -240,8 +245,8 @@ fn the_push_pass_records_touch_contacts_both_ways() {
     let contacts: Vec<&[crate::mob::EntityRef]> =
         mobs.instances().iter().map(Instance::contacts).collect();
     assert!(
-        contacts[0].contains(&crate::mob::EntityRef::Mob(ids[1]))
-            && contacts[1].contains(&crate::mob::EntityRef::Mob(ids[0])),
+        contacts[0].contains(&crate::mob::EntityRef::Entity(ids[1]))
+            && contacts[1].contains(&crate::mob::EntityRef::Entity(ids[0])),
         "overlapping mobs record each other: {contacts:?}"
     );
     assert!(

@@ -1,15 +1,21 @@
-//! A tethered item's line back to whoever launched it (a fishing line): a
-//! hanging curve of thin cuboids on the block atlas, baked with the held items
-//! every frame from the launcher's posed held-item tip (or empty fist) to the item.
+//! A `DrawPrim::Line`: a hanging curve of thin cuboids on the block atlas, baked with the held
+//! items every frame so an end on a player meets their posed held-item tip (or empty fist).
 
 use glam::{Mat4, Vec3};
 use petramond_math::face::Face;
-use petramond_world::item::TetherStyle;
 
 use crate::item_cube::push_cell_local_face;
 use crate::lighting::DynLight;
 
 const SEGMENTS: usize = 20;
+
+/// What a line wears: an atlas tile (once a block along it), a tint and a thickness in texels.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct LineStyle {
+    pub tile: petramond_world::tile::Tile,
+    pub tint: [u8; 3],
+    pub width: f32,
+}
 /// How far the middle hangs, per block of horizontal span, and at most.
 const SAG_PER_BLOCK: f32 = 0.06;
 const SAG_MAX: f32 = 1.2;
@@ -38,7 +44,7 @@ pub(crate) fn push(
     indices: &mut Vec<u32>,
     from: Vec3,
     to: Vec3,
-    style: TetherStyle,
+    style: LineStyle,
     light: DynLight,
     near: Option<NearEye>,
 ) {
@@ -126,7 +132,7 @@ impl Bar {
         &self,
         verts: &mut Vec<petramond_mesh::Vertex>,
         indices: &mut Vec<u32>,
-        style: TetherStyle,
+        style: LineStyle,
         light: DynLight,
         [u0, u1]: [f32; 2],
         [first, last]: [bool; 2],

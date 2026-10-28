@@ -7,7 +7,7 @@
     "airborne": 0,
     "swim": 0,
     "seated": 0,
-    "sleeping": 0,
+    "lying": 0,
     "pitch": 0,
     "hurt": 0,
     "main.held": 0,
@@ -50,7 +50,7 @@
     {"id": "off_jab_claim", "on": ["off.place", "off.interact"], "when": "!off.jab_claim"}
   ],
   "layers": [
-    {"name": "carry", "mode": "additive", "weight": "smooth(main.held && main.kind != \"block\" && !sleeping && swim < 0.5, 0.15)", "clip": "petramond:body_carry"},
+    {"name": "carry", "mode": "additive", "weight": "smooth(main.held && main.kind != \"block\" && !lying && swim < 0.5, 0.15)", "clip": "petramond:body_carry"},
     {"name": "main_action", "mask": "main", "slot": "main"},
     {"name": "off_action", "mask": "off", "slot": "off"},
     {"name": "main_claim", "mask": "claim", "slot": "main_claim"},
@@ -58,7 +58,7 @@
     {"name": "hurt", "mode": "additive", "slot": "hurt"}
   ],
   "rules": [
-    {"id": "main_equip", "on": "main.equip", "when": "!sleeping", "slot": "main", "play": "petramond:body_equip", "fade_in": 0.05, "fade_out": 0.1},
+    {"id": "main_equip", "on": "main.equip", "when": "!lying", "slot": "main", "play": "petramond:body_equip", "fade_in": 0.05, "fade_out": 0.1},
     {"id": "main_mine_tool", "on": "main.mine", "slot": "main", "priority": 2, "play": "petramond:body_mine_start_{main.tool}", "then": [{"clip": "petramond:body_mine_{main.tool}", "while": "main.mining", "exit": "finish"}, "petramond:body_mine_end_{main.tool}"], "fade_in": 0.06, "fade_out": 0.14},
     {"id": "main_mine_hand", "on": "main.mine", "slot": "main", "priority": 2, "play": "petramond:body_mine_start_hand", "then": [{"clip": "petramond:body_mine_hand", "while": "main.mining", "exit": "finish"}, "petramond:body_mine_end_hand"], "fade_in": 0.06, "fade_out": 0.14},
     {"id": "main_swing_sword", "on": "main.swing", "when": "!main.mining && main.tool == \"sword\"", "slot": "main", "priority": 2, "play": ["petramond:body_slash_a", "petramond:body_slash_b"], "reset": 0.9, "fade_in": 0.04, "fade_out": 0.14},
@@ -71,7 +71,7 @@
     {"id": "main_interact", "on": "main.interact", "slot": "main", "priority": 1, "play": "petramond:body_place", "fade_in": 0.03, "fade_out": 0.12},
     {"id": "main_throw", "on": "main.throw", "slot": "main", "priority": 1, "play": "petramond:body_place", "fade_in": 0.03, "fade_out": 0.12},
     {"id": "main_eat", "on": "main.eat", "slot": "main", "priority": 1, "play": "petramond:body_eat_raise", "then": [{"clip": "petramond:body_eat_chew", "while": "main.eating"}, "petramond:body_eat_lower"], "fade_in": 0.08, "fade_out": 0.14},
-    {"id": "off_equip", "on": "off.equip", "when": "!sleeping", "slot": "off", "play": "petramond:body_equip", "mirror": 1, "fade_in": 0.05, "fade_out": 0.1},
+    {"id": "off_equip", "on": "off.equip", "when": "!lying", "slot": "off", "play": "petramond:body_equip", "mirror": 1, "fade_in": 0.05, "fade_out": 0.1},
     {"id": "off_place", "on": "off.place", "slot": "off", "priority": 1, "play": "petramond:body_place", "mirror": 1, "fade_in": 0.03, "fade_out": 0.12},
     {"id": "off_interact", "on": "off.interact", "slot": "off", "priority": 1, "play": "petramond:body_place", "mirror": 1, "fade_in": 0.03, "fade_out": 0.12},
     {"id": "off_eat", "on": "off.eat", "slot": "off", "priority": 1, "mirror": 1, "play": "petramond:body_eat_raise", "then": [{"clip": "petramond:body_eat_chew", "while": "off.eating"}, "petramond:body_eat_lower"], "fade_in": 0.08, "fade_out": 0.14},

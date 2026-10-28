@@ -1,5 +1,5 @@
 use crate::data::EntityRef;
-use crate::ids::{MobId, PlayerId};
+use crate::ids::PlayerId;
 use crate::legality::prelude::*;
 
 host_domain! {
@@ -15,37 +15,59 @@ host_domain! {
             yaw: f32,
             checked: bool,
         } => legal(SERVER, Sim, Write),
-        MobsInRadius {
+        /// The entities `filter` takes within `radius` of `pos`, nearest first (then by id), at
+        /// most `limit` of them. → [`HostRet::Entities`](crate::HostRet::Entities).
+        EntitiesInRadius {
             pos: [f64; 3],
             radius: f32,
+            filter: crate::EntityFilter,
+            limit: u32,
         } => legal(SERVER, Sim, Read),
-        DamageMob {
-            mob_id: u64,
+        /// Hurts a player or mob through its whole damage path (pre events, immunity, armour,
+        /// feedback), knocked away from `origin` when there is one. A player takes `amount`
+        /// rounded to whole points.
+        Damage {
+            target: EntityRef,
             amount: f32,
             origin: Option<[f64; 3]>,
-            feedback: Option<crate::events::MobDamageFeedback>,
             attacker: Option<EntityRef>,
         } => legal(SERVER, Sim, Write),
-        DespawnMob {
-            mob_id: u64,
+        /// Removes a live entity. An item entity hands back its whole stack, exactly once.
+        /// → [`HostRet::Despawned`](crate::HostRet::Despawned), `None` = no such entity.
+        DespawnEntity {
+            entity: u64,
         } => legal(SERVER, Sim, Write),
+        /// Spawns `count` of `item` at `pos`, split into stacks. Without `vel` they drop loose;
+        /// with it the one stack flies (`count` up to a stack) from `owner`, striking what it
+        /// meets. → [`HostRet::Ids`](crate::HostRet::Ids), empty when nothing spawned.
         SpawnItem {
             item: String,
             count: u8,
             pos: [f64; 3],
             data: Vec<(String, Vec<u8>)>,
+            vel: Option<[f32; 3]>,
+            owner: Option<EntityRef>,
+        } => legal(SERVER, Sim, Write),
+        /// Velocity added to each body: a player, a mob or a loose or flying item entity.
+        /// → [`HostRet::Bools`](crate::HostRet::Bools), one per entry (`false` = absent or held).
+        EntityImpulses {
+            impulses: Vec<(EntityRef, [f32; 3])>,
         } => legal(SERVER, Sim, Write),
         MobEmitterSet {
             mob_id: u64,
             key: String,
             active: bool,
         } => legal(SERVER, Sim, Write),
-        MobMount {
-            mob_id: u64,
+        /// Pins `player_id`'s body to `to` in `posture` until a release: sneak, death, spectator,
+        /// leaving, the seat's entity going, or [`Detach`](crate::calls::Detach). `false` when
+        /// the player is already attached, or the seat or point is taken or does not exist.
+        Attach {
             player_id: PlayerId,
-            seat: u8,
+            to: crate::AttachTo,
+            posture: crate::Posture,
         } => legal(SERVER, Sim, Write),
-        MobDismount {
+        /// Releases `player_id`, set down beside where it was pinned. `false` when not attached.
+        Detach {
             player_id: PlayerId,
         } => legal(SERVER, Sim, Write),
         MobRiders {
@@ -79,35 +101,18 @@ host_domain! {
             mob_id: u64,
             anim: String,
         } => legal(SERVER, Sim, Read),
-        MobInfo {
-            mob_id: u64,
+        /// Each entity's snapshot, `None` where none lives.
+        /// → [`HostRet::EntityInfos`](crate::HostRet::EntityInfos).
+        EntityInfo {
+            entities: Vec<u64>,
         } => legal(SERVER, Sim, Read),
         MobCanReach {
             mob_id: u64,
             cell: [i32; 3],
         } => legal(SERVER, Sim, Read),
-        PlayerPoseSet {
-            player_id: PlayerId,
-            anchor: [f64; 3],
-            yaw: f32,
-            pose: u8,
-        } => legal(SERVER, Sim, Write),
-        BlockModelGroup {
-            pos: [i32; 3],
-        } => legal(SERVER, Sim, Read),
         SiteOpen {
             key: String,
             cell: [i32; 3],
-        } => legal(SERVER, Sim, Read),
-        LaunchItem {
-            item: String,
-            pos: [f64; 3],
-            vel: [f32; 3],
-            owner: Option<EntityRef>,
-            data: Vec<(String, Vec<u8>)>,
-        } => legal(SERVER, Sim, Write),
-        ItemEntity {
-            entity: u64,
         } => legal(SERVER, Sim, Read),
         /// Puts the live mob `mob_id` exactly where you say for this tick. With [`MobDrive`] you
         /// give a velocity and physics lands the body; here you give the landed pose, for things on
@@ -146,11 +151,6 @@ host_domain! {
             key: String,
             cells: Vec<[i32; 3]>,
         } => legal(SERVER, Sim, Read),
-        MobHeldDisplay {
-            mob_id: u64,
-            main: Option<String>,
-            off: Option<String>,
-        } => legal(SERVER, Sim, Write),
         WalkRegion {
             key: String,
             from: [i32; 3],
@@ -160,8 +160,10 @@ host_domain! {
             toward: bool,
             max_nodes: u32,
         } => legal(SERVER, Sim, Read),
-        SetMobDraw {
-            mob_id: u64,
+        /// Draws a live entity as `prims` about its position (`World` stays upright; `Body`
+        /// turns with it); for an item entity in place of its own art. An empty list restores it.
+        SetEntityDraw {
+            entity: u64,
             frame: crate::DrawFrame,
             prims: Vec<crate::DrawPrim>,
         } => legal(SERVER, Sim, Write),
@@ -176,13 +178,6 @@ host_domain! {
         } => legal(SERVER, Sim, Write),
         MobRidersMany {
             mob_ids: Vec<u64>,
-        } => legal(SERVER, Sim, Read),
-        /// [`EntityCall::MobsInRadius`] for the species `kinds` only: the snapshots of the live
-        /// mobs of those kinds within `radius` of `pos`.
-        MobsInRadiusOf {
-            pos: [f64; 3],
-            radius: f32,
-            kinds: Vec<MobId>,
         } => legal(SERVER, Sim, Read),
         /// Checks short straight walking displacements from a mob's current feet position.
         /// Collision, step-up, unloaded terrain and drops beyond `max_drop` refuse a leg.

@@ -1,49 +1,13 @@
-use crate::data::{EntityRef, PlayerAttribute};
+use crate::data::PlayerAttribute;
 use crate::ids::{ItemId, PlayerId};
 use crate::legality::prelude::*;
 
 host_domain! {
     PlayerCall {
-        DamagePlayer {
-            player: PlayerId,
-            amount: i32,
-            origin: Option<[f64; 3]>,
-            attacker: Option<EntityRef>,
-        } => legal(SERVER, Sim, Write),
-        ApplyKnockback {
-            impulse: [f32; 3],
-        } => legal(SERVER, Sim, Write),
-        GiveItem {
-            item: String,
-            count: u8,
-            data: Vec<(String, Vec<u8>)>,
-        } => legal(SERVER, Sim, Write),
-        SetHealth {
-            value: i32,
-        } => legal(SERVER, Sim, Write),
-        Teleport {
-            pos: [f64; 3],
-        } => legal(SERVER, Sim, Write),
         ChatSend {
             text: String,
             targets: Option<Vec<PlayerId>>,
         } => legal(SERVER, Sim, Write),
-        EffectApply {
-            key: String,
-            ticks: u32,
-        } => legal(SERVER, Sim, Write),
-        EffectsActive => legal(SERVER, Sim, Read),
-        ConsumeHeld {
-            item: ItemId,
-            count: u32,
-        } => legal(SERVER, Sim, Write),
-        ReplaceHeldOne {
-            item: ItemId,
-            replacement: String,
-        } => legal(SERVER, Sim, Write),
-        PlayerInput {
-            player_id: PlayerId,
-        } => legal(SERVER, Sim, Read),
         Players => legal(SERVER, Sim, Read),
         UnlockRecipe {
             player: PlayerId,
@@ -56,7 +20,7 @@ host_domain! {
         PlayerHeld {
             player: PlayerId,
         } => legal(SERVER, Sim, Read),
-        GiveItemTo {
+        GiveItem {
             player: PlayerId,
             item: String,
             count: u8,
@@ -105,35 +69,28 @@ host_domain! {
         PlayerIdentity {
             player: PlayerId,
         } => legal(SERVER, Sim, Read),
-        PlayerStateOf {
-            player: PlayerId,
-        } => legal(SERVER, Sim, Read),
-        ApplyKnockbackTo {
-            player: PlayerId,
-            impulse: [f32; 3],
-        } => legal(SERVER, Sim, Write),
-        SetHealthOf {
+        SetHealth {
             player: PlayerId,
             value: i32,
         } => legal(SERVER, Sim, Write),
-        TeleportPlayer {
+        Teleport {
             player: PlayerId,
             pos: [f64; 3],
         } => legal(SERVER, Sim, Write),
-        EffectApplyTo {
+        EffectApply {
             player: PlayerId,
             key: String,
             ticks: u32,
         } => legal(SERVER, Sim, Write),
-        EffectsActiveOf {
+        EffectsActive {
             player: PlayerId,
         } => legal(SERVER, Sim, Read),
-        ConsumeHeldBy {
+        ConsumeHeld {
             player: PlayerId,
             item: ItemId,
             count: u32,
         } => legal(SERVER, Sim, Write),
-        ReplaceHeldOneBy {
+        ReplaceHeldOne {
             player: PlayerId,
             item: ItemId,
             replacement: String,

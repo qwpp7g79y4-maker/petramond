@@ -49,7 +49,7 @@ fn actor(held: Option<ItemId>, holds_use: bool) -> PlayerSnapshot {
         held,
         off_held: None,
         held_count: 1,
-        pose_anchor: None,
+        attached: None,
         swing: Default::default(),
         half_width: 0.3,
         height: 1.8,

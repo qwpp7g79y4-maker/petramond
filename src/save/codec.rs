@@ -19,6 +19,7 @@ mod kept;
 mod tests;
 mod v19;
 mod v20;
+mod v21;
 
 pub use item_slot::DiskSlot;
 pub use petramond_persist::bytecodec::{deflate, inflate, Reader};
@@ -34,7 +35,6 @@ use crate::mob::SavedMob;
 use petramond_world::block::ShapeState;
 use petramond_world::chunk::{SectionPos, SECTION_VOLUME};
 use petramond_world::container::Container;
-use petramond_world::furnace::Furnace;
 use petramond_world::section::{CellMap, Section};
 
 use super::entities::EntityRecord;
@@ -43,27 +43,27 @@ use super::mobs::DiskMob;
 use super::palette;
 use kept::{KeptBlock, KeptCells};
 
-const SECTION_REC_VERSION: u8 = 21;
+const SECTION_REC_VERSION: u8 = 22;
 
 pub(super) const SECTION: Format = Format::new(
     "section record",
     SECTION_REC_VERSION as u32,
-    &[v19::upgrade, v20::upgrade],
+    &[v19::upgrade, v20::upgrade, v21::upgrade],
 );
 
 const FLAG_HAS_FLUID: u8 = 0x01;
 const FLAG_HAS_ENTITIES: u8 = 0x02;
-const FLAG_HAS_FURNACES: u8 = 0x04;
 const FLAG_HAS_CELL_STATES: u8 = 0x08;
 const FLAG_HAS_MOBS: u8 = 0x20;
 const FLAG2_HAS_CELL_KV: u8 = 0x08;
 const FLAG2_HAS_CONTAINERS: u8 = 0x20;
 const FLAG3_HAS_SKYLIGHT: u8 = 0x02;
 const FLAG3_HAS_BLOCKLIGHT: u8 = 0x04;
+const FLAG3_HAS_TICKS: u8 = 0x08;
 const KNOWN_FLAGS: [u8; 3] = [
-    FLAG_HAS_FLUID | FLAG_HAS_ENTITIES | FLAG_HAS_FURNACES | FLAG_HAS_CELL_STATES | FLAG_HAS_MOBS,
+    FLAG_HAS_FLUID | FLAG_HAS_ENTITIES | FLAG_HAS_CELL_STATES | FLAG_HAS_MOBS,
     FLAG2_HAS_CELL_KV | FLAG2_HAS_CONTAINERS,
-    FLAG3_HAS_SKYLIGHT | FLAG3_HAS_BLOCKLIGHT,
+    FLAG3_HAS_SKYLIGHT | FLAG3_HAS_BLOCKLIGHT | FLAG3_HAS_TICKS,
 ];
 
 pub struct SectionSnapshot {
@@ -72,7 +72,6 @@ pub struct SectionSnapshot {
     pub blocks: petramond_world::section::BlockCube,
     pub fluid: Option<Arc<[u8]>>,
     pub entities: Vec<DroppedItem>,
-    pub furnaces: CellMap<Furnace>,
     pub containers: CellMap<Container>,
     pub cell_states: CellMap<ShapeState>,
     pub skylight: Option<Arc<[u8]>>,
@@ -80,6 +79,8 @@ pub struct SectionSnapshot {
     pub cell_kv: CellMap<BTreeMap<String, Vec<u8>>>,
     pub mobs: Vec<SavedMob>,
     pub kept: KeptContent,
+    /// Pending scheduled block ticks, as ticks left to wait.
+    pub ticks: CellMap<u64>,
 }
 
 impl SectionSnapshot {
@@ -90,7 +91,6 @@ impl SectionSnapshot {
             blocks: s.block_cube(),
             fluid: s.fluid_arc(),
             entities: Vec::new(),
-            furnaces: s.furnaces().clone(),
             containers: s.containers().clone(),
             cell_states: s.cell_states().clone(),
             skylight: (!s.light_dirty).then(|| s.skylight_arc()).flatten(),
@@ -98,6 +98,7 @@ impl SectionSnapshot {
             cell_kv: s.cell_kv().clone(),
             mobs: Vec::new(),
             kept: KeptContent::default(),
+            ticks: CellMap::new(),
         }
     }
 }
@@ -139,9 +140,6 @@ pub fn encode_snapshot(s: &SectionSnapshot, pal: &palette::Palette) -> Vec<u8> {
     if has_entities {
         flags |= FLAG_HAS_ENTITIES;
     }
-    if !s.furnaces.is_empty() {
-        flags |= FLAG_HAS_FURNACES;
-    }
     if !cell_states.is_empty() {
         flags |= FLAG_HAS_CELL_STATES;
     }
@@ -164,6 +162,9 @@ pub fn encode_snapshot(s: &SectionSnapshot, pal: &palette::Palette) -> Vec<u8> {
     if blocklight.is_some() {
         flags3 |= FLAG3_HAS_BLOCKLIGHT;
     }
+    if !s.ticks.is_empty() {
+        flags3 |= FLAG3_HAS_TICKS;
+    }
     put_u8(&mut payload, flags);
     put_u8(&mut payload, flags2);
     put_u8(&mut payload, flags3);
@@ -174,11 +175,6 @@ pub fn encode_snapshot(s: &SectionSnapshot, pal: &palette::Palette) -> Vec<u8> {
     if has_entities {
         put_framed(&mut payload, |buf| {
             super::entities::put_entities(buf, &s.entities, &s.kept.entities, pal)
-        });
-    }
-    if !s.furnaces.is_empty() {
-        put_framed(&mut payload, |buf| {
-            super::furnace::put_furnaces(buf, &s.furnaces)
         });
     }
     if !cell_states.is_empty() {
@@ -209,6 +205,11 @@ pub fn encode_snapshot(s: &SectionSnapshot, pal: &palette::Palette) -> Vec<u8> {
     if let Some(bl) = blocklight {
         put_framed(&mut payload, |buf| {
             buf.extend_from_slice(&petramond_world::light::to_le_bytes(bl))
+        });
+    }
+    if !s.ticks.is_empty() {
+        put_framed(&mut payload, |buf| {
+            put_indexed(buf, &s.ticks, 8, |buf, left| put_u64(buf, *left))
         });
     }
     deflate(&payload)
@@ -307,6 +308,7 @@ pub struct DecodedSection {
     pub entities: Vec<DroppedItem>,
     pub mobs: Vec<SavedMob>,
     pub kept: KeptContent,
+    pub ticks: CellMap<u64>,
 }
 
 pub fn decode_section(
@@ -406,10 +408,6 @@ fn decode_current(
         .payload(flags & FLAG_HAS_ENTITIES != 0, "entities")?
         .map(|f| f.decode(|r| super::entities::get_entities(r, pal)))
         .transpose()?;
-    let furnaces = frames
-        .payload(flags & FLAG_HAS_FURNACES != 0, "furnaces")?
-        .map(|f| f.decode(super::furnace::get_furnaces))
-        .transpose()?;
     let stored_states = frames
         .payload(flags & FLAG_HAS_CELL_STATES != 0, "cell states")?
         .map(|f| f.decode(cell_state::get_stored))
@@ -434,6 +432,10 @@ fn decode_current(
         .payload(flags3 & FLAG3_HAS_BLOCKLIGHT != 0, "block light")?
         .map(|f| f.decode(|r| petramond_world::light::from_le_bytes(r.bytes(SECTION_VOLUME * 2)?)))
         .transpose()?;
+    let ticks = frames
+        .payload(flags3 & FLAG3_HAS_TICKS != 0, "scheduled ticks")?
+        .map(|f| f.decode(|r| get_indexed(r, |r| r.u64())))
+        .transpose()?;
     if !frames.r.is_at_end() {
         return Err(frames.corrupt("trailing bytes"));
     }
@@ -455,7 +457,6 @@ fn decode_current(
         pos.cz,
         &blocks,
         fluid.map(|w| w.to_vec().into_boxed_slice()),
-        furnaces.unwrap_or_default(),
         containers,
         cell_states,
         cell_kv,
@@ -481,5 +482,6 @@ fn decode_current(
             mobs: kept_mobs,
             entities: kept_entities,
         },
+        ticks: ticks.unwrap_or_default(),
     })
 }

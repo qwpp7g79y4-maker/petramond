@@ -14,6 +14,8 @@ pub use load::{ContentLoader, Stage};
 pub mod stage {
     pub const TILES: &str = "textures/atlas.json";
     pub const SOUNDS: &str = "sounds.json";
+    pub const TOOL_KINDS: &str = "tool_kinds.json";
+    pub const MATERIALS: &str = "materials.json";
     pub const EFFECTS: &str = "effects.json";
     pub const BIOMES: &str = "biomes.json";
     pub const PARTICLE_EMITTERS: &str = "particle_emitters.json";
@@ -33,6 +35,7 @@ pub mod stage {
     pub const FLUID_MEDIA: &str = "fluid media";
     pub const SECTION_METRICS: &str = "section metrics";
     pub const CONSTRUCTION: &str = "construction placement";
+    pub const STATIONS: &str = "stations.json";
 }
 
 #[cfg(test)]

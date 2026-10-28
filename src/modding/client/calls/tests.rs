@@ -220,7 +220,7 @@ fn client_blocks_at_reads_the_replica_and_gates_on_stream_finality() {
     assert!(world.set_block_world(3, 64, 5, petramond_world::block::Block::Stone));
 
     let query = || {
-        HostCall::from(calls::ClientBlocksAt {
+        HostCall::from(calls::GetBlocks {
             positions: vec![[3, 64, 5], [3, 65, 5], [150, 64, 5]],
         })
     };
@@ -274,8 +274,8 @@ fn client_blocks_at_reads_the_replica_and_gates_on_stream_finality() {
     assert!(matches!(
         handle_host_call(
             &mut data,
-            HostCall::from(calls::ClientBlocksAt {
-                positions: vec![[0, 0, 0]; 513],
+            HostCall::from(calls::GetBlocks {
+                positions: vec![[0, 0, 0]; mod_api::SIM_BATCH_MAX + 1],
             })
         ),
         HostRet::Err(_)
@@ -329,7 +329,7 @@ fn a_client_poses_only_the_local_player_and_latches_a_hand_on_its_first_pose() {
         held: None,
         off_held: None,
         held_count: 0,
-        pose_anchor: None,
+        attached: None,
         swing: Default::default(),
         half_width: 0.3,
         height: 1.8,
@@ -412,7 +412,7 @@ fn bone_poses_resolve_to_rig_ids_and_latch_per_bone() {
         held: None,
         off_held: None,
         held_count: 0,
-        pose_anchor: None,
+        attached: None,
         swing: Default::default(),
         half_width: 0.3,
         height: 1.8,
@@ -517,7 +517,7 @@ fn blank_snapshot() -> mod_api::PlayerSnapshot {
         held: None,
         off_held: None,
         held_count: 0,
-        pose_anchor: None,
+        attached: None,
         swing: Default::default(),
         half_width: 0.3,
         height: 1.8,

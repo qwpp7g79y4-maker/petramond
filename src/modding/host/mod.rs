@@ -19,7 +19,6 @@ pub(in crate::modding) use module_cache::module_for;
 mod actors;
 pub(in crate::modding) mod blocks;
 mod conditions;
-mod construction;
 mod containers;
 mod core;
 mod entities;
@@ -28,6 +27,7 @@ mod item_motion;
 mod kv;
 pub(in crate::modding) mod memo;
 pub(in crate::modding) mod player;
+pub(in crate::modding) mod records;
 mod registry;
 mod schematics;
 mod sounds;
@@ -141,10 +141,6 @@ pub(in crate::modding) enum Registration {
         callback_id: u32,
     },
     Generator {
-        callback_id: u32,
-    },
-    HostileSpawner {
-        priority: i32,
         callback_id: u32,
     },
     BlockBehavior {
@@ -405,13 +401,13 @@ pub(in crate::modding) fn handle_host_call(
     let client = data.side == RuntimeSide::Client;
     match call {
         HostCall::Core(call) => core::handle_core_call(data, call),
-        HostCall::Block(mod_api::BlockCall::Raycast {
-            from,
-            dir,
-            max,
-            filter,
-        }) if client => super::client::raycast(from, dir, max, filter),
+        HostCall::Block(call) if client => {
+            super::client::world_read(|world| blocks::world_read(world, call))
+        }
         HostCall::Block(call) => blocks::handle_block_call(&data.mod_id, call),
+        HostCall::Kv(call) if client => {
+            super::client::world_read(|world| kv::world_read(world, call))
+        }
         HostCall::Entity(call) => entities::handle_entity_call(&data.mod_id, call),
         HostCall::Player(call) => player::handle_player_call(&data.mod_id, call),
         HostCall::Body(call) if client => super::client::handle_body_call(data, call),
@@ -427,7 +423,6 @@ pub(in crate::modding) fn handle_host_call(
         HostCall::Client(call) => super::client::handle_client_call(data, call),
         HostCall::ItemMotion(call) => item_motion::handle(call),
         HostCall::Condition(call) => conditions::handle(call),
-        HostCall::Construction(call) => construction::handle_construction_call(call),
         HostCall::Actor(call) => actors::handle_actor_call(&data.mod_id, call),
         HostCall::Schematic(call) => schematics::handle_schematic_call(&data.mod_id, call),
         HostCall::ClientFile(call) => super::client::handle_file_call(data, call),

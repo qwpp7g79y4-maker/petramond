@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{gui_state_set_for, FxHashMap, GuiValue, GuiViewerData};
+use crate::{gui_state_set, FxHashMap, GuiValue, GuiViewerData};
 
 pub trait PanelState {
     fn values(&self) -> Vec<(&'static str, GuiValue)>;
@@ -54,7 +54,7 @@ impl PanelPublisher {
             if sent.get(key) == Some(&value) {
                 continue;
             }
-            if gui_state_set_for(viewer.player_id, key, value.clone()) {
+            if gui_state_set(viewer.player_id, key, value.clone()) {
                 sent.insert(key, value);
             }
         }

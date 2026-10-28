@@ -6,15 +6,11 @@ host_domain! {
             key: String,
             pos: Option<[f64; 3]>,
         } => legal(SERVER, Sim, Write),
-        SoundPlayAt {
+        /// Starts a sound that `SoundSet`/`SoundStop` can steer by the returned handle (0 =
+        /// refused). On an entity it follows the body and ends with it.
+        SoundPlay {
             key: String,
-            pos: [f64; 3],
-            volume: f32,
-            pitch: f32,
-        } => legal(SERVER, Sim, Write),
-        SoundPlayOnMob {
-            mob_id: u64,
-            key: String,
+            at: crate::SoundAt,
             volume: f32,
             pitch: f32,
         } => legal(SERVER, Sim, Write),

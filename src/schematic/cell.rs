@@ -1,7 +1,6 @@
 use petramond_world::{
     block::{Block, ShapeState, SHAPE_STATE_MAX},
     container::Container,
-    furnace::Furnace,
     item::{variant, ItemStack, ItemType, VariantId},
 };
 use serde::{Deserialize, Serialize};
@@ -48,7 +47,6 @@ pub struct CellData {
     pub fluid: u8,
     pub kv: BTreeMap<String, Vec<u8>>,
     pub container: Option<Vec<Option<SavedStack>>>,
-    pub furnace: Option<[u16; 3]>,
 }
 
 pub use crate::world::cells::ResolvedCell;
@@ -74,9 +72,6 @@ impl CellData {
                 .container
                 .as_ref()
                 .map(|c| c.slots.iter().map(|s| s.map(SavedStack::capture)).collect()),
-            furnace: cell
-                .furnace
-                .map(|f| [f.cook_progress, f.burn_remaining, f.burn_max]),
         }
     }
 
@@ -143,13 +138,6 @@ impl CellData {
                         .map(|slots| Container { slots })
                 })
                 .transpose()?,
-            furnace: self
-                .furnace
-                .map(|[cook_progress, burn_remaining, burn_max]| Furnace {
-                    cook_progress,
-                    burn_remaining,
-                    burn_max,
-                }),
         })
     }
 }
@@ -163,7 +151,6 @@ impl CellData {
             fluid: 0,
             kv: self.kv.clone(),
             container: None,
-            furnace: None,
         };
         let resolved = bare.resolve()?;
         Ok(petramond_world::construction::Record::portable(
@@ -180,7 +167,6 @@ impl CellData {
             fluid: 0,
             kv: record.data.clone(),
             container: None,
-            furnace: None,
         })
     }
 }

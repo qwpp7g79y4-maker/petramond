@@ -72,7 +72,7 @@ mod tests {
         let mut w = world();
         let chest = IVec3::new(2, 64, 2);
         w.set_block_world(chest.x, chest.y, chest.z, Block::Chest);
-        w.insert_chest(chest, Facing::East);
+        w.insert_entity_facing(chest, Facing::East);
         let door = IVec3::new(5, 64, 5);
         w.set_block_world(door.x, door.y - 1, door.z, Block::Stone);
         assert!(w.place_door(door, Block::OakDoor, Facing::South));
@@ -82,10 +82,11 @@ mod tests {
             open: true,
             top: true,
         };
-        assert!(w.commit_placement(
-            &PlacementPlan::single(hatch, Block::OakTrapdoor, state.to_cell()),
-            true
-        ));
+        assert!(w.commit_placement(&PlacementPlan::single(
+            hatch,
+            Block::OakTrapdoor,
+            state.to_cell()
+        )));
 
         let mut rows = Vec::new();
         w.collect_animated_blocks(&mut rows);

@@ -54,13 +54,6 @@ pub(super) fn handle_core_call(data: &mut ModStoreData, call: CoreCall) -> HostR
                 filter,
             })
         }
-        CoreCall::RegisterHostileSpawner {
-            callback_id,
-            priority,
-        } => data.register(Registration::HostileSpawner {
-            priority,
-            callback_id,
-        }),
         CoreCall::RegisterBlockBehavior { key, callback_id } => {
             if !key_owned_by_namespace(&data.mod_id, &key) {
                 return HostRet::error(

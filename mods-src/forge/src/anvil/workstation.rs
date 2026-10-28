@@ -19,7 +19,7 @@ fn give_stack_to(player: PlayerId, stack: &ItemStackData) -> bool {
         .iter()
         .map(|(k, v)| (k.as_str(), v.as_slice()))
         .collect();
-    give_item_to(player, &stack.item, stack.count, &data)
+    give_item(player, &stack.item, stack.count, &data)
 }
 
 fn spill_stack(pos: [i32; 3], stack: &ItemStackData) {

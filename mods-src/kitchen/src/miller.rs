@@ -7,15 +7,13 @@
 //!
 //! Progress: section cell KV at the anchor, u32 LE. Drops to zero if there's no valid job (nothing
 //! millable, output blocked); a mill has no heat to lose anyway. The flour cube shows when OUTPUT
-//! has anything. It's a `swap_block` flip between `kitchen:miller` and `kitchen:miller_full`,
-//! checked against the anchor's current block every tick, so it self-heals instead of tracking
-//! transitions.
+//! has anything: the step asks for `kitchen:miller` or `kitchen:miller_full` from what OUTPUT
+//! holds, so the row self-heals instead of tracking transitions.
 
 use mod_sdk::*;
 
 use machine_core::{
-    consume_one, merge_output, output_accepts, write_changed_slots, Caches, Machine, MachineSpec,
-    Presentation, StepCtx,
+    consume_one, merge_output, output_accepts, Caches, Machine, MachineSpec, Presentation, StepCtx,
 };
 
 use crate::keys;
@@ -33,25 +31,21 @@ pub type Miller = Machine<MillerSpec>;
 pub struct MillerSpec;
 
 impl MachineSpec for MillerSpec {
-    const KIND_KEY: &'static str = keys::MILLER_GUI;
     const BLOCK_KEY: &'static str = keys::MILLER_BLOCK;
     const VARIANT_KEYS: &'static [&'static str] = &[keys::MILLER_FULL_BLOCK];
-    const ANCHORS_KEY: &'static str = "kitchen:millers";
     const STATE_KEY: &'static str = STATE_KEY;
 
     fn step(
         &mut self,
         ctx: &StepCtx<'_>,
         caches: &mut Caches,
-        slots: Option<Vec<Option<ItemStackData>>>,
+        slots: &mut Vec<Option<ItemStackData>>,
         stored: &mut Vec<u8>,
-        _out: &mut Presentation,
+        out: &mut Presentation,
     ) {
-        let mut slots = slots.unwrap_or_default();
         slots.resize(2, None);
         let mut progress = ByteReader::new(stored).u32().unwrap_or(0);
         let before_progress = progress;
-        let before_slots = slots.clone();
 
         let result = slots[SLOT_INPUT]
             .as_ref()
@@ -74,19 +68,13 @@ impl MachineSpec for MillerSpec {
             progress = 0;
         }
 
-        write_changed_slots(ctx.pos, &before_slots, &slots);
         if progress != before_progress {
             *stored = progress.to_le_bytes().to_vec();
         }
-        if let Some(full) = ctx.variant(0) {
-            let want = if slots[SLOT_OUTPUT].is_some() {
-                full
-            } else {
-                ctx.block
-            };
-            if ctx.current != want {
-                swap_block(ctx.pos, want);
-            }
+        if slots[SLOT_OUTPUT].is_some() {
+            out.row(ctx.pos, ctx.variant_or_base(0));
+        } else {
+            out.row(ctx.pos, ctx.block);
         }
         if ctx.gui_open() {
             ctx.publish(

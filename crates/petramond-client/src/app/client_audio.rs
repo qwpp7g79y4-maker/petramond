@@ -11,6 +11,7 @@ use super::music::MusicDirector;
 use crate::animation::FootstepSource;
 use crate::game::presentation::MobPresentation;
 use crate::game::{GameEvents, MobSoundEvent, SpatialSoundCommand, WorldEvent};
+use petramond_render::views::DroppedItemPresentation;
 
 const MOB_SOUND_HANDLE_START: u64 = 1 << 63;
 
@@ -30,7 +31,7 @@ pub(super) struct ClientAudio {
 
 pub(super) struct SessionSounds {
     spatial_commands: Vec<SpatialSoundCommand>,
-    mob_positions: Vec<(u64, WorldPos)>,
+    entity_positions: Vec<(u64, WorldPos)>,
     mob_events: Vec<MobSoundEvent>,
     world_cues: Vec<(Sound, WorldPos)>,
     mob_states: HashMap<u64, MobSoundState>,
@@ -43,7 +44,7 @@ impl Default for SessionSounds {
     fn default() -> Self {
         Self {
             spatial_commands: Vec::new(),
-            mob_positions: Vec::new(),
+            entity_positions: Vec::new(),
             mob_events: Vec::new(),
             world_cues: Vec::new(),
             mob_states: HashMap::new(),
@@ -152,7 +153,7 @@ impl ClientAudio {
         dt: f32,
     ) {
         let listener = frame.listener;
-        sounds.set_mob_positions(frame.mobs, frame.tick_alpha);
+        sounds.set_entity_positions(frame.mobs, frame.items, frame.tick_alpha);
         let mut commands = std::mem::take(&mut sounds.spatial_commands);
         for command in commands.drain(..) {
             self.apply_spatial_command(sounds, command, listener);
@@ -163,7 +164,7 @@ impl ClientAudio {
             let Some(spec) = petramond::mob::def(event.kind).sound_for(event.category) else {
                 continue;
             };
-            let initial = sounds.mob_position(event.mob_id).unwrap_or(event.pos);
+            let initial = sounds.entity_position(event.mob_id).unwrap_or(event.pos);
             self.play_mob_sound(sounds, spec.sound, event.mob_id, listener, initial);
         }
         sounds.mob_events = mob_events;
@@ -181,7 +182,8 @@ impl ClientAudio {
         sounds.world_cues = cues;
         self.tick_footsteps(sounds, listener, frame.footsteps, frame.current_tick);
         self.tick_idle_mob_sounds(sounds, listener, frame.mobs, frame.current_tick);
-        self.audio.update_spatial(listener, &sounds.mob_positions);
+        self.audio
+            .update_spatial(listener, &sounds.entity_positions);
         loop_gains(&mut sounds.loop_gains);
         self.audio.update_gain_loops(&sounds.loop_gains, dt);
     }
@@ -208,19 +210,19 @@ impl ClientAudio {
                 listener,
                 pos,
             ),
-            SpatialSoundCommand::PlayOnMob {
+            SpatialSoundCommand::PlayOnEntity {
                 handle,
                 sound,
-                mob_id,
+                entity,
                 volume,
                 pitch,
                 last_pos,
             } => {
-                let initial = sounds.mob_position(mob_id).unwrap_or(last_pos);
+                let initial = sounds.entity_position(entity).unwrap_or(last_pos);
                 self.audio.play_spatial(
                     handle,
                     sound,
-                    SpatialSoundSource::Mob(mob_id),
+                    SpatialSoundSource::Entity(entity),
                     volume,
                     pitch,
                     listener,
@@ -303,7 +305,7 @@ impl ClientAudio {
             state.sequence = state.sequence.wrapping_add(1);
             state.next_idle_tick =
                 current_tick.saturating_add(idle_delay_ticks(mob.id, state.sequence, spec));
-            let initial = sounds.mob_position(mob.id).unwrap_or(mob.pos);
+            let initial = sounds.entity_position(mob.id).unwrap_or(mob.pos);
             self.play_mob_sound(sounds, spec.sound, mob.id, listener, initial);
         }
         sounds
@@ -323,7 +325,7 @@ impl ClientAudio {
         self.audio.play_spatial_randomized(
             handle,
             sound,
-            SpatialSoundSource::Mob(mob_id),
+            SpatialSoundSource::Entity(mob_id),
             listener,
             initial,
         );
@@ -336,11 +338,21 @@ impl ClientAudio {
 }
 
 impl SessionSounds {
-    fn set_mob_positions(&mut self, mobs: &[MobPresentation], tick_alpha: f32) {
-        self.mob_positions.clear();
-        self.mob_positions.extend(
+    fn set_entity_positions(
+        &mut self,
+        mobs: &[MobPresentation],
+        items: &[DroppedItemPresentation],
+        tick_alpha: f32,
+    ) {
+        self.entity_positions.clear();
+        self.entity_positions.extend(
             mobs.iter()
                 .map(|m| (m.id, m.prev_pos.lerp(m.pos, tick_alpha))),
+        );
+        self.entity_positions.extend(
+            items
+                .iter()
+                .map(|it| (it.id, it.prev_pos.lerp(it.pos, tick_alpha))),
         );
     }
 
@@ -350,8 +362,8 @@ impl SessionSounds {
         handle
     }
 
-    fn mob_position(&self, mob_id: u64) -> Option<WorldPos> {
-        self.mob_positions
+    fn entity_position(&self, mob_id: u64) -> Option<WorldPos> {
+        self.entity_positions
             .iter()
             .find(|(id, _)| *id == mob_id)
             .map(|(_, pos)| *pos)
@@ -378,14 +390,15 @@ impl SessionSounds {
     }
 
     #[cfg(test)]
-    pub(super) fn set_mob_positions_for_test(&mut self, positions: Vec<(u64, WorldPos)>) {
-        self.mob_positions = positions;
+    pub(super) fn set_entity_positions_for_test(&mut self, positions: Vec<(u64, WorldPos)>) {
+        self.entity_positions = positions;
     }
 }
 
 pub(super) struct WorldAudioFrame<'a> {
     pub listener: SpatialListener,
     pub mobs: &'a [MobPresentation],
+    pub items: &'a [DroppedItemPresentation],
     pub tick_alpha: f32,
     pub footsteps: &'a [FootstepSource],
     pub current_tick: u64,
@@ -399,16 +412,17 @@ fn world_cue(ev: &WorldEvent) -> Option<(Sound, WorldPos)> {
         WorldEvent::BlockBroken { pos, block, .. } => block
             .sound(BlockSoundAction::Break)
             .map(|s| (s, cell_centre(pos))),
-        WorldEvent::PanelToggled { anchor, open } => Some((
-            if open {
-                Sound::DoorOpen
+        WorldEvent::PanelToggled {
+            anchor,
+            block,
+            open,
+        } => block
+            .sound(if open {
+                BlockSoundAction::Open
             } else {
-                Sound::DoorClose
-            },
-            cell_centre(anchor),
-        )),
-        WorldEvent::ChestOpened { pos } => Some((Sound::ChestOpen, cell_centre(pos))),
-        WorldEvent::ChestClosed { pos } => Some((Sound::ChestClose, cell_centre(pos))),
+                BlockSoundAction::Close
+            })
+            .map(|s| (s, cell_centre(anchor))),
         WorldEvent::ItemPickedUp { pos, by_self } => (!by_self).then_some((Sound::ItemPickup, pos)),
         WorldEvent::EmitterBurst { .. } => None,
     }

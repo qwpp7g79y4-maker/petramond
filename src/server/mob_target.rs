@@ -23,7 +23,7 @@ pub fn authoritative_mob_target(
         .riding()
         .mount_of(sess.id.0)
         .and_then(|mount| match mount.target {
-            crate::mob::riding::MountTarget::Mob(id) => Some(id),
+            crate::mob::riding::MountTarget::Entity(id) => Some(id),
             crate::mob::riding::MountTarget::Anchor(_) => None,
         });
     let bodies = world

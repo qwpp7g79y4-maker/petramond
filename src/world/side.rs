@@ -48,6 +48,9 @@ pub struct ServerSide {
     pub(in crate::world) schematics: super::schematic::WorldSchematics,
     pub(in crate::world) stream_events: Vec<StreamEvent>,
     pub(in crate::world) stream_events_enabled: bool,
+    pub(in crate::world) recipes: Arc<petramond_world::crafting::Recipes>,
+    /// GUI values written for whoever views an anchor this tick; the server hands them out.
+    pub(in crate::world) gui_values: Vec<(IVec3, String, petramond_world::gui_state::GuiValue)>,
 }
 
 impl ServerSide {
@@ -62,6 +65,8 @@ impl ServerSide {
             schematics: Default::default(),
             stream_events: Vec::new(),
             stream_events_enabled: false,
+            recipes: Arc::default(),
+            gui_values: Vec::new(),
         }
     }
 }
@@ -309,9 +314,10 @@ pub(in crate::world) struct EntityStores {
 
 impl EntityStores {
     fn new(seed: u32) -> Self {
+        let ids = crate::entity::EntityIds::default();
         Self {
-            dropped_items: DroppedItems::default(),
-            mobs: Mobs::new(seed as u64),
+            dropped_items: DroppedItems::with_ids(ids.clone()),
+            mobs: Mobs::with_ids(seed as u64, ids),
             riding: Default::default(),
             nav_probe_budget: crate::mob::ReachBudget::default(),
             route_probe_budget: crate::mob::ReachBudget::with_capacity(

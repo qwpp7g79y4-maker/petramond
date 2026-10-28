@@ -28,10 +28,6 @@ host_domain! {
             key: String,
             value: [f32; 4],
         } => legal(SERVER, Sim, Write),
-        RegisterHostileSpawner {
-            callback_id: u32,
-            priority: i32,
-        } => legal(SERVER_WORLDGEN, Init, Write),
         RegisterBlockBehavior {
             key: String,
             callback_id: u32,

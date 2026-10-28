@@ -1,7 +1,7 @@
 mod load;
 mod plan;
 mod recipe;
-mod station;
+pub(crate) mod station;
 mod unlock;
 
 pub use load::load_recipes_for;

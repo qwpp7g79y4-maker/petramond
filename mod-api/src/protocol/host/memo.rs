@@ -3,10 +3,6 @@ use crate::legality::prelude::*;
 host_domain! {
     MemoCall {
         MemoGet {
-            #[serde(with = "serde_bytes")]
-            key: Vec<u8>,
-        } => legal(BESIDE_WORLD, Any, Read),
-        MemoGetMany {
             keys: Vec<Vec<u8>>,
         } => legal(BESIDE_WORLD, Any, Read),
         MemoPut {
@@ -15,7 +11,7 @@ host_domain! {
             #[serde(with = "serde_bytes")]
             value: Vec<u8>,
         } => legal(BESIDE_WORLD, Any, Write),
-        /// Like [`Self::MemoGet`], but also settles who derives a missing entry.
+        /// Reads one entry like [`Self::MemoGet`], and also settles who derives it when missing.
         /// First caller to miss gets the lease, must [`Self::MemoPut`] the value.
         /// Others missing during the lease wait briefly, then hear derivation is
         /// pending, so they can defer instead of idling or redoing the work.

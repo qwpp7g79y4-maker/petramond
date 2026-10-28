@@ -337,15 +337,9 @@ impl ConnectedPlayer {
     }
 
     pub fn tick_effects(&mut self) {
-        for behavior in self.player.tick_effects() {
-            match behavior {
-                petramond_world::effect::EffectBehavior::None
-                | petramond_world::effect::EffectBehavior::Speed { .. }
-                | petramond_world::effect::EffectBehavior::Breath { .. } => {}
-                petramond_world::effect::EffectBehavior::Regen { amount, .. } => {
-                    self.player.heal(amount);
-                }
-            }
+        let healed = self.player.tick_effects();
+        if healed > 0 {
+            self.player.heal(healed);
         }
     }
 

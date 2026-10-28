@@ -8,7 +8,7 @@ use super::spawn::{
     biome_chance_passes, mob_census_ready, nearby_spawn, site_for, spawn_with, species_enabled,
     splitmix, Spawn,
 };
-use super::{def, defs, Mob, MobCategory, MobRng};
+use super::{def, defs, Mob, MobRng};
 
 /// Chance that a chunk column's raw roll passes. Drawn FIRST and
 /// unconditionally from the chunk's positional stream, so the yes/no is
@@ -147,8 +147,8 @@ fn choose_kind_for_site(world: &ServerWorld, wx: i32, wz: i32, rng: &mut MobRng)
     let mut chosen = None;
     let mut seen = 0i32;
     for d in defs() {
-        if d.category != MobCategory::Passive
-            || !d.spawn.is_spawnable()
+        if !d.category.is_some_and(|c| c.def().populates)
+            || d.spawn.is_none()
             || !species_enabled(d.mob, disabled)
         {
             continue;
@@ -285,7 +285,8 @@ mod tests {
     fn population_ignores_the_trickle_population_caps() {
         let seed = populating_seed();
         let mut world = grass_world(seed);
-        for i in 0..MobCategory::Passive.cap() {
+        let passive = crate::mob::SpawnCategory::by_name("passive").unwrap();
+        for i in 0..passive.def().cap {
             let pos = WorldPos::new(f64::from(8.0 + i as f32 * 0.2), 65.0, 8.0);
             assert!(world.spawn_mob(Mob::Sheep, pos, 0.0).is_some());
         }

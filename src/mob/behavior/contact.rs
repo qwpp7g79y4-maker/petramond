@@ -57,7 +57,7 @@ impl AiBehavior for ChaseContactAi {
                 .contacts
                 .iter()
                 .copied()
-                .filter(|&who| who != EntityRef::Mob(ctx.mob_id) && ctx.entity_alive(who))
+                .filter(|&who| who != EntityRef::Entity(ctx.mob_id) && ctx.entity_alive(who))
                 .min_by(|&a, &b| {
                     let da = ctx
                         .entity_pos(a)
@@ -183,11 +183,11 @@ mod tests {
             active: true,
             tags: Default::default(),
         }]);
-        let bumps = [EntityRef::Mob(1), EntityRef::Mob(9)];
+        let bumps = [EntityRef::Entity(1), EntityRef::Entity(9)];
         let out = ai.tick(&mut ctx(&world, &mut rng, mob, &[], &bumps, &mobs));
         assert_eq!(
             out.target,
-            Some(EntityRef::Mob(9)),
+            Some(EntityRef::Entity(9)),
             "touch needs no whitelist and never locks itself"
         );
     }

@@ -222,55 +222,42 @@ impl MockState {
             }
             HostCall::Core(CoreCall::RegisterTickSystem { .. })
             | HostCall::Core(CoreCall::RegisterEventHandler { .. })
-            | HostCall::Core(CoreCall::RegisterHostileSpawner { .. })
             | HostCall::Core(CoreCall::RegisterBlockBehavior { .. })
             | HostCall::Core(CoreCall::RegisterAiNode { .. })
             | HostCall::Core(CoreCall::EmitEvent { .. }) => HostRet::Unit,
-            HostCall::Block(BlockCall::GetBlock { pos }) => HostRet::Block(self.read_block(pos)),
             HostCall::Block(BlockCall::GetBlocks { positions }) => {
                 HostRet::Blocks(positions.iter().map(|p| self.read_block(p)).collect())
             }
-            HostCall::Block(BlockCall::IsLoaded { pos }) => HostRet::Bool(self.loaded(pos)),
-            HostCall::Block(BlockCall::SetBlock { pos, block })
-            | HostCall::Block(BlockCall::SwapBlock { pos, block }) => {
-                HostRet::Bool(self.write_block(*pos, *block))
+            HostCall::Block(BlockCall::IsLoaded { positions }) => {
+                HostRet::Bools(positions.iter().map(|p| self.loaded(p)).collect())
             }
-            HostCall::Block(BlockCall::SetBlocks { blocks }) => HostRet::U64(
-                blocks
+            HostCall::Block(BlockCall::SetBlocks { blocks: writes })
+            | HostCall::Block(BlockCall::SwapBlocks { swaps: writes }) => HostRet::Bools(
+                writes
                     .iter()
-                    .filter(|(pos, block)| self.write_block(*pos, *block))
-                    .count() as u64,
+                    .map(|(pos, block)| self.write_block(*pos, *block))
+                    .collect(),
             ),
             HostCall::Kv(KvCall::WorldKvGet { key }) => {
                 HostRet::Bytes(self.world_kv.get(key).cloned())
             }
-            HostCall::Kv(KvCall::WorldKvSet { key, value }) => {
+            HostCall::Kv(KvCall::WorldKvSet {
+                key,
+                value: Some(value),
+            }) => {
                 self.world_kv.insert(key.clone(), value.clone());
-                HostRet::Unit
+                HostRet::Bool(true)
             }
-            HostCall::Kv(KvCall::WorldKvDelete { key }) => {
+            HostCall::Kv(KvCall::WorldKvSet { key, value: None }) => {
                 HostRet::Bool(self.world_kv.remove(key).is_some())
             }
-            HostCall::Kv(KvCall::SectionKvGet { pos, key }) => {
-                HostRet::Bytes(self.cell_kv.get(&(*pos, key.clone())).cloned())
-            }
-            HostCall::Kv(KvCall::SectionKvSet { pos, key, value }) => {
-                let loaded = self.loaded(pos);
-                if loaded {
-                    self.cell_kv.insert((*pos, key.clone()), value.clone());
-                }
-                HostRet::Bool(loaded)
-            }
-            HostCall::Kv(KvCall::SectionKvDelete { pos, key }) => {
-                HostRet::Bool(self.cell_kv.remove(&(*pos, key.clone())).is_some())
-            }
-            HostCall::Kv(KvCall::SectionKvGetMany { key, positions }) => HostRet::BytesMany(
+            HostCall::Kv(KvCall::SectionKvGet { key, positions }) => HostRet::BytesMany(
                 positions
                     .iter()
                     .map(|pos| self.cell_kv.get(&(*pos, key.clone())).cloned())
                     .collect(),
             ),
-            HostCall::Kv(KvCall::SectionKvSetMany { key, writes }) => HostRet::Bools(
+            HostCall::Kv(KvCall::SectionKvSet { key, writes }) => HostRet::Bools(
                 writes
                     .iter()
                     .map(|(pos, value)| match value {
@@ -303,17 +290,12 @@ impl MockState {
                     .get_mut(mob_id)
                     .is_some_and(|tags| tags.remove(key).is_some()),
             ),
-            HostCall::Container(ContainerCall::ContainerGet { at }) => {
-                HostRet::ContainerSlots(self.containers.get(at).cloned())
-            }
-            HostCall::Container(ContainerCall::ContainerGetMany { addresses }) => {
-                HostRet::Containers(
-                    addresses
-                        .iter()
-                        .map(|at| self.containers.get(at).cloned())
-                        .collect(),
-                )
-            }
+            HostCall::Container(ContainerCall::ContainerGet { addresses }) => HostRet::Containers(
+                addresses
+                    .iter()
+                    .map(|at| self.containers.get(at).cloned())
+                    .collect(),
+            ),
             HostCall::Container(ContainerCall::ContainerSet { at, slots }) => {
                 let Some(container) = self.containers.get_mut(at) else {
                     return Some(HostRet::Bool(false));

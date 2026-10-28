@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 pub use super::guest::GuestCall;
 use crate::client::{ClientContext, ClientEntityData, ClientSurfaceColumn, ClientViewStateData};
 use crate::data::{
-    BlockInfoData, CollisionShape, EffectStateData, GuiValue, GuiViewerData, ItemEntityData,
+    BlockInfoData, CollisionShape, Despawned, EffectStateData, EntityData, GuiValue, GuiViewerData,
     ItemInfoData, ItemStackData, LightData, MobAnimStateData, MobRidersData, MobSnapshot,
     MobTagLookup, MobTagValue, PlayerInputData, PlayerListEntry, PlayerSnapshot, RaycastHitData,
     RuntimeSide,
@@ -78,7 +78,6 @@ mod client_files;
 mod client_media;
 mod client_presentation;
 mod conditions;
-mod construction;
 mod containers;
 mod core;
 mod entities;
@@ -103,7 +102,6 @@ pub use client_files::ClientFileCall;
 pub use client_media::ClientMediaCall;
 pub use client_presentation::ClientPresentationCall;
 pub use conditions::ConditionCall;
-pub use construction::ConstructionCall;
 pub use containers::ContainerCall;
 pub use entities::EntityCall;
 pub use gui::GuiCall;
@@ -226,7 +224,7 @@ host_calls! {
     /// Every call or payload field that names a player carries the
     /// [`PlayerId`] newtype EXPLICITLY ([`PlayerCall::PlayerInput`],
     /// [`EntityCall::MobMount`], [`PlayerCall::ChatSend`] targets, event payloads
-    /// like `InteractAttempt`/`PlayerDismounted`). This is the frozen rule for NEW
+    /// like `InteractAttempt`/`PlayerDetached`). This is the frozen rule for NEW
     /// surface: a player-touching call takes a `player_id` — never a bare `u8`,
     /// and never a new implicit-player call. [`PlayerCall::GiveItemTo`] (a give)
     /// and [`PlayerCall::SetPlayerHeldData`] (a write onto that player's held
@@ -273,7 +271,6 @@ host_calls! {
         Client(ClientCall),
         ItemMotion(ItemMotionCall),
         Condition(ConditionCall),
-        Construction(ConstructionCall),
         Actor(ActorCall),
         Schematic(SchematicCall),
         ClientFile(ClientFileCall),
@@ -357,16 +354,15 @@ host_rets! {
     Bool(bool),
     Block(Option<BlockId>),
     Blocks(Vec<Option<BlockId>>),
-    Light(Option<LightData>),
     Mobs(Vec<MobSnapshot>),
-    Player(Box<PlayerSnapshot>),
+    Player(Option<Box<PlayerSnapshot>>),
     Bytes(#[serde(with = "serde_bytes")] Option<Vec<u8>>),
     MobTag(MobTagLookup),
     GuiValue(Option<GuiValue>),
     ContainerSlots(Option<Vec<Option<ItemStackData>>>),
     ItemInfo(Option<Box<ItemInfoData>>),
     ItemStack(Option<ItemStackData>),
-    Effects(Vec<EffectStateData>),
+    Effects(Option<Vec<EffectStateData>>),
     Containers(Vec<Option<Vec<Option<ItemStackData>>>>),
     RuntimeSide(RuntimeSide),
     ClientSurfaceColumns(Vec<Option<ClientSurfaceColumn>>),
@@ -375,23 +371,19 @@ host_rets! {
     Item(Option<ItemId>),
     ClientStorageRead(Option<Vec<Option<serde_bytes::ByteBuf>>>),
     Riders(Option<MobRidersData>),
-    ModelGroup(Option<crate::ModelGroupData>),
-    PlayerInput(Option<PlayerInputData>),
     MobAnimState(Option<MobAnimStateData>),
     MaybeByte(Option<u8>),
-    MaybeI32(Option<i32>),
     Players(Vec<PlayerListEntry>),
     EnvParams(Vec<Option<[f32; 4]>>),
     BlockList(Vec<BlockId>),
     ItemList(Vec<ItemId>),
     Names(Vec<Option<String>>),
     MobKind(Option<MobId>),
-    CollisionShape(Option<CollisionShape>),
     MobTags(Option<Vec<(String, MobTagValue)>>),
     SpawnedMob(Option<u64>),
     FoundBlocks(Option<Vec<[i32; 3]>>),
-    Mob(Option<MobSnapshot>),
-    ItemEntity(Option<Box<ItemEntityData>>),
+    EntityInfos(Vec<Option<EntityData>>),
+    Despawned(Option<Despawned>),
     BytesMany(Vec<Option<Vec<u8>>>),
     ItemDataRows(Vec<(ItemId, String)>),
     BlockDataRows(Vec<(BlockId, String)>),
@@ -401,10 +393,10 @@ host_rets! {
     Points(Option<Vec<[f64; 3]>>),
     Bools(Vec<bool>),
     GuiViewers(Vec<GuiViewerData>),
-    BlockInfo(Option<Box<BlockInfoData>>),
     HeldStack(Option<ItemStackData>),
     Raycast(Option<RaycastHitData>),
-    ItemEntities(Vec<ItemEntityData>),
+    Entities(Vec<EntityData>),
+    Ids(Vec<u64>),
     StructureInfo(Option<Box<crate::StructureInfoData>>),
     Loot(Option<Vec<ItemStackData>>),
     MobDataRows(Vec<(crate::MobId, String)>),
@@ -416,7 +408,6 @@ host_rets! {
     Condition(Option<crate::ConditionInfoData>),
     BlockInfos(Vec<Option<BlockInfoData>>),
     AnimationClip(Option<crate::AnimationClipInfo>),
-    BlockRecords(Vec<Option<crate::BlockRecord>>),
     RecordPlans(Vec<crate::RecordPlan>),
     RecordStatuses(Vec<crate::RecordStatus>),
     Dig(crate::DigProgress),
@@ -430,8 +421,6 @@ host_rets! {
     BlockChanges(crate::BlockChanges),
     Unsupported,
     ActingPlayer(Option<PlayerId>),
-    PlayerOf(Option<Box<PlayerSnapshot>>),
-    EffectsOf(Option<Vec<EffectStateData>>),
     Lights(Vec<Option<LightData>>),
     MobTagsMany(Vec<Option<Vec<(String, MobTagValue)>>>),
     PlayerInputs(Vec<Option<PlayerInputData>>),
@@ -460,6 +449,11 @@ host_rets! {
     LeafMask(crate::LeafMask),
     ClientMenu(Option<crate::ClientMenuData>),
     FluidSurfaces(Vec<Option<(BlockId, f64)>>),
+    Cells(Vec<Option<crate::CellRecord>>),
+    Biomes(Vec<Option<u8>>),
+    MaybeI32s(Vec<Option<i32>>),
+    CollisionShapes(Vec<Option<CollisionShape>>),
+    CellGroups(Vec<Option<crate::CellGroupData>>),
     }
 }
 

@@ -69,9 +69,8 @@ const IDLE_KEY: &str = "farming:idle";
 const IDLE_REVERT_TICKS: u8 = 3;
 
 pub fn on_hook(content: &Content, sky: Option<&FieldParams>, kind: BlockHookKind, pos: [i32; 3]) {
-    match kind {
-        BlockHookKind::RandomTick => random_tick(content, sky, pos),
-        BlockHookKind::NeighborUpdate | BlockHookKind::ScheduledTick => {}
+    if kind == BlockHookKind::RandomTick {
+        random_tick(content, sky, pos);
     }
 }
 

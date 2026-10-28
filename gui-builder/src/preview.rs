@@ -327,7 +327,7 @@ mod tests {
 
     #[test]
     fn layout_rects_map_back_to_document_paths() {
-        let p = crate::project::Project::new("petramond:chest");
+        let p = crate::project::Project::new("petramond:crafting_table");
         let theme = Theme::placeholder();
         let state = UiState::new();
         let images = DiskImages::empty();
@@ -336,7 +336,7 @@ mod tests {
         assert_eq!(rects[0].path, Vec::<usize>::new());
         let storage = rects
             .iter()
-            .find(|r| r.slot_role.as_deref() == Some("container"))
+            .find(|r| r.slot_role.as_deref() == Some("player_inv"))
             .unwrap();
         let node = crate::doc_edit::node_at(&p.document.root, &storage.path).unwrap();
         assert_eq!(node.kind.type_name(), "slot_grid");
@@ -345,7 +345,7 @@ mod tests {
 
     #[test]
     fn the_editor_cache_rebuilds_only_on_a_new_revision() {
-        let p = crate::project::Project::new("petramond:chest");
+        let p = crate::project::Project::new("petramond:crafting_table");
         let theme = Arc::new(Theme::placeholder());
         let images = DiskImages::empty();
         let mut cache = PreviewCache::default();

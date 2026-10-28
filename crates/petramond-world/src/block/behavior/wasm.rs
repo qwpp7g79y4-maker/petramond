@@ -61,6 +61,22 @@ impl BlockBehavior for WasmBehavior {
             pos,
         });
     }
+
+    fn container_changed(&self, world: &mut dyn BehaviorWorld, pos: IVec3) {
+        world.queue_block_hook(BlockHook {
+            kind: BlockHookKind::ContainerChanged,
+            key: self.key,
+            pos,
+        });
+    }
+
+    fn viewers_changed(&self, world: &mut dyn BehaviorWorld, pos: IVec3) {
+        world.queue_block_hook(BlockHook {
+            kind: BlockHookKind::ViewersChanged,
+            key: self.key,
+            pos,
+        });
+    }
 }
 
 static INTERNED: RwLock<Vec<&'static WasmBehavior>> = RwLock::new(Vec::new());

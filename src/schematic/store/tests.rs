@@ -17,7 +17,6 @@ fn archive_bytes(name: &str) -> Vec<u8> {
                 fluid: 0,
                 kv: Default::default(),
                 container: None,
-                furnace: None,
             },
         }],
     )

@@ -73,6 +73,22 @@ impl SurfaceRule {
         }
     }
 
+    /// Whether every column resolves to a block: some branch ends in an unconditional one.
+    pub fn always_resolves(&self) -> bool {
+        match self {
+            SurfaceRule::Block(_) => true,
+            SurfaceRule::Sequence(rules) => rules.iter().any(SurfaceRule::always_resolves),
+            SurfaceRule::Condition { .. } => false,
+        }
+    }
+
+    /// [`resolve`](Self::resolve) for a rule that [`always_resolves`](Self::always_resolves),
+    /// as every biome's is (checked at load).
+    pub fn block(&self, c: &SurfaceCtx) -> Block {
+        self.resolve(c)
+            .expect("a biome surface rule always resolves (checked at load)")
+    }
+
     pub fn resolve(&self, c: &SurfaceCtx) -> Option<Block> {
         match self {
             SurfaceRule::Block(b) => Some(*b),

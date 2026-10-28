@@ -1,0 +1,8 @@
+{
+  "stations": [
+    {
+      "station": "combat:weapons_workbench",
+      "screen": "petramond:crafting_table"
+    }
+  ]
+}

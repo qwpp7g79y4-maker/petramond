@@ -1,4 +1,4 @@
-use crate::data::BlockRecord;
+use crate::data::CellRecord;
 use crate::ids::{BlockId, ConditionId, ItemId, MobId};
 use crate::legality::prelude::*;
 
@@ -50,7 +50,7 @@ host_domain! {
             key: String,
         } => legal(EVERY, Any, Read),
         BlockInfo {
-            block: BlockId,
+            blocks: Vec<BlockId>,
         } => legal(EVERY, Any, Read),
         StructureInfo {
             key: String,
@@ -72,11 +72,8 @@ host_domain! {
         ConditionNames {
             conditions: Vec<ConditionId>,
         } => legal(EVERY, Any, Read),
-        BlockInfos {
-            blocks: Vec<BlockId>,
-        } => legal(EVERY, Any, Read),
-        BlockRecordPlans {
-            records: Vec<BlockRecord>,
+        RecordPlans {
+            records: Vec<CellRecord>,
         } => legal(EVERY, Any, Read),
     }
 }

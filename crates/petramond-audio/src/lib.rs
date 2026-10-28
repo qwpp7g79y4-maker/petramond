@@ -27,5 +27,6 @@ pub struct SpatialListener {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum SpatialSoundSource {
     Fixed(petramond_math::world_pos::WorldPos),
-    Mob(u64),
+    /// A body followed by its id (mobs and item entities share one id space).
+    Entity(u64),
 }

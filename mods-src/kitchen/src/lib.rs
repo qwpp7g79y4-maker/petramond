@@ -7,16 +7,17 @@
 //! - [`miller`]: grinds input into `kitchen:milling` product every 200 ticks, no fuel. Flips to
 //!   `kitchen:miller_full` row while there's output waiting.
 //!
-//! Both are `MachineSpec`s over `machine-core`, which owns the persisted anchor registries (pruned
-//! each tick from one batched block read), session caches, and slot arithmetic.
+//! Both are `MachineSpec`s over `machine-core`, which steps a machine when its block behavior
+//! wakes, reschedules it while it works, and owns the session caches and slot arithmetic.
 //!
 //! This crate is only the machine logic; blocks/items/recipes/models/GUI are pack data. The recipe
 //! classes are the extension point: a pack adds `kitchen:cooking`/`kitchen:milling` rows plus the
 //! matching slot-filter tags, no code change needed here or in the engine. Farming pack's
 //! dough→bread and wheat→flour recipes work this way.
 //!
-//! Runs as one tick system right after the engine's `WorldScheduled` window, reading all machine
-//! slots via batched calls and writing back only what changed.
+//! Each machine row lists its kind's behavior (`kitchen:oven`, `kitchen:miller`); the tick's hooks
+//! for a kind arrive together and are stepped through batched calls, writing back only what
+//! changed.
 
 mod keys;
 mod miller;
@@ -30,9 +31,9 @@ use mod_sdk::*;
 use oven::Oven;
 use vessels::Vessels;
 
-const TICK_SYSTEM: u32 = 1;
-const ON_BLOCK_PLACED: u32 = 1;
-const ON_CONTAINER_OPENED: u32 = 2;
+const OVEN_HOOK: u32 = 1;
+const MILLER_HOOK: u32 = 2;
+const ON_BLOCK_BROKEN: u32 = 1;
 const ON_ITEM_USED: u32 = 3;
 
 #[derive(Default)]
@@ -52,21 +53,30 @@ impl Mod for Kitchen {
             return;
         }
         self.vessels.init();
-        register_event_handler(EventKind::BlockPlaced, 0, ON_BLOCK_PLACED);
-        register_event_handler(EventKind::ContainerOpened, 0, ON_CONTAINER_OPENED);
+        if oven_ok {
+            register_block_behavior(keys::OVEN_BEHAVIOR, OVEN_HOOK);
+        }
+        if miller_ok {
+            register_block_behavior(keys::MILLER_BEHAVIOR, MILLER_HOOK);
+        }
+        register_event_handler(EventKind::BlockBroken, 0, ON_BLOCK_BROKEN);
         register_event_handler(EventKind::ItemUsed, 0, ON_ITEM_USED);
-        register_tick_system(Stage::WorldScheduled, AttachSide::After, 0, TICK_SYSTEM);
     }
 
     fn handle_event(&mut self, handler_id: u32, payload: &mut EventPayload) -> Outcome {
         match (handler_id, &*payload) {
-            (ON_BLOCK_PLACED, EventPayload::BlockPlaced { pos, block }) => {
-                self.oven.on_placed(*pos, *block);
-                self.miller.on_placed(*pos, *block);
-            }
-            (ON_CONTAINER_OPENED, EventPayload::ContainerOpened { kind, at }) => {
-                self.oven.on_container_opened(kind, *at);
-                self.miller.on_container_opened(kind, *at);
+            (
+                ON_BLOCK_BROKEN,
+                EventPayload::BlockBroken {
+                    pos,
+                    block,
+                    group,
+                    data,
+                    ..
+                },
+            ) => {
+                self.oven.on_broken(*pos, *block, group.as_ref(), data);
+                self.miller.on_broken(*pos, *block, group.as_ref(), data);
             }
             (ON_ITEM_USED, EventPayload::ItemUsed { player, item, kind }) => {
                 self.vessels.on_item_used(*player, *item, *kind)
@@ -76,12 +86,12 @@ impl Mod for Kitchen {
         Outcome::Continue
     }
 
-    fn tick_system(&mut self, system_id: u32) {
-        if system_id != TICK_SYSTEM {
-            return;
+    fn block_hooks(&mut self, callback_id: u32, hooks: &[(BlockHookKind, [i32; 3])]) {
+        match callback_id {
+            OVEN_HOOK => self.oven.on_hooks(&mut self.caches, hooks),
+            MILLER_HOOK => self.miller.on_hooks(&mut self.caches, hooks),
+            _ => {}
         }
-        self.oven.tick(&mut self.caches);
-        self.miller.tick(&mut self.caches);
     }
 }
 

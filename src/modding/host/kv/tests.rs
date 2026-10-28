@@ -21,12 +21,11 @@ fn sparse_find_is_sorted_and_never_fabricates_unloaded_cells() {
                 handle_host_call(
                     &mut data,
                     HostCall::from(calls::SectionKvSet {
-                        pos,
                         key: "fixture:marker".into(),
-                        value: vec![1],
+                        writes: vec![(pos, Some(vec![1]))],
                     })
                 ),
-                HostRet::Bool(true)
+                HostRet::Bools(vec![true])
             );
         }
         assert_eq!(
@@ -99,27 +98,27 @@ fn kv_writes_enforce_own_namespace_and_reads_cross() {
                 &mut alpha,
                 HostCall::from(calls::WorldKvSet {
                     key: "alpha:x".into(),
-                    value: vec![7],
+                    value: Some(vec![7]),
                 }),
             ),
-            HostRet::Unit
+            HostRet::Bool(true)
         );
         assert_eq!(
             handle_host_call(
                 &mut beta,
                 HostCall::from(calls::WorldKvSet {
                     key: "petramond:time".into(),
-                    value: vec![1],
+                    value: Some(vec![1]),
                 }),
             ),
-            HostRet::Unit
+            HostRet::Bool(true)
         );
         assert!(matches!(
             handle_host_call(
                 &mut beta,
                 HostCall::from(calls::WorldKvSet {
                     key: "alpha:x".into(),
-                    value: vec![9],
+                    value: Some(vec![9]),
                 }),
             ),
             HostRet::Err(_)
@@ -131,7 +130,7 @@ fn kv_writes_enforce_own_namespace_and_reads_cross() {
                         &mut beta,
                         HostCall::from(calls::WorldKvSet {
                             key: bad.into(),
-                            value: vec![1],
+                            value: Some(vec![1]),
                         }),
                     ),
                     HostRet::Err(_)
@@ -160,8 +159,9 @@ fn kv_writes_enforce_own_namespace_and_reads_cross() {
         assert!(matches!(
             handle_host_call(
                 &mut beta,
-                HostCall::from(calls::WorldKvDelete {
+                HostCall::from(calls::WorldKvSet {
                     key: "alpha:x".into(),
+                    value: None,
                 }),
             ),
             HostRet::Err(_)
@@ -169,8 +169,9 @@ fn kv_writes_enforce_own_namespace_and_reads_cross() {
         assert_eq!(
             handle_host_call(
                 &mut alpha,
-                HostCall::from(calls::WorldKvDelete {
+                HostCall::from(calls::WorldKvSet {
                     key: "alpha:x".into(),
+                    value: None,
                 }),
             ),
             HostRet::Bool(true)
@@ -180,7 +181,7 @@ fn kv_writes_enforce_own_namespace_and_reads_cross() {
                 &mut alpha,
                 HostCall::from(calls::WorldKvSet {
                     key: "alpha:big".into(),
-                    value: vec![0; KV_MAX_VALUE_BYTES + 1],
+                    value: Some(vec![0; KV_MAX_VALUE_BYTES + 1]),
                 }),
             ),
             HostRet::Err(_)
@@ -207,44 +208,41 @@ fn section_kv_caps_distinct_keys_per_cell() {
             handle_host_call(
                 m,
                 HostCall::from(calls::SectionKvSet {
-                    pos,
                     key,
-                    value: vec![1],
+                    writes: vec![(pos, Some(vec![1]))],
                 }),
             )
         };
         for i in 0..CELL_KV_MAX_KEYS {
             assert_eq!(
                 set(&mut alpha, format!("alpha:k{i}")),
-                HostRet::Bool(true),
+                HostRet::Bools(vec![true]),
                 "key {i} fits under the cap"
             );
         }
-        assert!(
-            matches!(
-                set(&mut alpha, "alpha:one_too_many".into()),
-                HostRet::Err(_)
-            ),
-            "a new key beyond the cap is rejected"
+        assert_eq!(
+            set(&mut alpha, "alpha:one_too_many".into()),
+            HostRet::Bools(vec![false]),
+            "a new key beyond the cap is refused"
         );
         assert_eq!(
             set(&mut alpha, "alpha:k0".into()),
-            HostRet::Bool(true),
+            HostRet::Bools(vec![true]),
             "overwriting an existing key at the cap passes"
         );
         assert_eq!(
             handle_host_call(
                 &mut alpha,
-                HostCall::from(calls::SectionKvDelete {
-                    pos,
+                HostCall::from(calls::SectionKvSet {
                     key: "alpha:k1".into(),
+                    writes: vec![(pos, None)],
                 }),
             ),
-            HostRet::Bool(true)
+            HostRet::Bools(vec![true])
         );
         assert_eq!(
             set(&mut alpha, "alpha:one_too_many".into()),
-            HostRet::Bool(true),
+            HostRet::Bools(vec![true]),
             "a removal frees a slot"
         );
     });

@@ -16,7 +16,7 @@
       "name": "combat_harpoon_hold",
       "before": "main_action",
       "mask": "combat_main_arm",
-      "weight": "smooth(main.item == \"combat:harpoon\" && !sleeping && swim < 0.5, 0.15)",
+      "weight": "smooth(main.item == \"combat:harpoon\" && !lying && swim < 0.5, 0.15)",
       "clip": "combat:body_harpoon_hold"
     }
   ]

@@ -56,8 +56,6 @@ struct RawVegetation {
     flowers: Option<RawFlowers>,
     hemp: f32,
     covers: Vec<GroundCover>,
-    sand_cover: Option<CoverRoll>,
-    podzol_cover: Option<CoverRoll>,
     grass_cover: Option<CoverRoll>,
     cover_cluster: Option<CoverCluster>,
 }
@@ -156,8 +154,6 @@ impl RawVegetation {
         }
         Ok(VegetationProfile {
             covers: self.covers.leak(),
-            sand_cover: leak_roll(self.sand_cover, "sand_cover")?,
-            podzol_cover: leak_roll(self.podzol_cover, "podzol_cover")?,
             grass_cover: leak_roll(self.grass_cover, "grass_cover")?,
             cover_cluster: self.cover_cluster,
             flower_palette,
@@ -186,6 +182,11 @@ pub(crate) fn parse(biome: Biome, generation: Option<&str>) -> Result<BiomeSpec,
         }
     }
     let surface = raw.surface.resolve();
+    if !surface.always_resolves() {
+        return Err(
+            "generation: surface: the rule must end in a block every column falls back to".into(),
+        );
+    }
     let limit = crate::surface::MAX_SKIN_BAND_DEPTH;
     if let Some(band) = surface.deepest_band().filter(|&band| band > limit as u32) {
         return Err(format!(

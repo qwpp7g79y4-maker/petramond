@@ -15,7 +15,7 @@ pub(super) struct Spec {
     damage_weak: [f32; 2],
     damage_full: [f32; 2],
     reel_damage: [f32; 2],
-    /// Knockback scale of the reel's hit, toward the thrower.
+    /// How hard the reel's hit pulls the struck body toward the thrower.
     pull: f32,
     /// How far the line reaches before it snaps.
     reach: f32,
@@ -24,7 +24,7 @@ pub(super) struct Spec {
     /// rope ties) starts in front of the fist.
     #[serde(default)]
     lead: f32,
-    /// How the line is drawn (`petramond:item_entity` `tether`).
+    /// How the line is drawn: tile, tint, width (texels), each over the plain rope's.
     #[serde(default)]
     rope: Rope,
     #[serde(default)]
@@ -119,18 +119,24 @@ struct Rope {
 }
 
 impl Rope {
-    fn json(&self) -> String {
-        let mut fields = Vec::new();
-        if let Some(tile) = &self.tile {
-            fields.push(format!("\"tile\":\"{tile}\""));
+    /// The plain rope with this row's own look laid over it.
+    fn look(&self) -> DrawPrim {
+        let DrawPrim::Line {
+            tile, tint, width, ..
+        } = rope(LineEnd::Local([0.0; 3]), LineEnd::Local([0.0; 3]))
+        else {
+            unreachable!("a rope is a line");
+        };
+        DrawPrim::Line {
+            from: LineEnd::Local([0.0; 3]),
+            to: LineEnd::Local([0.0; 3]),
+            tile: self.tile.clone().unwrap_or(tile),
+            tint: self.tint.unwrap_or(tint),
+            width: self
+                .width
+                .filter(|w| w.is_finite() && *w > 0.0)
+                .unwrap_or(width),
         }
-        if let Some([r, g, b]) = self.tint {
-            fields.push(format!("\"tint\":[{r},{g},{b}]"));
-        }
-        if let Some(width) = self.width.filter(|w| w.is_finite()) {
-            fields.push(format!("\"width\":{width}"));
-        }
-        format!("{{{}}}", fields.join(","))
     }
 }
 
@@ -155,14 +161,26 @@ pub(super) struct Row {
     pub reach: f32,
     pub reel_speed: f32,
     pub lead: f32,
-    /// The `petramond:item_entity` rules a thrown harpoon flies with.
-    pub rules: Vec<u8>,
+    /// The rules a thrown harpoon flies with.
+    pub rules: ItemEntityRules,
+    /// The rope's look; [`Row::rope_between`] gives it its ends.
+    pub rope: DrawPrim,
     pub sounds: Sounds,
     pub motion: Motion,
     pub line: LineMotion,
 }
 
 impl Row {
+    /// The rope from the harpoon `entity` back to `owner`'s hand.
+    pub fn rope_between(&self, entity: u64, owner: PlayerId) -> DrawPrim {
+        let mut rope = self.rope.clone();
+        if let DrawPrim::Line { from, to, .. } = &mut rope {
+            *from = LineEnd::Entity(EntityRef::Entity(entity));
+            *to = LineEnd::Entity(EntityRef::Player(owner));
+        }
+        rope
+    }
+
     pub fn from_spec(id: ItemId, name: String, spec: Spec) -> Result<Self, &'static str> {
         let positive = |v: f32| v.is_finite() && v > 0.0;
         let band = |[lo, hi]: [f32; 2]| lo.is_finite() && hi.is_finite() && lo >= 0.0 && hi >= lo;
@@ -183,10 +201,17 @@ impl Row {
         {
             return Err("invalid charge, line or damage band");
         }
-        if spec.rope.tile.as_deref().is_some_and(|t| t.contains('"')) {
-            return Err("rope tile is not a tile name");
+        if spec
+            .rope
+            .width
+            .is_some_and(|w| !(w > 0.0 && w <= mod_sdk::LINE_WIDTH_MAX))
+        {
+            return Err("rope width is outside a line's");
         }
-        let rules = format!("{{\"pickup\":false,\"tether\":{}}}", spec.rope.json());
+        let rules = ItemEntityRules {
+            pickup: false,
+            lifetime_ticks: None,
+        };
         Ok(Self {
             id,
             name,
@@ -203,7 +228,8 @@ impl Row {
             reach: spec.reach,
             reel_speed: spec.reel_speed,
             lead: spec.lead,
-            rules: rules.into_bytes(),
+            rules,
+            rope: spec.rope.look(),
             sounds: spec.sounds,
             motion: Motion::resolve(spec.animations)?,
             line: LineMotion {

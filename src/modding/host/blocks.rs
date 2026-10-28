@@ -50,6 +50,11 @@ fn draw_prim_finite(prim: &mod_api::DrawPrim) -> bool {
             .chain([scale, yaw, pitch, spin])
             .chain(bob)
             .all(|v| v.is_finite()),
+        mod_api::DrawPrim::Line {
+            from, to, width, ..
+        } => {
+            from.is_finite() && to.is_finite() && *width > 0.0 && *width <= mod_api::LINE_WIDTH_MAX
+        }
     }
 }
 
@@ -63,12 +68,169 @@ pub(super) fn check_draw_set(what: &str, prims: &[mod_api::DrawPrim]) -> Option<
     }
     let bad = prims.iter().position(|p| !draw_prim_finite(p))?;
     Some(HostRet::invalid(format!(
-        "{what}: prim {bad} has a non-finite component"
+        "{what}: prim {bad} has a non-finite component (or a line width outside 0..={})",
+        mod_api::LINE_WIDTH_MAX
     )))
 }
 
 pub(super) fn handle_block_call(mod_id: &str, call: BlockCall) -> HostRet {
     match call {
+        call @ (BlockCall::GetBlocks { .. }
+        | BlockCall::IsLoaded { .. }
+        | BlockCall::LightAt { .. }
+        | BlockCall::BiomeAt { .. }
+        | BlockCall::SurfaceYAt { .. }
+        | BlockCall::CollisionShapeAt { .. }
+        | BlockCall::BlockLocalToWorld { .. }
+        | BlockCall::Raycast { .. }
+        | BlockCall::SupportedAt { .. }
+        | BlockCall::FluidSurfaceAt { .. }
+        | BlockCall::CellGroup { .. }
+        | BlockCall::BoxesClear { .. }) => sim_read(|ctx| world_read(ctx.world, call)),
+        BlockCall::GetCells { positions } => {
+            if let Some(err) = batch_guard("GetCells position", positions.len()) {
+                return err;
+            }
+            sim_read(|ctx| {
+                HostRet::Cells(
+                    positions
+                        .iter()
+                        .map(|&p| {
+                            ctx.world
+                                .snapshot_cell(IVec3::from(p))
+                                .ok()
+                                .map(|cell| super::records::record_out(&cell))
+                        })
+                        .collect(),
+                )
+            })
+        }
+        BlockCall::SetBlocks { blocks } => {
+            if let Some(err) = batch_guard("SetBlocks write", blocks.len()) {
+                return err;
+            }
+            let mut writes = Vec::with_capacity(blocks.len());
+            for &(pos, block) in &blocks {
+                match checked_block(block) {
+                    Ok(b) => writes.push((IVec3::from(pos), b)),
+                    Err(e) => return e,
+                }
+            }
+            sim_query(|ctx| {
+                HostRet::Bools(
+                    writes
+                        .iter()
+                        .map(|&(p, b)| {
+                            ctx.world.block_if_stream_final(p.x, p.y, p.z).is_some()
+                                && ctx.world.set_block_world(p.x, p.y, p.z, b)
+                        })
+                        .collect(),
+                )
+            })
+        }
+        BlockCall::SetCells { cells } => {
+            if let Some(err) = batch_guard("SetCells cell", cells.len()) {
+                return err;
+            }
+            let resolved = cells
+                .iter()
+                .map(|(p, record)| {
+                    super::records::record_in(record).map(|cell| (IVec3::from(*p), cell))
+                })
+                .collect::<Result<Vec<_>, _>>();
+            let Ok(resolved) = resolved else {
+                return HostRet::Bool(false);
+            };
+            sim_query(|ctx| {
+                HostRet::Bool(
+                    ctx.world
+                        .apply_cells(resolved, crate::world::cells::CellPolicy::default())
+                        .is_ok(),
+                )
+            })
+        }
+        BlockCall::SwapBlocks { swaps } => {
+            if let Some(err) = batch_guard("SwapBlocks swap", swaps.len()) {
+                return err;
+            }
+            let mut checked = Vec::with_capacity(swaps.len());
+            for &(pos, block) in &swaps {
+                let b = match checked_block(block) {
+                    Ok(b) => b,
+                    Err(e) => return e,
+                };
+                let new_name = petramond_world::registry::names()
+                    .blocks
+                    .name(b.id())
+                    .unwrap_or("?");
+                if !key_owned_by_namespace(mod_id, new_name) {
+                    return HostRet::invalid(format!(
+                        "SwapBlocks: block '{new_name}' is not owned by mod '{mod_id}'"
+                    ));
+                }
+                checked.push((pos, b));
+            }
+            let mod_id = mod_id.to_owned();
+            sim_query(move |ctx| {
+                HostRet::Bools(
+                    checked
+                        .into_iter()
+                        .map(|(pos, b)| {
+                            owned_block_at(ctx, &mod_id, pos, "SwapBlocks").is_ok()
+                                && ctx.world.swap_block(IVec3::from(pos), b)
+                        })
+                        .collect(),
+                )
+            })
+        }
+        BlockCall::BreakBlocks { positions } => {
+            if let Some(err) = batch_guard("BreakBlocks position", positions.len()) {
+                return err;
+            }
+            sim_query(|ctx| {
+                HostRet::Bools(
+                    positions
+                        .iter()
+                        .map(|&pos| {
+                            let p = IVec3::from(pos);
+                            match stream_final_cell(ctx, p) {
+                                Ok(petramond_world::block::Block::Air) | Err(_) => false,
+                                Ok(_) => {
+                                    ctx.world.break_block_naturally(p);
+                                    true
+                                }
+                            }
+                        })
+                        .collect(),
+                )
+            })
+        }
+        BlockCall::ScheduleTicks { ticks } => {
+            if let Some(err) = batch_guard("ScheduleTicks tick", ticks.len()) {
+                return err;
+            }
+            sim_call(|ctx| {
+                for &(pos, delay) in &ticks {
+                    ctx.world.schedule_tick(pos.into(), delay);
+                }
+            })
+        }
+        BlockCall::SetModelParts { sets } => {
+            if let Some(err) = batch_guard("SetModelParts set", sets.len()) {
+                return err;
+            }
+            let mod_id = mod_id.to_owned();
+            sim_query(move |ctx| {
+                HostRet::Bools(
+                    sets.into_iter()
+                        .map(|(pos, parts, tint)| {
+                            owned_block_at(ctx, &mod_id, pos, "SetModelParts").is_ok()
+                                && ctx.world.set_model_parts(IVec3::from(pos), parts, tint)
+                        })
+                        .collect(),
+                )
+            })
+        }
         BlockCall::SetBlockDraws { sets } => {
             if let Some(err) = batch_guard("SetBlockDraws set", sets.len()) {
                 return err;
@@ -93,128 +255,6 @@ pub(super) fn handle_block_call(mod_id: &str, call: BlockCall) -> HostRet {
                 )
             })
         }
-        BlockCall::SetModelPartsMany { sets } => {
-            if let Some(err) = batch_guard("SetModelPartsMany set", sets.len()) {
-                return err;
-            }
-            let mod_id = mod_id.to_owned();
-            sim_query(move |ctx| {
-                HostRet::Bools(
-                    sets.into_iter()
-                        .map(|(pos, parts, tint)| {
-                            owned_block_at(ctx, &mod_id, pos, "SetModelPartsMany").is_ok()
-                                && ctx.world.set_model_parts(IVec3::from(pos), parts, tint)
-                        })
-                        .collect(),
-                )
-            })
-        }
-        BlockCall::SetBlockDraw { pos, prims } => {
-            if let Some(err) = check_draw_set("SetBlockDraw", &prims) {
-                return err;
-            }
-            let mod_id = mod_id.to_owned();
-            sim_query(
-                move |ctx| match owned_block_at(ctx, &mod_id, pos, "SetBlockDraw") {
-                    Err(e) => e,
-                    Ok(_) => {
-                        ctx.world.set_block_draw(IVec3::from(pos), prims.into());
-                        HostRet::Bool(true)
-                    }
-                },
-            )
-        }
-        BlockCall::SetModelParts { pos, parts, tint } => {
-            let mod_id = mod_id.to_owned();
-            sim_query(
-                move |ctx| match owned_block_at(ctx, &mod_id, pos, "SetModelParts") {
-                    Err(e) => e,
-                    Ok(_) => {
-                        HostRet::Bool(ctx.world.set_model_parts(IVec3::from(pos), parts, tint))
-                    }
-                },
-            )
-        }
-        BlockCall::BlockLocalToWorld { pos, points } => {
-            if let Some(err) = batch_guard("BlockLocalToWorld point", points.len()) {
-                return err;
-            }
-            sim_read(move |ctx| {
-                let p = IVec3::from(pos);
-                if stream_final_cell(ctx, p).is_err() {
-                    return HostRet::Points(None);
-                }
-                let frame = ctx.world.block_local_frame(p);
-                HostRet::Points(Some(
-                    points
-                        .iter()
-                        .map(|&q| {
-                            frame
-                                .to_world(petramond_math::math::Vec3::from(q))
-                                .to_array()
-                        })
-                        .collect(),
-                ))
-            })
-        }
-        BlockCall::SwapBlock { pos, block } => match checked_block(block) {
-            Err(e) => e,
-            Ok(b) => {
-                let new_name = petramond_world::registry::names()
-                    .blocks
-                    .name(b.id())
-                    .unwrap_or("?");
-                if !key_owned_by_namespace(mod_id, new_name) {
-                    return HostRet::invalid(format!(
-                        "SwapBlock: block '{new_name}' is not owned by mod '{mod_id}'"
-                    ));
-                }
-                let mod_id = mod_id.to_owned();
-                sim_query(
-                    move |ctx| match owned_block_at(ctx, &mod_id, pos, "SwapBlock") {
-                        Err(e) => e,
-                        Ok(_) => HostRet::Bool(ctx.world.swap_block(IVec3::from(pos), b)),
-                    },
-                )
-            }
-        },
-        BlockCall::BiomeAt { pos } => {
-            sim_read(move |ctx| HostRet::MaybeByte(ctx.world.data().biome_at_world(pos[0], pos[1])))
-        }
-        BlockCall::SurfaceYAt { pos } => sim_read(move |ctx| {
-            let y = ctx
-                .world
-                .data()
-                .surface_collision_y(pos[0], pos[1])
-                .filter(|&y| ctx.world.block_if_stream_final(pos[0], y, pos[1]).is_some());
-            HostRet::MaybeI32(y)
-        }),
-        BlockCall::GetBlock { pos } => sim_read(|ctx| {
-            let p = IVec3::from(pos);
-            HostRet::Block(
-                ctx.world
-                    .block_if_stream_final(p.x, p.y, p.z)
-                    .map(|b| mod_api::BlockId(b.id())),
-            )
-        }),
-        BlockCall::GetBlocks { positions } => {
-            if let Some(err) = batch_guard("GetBlocks position", positions.len()) {
-                return err;
-            }
-            sim_read(|ctx| {
-                HostRet::Blocks(
-                    positions
-                        .iter()
-                        .map(|&pos| {
-                            let p = IVec3::from(pos);
-                            ctx.world
-                                .block_if_stream_final(p.x, p.y, p.z)
-                                .map(|b| mod_api::BlockId(b.id()))
-                        })
-                        .collect(),
-                )
-            })
-        }
         BlockCall::BlockChangesSince { since } => sim_read(|ctx| {
             let (next, cells, lost) = match since {
                 Some(seq) => ctx.world.changes_since(seq),
@@ -226,15 +266,6 @@ pub(super) fn handle_block_call(mod_id: &str, call: BlockCall) -> HostRet {
                 cells: cells.iter().map(|c| c.to_array()).collect(),
             })
         }),
-        BlockCall::Raycast {
-            from,
-            dir,
-            max,
-            filter,
-        } => match RaycastQuery::new(from, dir, max, filter) {
-            Ok(query) => sim_read(move |ctx| query.against(ctx.world.data())),
-            Err(refused) => refused,
-        },
         BlockCall::FindBlocks { min, max, blocks } => {
             if let Some(err) = batch_guard("FindBlocks block", blocks.len()) {
                 return err;
@@ -279,84 +310,184 @@ pub(super) fn handle_block_call(mod_id: &str, call: BlockCall) -> HostRet {
                 HostRet::FoundBlocks(Some(found))
             })
         }
-        BlockCall::SetBlock { pos, block } => match checked_block(block) {
-            Err(e) => e,
-            Ok(b) => sim_query(|ctx| {
-                let p = IVec3::from(pos);
-                HostRet::Bool(ctx.world.set_block_world(p.x, p.y, p.z, b))
-            }),
-        },
-        BlockCall::SetBlocks { blocks } => {
-            if let Some(err) = batch_guard("SetBlocks write", blocks.len()) {
-                return err;
-            }
-            sim_query(|ctx| {
-                let mut set = 0u64;
-                for &(pos, block) in &blocks {
-                    let Ok(b) = checked_block(block) else {
-                        return HostRet::invalid(format!(
-                            "SetBlocks: unregistered block id {}",
-                            block.0
-                        ));
-                    };
-                    let p = IVec3::from(pos);
-                    if ctx.world.set_block_world(p.x, p.y, p.z, b) {
-                        set += 1;
-                    }
-                }
-                HostRet::U64(set)
-            })
-        }
-        BlockCall::ScheduleTick { pos, delay } => {
-            sim_call(|ctx| ctx.world.schedule_tick(pos.into(), delay))
-        }
-        BlockCall::IsLoaded { pos } => sim_read(|ctx| {
-            let p = IVec3::from(pos);
-            HostRet::Bool(ctx.world.section_stream_final_at(p.x, p.y, p.z))
-        }),
-        BlockCall::LightAt { pos } => sim_read(|ctx| {
-            let p = IVec3::from(pos);
-            HostRet::Light(ctx.world.block_if_stream_final(p.x, p.y, p.z).map(|_| {
-                mod_api::LightData {
-                    combined: ctx.world.data().combined_light6_at_world(p.x, p.y, p.z),
-                    sky: ctx.world.data().skylight6_at_world(p.x, p.y, p.z),
-                    block: ctx.world.data().blocklight6_at_world(p.x, p.y, p.z),
-                    block_rgb: ctx.world.data().blocklight6_rgb_at_world(p.x, p.y, p.z),
-                }
-            }))
-        }),
-        BlockCall::SupportedAt { positions } => {
-            if let Some(err) = batch_guard("SupportedAt position", positions.len()) {
+        BlockCall::RecordStatuses { cells } => {
+            if let Some(err) = batch_guard("RecordStatuses cell", cells.len()) {
                 return err;
             }
             sim_read(|ctx| {
-                HostRet::Bools(
-                    positions
+                HostRet::RecordStatuses(
+                    cells
                         .iter()
-                        .map(|&pos| {
-                            let p = IVec3::from(pos);
-                            ctx.world
-                                .block_if_stream_final(p.x, p.y, p.z)
-                                .is_none_or(|b| {
-                                    !b.is_fragile() || ctx.world.data().fragile_supported(p, b)
-                                })
+                        .map(|(pos, record)| super::records::status(ctx.world, *pos, record))
+                        .collect(),
+                )
+            })
+        }
+        BlockCall::PlaceFeature {
+            feature,
+            pos,
+            seed,
+            over,
+            keep,
+        } => {
+            let Some(cf) = petramond_worldgen::growth::feature_by_name(&feature) else {
+                return HostRet::invalid(format!("PlaceFeature: unknown feature '{feature}'"));
+            };
+            let blocks = |what: &str, ids: &[mod_api::BlockId]| {
+                if let Some(err) = batch_guard(what, ids.len()) {
+                    return Err(err);
+                }
+                ids.iter()
+                    .map(|&b| checked_block(b))
+                    .collect::<Result<Vec<_>, _>>()
+            };
+            let (over, keep) = match (
+                blocks("PlaceFeature over", &over),
+                blocks("PlaceFeature keep", &keep),
+            ) {
+                (Ok(over), Ok(keep)) => (over, keep),
+                (Err(e), _) | (_, Err(e)) => return e,
+            };
+            sim_query(move |ctx| {
+                let mut rng = petramond_worldgen::FeatureRng::from_state(seed);
+                HostRet::Bool(ctx.world.place_feature(
+                    cf,
+                    IVec3::from(pos),
+                    &mut rng,
+                    &|b| over.contains(&b),
+                    &|b| keep.contains(&b),
+                ))
+            })
+        }
+    }
+}
+
+/// The block reads both sides answer: the server from its world, a client instance from its
+/// replica.
+pub(in crate::modding) fn world_read<S: crate::world::WorldSide>(
+    world: &crate::world::World<S>,
+    call: BlockCall,
+) -> HostRet {
+    let data = world.data();
+    let readable = |p: IVec3| world.block_if_stream_final(p.x, p.y, p.z).is_some();
+    let light = |p: IVec3| {
+        readable(p).then(|| mod_api::LightData {
+            combined: data.combined_light6_at_world(p.x, p.y, p.z),
+            sky: data.skylight6_at_world(p.x, p.y, p.z),
+            block: data.blocklight6_at_world(p.x, p.y, p.z),
+            block_rgb: data.blocklight6_rgb_at_world(p.x, p.y, p.z),
+        })
+    };
+    match call {
+        BlockCall::GetBlocks { positions } => batched("GetBlocks position", &positions, |ps| {
+            HostRet::Blocks(
+                ps.iter()
+                    .map(|&p| {
+                        world
+                            .block_if_stream_final(p[0], p[1], p[2])
+                            .map(|b| mod_api::BlockId(b.id()))
+                    })
+                    .collect(),
+            )
+        }),
+        BlockCall::IsLoaded { positions } => batched("IsLoaded position", &positions, |ps| {
+            HostRet::Bools(
+                ps.iter()
+                    .map(|&p| world.section_stream_final_at(p[0], p[1], p[2]))
+                    .collect(),
+            )
+        }),
+        BlockCall::LightAt { positions } => batched("LightAt position", &positions, |ps| {
+            HostRet::Lights(ps.iter().map(|&p| light(IVec3::from(p))).collect())
+        }),
+        BlockCall::BiomeAt { columns } => batched("BiomeAt column", &columns, |cs| {
+            HostRet::Biomes(cs.iter().map(|&[x, z]| data.biome_at_world(x, z)).collect())
+        }),
+        BlockCall::SurfaceYAt { columns } => batched("SurfaceYAt column", &columns, |cs| {
+            HostRet::MaybeI32s(
+                cs.iter()
+                    .map(|&[x, z]| {
+                        data.surface_collision_y(x, z)
+                            .filter(|&y| readable(IVec3::new(x, y, z)))
+                    })
+                    .collect(),
+            )
+        }),
+        BlockCall::CollisionShapeAt { positions } => {
+            batched("CollisionShapeAt position", &positions, |ps| {
+                HostRet::CollisionShapes(
+                    ps.iter()
+                        .map(|&p| {
+                            readable(IVec3::from(p)).then(|| {
+                                match data.collision_shape_class(p[0], p[1], p[2]) {
+                                    crate::world::CollisionShapeClass::Empty => {
+                                        mod_api::CollisionShape::Empty
+                                    }
+                                    crate::world::CollisionShapeClass::Partial => {
+                                        mod_api::CollisionShape::Partial
+                                    }
+                                    crate::world::CollisionShapeClass::Full => {
+                                        mod_api::CollisionShape::Full
+                                    }
+                                }
+                            })
                         })
                         .collect(),
                 )
             })
         }
-        BlockCall::FluidSurfaceAt { positions } => {
-            if let Some(err) = batch_guard("FluidSurfaceAt position", positions.len()) {
-                return err;
-            }
-            sim_read(|ctx| {
-                HostRet::FluidSurfaces(
-                    positions
+        BlockCall::BlockLocalToWorld { pos, points } => {
+            batched("BlockLocalToWorld point", &points, |points| {
+                let p = IVec3::from(pos);
+                if !readable(p) {
+                    return HostRet::Points(None);
+                }
+                let frame = world.block_local_frame(p);
+                HostRet::Points(Some(
+                    points
                         .iter()
+                        .map(|&q| {
+                            frame
+                                .to_world(petramond_math::math::Vec3::from(q))
+                                .to_array()
+                        })
+                        .collect(),
+                ))
+            })
+        }
+        BlockCall::Raycast {
+            from,
+            dir,
+            max,
+            filter,
+        } => match RaycastQuery::new(from, dir, max, filter) {
+            Ok(query) => query.against(data),
+            Err(refused) => refused,
+        },
+        BlockCall::SupportedAt { cells } => batched("SupportedAt cell", &cells, |cells| {
+            let mut answers = Vec::with_capacity(cells.len());
+            for &(pos, hypothetical) in cells {
+                let p = IVec3::from(pos);
+                let Some(here) = world.block_if_stream_final(p.x, p.y, p.z) else {
+                    answers.push(true);
+                    continue;
+                };
+                let block = match hypothetical.map(checked_block).transpose() {
+                    Ok(b) => b.unwrap_or(here),
+                    Err(e) => return e,
+                };
+                answers.push(!block.is_fragile() || data.fragile_supported(p, block));
+            }
+            HostRet::Bools(answers)
+        }),
+        BlockCall::FluidSurfaceAt { positions } => {
+            batched("FluidSurfaceAt position", &positions, |ps| {
+                HostRet::FluidSurfaces(
+                    ps.iter()
                         .map(|&pos| {
                             let p = IVec3::from(pos);
-                            ctx.world.block_if_stream_final(p.x, p.y, p.z)?;
-                            let at = ctx.world.data().fluid_surface_at(p)?;
+                            readable(p).then_some(())?;
+                            let at = data.fluid_surface_at(p)?;
                             Some((
                                 mod_api::BlockId(at.fluid.block.id()),
                                 f64::from(at.surface_y),
@@ -366,56 +497,70 @@ pub(super) fn handle_block_call(mod_id: &str, call: BlockCall) -> HostRet {
                 )
             })
         }
-        BlockCall::BreakNaturally { pos } => sim_query(|ctx| {
-            let p = IVec3::from(pos);
-            match stream_final_cell(ctx, p) {
-                Ok(petramond_world::block::Block::Air) | Err(_) => HostRet::Bool(false),
-                Ok(_) => {
-                    ctx.world.break_block_naturally(p);
-                    HostRet::Bool(true)
-                }
-            }
+        BlockCall::CellGroup { positions } => batched("CellGroup position", &positions, |ps| {
+            HostRet::CellGroups(
+                ps.iter()
+                    .map(|&pos| {
+                        let p = IVec3::from(pos);
+                        readable(p).then_some(())?;
+                        data.cell_group(p)
+                            .as_ref()
+                            .map(crate::modding::convert::cell_group)
+                    })
+                    .collect(),
+            )
         }),
-        BlockCall::LightAtMany { positions } => {
-            if let Some(err) = batch_guard("LightAtMany position", positions.len()) {
-                return err;
-            }
-            sim_read(|ctx| {
-                HostRet::Lights(
-                    positions
-                        .into_iter()
-                        .map(|pos| {
-                            let p = IVec3::from(pos);
-                            ctx.world.block_if_stream_final(p.x, p.y, p.z).map(|_| {
-                                mod_api::LightData {
-                                    combined: ctx
-                                        .world
-                                        .data()
-                                        .combined_light6_at_world(p.x, p.y, p.z),
-                                    sky: ctx.world.data().skylight6_at_world(p.x, p.y, p.z),
-                                    block: ctx.world.data().blocklight6_at_world(p.x, p.y, p.z),
-                                    block_rgb: ctx
-                                        .world
-                                        .data()
-                                        .blocklight6_rgb_at_world(p.x, p.y, p.z),
-                                }
-                            })
-                        })
-                        .collect(),
-                )
-            })
-        }
-        BlockCall::CollisionShapeAt { pos } => sim_read(|ctx| {
-            let p = IVec3::from(pos);
-            HostRet::CollisionShape(ctx.world.block_if_stream_final(p.x, p.y, p.z).map(|_| {
-                match ctx.world.data().collision_shape_class(p.x, p.y, p.z) {
-                    crate::world::CollisionShapeClass::Empty => mod_api::CollisionShape::Empty,
-                    crate::world::CollisionShapeClass::Partial => mod_api::CollisionShape::Partial,
-                    crate::world::CollisionShapeClass::Full => mod_api::CollisionShape::Full,
+        BlockCall::BoxesClear { boxes } => batched("BoxesClear box", &boxes, |boxes| {
+            let mut answers = Vec::with_capacity(boxes.len());
+            for &(min, max) in boxes {
+                if min.iter().chain(&max).any(|v| !v.is_finite())
+                    || min.iter().zip(&max).any(|(lo, hi)| lo > hi)
+                {
+                    return HostRet::invalid(format!("BoxesClear: bad box {min:?}..{max:?}"));
                 }
-            }))
+                if max.iter().zip(&min).any(|(hi, lo)| hi - lo > BOX_SPAN_MAX) {
+                    return HostRet::invalid(format!(
+                        "BoxesClear: a box spans more than {BOX_SPAN_MAX} blocks"
+                    ));
+                }
+                answers.push(box_clear(world, min, max));
+            }
+            HostRet::Bools(answers)
         }),
+        other => unreachable!("{} is not a world read", other.name()),
     }
+}
+
+/// The widest box `BoxesClear` takes on an axis: a body's reach, not a region scan.
+const BOX_SPAN_MAX: f64 = 8.0;
+
+fn batched<T>(what: &str, items: &[T], f: impl FnOnce(&[T]) -> HostRet) -> HostRet {
+    match batch_guard(what, items.len()) {
+        Some(err) => err,
+        None => f(items),
+    }
+}
+
+fn box_clear<S: crate::world::WorldSide>(
+    world: &crate::world::World<S>,
+    min: [f64; 3],
+    max: [f64; 3],
+) -> bool {
+    let lo = min.map(|v| v.floor() as i32);
+    let hi = max.map(|v| v.floor() as i32);
+    for x in lo[0]..=hi[0] {
+        for y in lo[1]..=hi[1] {
+            for z in lo[2]..=hi[2] {
+                if world.block_if_stream_final(x, y, z).is_none() {
+                    return false;
+                }
+            }
+        }
+    }
+    let data = world.data();
+    !petramond_world::collision::aabb_hits_cells(min, max, |x, y, z| {
+        data.collision_boxes_at(x, y, z)
+    })
 }
 
 pub(in crate::modding) struct RaycastQuery {

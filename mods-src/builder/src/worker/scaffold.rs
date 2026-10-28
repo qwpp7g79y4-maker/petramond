@@ -125,7 +125,7 @@ pub fn lay(ctx: &mut Ctx, job: &mut Job, body: &Body, cell: [i32; 3]) -> hands::
     hands::lay(ctx, job, body, cell, kind.record(), true, Some(kind.item))
 }
 
-pub fn record(ctx: &Ctx, job: &Job, body: &Body) -> Option<BlockRecord> {
+pub fn record(ctx: &Ctx, job: &Job, body: &Body) -> Option<CellRecord> {
     pick(ctx, job, body)
         .or(ctx.content.scaffolding.first())
         .map(ScaffoldKind::record)

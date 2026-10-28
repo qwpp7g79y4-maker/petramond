@@ -1,0 +1,8 @@
+{
+  "stations": [
+    {
+      "station": "farming:farmers_workbench",
+      "screen": "petramond:crafting_table"
+    }
+  ]
+}

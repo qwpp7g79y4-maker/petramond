@@ -17,8 +17,9 @@ fn mounted_autosave_expands_past_blocked_dismount_probes_without_moving_the_ride
     game.server_player_mut().teleport(seat);
     assert!(game.server_world_mut().riding_mut().mount(
         player_id,
-        petramond::mob::riding::MountTarget::Mob(mob_id),
-        0
+        petramond::mob::riding::MountTarget::Entity(mob_id),
+        0,
+        petramond::mob::riding::Posture::Seated,
     ));
     let mount = game.server_world().riding().mount_of(player_id);
     game.session_mut().sim_mut().mount = mount;
@@ -122,8 +123,9 @@ fn mounted_snapshot_defers_when_no_terrain_state_is_known() {
     game.server_player_mut().teleport(seat);
     assert!(game.server_world_mut().riding_mut().mount(
         player_id,
-        petramond::mob::riding::MountTarget::Mob(77),
-        0
+        petramond::mob::riding::MountTarget::Entity(77),
+        0,
+        petramond::mob::riding::Posture::Seated,
     ));
     let mount = game.server_world().riding().mount_of(player_id);
     game.session_mut().sim_mut().mount = mount;

@@ -5,7 +5,6 @@ use crate::block::ShapeState;
 use crate::block_state::BlockStates;
 use crate::chunk::SECTION_VOLUME;
 use crate::container::Container;
-use crate::furnace::Furnace;
 
 use super::{BlockEntities, CellMap, Section, SectionMetrics, SectionSummary};
 
@@ -17,7 +16,6 @@ impl Section {
         cz: i32,
         blocks: &[u16],
         fluid: Option<Box<[u8]>>,
-        furnaces: CellMap<Furnace>,
         containers: CellMap<Container>,
         cell_states: CellMap<ShapeState>,
         cell_kv: CellMap<BTreeMap<String, Vec<u8>>>,
@@ -28,7 +26,6 @@ impl Section {
             cz,
             super::BlockCube::from_ids(blocks),
             fluid.map(Arc::from),
-            furnaces,
             containers,
             cell_states,
             cell_kv,
@@ -43,7 +40,6 @@ impl Section {
         cz: i32,
         blocks: super::BlockCube,
         fluid: Option<Arc<[u8]>>,
-        furnaces: CellMap<Furnace>,
         containers: CellMap<Container>,
         cell_states: CellMap<ShapeState>,
         cell_kv: CellMap<BTreeMap<String, Vec<u8>>>,
@@ -56,7 +52,6 @@ impl Section {
             cz,
             blocks,
             fluid,
-            furnaces,
             containers,
             cell_states,
             cell_kv,
@@ -71,16 +66,12 @@ impl Section {
         cz: i32,
         blocks: super::BlockCube,
         fluid: Option<Arc<[u8]>>,
-        furnaces: CellMap<Furnace>,
         containers: CellMap<Container>,
         cell_states: CellMap<ShapeState>,
         cell_kv: CellMap<BTreeMap<String, Vec<u8>>>,
         metrics: Option<SectionMetrics>,
     ) -> Self {
-        let entities = BlockEntities {
-            furnaces,
-            containers,
-        };
+        let entities = BlockEntities { containers };
         let mut s = Self {
             cx,
             cy,

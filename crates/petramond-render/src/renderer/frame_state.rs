@@ -379,6 +379,10 @@ impl Renderer {
         std::mem::swap(&mut self.item_entity.instances, v);
     }
 
+    pub fn swap_lines(&mut self, v: &mut Vec<crate::LinePresentation>) {
+        std::mem::swap(&mut self.item_entity.lines, v);
+    }
+
     pub(crate) fn swap_block_entities(&mut self, v: &mut Vec<BlockEntityInstance>) {
         std::mem::swap(&mut self.block_entity.instances, v);
     }

@@ -264,8 +264,9 @@ fn multiple_tick_updates_in_one_frame_accumulate_not_overwrite() {
             picked_up_item: true,
             ..Default::default()
         })
-        .with(vec![WorldEventMsg::ChestOpened {
-            pos: petramond_math::math::IVec3::new(1, 65, 1),
+        .with(vec![WorldEventMsg::PanelToggled {
+            anchor: petramond_math::math::IVec3::new(1, 65, 1),
+            open: true,
         }]);
 
     let second = TickUpdate::new(11, 0)
@@ -273,8 +274,9 @@ fn multiple_tick_updates_in_one_frame_accumulate_not_overwrite() {
             player_damaged: true,
             ..Default::default()
         })
-        .with(vec![WorldEventMsg::ChestClosed {
-            pos: petramond_math::math::IVec3::new(1, 65, 1),
+        .with(vec![WorldEventMsg::PanelToggled {
+            anchor: petramond_math::math::IVec3::new(1, 65, 1),
+            open: false,
         }]);
 
     game.apply_tick_update(Box::new(first));
@@ -288,11 +290,15 @@ fn multiple_tick_updates_in_one_frame_accumulate_not_overwrite() {
     assert_eq!(
         ev.world,
         vec![
-            crate::game::WorldEvent::ChestOpened {
-                pos: petramond_math::math::IVec3::new(1, 65, 1)
+            crate::game::WorldEvent::PanelToggled {
+                anchor: petramond_math::math::IVec3::new(1, 65, 1),
+                block: petramond_world::block::Block::Air,
+                open: true,
             },
-            crate::game::WorldEvent::ChestClosed {
-                pos: petramond_math::math::IVec3::new(1, 65, 1)
+            crate::game::WorldEvent::PanelToggled {
+                anchor: petramond_math::math::IVec3::new(1, 65, 1),
+                block: petramond_world::block::Block::Air,
+                open: false,
             },
         ],
         "world events append in arrival order"

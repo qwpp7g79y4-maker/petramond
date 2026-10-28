@@ -278,6 +278,7 @@ impl App {
                 WorldAudioFrame {
                     listener,
                     mobs: snapshot.mobs,
+                    items: snapshot.item_entities,
                     tick_alpha: snapshot.tick_alpha,
                     footsteps: snapshot.footsteps,
                     current_tick,

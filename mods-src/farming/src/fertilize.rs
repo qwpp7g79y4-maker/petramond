@@ -40,7 +40,6 @@ fn target(content: &Content, block: BlockId) -> Option<Target> {
 
 pub fn gate(
     content: &Content,
-    world: &impl WorldView,
     item: ItemId,
     pos: [i32; 3],
     block: BlockId,
@@ -52,7 +51,7 @@ pub fn gate(
         return Some((pos, action));
     }
     let below = [pos[0], pos[1] - 1, pos[2]];
-    let soil = world.block(below)?;
+    let soil = get_block(below)?;
     let action = if content.crop_stage(block).is_some() {
         if content.is_farmland(soil) {
             target(content, soil)
@@ -70,10 +69,10 @@ pub fn gate(
     action.map(|action| (below, action))
 }
 
-pub fn apply(pos: [i32; 3], item: ItemId, action: Target) -> Outcome {
+pub fn apply(player: PlayerId, pos: [i32; 3], item: ItemId, action: Target) -> Outcome {
     match action {
         Target::Swap { to, feedback_y } => {
-            if !consume_held(item, 1) {
+            if !consume_held(player, item, 1) {
                 return Outcome::Continue;
             }
             set_block(pos, to);
@@ -84,7 +83,7 @@ pub fn apply(pos: [i32; 3], item: ItemId, action: Target) -> Outcome {
             if !set_block(pos, to) {
                 return Outcome::Continue;
             }
-            if !consume_held(item, 1) {
+            if !consume_held(player, item, 1) {
                 return Outcome::Continue;
             }
             feedback(pos, feedback_y);

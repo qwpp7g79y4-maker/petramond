@@ -181,7 +181,7 @@ type RowFilter = (&'static str, &'static str);
 
 type ExtraValidate = fn(&str) -> Result<(), String>;
 
-const CATALOGS: [CatalogSpec; 20] = {
+const CATALOGS: [CatalogSpec; 24] = {
     const fn world(rel: &'static str, array: &'static str, key_field: &'static str) -> CatalogSpec {
         CatalogSpec {
             rel,
@@ -203,12 +203,15 @@ const CATALOGS: [CatalogSpec; 20] = {
         }
     }
     [
+        world("tool_kinds.json", "tool_kinds", "tool_kind"),
+        world("materials.json", "materials", "material"),
         world("blocks.json", "blocks", "block"),
         world("items.json", "items", "item"),
         presentation("sounds.json", "sounds", "sound"),
         presentation("music.json", "tracks", "track"),
         presentation("models.json", "models", "key"),
         presentation("animated_models.json", "animated_models", "model"),
+        world("spawn_categories.json", "spawn_categories", "category"),
         CatalogSpec {
             extra_validate: Some(crate::ai_vocab::validate_brain_extensions),
             ..world("mobs.json", "mobs", "mob")
@@ -218,6 +221,7 @@ const CATALOGS: [CatalogSpec; 20] = {
         presentation("particle_emitters.json", "emitters", "emitter"),
         presentation("cloth.json", "cloths", "cloth"),
         presentation("textures/atlas.json", "tiles", "name"),
+        world("stations.json", "stations", "station"),
         world("recipes.json", "recipes", "recipe"),
         world("shapes.json", "shapes", "key"),
         world("features.json", "features", "feature"),

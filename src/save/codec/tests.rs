@@ -207,11 +207,6 @@ fn section_filled_in_order(order: impl IntoIterator<Item = usize>) -> Section {
         s.set_stair_state(x, y, z, StairState::new(FACINGS[i % 4], StairHalf::Bottom));
         s.cell_kv_set(x, y, z, format!("test:k{}", i % 3), vec![i as u8]);
         if i % 5 == 0 {
-            let furnace = Furnace {
-                cook_progress: i as u16,
-                ..Furnace::default()
-            };
-            s.insert_furnace(x, y, z, furnace);
             let mut slots = Container::with_len(3);
             slots.slots[0] = Some(ItemStack::new(ItemType::Coal, i as u8 + 1));
             s.insert_container(x, y, z, slots);
@@ -227,7 +222,7 @@ fn sparse_state_encodes_identically_whatever_the_insertion_order() {
     let reverse = section_filled_in_order((0..CELLS).rev());
     let scattered = section_filled_in_order((0..CELLS).map(|i| (i * 29) % CELLS));
     assert_eq!(forward.cell_states().len(), CELLS);
-    assert_eq!(forward.furnaces().len(), CELLS.div_ceil(5));
+    assert_eq!(forward.containers().len(), CELLS.div_ceil(5));
 
     let blob = encode_snapshot(&SectionSnapshot::from_section(&forward));
     assert_eq!(

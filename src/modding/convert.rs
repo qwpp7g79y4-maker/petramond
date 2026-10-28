@@ -21,14 +21,14 @@ fn vec(v: Vec3) -> [f32; 3] {
 pub(super) fn entity_ref(e: crate::mob::EntityRef) -> api::EntityRef {
     match e {
         crate::mob::EntityRef::Player(id) => api::EntityRef::Player(api::PlayerId(id.0)),
-        crate::mob::EntityRef::Mob(id) => api::EntityRef::Mob(id),
+        crate::mob::EntityRef::Entity(id) => api::EntityRef::Entity(id),
     }
 }
 
 pub(super) fn entity_ref_in(e: api::EntityRef) -> crate::mob::EntityRef {
     match e {
         api::EntityRef::Player(id) => crate::mob::EntityRef::Player(crate::player::PlayerId(id.0)),
-        api::EntityRef::Mob(id) => crate::mob::EntityRef::Mob(id),
+        api::EntityRef::Entity(id) => crate::mob::EntityRef::Entity(id),
     }
 }
 
@@ -89,7 +89,7 @@ pub(super) fn post_kind(kind: api::EventKind) -> Option<PostEventKind> {
         K::ContainerClosed => PostEventKind::ContainerClosed,
         K::SectionGenerated => PostEventKind::SectionGenerated,
         K::SectionLoaded => PostEventKind::SectionLoaded,
-        K::PlayerDismounted => PostEventKind::PlayerDismounted,
+        K::PlayerDetached => PostEventKind::PlayerDetached,
         K::MobTagAdded => PostEventKind::MobTagAdded,
         K::MobTagRemoved => PostEventKind::MobTagRemoved,
         K::ItemPickedUp => PostEventKind::ItemPickedUp,
@@ -104,7 +104,15 @@ pub(super) fn post_kind(kind: api::EventKind) -> Option<PostEventKind> {
     })
 }
 
-fn facing(f: Facing) -> api::Facing {
+pub(crate) fn cell_group(group: &petramond_world::world::model::CellGroup) -> api::CellGroupData {
+    api::CellGroupData {
+        anchor: ivec(group.anchor),
+        facing: group.facing.map(facing),
+        cells: group.cells.iter().map(|&c| ivec(c)).collect(),
+    }
+}
+
+pub(crate) fn facing(f: Facing) -> api::Facing {
     match f {
         Facing::North => api::Facing::North,
         Facing::South => api::Facing::South,
@@ -133,14 +141,14 @@ pub(super) fn gui_value(v: api::GuiValue) -> petramond_world::gui_state::GuiValu
 pub(super) fn container_address(anchor: crate::menu::MenuAnchor) -> api::ContainerAddress {
     match anchor {
         crate::menu::MenuAnchor::Block(p) => api::ContainerAddress::Block(p.to_array()),
-        crate::menu::MenuAnchor::Mob(id) => api::ContainerAddress::Mob(id),
+        crate::menu::MenuAnchor::Entity(id) => api::ContainerAddress::Entity(id),
     }
 }
 
 pub(super) fn menu_anchor(at: api::ContainerAddress) -> crate::menu::MenuAnchor {
     match at {
         api::ContainerAddress::Block(p) => crate::menu::MenuAnchor::Block(p.into()),
-        api::ContainerAddress::Mob(id) => crate::menu::MenuAnchor::Mob(id),
+        api::ContainerAddress::Entity(id) => crate::menu::MenuAnchor::Entity(id),
     }
 }
 
@@ -294,8 +302,7 @@ pub(super) fn projectile_hit(ev: &ProjectileHit) -> api::EventPayload {
         entity: ev.entity,
         item: api::ItemId(ev.item.id()),
         target: match ev.target {
-            ImpactTarget::Mob(id) => api::ProjectileTarget::Mob(id),
-            ImpactTarget::Player(id) => api::ProjectileTarget::Player(api::PlayerId(id.0)),
+            ImpactTarget::Body(body) => api::ProjectileTarget::Body(entity_ref(body)),
             ImpactTarget::Block { cell, face } => api::ProjectileTarget::Block {
                 pos: ivec(cell),
                 face: ivec(face),
@@ -331,6 +338,7 @@ pub(super) fn fate_in(fate: api::ProjectileFate) -> crate::entity::Fate {
 
 pub(super) fn item_use_pre(ev: &ItemUsePre) -> api::EventPayload {
     api::EventPayload::ItemUsePre {
+        player: api::PlayerId(ev.player.0),
         item: api::ItemId(ev.item.id()),
         target: ev.target.map(ivec),
     }
@@ -392,6 +400,7 @@ fn mob_damage_feedback_component(
 
 pub(super) fn player_damage_pre(ev: &PlayerDamagePre) -> api::EventPayload {
     api::EventPayload::PlayerDamagePre {
+        player: api::PlayerId(ev.player.0),
         amount: ev.amount,
         source: damage_source(ev.source),
         origin: ev.origin.map(|p| p.to_array()),
@@ -409,12 +418,19 @@ pub(super) fn post_event(ev: &PostEvent) -> api::EventPayload {
             block,
             harvested,
             natural,
+            ref removal,
             ..
         } => api::EventPayload::BlockBroken {
             pos: ivec(pos),
             block: api::BlockId(block.id()),
             harvested,
             natural,
+            group: removal.group.as_ref().map(cell_group),
+            data: removal
+                .data
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
         },
         PostEvent::ItemUsed { player, item, kind } => api::EventPayload::ItemUsed {
             player: api::PlayerId(player.0),
@@ -436,9 +452,17 @@ pub(super) fn post_event(ev: &PostEvent) -> api::EventPayload {
             pos: pos.to_array(),
         },
         PostEvent::PlayerDamaged {
-            amount, new_health, ..
-        } => api::EventPayload::PlayerDamaged { amount, new_health },
-        PostEvent::PlayerDied { .. } => api::EventPayload::PlayerDied,
+            player,
+            amount,
+            new_health,
+        } => api::EventPayload::PlayerDamaged {
+            player: api::PlayerId(player.0),
+            amount,
+            new_health,
+        },
+        PostEvent::PlayerDied { player } => api::EventPayload::PlayerDied {
+            player: api::PlayerId(player.0),
+        },
         PostEvent::ContainerOpened { kind, anchor, .. } => api::EventPayload::ContainerOpened {
             kind: container(kind),
             at: anchor.map(container_address),
@@ -451,14 +475,9 @@ pub(super) fn post_event(ev: &PostEvent) -> api::EventPayload {
             api::EventPayload::SectionGenerated { pos: section(pos) }
         }
         PostEvent::SectionLoaded { pos } => api::EventPayload::SectionLoaded { pos: section(pos) },
-        PostEvent::PlayerDismounted { player, mount } => api::EventPayload::PlayerDismounted {
+        PostEvent::PlayerDetached { player, mount } => api::EventPayload::PlayerDetached {
             player_id: api::PlayerId(player.0),
-            mount: match mount.target {
-                crate::mob::riding::MountTarget::Mob(id) => api::MountTarget::Mob(id),
-                crate::mob::riding::MountTarget::Anchor(a) => {
-                    api::MountTarget::Anchor(a.pos.to_array())
-                }
-            },
+            from: mount.attach_to(),
         },
         PostEvent::MobTagAdded {
             id,

@@ -391,7 +391,7 @@ mod tests {
         audio.play_spatial(
             1,
             Sound::WoodPunch,
-            SpatialSoundSource::Mob(9),
+            SpatialSoundSource::Entity(9),
             1.0,
             1.0,
             listener,

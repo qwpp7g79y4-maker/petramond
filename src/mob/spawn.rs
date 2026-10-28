@@ -1,4 +1,3 @@
-use mod_api::HostileSpawnCandidate;
 use rustc_hash::FxHashSet;
 
 use crate::world::{ServerWorld, VERTICAL_LOAD_RADIUS};
@@ -11,17 +10,23 @@ use petramond_world::chunk::{
 };
 
 use super::path::{body_clear, is_foothold};
-use super::{def, defs, Instance, Mob, MobCategory, MobRng, NaturalSpawn};
+use super::{def, defs, Instance, Mob, MobRng, SpawnCategory, Spawner};
 
 const GROUP_RADIUS: i32 = 4;
 const GROUP_MEMBER_TRIES: u32 = 24;
-pub const HOSTILE_SPAWN_ATTEMPTS: u32 = 32;
-const HOSTILE_SPAWN_CHUNK_RADIUS: i32 = 8;
-const MOB_CENSUS_CHUNK_RADIUS: i32 = HOSTILE_SPAWN_CHUNK_RADIUS + 1;
-const HOSTILE_SPAWN_CHUNKS_PER_PLAYER: u32 = 289;
-const HOSTILE_MIN_SPAWN_DIST: f32 = 24.0;
-const HOSTILE_MAX_SPAWN_DIST: f32 = 128.0;
-const HOSTILE_SPAWN_SALT: u64 = 0xA11C_0DE5_5A55_0001;
+pub const SCAN_SPAWN_ATTEMPTS: u32 = 32;
+const SCAN_SPAWN_CHUNK_RADIUS: i32 = 8;
+const MOB_CENSUS_CHUNK_RADIUS: i32 = SCAN_SPAWN_CHUNK_RADIUS + 1;
+const SCAN_SPAWN_CHUNKS_PER_PLAYER: u32 = 289;
+const SCAN_SPAWN_SALT: u64 = 0xA11C_0DE5_5A55_0001;
+const SCAN_PICK_SALT: u64 = 0xA11C_0DE5_5A55_0002;
+
+/// How far from a player a spawner's sites lie.
+#[derive(Copy, Clone, Debug)]
+struct Band {
+    near: f32,
+    far: f32,
+}
 
 pub(super) struct Spawn {
     pub kind: Mob,
@@ -29,19 +34,21 @@ pub(super) struct Spawn {
     pub yaw: f32,
 }
 
-pub struct HostileSpawnSite {
-    pub candidate: HostileSpawnCandidate,
+/// An open cell on a full floor a scan offers its species.
+pub struct ScanSite {
+    cell: IVec3,
+    nearest_player: f32,
     pub pos: petramond_math::world_pos::WorldPos,
     pub yaw: f32,
 }
 
 #[derive(Copy, Clone)]
-struct HostileSpawnAnchor {
+struct ScanAnchor {
     pos: WorldPos,
     chunk: ChunkPos,
 }
 
-impl HostileSpawnAnchor {
+impl ScanAnchor {
     fn new(pos: WorldPos) -> Self {
         Self {
             pos,
@@ -50,13 +57,15 @@ impl HostileSpawnAnchor {
     }
 }
 
-pub struct HostileSpawnPlan {
-    anchors: Vec<HostileSpawnAnchor>,
+pub struct ScanPlan {
+    category: SpawnCategory,
+    band: Band,
+    anchors: Vec<ScanAnchor>,
     spawnable_chunks: Vec<ChunkPos>,
     attempt_chunks: Vec<ChunkPos>,
     local_counts: Vec<u32>,
-    hostile_count: u32,
-    hostile_cap: u32,
+    count: u32,
+    cap: u32,
 }
 
 /// One natural spawn of `category` around a player: a group of one species at a column in the
@@ -67,17 +76,25 @@ pub struct HostileSpawnPlan {
 pub(super) fn attempt(
     world: &ServerWorld,
     player_pos: WorldPos,
-    category: MobCategory,
+    category: SpawnCategory,
     rng: &mut MobRng,
     room_for: impl Fn(Mob) -> u32,
 ) -> Option<Vec<Spawn>> {
-    let band = category.natural_spawn()?;
+    let Some(Spawner::Ring { near, far, .. }) = category.def().spawner else {
+        return None;
+    };
+    let band = Band { near, far };
     if !mob_census_ready(world, player_pos) {
         return None;
     }
     let (wx, wz) = column_around(rng, player_pos, band);
     let biome = Biome::from_id(world.data().column_biome(wx, wz)?);
-    let lives_here = |m: Mob| def(m).spawn.chance_in(biome) > 0.0;
+    let lives_here = |m: Mob| {
+        def(m)
+            .spawn
+            .as_ref()
+            .is_some_and(|r| r.chance_in(biome) > 0.0)
+    };
     let kind = choose_kind(
         rng,
         category,
@@ -109,7 +126,7 @@ pub(super) fn attempt(
 }
 
 /// A column uniformly over the ring `band.near..band.far` around the player.
-fn column_around(rng: &mut MobRng, player: WorldPos, band: NaturalSpawn) -> (i32, i32) {
+fn column_around(rng: &mut MobRng, player: WorldPos, band: Band) -> (i32, i32) {
     let angle = rng.next_f32() * std::f32::consts::TAU;
     let (near2, far2) = (band.near * band.near, band.far * band.far);
     let r = f64::from((near2 + rng.next_f32() * (far2 - near2)).sqrt());
@@ -133,7 +150,8 @@ pub(super) fn spawn_with(
     if !world.mob_spawn_pose_clear(kind, pos, yaw)
         || def(kind)
             .spawn
-            .space
+            .as_ref()
+            .and_then(|r| r.space)
             .is_some_and(|space| !volume_site::body_in_space(world, kind, pos, yaw, space))
     {
         return None;
@@ -144,7 +162,7 @@ pub(super) fn spawn_with(
 fn spawn_site(
     world: &ServerWorld,
     player_pos: WorldPos,
-    band: NaturalSpawn,
+    band: Band,
     kind: Mob,
     wx: i32,
     wz: i32,
@@ -153,12 +171,16 @@ fn spawn_site(
     if too_close(player_pos, feet_pos, band.near) || !too_close(player_pos, feet_pos, band.far) {
         return None;
     }
-    Some(feet_pos)
+    let nearest = (player_pos - feet_pos).length();
+    surroundings_admit(world, kind, feet_pos, nearest).then_some(feet_pos)
 }
 
+/// Where `kind` stands in column `wx, wz` by its terrain rules alone (biome, floor, height band,
+/// space), or `None`.
 pub(super) fn site_for(world: &ServerWorld, kind: Mob, wx: i32, wz: i32) -> Option<WorldPos> {
-    if let Some(band) = def(kind).spawn.y {
-        return volume_site::find(world, kind, &def(kind).spawn, wx, wz, band);
+    let rule = def(kind).spawn.as_ref()?;
+    if let Some(band) = rule.y {
+        return volume_site::find(world, kind, rule, wx, wz, band);
     }
     let ground_y = world.data().surface_collision_y(wx, wz)?;
     let feet = IVec3::new(wx, ground_y + 1, wz);
@@ -170,11 +192,44 @@ pub(super) fn site_for(world: &ServerWorld, kind: Mob, wx: i32, wz: i32) -> Opti
 
     let biome = Biome::from_id(world.data().column_biome(wx, wz)?);
     let ground = Block::from_id(world.data().chunk_block(wx, ground_y, wz));
-    if !def(kind).spawn.admits(biome, ground) {
+    if !rule.admits(biome, ground) || ground.has_tag(petramond_world::block::BlockTag::SPAWN_PROOF)
+    {
         return None;
     }
 
     Some(feet_pos)
+}
+
+/// The rule fields that read the moment rather than the terrain (light under the current
+/// daylight, distance from the nearest player, crowding by its own kind), so a spawner checks
+/// them at the site it found; a populated chunk's one-time stock leaves them out to stay the
+/// same every session.
+fn surroundings_admit(world: &ServerWorld, kind: Mob, pos: WorldPos, nearest_player: f32) -> bool {
+    let Some(rule) = def(kind).spawn.as_ref() else {
+        return false;
+    };
+    if rule.player_beyond.is_some_and(|d| nearest_player < d) {
+        return false;
+    }
+    let c = pos.block();
+    let daylight = crate::rules::daynight::published_daylight(world.data());
+    if !rule.light_admits(
+        world.data().skylight6_at_world(c.x, c.y, c.z),
+        world.data().blocklight6_at_world(c.x, c.y, c.z),
+        daylight,
+    ) {
+        return false;
+    }
+    rule.crowd.is_none_or(|crowd| {
+        let r2 = f64::from(crowd.radius) * f64::from(crowd.radius);
+        let near = world
+            .mobs()
+            .instances()
+            .iter()
+            .filter(|m| m.kind == kind && !m.is_dead() && m.pos.distance_squared(pos) <= r2)
+            .count();
+        (near as u32) < crowd.limit
+    })
 }
 
 mod volume_site;
@@ -189,7 +244,8 @@ pub(super) fn biome_chance_passes(
     let Some(biome) = world.data().column_biome(wx, wz).map(Biome::from_id) else {
         return false;
     };
-    chance_gate(def(kind).spawn.chance_in(biome), || rng.next_f32())
+    let chance = def(kind).spawn.as_ref().map_or(0.0, |r| r.chance_in(biome));
+    chance_gate(chance, || rng.next_f32())
 }
 
 fn chance_gate(chance: f32, roll: impl FnOnce() -> f32) -> bool {
@@ -208,13 +264,13 @@ pub fn body_fits_at(world: &ServerWorld, kind: Mob, feet: IVec3) -> bool {
 }
 
 #[derive(Default)]
-pub struct HostileSpawnCache {
+pub struct ScanCache {
     key: Option<(Vec<ChunkPos>, u64)>,
     census_ready: Vec<bool>,
     spawnable_chunks: Vec<ChunkPos>,
 }
 
-impl HostileSpawnCache {
+impl ScanCache {
     fn refresh(&mut self, world: &ServerWorld, player_positions: &[WorldPos]) {
         let anchor_chunks: Vec<ChunkPos> =
             player_positions.iter().map(|&p| chunk_pos_at(p)).collect();
@@ -233,25 +289,31 @@ impl HostileSpawnCache {
             .zip(&self.census_ready)
             .filter_map(|(chunk, &ready)| ready.then_some(chunk))
             .collect();
-        self.spawnable_chunks = hostile_spawnable_chunks(&chunks, |chunk| {
+        self.spawnable_chunks = spawnable_chunks(&chunks, |chunk| {
             world.data().chunk_loaded(chunk.cx, chunk.cz)
         });
         self.key = Some(key);
     }
 }
 
-pub fn hostile_spawn_plan(
+/// This tick's scan for `category`, or `None` when it has no scan spawner, no room, or no
+/// loaded chunk around a player to try.
+pub fn scan_plan(
     world: &ServerWorld,
-    cache: &mut HostileSpawnCache,
+    cache: &mut ScanCache,
     player_positions: &[WorldPos],
-) -> Option<HostileSpawnPlan> {
+    category: SpawnCategory,
+) -> Option<ScanPlan> {
+    let Some(Spawner::Scan { near, far }) = category.def().spawner else {
+        return None;
+    };
     cache.refresh(world, player_positions);
-    let anchors: Vec<HostileSpawnAnchor> = player_positions
+    let anchors: Vec<ScanAnchor> = player_positions
         .iter()
         .copied()
         .zip(&cache.census_ready)
         .filter(|&(_pos, &ready)| ready)
-        .map(|(pos, &_ready)| HostileSpawnAnchor::new(pos))
+        .map(|(pos, &_ready)| ScanAnchor::new(pos))
         .collect();
     if anchors.is_empty() {
         return None;
@@ -263,29 +325,32 @@ pub fn hostile_spawn_plan(
     }
 
     let list = world.mobs().instances();
-    let hostile_count = live_hostile_count(list);
-    let hostile_cap = scaled_mob_cap(MobCategory::Hostile.cap(), spawnable_chunks.len() as u32);
-    if hostile_count >= hostile_cap {
+    let base_cap = category.def().cap;
+    let count = live_members(list, category).count() as u32;
+    let cap = scaled_mob_cap(base_cap, spawnable_chunks.len() as u32);
+    if count >= cap {
         return None;
     }
 
-    let local_counts = hostile_local_counts(list, &anchors);
+    let local_counts = local_counts(list, &anchors, category);
     let attempt_chunks: Vec<_> = spawnable_chunks
         .iter()
         .copied()
-        .filter(|&chunk| hostile_chunk_has_local_room(&anchors, &local_counts, chunk))
+        .filter(|&chunk| chunk_has_local_room(&anchors, &local_counts, base_cap, chunk))
         .collect();
     if attempt_chunks.is_empty() {
         return None;
     }
 
-    Some(HostileSpawnPlan {
+    Some(ScanPlan {
+        category,
+        band: Band { near, far },
         anchors,
         spawnable_chunks,
         attempt_chunks,
         local_counts,
-        hostile_count,
-        hostile_cap,
+        count,
+        cap,
     })
 }
 
@@ -294,38 +359,80 @@ pub(super) fn mob_census_ready(world: &ServerWorld, player_pos: WorldPos) -> boo
     world.mob_census_loaded_around(center, MOB_CENSUS_CHUNK_RADIUS)
 }
 
-pub fn hostile_kind_has_room(world: &ServerWorld, plan: &HostileSpawnPlan, kind: Mob) -> bool {
-    let d = def(kind);
-    if d.category != MobCategory::Hostile || plan.hostile_count >= plan.hostile_cap {
-        return false;
+/// The species that takes `site`, chosen evenly from the plan's category among those whose rule
+/// admits it and that have room, then kept by its spawn chance.
+pub fn scan_species(world: &ServerWorld, plan: &ScanPlan, site: &ScanSite) -> Option<Mob> {
+    if plan.count >= plan.cap {
+        return None;
     }
-    let species = world
-        .mobs()
-        .instances()
-        .iter()
-        .filter(|m| !m.is_dead() && m.kind == kind)
-        .count() as u32;
-    species < scaled_mob_cap(d.cap, plan.spawnable_chunks.len() as u32)
+    let (x, y, z) = (site.cell.x, site.cell.y, site.cell.z);
+    let biome = world.data().column_biome(x, z).map(Biome::from_id);
+    let floor = world.data().physics_block(x, y - 1, z);
+    let chunks = plan.spawnable_chunks.len() as u32;
+    let disabled = world.data().disabled_mods();
+    let living = world.mobs().instances();
+    let seed = scan_attempt_seed(
+        world,
+        (x as u32) ^ (y as u32).rotate_left(11) ^ (z as u32).rotate_left(22),
+    );
+    let mut chosen = None;
+    let mut seen = 0u64;
+    for d in defs() {
+        let Some(rule) = d.spawn.as_ref() else {
+            continue;
+        };
+        let in_biome = match (rule.biomes, biome) {
+            (None, _) => true,
+            (Some(listed), Some(biome)) => listed.contains(&biome),
+            (Some(_), None) => false,
+        };
+        if d.category != Some(plan.category)
+            || !species_enabled(d.mob, disabled)
+            || !in_biome
+            || rule.ground.is_some_and(|g| !g.contains(&floor))
+            || rule.y.is_some_and(|[lo, hi]| !(lo..=hi).contains(&y))
+        {
+            continue;
+        }
+        let species = living
+            .iter()
+            .filter(|m| !m.is_dead() && m.kind == d.mob)
+            .count() as u32;
+        if species >= scaled_mob_cap(d.cap, chunks)
+            || !surroundings_admit(world, d.mob, site.pos, site.nearest_player)
+        {
+            continue;
+        }
+        let fits = match rule.space {
+            Some(space) => volume_site::body_in_space(world, d.mob, site.pos, site.yaw, space),
+            None => body_fits_at(world, d.mob, site.cell),
+        };
+        if !fits || !world.mob_spawn_pose_clear(d.mob, site.pos, site.yaw) {
+            continue;
+        }
+        seen += 1;
+        if splitmix(seed ^ seen.wrapping_mul(SCAN_PICK_SALT)).is_multiple_of(seen) {
+            chosen = Some(d.mob);
+        }
+    }
+    let kind = chosen?;
+    let rule = def(kind).spawn.as_ref()?;
+    let chance = biome.map_or(rule.chance, |b| rule.chance_in(b));
+    let roll = (splitmix(seed ^ SCAN_PICK_SALT) >> 40) as f32 / (1u64 << 24) as f32;
+    chance_gate(chance, || roll).then_some(kind)
 }
 
-pub fn hostile_attempt_sites(
-    world: &ServerWorld,
-    plan: &HostileSpawnPlan,
-    attempt: u32,
-) -> Vec<HostileSpawnSite> {
-    let Some((wx, wz)) = hostile_candidate_column(world, plan, attempt) else {
+/// The open cells of attempt `attempt`'s column, top first.
+pub fn scan_sites(world: &ServerWorld, plan: &ScanPlan, attempt: u32) -> Vec<ScanSite> {
+    let Some((wx, wz)) = scan_column(world, plan, attempt) else {
         return Vec::new();
     };
-    hostile_column_candidates(world, plan, wx, wz)
+    column_sites(world, plan, wx, wz)
 }
 
-fn hostile_candidate_column(
-    world: &ServerWorld,
-    plan: &HostileSpawnPlan,
-    attempt: u32,
-) -> Option<(i32, i32)> {
-    let chunk = hostile_candidate_chunk(world, plan, attempt)?;
-    let seed = hostile_attempt_seed(world, attempt);
+fn scan_column(world: &ServerWorld, plan: &ScanPlan, attempt: u32) -> Option<(i32, i32)> {
+    let chunk = scan_chunk(world, plan, attempt)?;
+    let seed = scan_attempt_seed(world, attempt);
     let lx = (splitmix(seed ^ 0xC01A_51DE_1234_0001) % CHUNK_SX as u64) as i32;
     let lz = (splitmix(seed ^ 0xC01A_51DE_1234_0002) % CHUNK_SZ as u64) as i32;
     Some((
@@ -334,63 +441,51 @@ fn hostile_candidate_column(
     ))
 }
 
-fn hostile_candidate_chunk(
-    world: &ServerWorld,
-    plan: &HostileSpawnPlan,
-    attempt: u32,
-) -> Option<ChunkPos> {
+fn scan_chunk(world: &ServerWorld, plan: &ScanPlan, attempt: u32) -> Option<ChunkPos> {
     let chunks = &plan.attempt_chunks;
     if chunks.is_empty() {
         return None;
     }
-    let seed = hostile_attempt_seed(world, attempt);
+    let seed = scan_attempt_seed(world, attempt);
     let i = (splitmix(seed ^ 0xC01A_51DE_1234_0000) % chunks.len() as u64) as usize;
     Some(chunks[i])
 }
 
-fn hostile_attempt_seed(world: &ServerWorld, attempt: u32) -> u64 {
+fn scan_attempt_seed(world: &ServerWorld, attempt: u32) -> u64 {
     (world.data().seed as u64)
         ^ world.current_tick().wrapping_mul(0x9E37_79B9_7F4A_7C15)
         ^ (attempt as u64).wrapping_mul(0xD6E8_FEB8_6659_FD93)
-        ^ HOSTILE_SPAWN_SALT
+        ^ SCAN_SPAWN_SALT
 }
 
-fn hostile_column_candidates(
-    world: &ServerWorld,
-    plan: &HostileSpawnPlan,
-    wx: i32,
-    wz: i32,
-) -> Vec<HostileSpawnSite> {
+fn column_sites(world: &ServerWorld, plan: &ScanPlan, wx: i32, wz: i32) -> Vec<ScanSite> {
     let chunk = ChunkPos::new(wx >> 4, wz >> 4);
-    let Some(range) = hostile_scan_y_range(plan, chunk) else {
+    let Some(range) = scan_y_range(plan, chunk) else {
         return Vec::new();
     };
     range
         .rev()
-        .filter_map(|y| hostile_candidate_at(world, plan, wx, y, wz))
+        .filter_map(|y| site_at(world, plan, wx, y, wz))
         .collect()
 }
 
-fn hostile_scan_y_range(
-    plan: &HostileSpawnPlan,
-    chunk: ChunkPos,
-) -> Option<std::ops::RangeInclusive<i32>> {
+fn scan_y_range(plan: &ScanPlan, chunk: ChunkPos) -> Option<std::ops::RangeInclusive<i32>> {
     let mut lo = i32::MAX;
     let mut hi = i32::MIN;
     for (i, anchor) in plan.anchors.iter().enumerate() {
-        if plan.local_counts[i] >= MobCategory::Hostile.cap()
+        if plan.local_counts[i] >= plan.category.def().cap
             || !chunk_in_spawn_range(anchor.chunk, chunk)
         {
             continue;
         }
-        let range = hostile_anchor_scan_y_range(anchor.pos)?;
+        let range = anchor_scan_y_range(anchor.pos)?;
         lo = lo.min(*range.start());
         hi = hi.max(*range.end());
     }
     (lo <= hi).then_some(lo..=hi)
 }
 
-fn hostile_anchor_scan_y_range(player_pos: WorldPos) -> Option<std::ops::RangeInclusive<i32>> {
+fn anchor_scan_y_range(player_pos: WorldPos) -> Option<std::ops::RangeInclusive<i32>> {
     let player_section = SectionPos::from_world(
         player_pos.x.floor() as i32,
         player_pos.y.floor() as i32,
@@ -403,45 +498,32 @@ fn hostile_anchor_scan_y_range(player_pos: WorldPos) -> Option<std::ops::RangeIn
     Some(lo..=hi)
 }
 
-fn hostile_candidate_at(
-    world: &ServerWorld,
-    plan: &HostileSpawnPlan,
-    wx: i32,
-    y: i32,
-    wz: i32,
-) -> Option<HostileSpawnSite> {
+fn site_at(world: &ServerWorld, plan: &ScanPlan, wx: i32, y: i32, wz: i32) -> Option<ScanSite> {
     let pos = WorldPos::new(f64::from(wx) + 0.5, f64::from(y), f64::from(wz) + 0.5);
     let nearest = nearest_anchor_pos(&plan.anchors, pos)?;
-    if too_close(nearest, pos, HOSTILE_MIN_SPAWN_DIST)
-        || !too_close(nearest, pos, HOSTILE_MAX_SPAWN_DIST)
-    {
+    if too_close(nearest, pos, plan.band.near) || !too_close(nearest, pos, plan.band.far) {
         return None;
     }
     if !body_cell_open(world, wx, y, wz)
         || !body_cell_open(world, wx, y + 1, wz)
         || !world.data().block_is_full_spawn_support(wx, y - 1, wz)
-        || world
-            .data()
-            .physics_block(wx, y - 1, wz)
-            .has_tag(petramond_world::block::BlockTag::NAV_HAZARD)
+        || {
+            let floor = world.data().physics_block(wx, y - 1, wz);
+            floor.has_tag(petramond_world::block::BlockTag::NAV_HAZARD)
+                || floor.has_tag(petramond_world::block::BlockTag::SPAWN_PROOF)
+        }
     {
         return None;
     }
-    Some(HostileSpawnSite {
-        candidate: HostileSpawnCandidate {
-            pos: pos.to_array(),
-            cell: [wx, y, wz],
-            combined_light: world.data().combined_light6_at_world(wx, y, wz),
-            sky_light: world.data().skylight6_at_world(wx, y, wz),
-            block_light: world.data().blocklight6_at_world(wx, y, wz),
-            nearest_player_dist: (nearest - pos).length(),
-        },
+    Some(ScanSite {
+        cell: IVec3::new(wx, y, wz),
+        nearest_player: (nearest - pos).length(),
         pos,
         yaw: yaw_away_from_player(nearest, pos),
     })
 }
 
-fn nearest_anchor_pos(anchors: &[HostileSpawnAnchor], pos: WorldPos) -> Option<WorldPos> {
+fn nearest_anchor_pos(anchors: &[ScanAnchor], pos: WorldPos) -> Option<WorldPos> {
     anchors
         .iter()
         .min_by(|a, b| {
@@ -452,15 +534,15 @@ fn nearest_anchor_pos(anchors: &[HostileSpawnAnchor], pos: WorldPos) -> Option<W
         .map(|a| a.pos)
 }
 
-fn hostile_spawnable_chunks(
+fn spawnable_chunks(
     anchor_chunks: &[ChunkPos],
     mut loaded: impl FnMut(ChunkPos) -> bool,
 ) -> Vec<ChunkPos> {
     let mut chunks = Vec::new();
     let mut seen = FxHashSet::default();
     for anchor in anchor_chunks {
-        for dz in -HOSTILE_SPAWN_CHUNK_RADIUS..=HOSTILE_SPAWN_CHUNK_RADIUS {
-            for dx in -HOSTILE_SPAWN_CHUNK_RADIUS..=HOSTILE_SPAWN_CHUNK_RADIUS {
+        for dz in -SCAN_SPAWN_CHUNK_RADIUS..=SCAN_SPAWN_CHUNK_RADIUS {
+            for dx in -SCAN_SPAWN_CHUNK_RADIUS..=SCAN_SPAWN_CHUNK_RADIUS {
                 let chunk = ChunkPos::new(anchor.cx + dx, anchor.cz + dz);
                 if loaded(chunk) && seen.insert(chunk) {
                     chunks.push(chunk);
@@ -471,9 +553,9 @@ fn hostile_spawnable_chunks(
     chunks
 }
 
-fn hostile_local_counts(list: &[Instance], anchors: &[HostileSpawnAnchor]) -> Vec<u32> {
+fn local_counts(list: &[Instance], anchors: &[ScanAnchor], category: SpawnCategory) -> Vec<u32> {
     let mut counts = vec![0; anchors.len()];
-    for mob in live_hostile_mobs(list) {
+    for mob in live_members(list, category) {
         let chunk = chunk_pos_at(mob.pos);
         for (i, anchor) in anchors.iter().enumerate() {
             if chunk_in_spawn_range(anchor.chunk, chunk) {
@@ -484,32 +566,30 @@ fn hostile_local_counts(list: &[Instance], anchors: &[HostileSpawnAnchor]) -> Ve
     counts
 }
 
-fn hostile_chunk_has_local_room(
-    anchors: &[HostileSpawnAnchor],
+fn chunk_has_local_room(
+    anchors: &[ScanAnchor],
     local_counts: &[u32],
+    cap: u32,
     chunk: ChunkPos,
 ) -> bool {
-    anchors.iter().enumerate().any(|(i, anchor)| {
-        local_counts[i] < MobCategory::Hostile.cap() && chunk_in_spawn_range(anchor.chunk, chunk)
-    })
+    anchors
+        .iter()
+        .enumerate()
+        .any(|(i, anchor)| local_counts[i] < cap && chunk_in_spawn_range(anchor.chunk, chunk))
 }
 
 fn chunk_in_spawn_range(anchor: ChunkPos, chunk: ChunkPos) -> bool {
-    (chunk.cx - anchor.cx).abs() <= HOSTILE_SPAWN_CHUNK_RADIUS
-        && (chunk.cz - anchor.cz).abs() <= HOSTILE_SPAWN_CHUNK_RADIUS
+    (chunk.cx - anchor.cx).abs() <= SCAN_SPAWN_CHUNK_RADIUS
+        && (chunk.cz - anchor.cz).abs() <= SCAN_SPAWN_CHUNK_RADIUS
 }
 
-fn live_hostile_count(list: &[Instance]) -> u32 {
-    live_hostile_mobs(list).count() as u32
-}
-
-fn live_hostile_mobs(list: &[Instance]) -> impl Iterator<Item = &Instance> {
+fn live_members(list: &[Instance], category: SpawnCategory) -> impl Iterator<Item = &Instance> {
     list.iter()
-        .filter(|m| !m.is_dead() && def(m.kind).category == MobCategory::Hostile)
+        .filter(move |m| !m.is_dead() && def(m.kind).category == Some(category))
 }
 
 fn scaled_mob_cap(base: u32, spawnable_chunks: u32) -> u32 {
-    ((base as u64 * spawnable_chunks as u64) / HOSTILE_SPAWN_CHUNKS_PER_PLAYER as u64) as u32
+    ((base as u64 * spawnable_chunks as u64) / SCAN_SPAWN_CHUNKS_PER_PLAYER as u64) as u32
 }
 
 fn chunk_pos_at(pos: WorldPos) -> ChunkPos {
@@ -578,12 +658,17 @@ fn too_near_existing(kind: Mob, pos: WorldPos, existing: &[Spawn]) -> bool {
 
 pub(super) fn room_for(list: &[Instance], kind: Mob) -> u32 {
     let d = def(kind);
-    let living = || list.iter().filter(|m| !m.is_dead());
-    let species = living().filter(|m| m.kind == kind).count() as u32;
-    let category = living()
-        .filter(|m| def(m.kind).category == d.category)
+    let species = list
+        .iter()
+        .filter(|m| !m.is_dead() && m.kind == kind)
         .count() as u32;
-    cap_room(species, d.cap, category, d.category.cap())
+    match d.category {
+        Some(category) => {
+            let members = live_members(list, category).count() as u32;
+            cap_room(species, d.cap, members, category.def().cap)
+        }
+        None => d.cap.saturating_sub(species),
+    }
 }
 
 fn cap_room(species: u32, species_cap: u32, category: u32, category_cap: u32) -> u32 {
@@ -602,7 +687,7 @@ pub(super) fn species_enabled(kind: Mob, disabled: &std::collections::BTreeSet<S
 
 fn choose_kind(
     rng: &mut MobRng,
-    category: MobCategory,
+    category: SpawnCategory,
     room_for: &impl Fn(Mob) -> u32,
     disabled: &std::collections::BTreeSet<String>,
     lives_here: impl Fn(Mob) -> bool,
@@ -611,13 +696,10 @@ fn choose_kind(
     let mut seen = 0i32;
     for m in defs()
         .iter()
-        .filter(|d| d.category == category)
+        .filter(|d| d.category == Some(category) && d.spawn.is_some())
         .map(|d| d.mob)
     {
-        if !def(m).spawn.is_spawnable()
-            || !lives_here(m)
-            || room_for(m) < def(m).spawn_group.min_count()
-        {
+        if !lives_here(m) || room_for(m) < def(m).spawn_group.min_count() {
             continue;
         }
         if !species_enabled(m, disabled) {
@@ -651,24 +733,33 @@ mod tests {
         world
     }
 
-    fn passive() -> NaturalSpawn {
-        MobCategory::Passive
-            .natural_spawn()
-            .expect("passives spawn naturally")
+    fn passive() -> Band {
+        let category = SpawnCategory::by_name("passive").expect("engine category");
+        let Some(Spawner::Ring { near, far, .. }) = category.def().spawner else {
+            panic!("passives spawn by a ring");
+        };
+        Band { near, far }
     }
 
     fn valid_spawn_distance_player() -> WorldPos {
         WorldPos::new(-60.0, 65.0, 8.0)
     }
 
-    fn hostile_test_plan(player_pos: WorldPos, chunk: ChunkPos) -> HostileSpawnPlan {
-        HostileSpawnPlan {
-            anchors: vec![HostileSpawnAnchor::new(player_pos)],
-            spawnable_chunks: vec![chunk],
-            attempt_chunks: vec![chunk],
+    const SCAN_BAND: Band = Band {
+        near: 24.0,
+        far: 128.0,
+    };
+
+    fn test_plan(player_pos: WorldPos, chunks: Vec<ChunkPos>) -> ScanPlan {
+        ScanPlan {
+            category: SpawnCategory::by_name("passive").expect("engine category"),
+            band: SCAN_BAND,
+            anchors: vec![ScanAnchor::new(player_pos)],
+            spawnable_chunks: chunks.clone(),
+            attempt_chunks: chunks,
             local_counts: vec![0],
-            hostile_count: 0,
-            hostile_cap: MobCategory::Hostile.cap(),
+            count: 0,
+            cap: 70,
         }
     }
 
@@ -719,18 +810,14 @@ mod tests {
         use crate::entity::fluid_fixture::{block, pool, CINDER, FLOOR_Y};
         let kind = crate::mob::by_key("bodyfluid:swim").unwrap();
         let feet = IVec3::new(8, FLOOR_Y, 8);
-        let near = WorldPos::new(
-            f64::from(8.5 + HOSTILE_MIN_SPAWN_DIST + 1.0),
-            FLOOR_Y as f64,
-            8.5,
-        );
-        let plan = hostile_test_plan(near, ChunkPos::new(0, 0));
+        let near = WorldPos::new(f64::from(8.5 + SCAN_BAND.near + 1.0), FLOOR_Y as f64, 8.5);
+        let plan = test_plan(near, vec![ChunkPos::new(0, 0)]);
         for (floor, safe) in [(Block::Stone, true), (block(CINDER), false)] {
             let mut world = pool(Block::Air, FLOOR_Y - 1);
             world.set_block_world(8, FLOOR_Y - 1, 8, floor);
             assert_eq!(body_fits_at(&world, kind, feet), safe, "{floor:?}");
             assert_eq!(
-                hostile_candidate_at(&world, &plan, 8, FLOOR_Y, 8).is_some(),
+                site_at(&world, &plan, 8, FLOOR_Y, 8).is_some(),
                 safe,
                 "{floor:?}"
             );
@@ -752,14 +839,69 @@ mod tests {
     }
 
     #[test]
-    fn hostile_spawnable_chunks_deduplicate_overlapping_players() {
+    fn a_scan_offers_its_dark_species_and_no_site_on_a_spawn_proof_floor() {
+        crate::entity::fluid_fixture::with_content("scan-species", scan_species_inner);
+    }
+
+    fn scan_species_inner() {
+        use crate::entity::fluid_fixture::{block, DARK, FLOOR_Y, PROOF};
+        let lurker = crate::mob::by_key("bodyfluid:lurker").unwrap();
+        let near = WorldPos::new(f64::from(8.5 + SCAN_BAND.near + 1.0), FLOOR_Y as f64, 8.5);
+        let reach = spawnable_chunks(&[ChunkPos::new(0, 0)], |_| true);
+        let mut plan = test_plan(near, reach);
+        plan.category = SpawnCategory::by_name(DARK).unwrap();
+        let floored = |floor: Block| {
+            let mut world = ServerWorld::new(0, 1);
+            world.insert_empty_column_for_test(ChunkPos::new(0, 0));
+            world.set_block_world(8, FLOOR_Y - 1, 8, floor);
+            world
+        };
+        let mut world = floored(Block::Stone);
+        let site = site_at(&world, &plan, 8, FLOOR_Y, 8).expect("an open cell on stone");
+        assert_eq!(
+            scan_species(&world, &plan, &site),
+            None,
+            "open sky by day is too bright"
+        );
+        let night = 0.0f32.to_le_bytes().to_vec();
+        world.world_kv_set(crate::rules::daynight::DAYLIGHT_KEY.into(), night);
+        assert_eq!(scan_species(&world, &plan, &site), Some(lurker));
+
+        let world = floored(block(PROOF));
+        assert!(site_at(&world, &plan, 8, FLOOR_Y, 8).is_none());
+    }
+
+    #[test]
+    fn light_below_reads_the_sky_through_the_daylight() {
+        let rule = crate::mob::SpawnRule {
+            biomes: None,
+            underground: &[],
+            y: None,
+            space: None,
+            chance: 1.0,
+            chances: &[],
+            ground: None,
+            light_below: Some(24),
+            player_beyond: None,
+            crowd: None,
+        };
+        assert!(!rule.light_admits(40, 0, 1.0), "open sky by day");
+        assert!(rule.light_admits(40, 0, 0.2), "the same sky at night");
+        assert!(
+            !rule.light_admits(40, 30, 0.2),
+            "a torch lights it at any hour"
+        );
+    }
+
+    #[test]
+    fn spawnable_chunks_deduplicate_overlapping_players() {
         let a = chunk_pos_at(WorldPos::new(0.5, 64.0, 0.5));
         let b = chunk_pos_at(WorldPos::new(16.5, 64.0, 0.5));
 
-        let solo = hostile_spawnable_chunks(&[a], |_| true);
-        let together = hostile_spawnable_chunks(&[a, b], |_| true);
+        let solo = spawnable_chunks(&[a], |_| true);
+        let together = spawnable_chunks(&[a, b], |_| true);
 
-        assert_eq!(solo.len(), HOSTILE_SPAWN_CHUNKS_PER_PLAYER as usize);
+        assert_eq!(solo.len(), SCAN_SPAWN_CHUNKS_PER_PLAYER as usize);
         assert_eq!(
             together.len(),
             18 * 17,
@@ -774,7 +916,12 @@ mod tests {
     }
 
     #[test]
-    fn hostile_plan_ignores_only_players_whose_local_census_is_still_loading() {
+    fn scan_plan_ignores_only_players_whose_local_census_is_still_loading() {
+        crate::entity::fluid_fixture::with_content("scan-census", scan_census_inner);
+    }
+
+    fn scan_census_inner() {
+        let dark = SpawnCategory::by_name(crate::entity::fluid_fixture::DARK).unwrap();
         let mut world = ServerWorld::new(1, 1);
         let ready = WorldPos::new(0.5, 64.0, 0.5);
         let loading = WorldPos::new(160.5, 64.0, 0.5);
@@ -782,35 +929,35 @@ mod tests {
             world.insert_empty_column_for_test(ChunkPos::new(dx, dz));
         }
 
-        let plan = hostile_spawn_plan(&world, &mut HostileSpawnCache::default(), &[ready, loading])
+        let plan = scan_plan(&world, &mut ScanCache::default(), &[ready, loading], dark)
             .expect("the ready player's loaded neighborhood can spawn");
         assert_eq!(plan.anchors.len(), 1);
         assert_eq!(plan.anchors[0].chunk, ChunkPos::new(0, 0));
     }
 
     #[test]
-    fn hostile_local_cap_allows_chunks_owned_by_any_player_with_room() {
-        let cap = MobCategory::Hostile.cap();
-        let a = HostileSpawnAnchor::new(WorldPos::new(0.5, 64.0, 0.5));
-        let b = HostileSpawnAnchor::new(WorldPos::new(64.5, 64.0, 0.5));
+    fn a_local_cap_allows_chunks_owned_by_any_player_with_room() {
+        let cap = 70;
+        let a = ScanAnchor::new(WorldPos::new(0.5, 64.0, 0.5));
+        let b = ScanAnchor::new(WorldPos::new(64.5, 64.0, 0.5));
         let anchors = [a, b];
 
         assert!(
-            hostile_chunk_has_local_room(&anchors, &[cap, 0], ChunkPos::new(4, 0)),
+            chunk_has_local_room(&anchors, &[cap, 0], cap, ChunkPos::new(4, 0)),
             "an overlapping chunk may still spawn for the player whose local cap has room"
         );
         assert!(
-            !hostile_chunk_has_local_room(&anchors, &[cap, 0], ChunkPos::new(-8, 0)),
+            !chunk_has_local_room(&anchors, &[cap, 0], cap, ChunkPos::new(-8, 0)),
             "a chunk only owned by a capped player is blocked"
         );
         assert!(
-            hostile_chunk_has_local_room(&anchors, &[cap, 0], ChunkPos::new(12, 0)),
+            chunk_has_local_room(&anchors, &[cap, 0], cap, ChunkPos::new(12, 0)),
             "the uncapped player's non-overlap side still spawns"
         );
     }
 
     #[test]
-    fn hostile_column_scan_prefers_high_loaded_spawn_site() {
+    fn a_column_scan_prefers_high_loaded_spawn_site() {
         let mut world = ServerWorld::new(1, 1);
         let chunk = ChunkPos::new(0, 0);
         world.insert_empty_column_for_test(chunk);
@@ -818,40 +965,33 @@ mod tests {
             assert!(world.set_block_world(8, y, 8, Block::Grass));
         }
 
-        let plan = hostile_test_plan(WorldPos::new(80.0, 64.0, 8.0), chunk);
-        let candidates = hostile_column_candidates(&world, &plan, 8, 8);
+        let plan = test_plan(WorldPos::new(80.0, 64.0, 8.0), vec![chunk]);
+        let candidates = column_sites(&world, &plan, 8, 8);
 
         assert_eq!(
-            candidates.first().map(|site| site.candidate.cell),
-            Some([8, 64, 8])
+            candidates.first().map(|site| site.cell),
+            Some(IVec3::new(8, 64, 8))
         );
         assert!(
             candidates
                 .iter()
-                .any(|site| site.candidate.cell == [8, 48, 8]),
+                .any(|site| site.cell == IVec3::new(8, 48, 8)),
             "lower sites remain available when higher candidates are rejected"
         );
     }
 
     #[test]
-    fn hostile_sampled_columns_come_from_eligible_chunks() {
+    fn sampled_scan_columns_come_from_eligible_chunks() {
         let world = ServerWorld::new(11, 1);
         let chunks = vec![
             ChunkPos::new(-8, 0),
             ChunkPos::new(0, 0),
             ChunkPos::new(8, 8),
         ];
-        let plan = HostileSpawnPlan {
-            anchors: vec![HostileSpawnAnchor::new(WorldPos::new(0.5, 64.0, 0.5))],
-            spawnable_chunks: chunks.clone(),
-            attempt_chunks: chunks.clone(),
-            local_counts: vec![0],
-            hostile_count: 0,
-            hostile_cap: MobCategory::Hostile.cap(),
-        };
+        let plan = test_plan(WorldPos::new(0.5, 64.0, 0.5), chunks.clone());
 
-        for attempt in 0..HOSTILE_SPAWN_ATTEMPTS {
-            let (wx, wz) = hostile_candidate_column(&world, &plan, attempt).unwrap();
+        for attempt in 0..SCAN_SPAWN_ATTEMPTS {
+            let (wx, wz) = scan_column(&world, &plan, attempt).unwrap();
             let chunk = ChunkPos::new(wx >> 4, wz >> 4);
             assert!(chunks.contains(&chunk));
             assert!((0..CHUNK_SX as i32).contains(&(wx - chunk.cx * CHUNK_SX as i32)));
@@ -867,9 +1007,10 @@ mod tests {
     fn aquatic_cap_inner() {
         let fish = crate::mob::by_key("bodyfluid:gilled").unwrap();
         let land = crate::mob::by_key("bodyfluid:swim").unwrap();
-        assert_eq!(def(fish).category, MobCategory::Aquatic);
+        let aquatic = def(fish).category.expect("water life has a category");
+        assert_ne!(def(land).category, Some(aquatic));
         let at = WorldPos::new(0.5, 64.0, 0.5);
-        let crowd: Vec<Instance> = (0..MobCategory::Aquatic.cap())
+        let crowd: Vec<Instance> = (0..aquatic.def().cap)
             .map(|i| Instance::new(fish, at, 0.0, u64::from(i)))
             .collect();
         assert_eq!(room_for(&crowd, fish), 0, "water life fills its own cap");

@@ -118,7 +118,7 @@ impl AiBehavior for RetaliateAi {
                 !self.ignore_same_species
                     || match who {
                         EntityRef::Player(_) => true,
-                        EntityRef::Mob(id) => ctx
+                        EntityRef::Entity(id) => ctx
                             .live_mob(ctx.mob_id)
                             .zip(ctx.live_mob(id))
                             .is_none_or(|(me, attacker)| me.kind != attacker.kind),

@@ -131,7 +131,7 @@ impl AiCtx<'_> {
     pub fn entity_alive(&self, who: EntityRef) -> bool {
         match who {
             EntityRef::Player(pid) => self.players.iter().any(|a| a.id == pid),
-            EntityRef::Mob(id) => self.mobs.live(id).is_some(),
+            EntityRef::Entity(id) => self.mobs.live(id).is_some(),
         }
     }
 
@@ -142,7 +142,7 @@ impl AiCtx<'_> {
     pub fn entity_pos(&self, who: EntityRef) -> Option<petramond_math::world_pos::WorldPos> {
         match who {
             EntityRef::Player(pid) => self.players.iter().find(|a| a.id == pid).map(|a| a.pos),
-            EntityRef::Mob(id) => self
+            EntityRef::Entity(id) => self
                 .mobs
                 .live(id)
                 .map(|m| m.pos + Vec3::new(0.0, super::def(m.kind).size.height * 0.5, 0.0)),

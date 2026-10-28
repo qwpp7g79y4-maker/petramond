@@ -96,20 +96,12 @@ impl Turn<'_> {
         {
             return;
         }
-        match foe.id {
-            EntityRef::Player(id) => damage_player(
-                id,
-                swing.melee.damage.round() as i32,
-                Some(mine.at(0.5)),
-                Some(EntityRef::Mob(self.me.id)),
-            ),
-            EntityRef::Mob(id) => damage_mob(
-                id,
-                swing.melee.damage,
-                Some(mine.at(0.5)),
-                Some(EntityRef::Mob(self.me.id)),
-            ),
-        }
+        damage(
+            foe.id,
+            swing.melee.damage,
+            Some(mine.at(0.5)),
+            Some(EntityRef::Entity(self.me.id)),
+        );
         let EntityRef::Player(victim) = foe.id else {
             return;
         };
@@ -132,6 +124,7 @@ impl Turn<'_> {
 /// other `player_damage_pre` handler, and one that refuses the hit ends the dispatch first.
 pub fn on_player_damage(sk: &mut Skeletons, payload: &EventPayload) -> Outcome {
     let EventPayload::PlayerDamagePre {
+        player,
         amount,
         source: DamageSource::MobAttack { key },
         ..
@@ -142,12 +135,10 @@ pub fn on_player_damage(sk: &mut Skeletons, payload: &EventPayload) -> Outcome {
     if !sk.guards.values().any(|(_, guard)| guard == key) || *amount <= 0 {
         return Outcome::Continue;
     }
-    let Some(victim) = player_state().id else {
-        return Outcome::Continue;
-    };
+    let victim = *player;
     if let Some(at) = sk.shoves.iter().position(|(p, _)| *p == victim) {
         let (_, impulse) = sk.shoves.remove(at);
-        apply_knockback_to(victim, impulse);
+        entity_impulse(EntityRef::Player(victim), impulse);
     }
     Outcome::Continue
 }

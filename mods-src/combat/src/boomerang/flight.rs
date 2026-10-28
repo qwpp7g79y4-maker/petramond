@@ -1,7 +1,6 @@
 use super::route::Route;
 use super::rows::Row;
 use crate::body::TICK_SECONDS;
-use crate::strike::relative;
 use mod_sdk::*;
 
 const CATCH_GRACE_TICKS: u32 = 60;
@@ -101,8 +100,7 @@ impl Flight {
                 vel
             }
             Leg::Recall => {
-                let to = relative(self.home, pos);
-                let distance = length(to);
+                let (vel, distance) = velocity_toward(pos, self.home, self.row.return_speed);
                 // Further body hits cannot keep extending an uncaught flight's deadline.
                 self.drop_at.get_or_insert_with(|| {
                     self.age - 1
@@ -110,12 +108,9 @@ impl Flight {
                         + CATCH_GRACE_TICKS
                 });
                 if distance < self.row.return_speed * TICK_SECONDS {
-                    let vel = to.map(|v| v / distance.max(1e-6) * self.row.return_speed);
                     self.leg = Leg::Past(vel);
-                    vel
-                } else {
-                    to.map(|v| v / distance * self.row.return_speed)
                 }
+                vel
             }
             Leg::Past(vel) => *vel,
         };

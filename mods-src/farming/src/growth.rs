@@ -20,7 +20,7 @@ pub fn on_tag_removed(content: &Content, mob_id: u64, kind: MobId, key: &str) {
         return;
     };
     if spawn_mob_checked(&def.key, snap.pos, snap.yaw).is_some() {
-        despawn_mob(mob_id);
+        despawn_entity(mob_id);
     } else {
         mob_tag_set(
             mob_id,

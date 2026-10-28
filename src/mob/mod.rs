@@ -17,6 +17,7 @@ mod anim;
 pub(crate) mod behavior;
 mod body_geometry;
 mod brain;
+mod category;
 mod confined;
 mod damage;
 mod instance;
@@ -43,6 +44,7 @@ pub use body_geometry::{
     SolidMotionSolver,
 };
 pub use brain::Brain;
+pub use category::{CategoryDef, SpawnCategory, Spawner};
 pub use instance::{hurt_flash01, DigStep, Instance};
 pub use manager::{
     DeathDrop, MobAttack, MobExposureDamage, MobFall, MobSpill, MobTickEvents, Mobs, PlayerAnchor,
@@ -60,8 +62,8 @@ pub use nav::{
 pub use noise::{player_steps_are_audible, Noise, NoiseField, NoiseKind};
 pub use petramond_world::ai_vocab::validate_brain_extensions;
 pub use spawn::{
-    body_fits_at as spawn_body_fits_at, hostile_attempt_sites, hostile_kind_has_room,
-    hostile_spawn_plan, HostileSpawnCache, HOSTILE_SPAWN_ATTEMPTS,
+    body_fits_at as spawn_body_fits_at, scan_plan, scan_sites, scan_species, ScanCache,
+    SCAN_SPAWN_ATTEMPTS,
 };
 
 use petramond_world::bbmodel::Model;
@@ -88,7 +90,7 @@ impl Mob {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum EntityRef {
     Player(crate::player::PlayerId),
-    Mob(MobId),
+    Entity(MobId),
 }
 
 pub type MobId = u64;
@@ -97,7 +99,7 @@ impl EntityRef {
     pub fn player(self) -> Option<crate::player::PlayerId> {
         match self {
             Self::Player(id) => Some(id),
-            Self::Mob(_) => None,
+            Self::Entity(_) => None,
         }
     }
 }
@@ -208,8 +210,6 @@ impl Mob {
 }
 
 pub const MAX_GAIT_FACINGS: usize = 8;
-pub const DEFAULT_HOSTILE_DESPAWN_RADIUS: f32 = 128.0;
-pub const DEFAULT_AQUATIC_DESPAWN_RADIUS: f32 = 96.0;
 
 /// When a mob far from every player leaves the world: always past `radius`, and, unless the row
 /// opts out, at random once it is beyond [`PLAYER_REACTIVE_RANGE`].
@@ -221,96 +221,52 @@ pub struct Despawn {
 
 pub const PLAYER_REACTIVE_RANGE: f32 = 32.0;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MobCategory {
-    Passive,
-    Hostile,
-    /// Water life: its own cap, so schools of fish never crowd land animals out of theirs.
-    Aquatic,
-}
-
-/// How a category tops up the world around each player: one attempt every `every` ticks, at a
-/// column `near..far` blocks away.
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct NaturalSpawn {
-    pub every: u64,
-    pub near: f32,
-    pub far: f32,
-}
-
-impl MobCategory {
-    pub const ALL: [MobCategory; 3] = [
-        MobCategory::Passive,
-        MobCategory::Hostile,
-        MobCategory::Aquatic,
-    ];
-
-    /// `None` for hostiles, which have their own spawner.
-    pub fn natural_spawn(self) -> Option<NaturalSpawn> {
-        match self {
-            MobCategory::Passive => Some(NaturalSpawn {
-                every: 400,
-                near: 50.0,
-                far: 128.0,
-            }),
-            // Water life is seen only through a short fog, swims only near players and leaves
-            // behind them, so it is topped up often and close.
-            MobCategory::Aquatic => Some(NaturalSpawn {
-                every: 40,
-                near: 24.0,
-                far: 64.0,
-            }),
-            MobCategory::Hostile => None,
-        }
-    }
-
-    pub fn cap(self) -> u32 {
-        match self {
-            MobCategory::Passive => 25,
-            MobCategory::Hostile => 70,
-            MobCategory::Aquatic => 72,
-        }
-    }
-
-    pub fn default_despawn_radius(self) -> Option<f32> {
-        match self {
-            MobCategory::Passive => None,
-            MobCategory::Hostile => Some(DEFAULT_HOSTILE_DESPAWN_RADIUS),
-            MobCategory::Aquatic => Some(DEFAULT_AQUATIC_DESPAWN_RADIUS),
-        }
-    }
-}
-
+/// Where a species spawns on its own. Every spawner applies every field.
 pub struct SpawnRule {
-    pub biomes: &'static [Biome],
+    /// `None` = any biome.
+    pub biomes: Option<&'static [Biome]>,
     pub underground: &'static [u8],
     pub y: Option<[i32; 2]>,
     pub space: Option<&'static [Block]>,
     pub chance: f32,
     pub chances: &'static [f32],
-    pub ground: &'static [Block],
+    /// The floor it stands on; `None` = any.
+    pub ground: Option<&'static [Block]>,
+    /// Only where the light (6-bit, the brighter of block light and daylit sky) is below this.
+    pub light_below: Option<u8>,
+    /// Never this close to a player.
+    pub player_beyond: Option<f32>,
+    /// Fewer than `limit` of its own kind within `radius`.
+    pub crowd: Option<Crowd>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Crowd {
+    pub radius: f32,
+    pub limit: u32,
 }
 
 impl SpawnRule {
     pub fn admits(&self, biome: Biome, ground: Block) -> bool {
-        (self.biomes.contains(&biome) || (self.biomes.is_empty() && !self.underground.is_empty()))
-            && (self.ground.contains(&ground) || (self.ground.is_empty() && self.space.is_some()))
+        self.biomes.is_none_or(|b| b.contains(&biome))
+            && self.ground.is_none_or(|g| g.contains(&ground))
     }
 
     pub fn chance_in(&self, biome: Biome) -> f32 {
-        if self.biomes.is_empty() && !self.underground.is_empty() {
+        let Some(biomes) = self.biomes else {
             return self.chance;
-        }
-        match self.biomes.iter().position(|&b| b == biome) {
+        };
+        match biomes.iter().position(|&b| b == biome) {
             Some(i) => self.chance * self.chances.get(i).copied().unwrap_or(1.0),
             None => 0.0,
         }
     }
 
-    pub fn is_spawnable(&self) -> bool {
-        (!self.biomes.is_empty() || !self.underground.is_empty())
-            && (!self.ground.is_empty() || self.space.is_some())
+    /// Whether `light` (6-bit) at a site with `daylight` (0..=1) on its sky is dark enough.
+    pub fn light_admits(&self, sky: u8, block: u8, daylight: f32) -> bool {
+        self.light_below
+            .is_none_or(|below| f32::from(block).max(f32::from(sky) * daylight) < f32::from(below))
     }
 }
 
@@ -559,6 +515,8 @@ pub struct ShearSpec {
     pub regrow_min: u32,
     pub regrow_max: u32,
     pub coat: CubeName,
+    /// The tool kind that takes the coat off.
+    pub tool: petramond_world::material::ToolKind,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -652,10 +610,12 @@ pub struct MobDef {
     /// nearest its current yaw. `[0]` walks forward; a crab's `±90°` scuttles sideways.
     pub gait_facings: &'static [f32],
     pub walk_anim_rate: f32,
-    pub category: MobCategory,
+    /// The population it counts toward; `None` = no cap and no spawner of its own.
+    pub category: Option<SpawnCategory>,
     pub despawn: Option<Despawn>,
     pub cap: u32,
-    pub spawn: SpawnRule,
+    /// `None` = it never spawns on its own.
+    pub spawn: Option<SpawnRule>,
     pub spawn_group: SpawnGroup,
     pub wander: WanderTuning,
     pub habitat: Habitat,
@@ -763,6 +723,7 @@ pub(crate) static CATALOG: petramond_world::content::Slot<MobCatalog> =
     petramond_world::content::Slot::new(
         "mobs.json",
         &[
+            "spawn_categories.json",
             petramond_world::content::stage::ITEMS,
             petramond_world::content::stage::LOOT,
             petramond_world::content::stage::PARTICLE_EMITTERS,

@@ -15,7 +15,7 @@ fn with_exposure<R>(
                 (!p.is_spectator() && p.health() > 0).then(|| f(p.exposure_mut()))
             })
             .flatten(),
-        EntityRef::Mob(id) => {
+        EntityRef::Entity(id) => {
             live_mob(ctx, id)?;
             Some(f(ctx.world.mobs_mut().exposure_mut(id)?))
         }

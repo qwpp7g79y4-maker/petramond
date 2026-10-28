@@ -32,7 +32,7 @@ fn author(w: &mut ServerWorld, block: Block, at: IVec3, props: &[(&str, &str)]) 
         .placement
         .authored_plan(block, &mut inputs)
         .expect("authored plan");
-    assert!(w.commit_placement(&plan, true));
+    assert!(w.commit_placement(&plan));
 }
 
 #[test]

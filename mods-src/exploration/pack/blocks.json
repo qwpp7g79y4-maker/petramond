@@ -11,8 +11,6 @@
       "tags": [
         "log"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -59,8 +57,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -106,8 +102,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -153,8 +147,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -200,8 +192,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -247,11 +237,9 @@
         "ao_occluder"
       ],
       "tags": [
-        "monsters:spawn_proof",
+        "spawn_proof",
         "exploration:cave_soil"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -294,8 +282,9 @@
         "no_pane_connect",
         "climbable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -331,8 +320,9 @@
         "no_pane_connect",
         "climbable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 15,
       "light_color": [
@@ -374,8 +364,9 @@
         "no_pane_connect",
         "climbable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 15,
       "light_color": [
@@ -417,8 +408,9 @@
         "no_pane_connect",
         "climbable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 15,
       "light_color": [
@@ -460,8 +452,9 @@
         "no_pane_connect",
         "climbable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 15,
       "light_color": [
@@ -506,8 +499,9 @@
         "soil",
         "exploration:cave_soil"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 13,
       "light_color": [
@@ -546,8 +540,9 @@
         "soil",
         "exploration:cave_soil"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 13,
       "light_color": [
@@ -586,8 +581,9 @@
         "soil",
         "exploration:cave_soil"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 13,
       "light_color": [
@@ -626,8 +622,9 @@
         "soil",
         "exploration:cave_soil"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 13,
       "light_color": [
@@ -663,8 +660,9 @@
         "no_pane_connect"
       ],
       "roots_face": "full_cube",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 15,
       "light_color": [
@@ -700,8 +698,9 @@
         "no_pane_connect"
       ],
       "roots_face": "full_cube",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 15,
       "light_color": [
@@ -737,8 +736,9 @@
         "no_pane_connect"
       ],
       "roots_face": "full_cube",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 15,
       "light_color": [
@@ -774,8 +774,9 @@
         "no_pane_connect"
       ],
       "roots_face": "full_cube",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 15,
       "light_color": [
@@ -809,11 +810,9 @@
         "ao_occluder"
       ],
       "tags": [
-        "monsters:spawn_proof",
+        "spawn_proof",
         "exploration:cave_soil"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -854,8 +853,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -902,8 +899,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -937,8 +932,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -973,8 +966,9 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "door",
-      "interaction": "toggle_door",
+      "behaviors": [
+        "door"
+      ],
       "collision": [
         {
           "min": [
@@ -1010,6 +1004,10 @@
           "family": "mushroom",
           "form": "door"
         }
+      },
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
       }
     },
     {
@@ -1021,8 +1019,9 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -1056,8 +1055,9 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -1091,8 +1091,9 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -1126,8 +1127,9 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -1161,8 +1163,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1208,8 +1208,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -1242,8 +1240,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -1422,9 +1418,13 @@
       "flags": [
         "solid"
       ],
-      "tags": [],
-      "behavior": "exploration:pointed_dripstone",
-      "interaction": "none",
+      "tags": [
+        "fragile"
+      ],
+      "stacks": true,
+      "behaviors": [
+        "exploration:pointed_dripstone"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -1451,6 +1451,12 @@
     {
       "extends": "exploration:stalagmite",
       "block": "exploration:stalactite",
+      "support": "above",
+      "tags": [
+        "fragile",
+        "exploration:hanging_dripstone"
+      ],
+      "stacks": "exploration:hanging_dripstone",
       "shape": {
         "run": {
           "root": "up",
@@ -1757,9 +1763,15 @@
       "flags": [
         "solid"
       ],
-      "tags": [],
-      "behavior": "exploration:pointed_dripstone",
-      "interaction": "none",
+      "support": "above",
+      "tags": [
+        "fragile",
+        "exploration:hanging_dripstone"
+      ],
+      "stacks": "exploration:hanging_dripstone",
+      "behaviors": [
+        "exploration:pointed_dripstone"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2212,8 +2224,10 @@
       "contained_fluid": "petramond:water",
       "stacks": true,
       "sway": 0.16,
-      "behavior": "exploration:kelp",
-      "interaction": "none",
+      "behaviors": [
+        "fragile",
+        "exploration:kelp"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2243,8 +2257,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2280,8 +2295,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2334,8 +2347,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2388,8 +2399,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2442,8 +2451,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2496,8 +2503,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2537,8 +2545,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2578,8 +2587,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2619,8 +2629,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2660,8 +2671,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 14,
       "tiles": [
@@ -2697,8 +2709,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 14,
       "tiles": [
@@ -2818,8 +2831,10 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "exploration:ripens",
-      "interaction": "none",
+      "behaviors": [
+        "fragile",
+        "exploration:ripens"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2988,8 +3003,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -3450,8 +3466,6 @@
         "solid"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -3486,8 +3500,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 15,
       "tiles": [
@@ -3523,8 +3538,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -3572,8 +3585,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -3626,8 +3637,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -3662,8 +3674,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -3699,8 +3712,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -3753,8 +3764,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -3794,8 +3806,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -3891,8 +3901,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4081,8 +4089,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4122,8 +4131,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4164,8 +4174,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -4261,8 +4269,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4451,8 +4457,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4492,8 +4499,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4534,8 +4542,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -4588,8 +4594,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4629,8 +4636,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -4726,8 +4731,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4916,8 +4919,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4957,8 +4961,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4999,8 +5004,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -5053,8 +5056,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5094,8 +5098,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -5191,8 +5193,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5381,8 +5381,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5422,8 +5423,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5464,8 +5466,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -5518,8 +5518,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5559,8 +5560,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -5656,8 +5655,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5846,8 +5843,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5887,8 +5885,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5929,8 +5928,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -6026,8 +6023,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6216,8 +6211,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6257,8 +6253,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6299,8 +6296,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -6396,8 +6391,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6586,8 +6579,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6627,8 +6621,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6669,8 +6664,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -6723,8 +6716,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6764,8 +6758,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -6861,8 +6853,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7051,8 +7041,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7092,8 +7083,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7134,8 +7126,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -7231,8 +7221,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7421,8 +7409,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7462,8 +7451,9 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7527,8 +7517,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7591,8 +7579,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7655,8 +7641,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7719,8 +7703,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7783,8 +7765,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7847,8 +7827,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7911,8 +7889,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -7975,8 +7951,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -8039,8 +8013,6 @@
         "no_pane_connect"
       ],
       "contained_fluid": "petramond:water",
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -8080,8 +8052,6 @@
       "tags": [
         "exploration:coral"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -8131,8 +8101,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -8169,8 +8137,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -8207,8 +8173,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -8258,8 +8222,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -8296,8 +8258,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -8336,8 +8296,9 @@
         "no_pane_connect",
         "climbable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 25,
       "light_color": [

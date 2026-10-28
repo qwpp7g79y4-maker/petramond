@@ -79,7 +79,7 @@ fn a_seat_rising_up_a_slope_is_not_a_step_the_body_glides_behind() {
         .set_own_mount(Some(petramond::net::protocol::PlayerMount::Anchor {
             pos,
             yaw: 0.0,
-            pose: 0,
+            posture: mod_api::Posture::Seated,
         }));
     for _ in 0..30 {
         game.local.player.pos.y += 0.05;

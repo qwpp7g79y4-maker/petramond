@@ -1,8 +1,7 @@
 use mod_api::{
-    BlockId, ClientCanvasElement, ClientContext, ClientEngineFactsData, ClientKeyContexts,
-    ClientKeyMods, ClientMenuData, ClientOverlayAnchor, ClientPackInfo, ClientStorageScope,
-    ClientSurfaceColumn, ClientSurfaceQuery, ClientTextRun, ClientWallTime, ClientWorldMark,
-    GuiValue,
+    ClientCanvasElement, ClientContext, ClientEngineFactsData, ClientKeyContexts, ClientKeyMods,
+    ClientMenuData, ClientOverlayAnchor, ClientPackInfo, ClientStorageScope, ClientSurfaceColumn,
+    ClientSurfaceQuery, ClientTextRun, ClientWallTime, ClientWorldMark, GuiValue,
 };
 
 #[allow(unused_imports)]
@@ -52,16 +51,6 @@ host_fn! {
 host_fn! {
     pub fn client_surface_columns(queries: Vec<ClientSurfaceQuery>) -> Vec<Option<ClientSurfaceColumn>>
         => ClientSurfaceColumns { queries } => ClientSurfaceColumns
-}
-
-host_fn! {
-    pub fn client_blocks_at(positions: Vec<[i32; 3]>) -> Vec<Option<BlockId>>
-        => ClientBlocksAt { positions } => Blocks
-}
-
-host_fn! {
-    pub fn client_cell_kv_at(key: &str, cells: Vec<[i32; 3]>) -> Vec<Option<Vec<u8>>>
-        => ClientCellKvAt { key: key.into(), cells } => BytesMany
 }
 
 host_fn! {
@@ -200,10 +189,6 @@ host_fn! {
     pub fn client_env_params(keys: &[&str]) -> Vec<Option<[f32; 4]>>
         => ClientEnvParams { keys: keys.iter().map(|k| (*k).into()).collect() }
         => EnvParams
-}
-
-host_fn! {
-    pub fn client_biome_at(pos: [i32; 2]) -> Option<u8> => ClientBiomeAt { pos } => MaybeByte
 }
 
 host_fn! {

@@ -15,7 +15,7 @@ pub mod view;
 
 pub(in crate::modding) use calls::{
     handle_body_call, handle_capture_call, handle_client_call, handle_file_call, handle_media_call,
-    handle_presentation_call, raycast,
+    handle_presentation_call, world_read,
 };
 pub use runtime::{
     bake_installed_custom_item_geometry, delete_local_world_storage, local_session_key,

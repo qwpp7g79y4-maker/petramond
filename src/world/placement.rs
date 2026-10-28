@@ -79,11 +79,7 @@ impl<S: WorldSide> World<S> {
     /// Blocks + states land raw across the whole footprint first, region stays consistent before
     /// any announce. Then one region refresh relights, remeshes, announces, runs the refine
     /// cascade.
-    /// `with_block_entities` is true on the authoritative world: a placed engine container
-    /// fabricates its empty machine state right away. Client replica passes false;
-    /// container/furnace machine state is server-owned and comes with the delta. That fabrication
-    /// is block-ENTITY vocabulary (see `world::container`), not shape knowledge.
-    pub fn commit_placement(&mut self, plan: &PlacementPlan, with_block_entities: bool) -> bool {
+    pub fn commit_placement(&mut self, plan: &PlacementPlan) -> bool {
         for w in &plan.writes {
             if !self.materialize_section_at(w.cell) {
                 return false;
@@ -112,23 +108,6 @@ impl<S: WorldSide> World<S> {
             }
             section.modified = true;
             changes.push(CellChange::new(c, old, ChangeKind::Place));
-        }
-        for &CellWrite {
-            cell: c,
-            block: b,
-            state,
-            ..
-        } in &plan.writes
-        {
-            if with_block_entities {
-                let facing =
-                    <petramond_world::block_state::EntityFront as petramond_world::block::CellView>::from_cell(state).0;
-                if b == Block::Furnace {
-                    self.insert_furnace(c, facing);
-                } else if b == Block::Chest {
-                    self.insert_chest(c, facing);
-                }
-            }
         }
         self.apply_cell_changes(&changes);
         true

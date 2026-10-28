@@ -75,10 +75,14 @@ mod tests {
     }
 
     fn caches() -> Caches {
-        let mut caches = Caches::default();
-        caches.fuel_ticks.insert("test:coal".into(), 80);
-        caches.fuel_ticks.insert("test:sand".into(), 0);
-        caches
+        Caches {
+            fuel_ticks: Some(
+                [("test:coal".into(), 80), ("test:sand".into(), 0)]
+                    .into_iter()
+                    .collect(),
+            ),
+            ..Caches::default()
+        }
     }
 
     #[test]

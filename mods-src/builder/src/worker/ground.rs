@@ -98,11 +98,9 @@ pub(super) fn ground(
                 return unknown;
             };
             let open = info.collision.is_empty() && info.fluid.is_none();
-            let door = info.interaction == Some(BlockUse::ToggleDoor);
-            let keep = block == table
-                || info.interaction.is_some()
-                || info.hardness < 0.0
-                || info.fluid.is_some();
+            let door = super::swings(info);
+            let keep =
+                block == table || info.answers_use || info.hardness < 0.0 || info.fluid.is_some();
             let dig = (!open && !keep).then(|| {
                 let hand = info.hardness * HAND_SECONDS * 20.0;
                 let speed = info.preferred_tool.as_deref().and_then(|kind| {

@@ -33,8 +33,7 @@ pub(super) fn encode(palette: &[&CellData], out: &mut Vec<u8>) {
             | (u8::from(!d.state_ids.is_empty()) << 1)
             | (u8::from(d.fluid != 0) << 2)
             | (u8::from(!d.kv.is_empty()) << 3)
-            | (u8::from(d.container.is_some()) << 4)
-            | (u8::from(d.furnace.is_some()) << 5);
+            | (u8::from(d.container.is_some()) << 4);
         out.push(flags);
         if flags & 1 != 0 {
             bytes::blob(out, &d.state);
@@ -68,11 +67,6 @@ pub(super) fn encode(palette: &[&CellData], out: &mut Vec<u8>) {
                     out.push(s.count);
                     bytes::blob(out, &s.data);
                 }
-            }
-        }
-        if let Some(furnace) = d.furnace {
-            for n in furnace {
-                bytes::uint(out, usize::from(n));
             }
         }
     }
@@ -110,7 +104,7 @@ pub(super) fn decode<R: std::io::Read>(
     for _ in 0..count {
         let block = name(r)?;
         let flags = r.byte()?;
-        if flags & !63 != 0 {
+        if flags & !31 != 0 {
             return Err("Unknown schematic cell flags".into());
         }
         let state = if flags & 1 != 0 {
@@ -156,15 +150,6 @@ pub(super) fn decode<R: std::io::Read>(
         } else {
             None
         };
-        let furnace = if flags & 32 != 0 {
-            Some([
-                r.uint(65535)? as u16,
-                r.uint(65535)? as u16,
-                r.uint(65535)? as u16,
-            ])
-        } else {
-            None
-        };
         let d = CellData {
             block,
             state,
@@ -172,7 +157,6 @@ pub(super) fn decode<R: std::io::Read>(
             fluid,
             kv,
             container,
-            furnace,
         };
         d.validate()?;
         palette.push(d);

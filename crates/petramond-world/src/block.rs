@@ -11,26 +11,25 @@ pub mod rotation;
 pub mod shape;
 mod shape_kind;
 mod snow;
-mod sounds;
+pub mod sounds;
 mod tags;
 #[cfg(test)]
 mod tests;
 
-pub use behavior::BlockBehavior;
+pub use behavior::{cover_bare, BlockBehavior};
 pub use data::light_cells;
 pub use data::BlockTable;
 pub use data::ENGINE_BLOCK_NAMES;
 pub use data::{shape_kind_id_by_key, state_key_declared};
 pub(crate) use data::{warm_views, BlockViews};
+pub use definition::BlockFlags;
 #[allow(unused_imports)]
 pub use definition::ColorRamp;
-pub use definition::{BlockFlags, BlockMaterial};
 pub use definition::{
     Construction, EmitterKill, ParticleEmitter, ParticleEmitterAnchor, ParticleLook, RootsFace,
     SupportDir,
 };
 pub use interaction::builtin_claims_click;
-pub use interaction::BlockInteraction;
 pub use load::validate_particle_emitter;
 pub(crate) use load::{load_registry, Registry as BlockRegistry};
 pub use shape::BlockLightShape;
@@ -196,8 +195,8 @@ impl Block {
     // Furnace lit skin - same trick as sapling stages, applied to a machine.
     // Burning swaps the `furnace`/`furnace_lit` rows so the lit face and light
     // travel with block identity through save and replication.
-    // Counters sit in the `Furnace` block-entity; the swap keeps the sibling entity
-    // maps, see `World::tick_furnaces`. Not obtainable: no item row links it, and it
+    // Counters sit in the cell's data (`furnace::KV_KEY`), which the swap keeps.
+    // Not obtainable: no item row links it, and it
     // drops the furnace item like the unlit row.
     pub const FurnaceLit: Block = Block(126);
     // Ladder's non-default wall facings, same trick as sapling stages but on

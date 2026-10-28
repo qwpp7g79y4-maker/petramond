@@ -55,11 +55,6 @@ pub fn register_event_handler_filtered(
 }
 
 host_fn! {
-    pub fn register_hostile_spawner(priority: i32, callback_id: u32)
-        => RegisterHostileSpawner { callback_id, priority }
-}
-
-host_fn! {
     pub fn register_block_behavior(key: &str, callback_id: u32)
         => RegisterBlockBehavior { key: key.into(), callback_id }
 }

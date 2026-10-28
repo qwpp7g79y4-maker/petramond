@@ -76,6 +76,14 @@ pub(super) struct KinematicPose {
 const BODY_LEVEL_RATE: f32 = 4.0;
 
 impl Instance {
+    pub(super) fn apply_impulse(&mut self, delta: Vec3) {
+        self.motion.knockback += Vec3::new(delta.x, 0.0, delta.z);
+        self.motion.vel.y += delta.y;
+        if delta.y > 0.0 {
+            self.motion.on_ground = false;
+        }
+    }
+
     pub(super) fn set_kinematic(&mut self, pose: KinematicPose) -> bool {
         if self.combat.death.is_dead() {
             return false;

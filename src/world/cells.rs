@@ -15,7 +15,6 @@ pub struct ResolvedCell {
     pub fluid: u8,
     pub kv: BTreeMap<String, Vec<u8>>,
     pub container: Option<petramond_world::container::Container>,
-    pub furnace: Option<petramond_world::furnace::Furnace>,
 }
 
 pub type Cells = Vec<(IVec3, ResolvedCell)>;
@@ -27,7 +26,7 @@ pub struct CellPolicy {
 }
 
 pub struct CellHooks<'a> {
-    pub removed: &'a [(IVec3, Block)],
+    pub removed: &'a [(IVec3, Block, petramond_world::world::model::Removal)],
     pub placed: &'a [(IVec3, Block)],
 }
 
@@ -99,7 +98,6 @@ const AIR: ResolvedCell = ResolvedCell {
     fluid: 0,
     kv: BTreeMap::new(),
     container: None,
-    furnace: None,
 };
 
 impl ServerWorld {
@@ -118,7 +116,6 @@ impl ServerWorld {
                 .cloned()
                 .unwrap_or_default();
             data.container = s.container_at(x, y, z).cloned();
-            data.furnace = s.furnace_at(x, y, z).copied();
         }
         Ok(data)
     }
@@ -131,8 +128,7 @@ impl ServerWorld {
             return data.state == ShapeState::NONE
                 && data.fluid == 0
                 && data.kv.is_empty()
-                && data.container.is_none()
-                && data.furnace.is_none();
+                && data.container.is_none();
         };
         s.cell_state(x, y, z) == data.state
             && s.fluid_meta(x, y, z) == data.fluid
@@ -140,7 +136,6 @@ impl ServerWorld {
                 .get(&(section_idx(x, y, z) as u16))
                 .map_or(data.kv.is_empty(), |kv| *kv == data.kv)
             && s.container_at(x, y, z) == data.container.as_ref()
-            && s.furnace_at(x, y, z) == data.furnace.as_ref()
     }
 
     fn cell_readable(&self, pos: IVec3) -> Result<(), String> {
@@ -237,11 +232,15 @@ impl ServerWorld {
                     .collect::<Result<Vec<_>, _>>()?;
                 edit.before.extend(before);
             }
-            let removed = self.anchored_blocks(
-                cells
-                    .iter()
-                    .map(|(p, _)| (*p, Block::from_id(self.data.chunk_block(p.x, p.y, p.z)))),
-            );
+            let removed: Vec<_> = self
+                .anchored_blocks(
+                    cells
+                        .iter()
+                        .map(|(p, _)| (*p, Block::from_id(self.data.chunk_block(p.x, p.y, p.z)))),
+                )
+                .into_iter()
+                .map(|(p, block)| (p, block, self.data.removal(p)))
+                .collect();
             self.install_cells(&cells);
             let placed = self.anchored_blocks(cells.iter().map(|(p, d)| (*p, d.block)));
             hooks(
@@ -349,16 +348,12 @@ impl ServerWorld {
                 .expect("materialized edit");
             changes.push(CellChange::new(*p, s.block(x, y, z), ChangeKind::Replace));
             s.take_container(x, y, z);
-            s.take_furnace(x, y, z);
             s.set_block(x, y, z, data.block);
             s.set_fluid(x, y, z, data.block, data.fluid);
             s.set_cell_state(x, y, z, data.state);
             s.cell_kv_restore(x, y, z, data.kv.clone());
             if let Some(c) = &data.container {
                 s.insert_container(x, y, z, c.clone());
-            }
-            if let Some(f) = data.furnace {
-                s.insert_furnace(x, y, z, f);
             }
             s.modified = true;
         }

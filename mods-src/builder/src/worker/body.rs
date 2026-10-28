@@ -1,6 +1,5 @@
 use crate::host::prelude::*;
 
-use super::Ctx;
 use crate::content::GOLEM;
 use crate::geometry::{cell_of, feet_of};
 
@@ -15,7 +14,7 @@ pub struct Body {
 
 impl Body {
     pub fn actor(&self) -> EntityRef {
-        EntityRef::Mob(self.id)
+        EntityRef::Entity(self.id)
     }
 
     pub fn off_centre(&self) -> [f64; 2] {
@@ -54,7 +53,7 @@ pub(super) fn standing_cell(pos: [f64; 3]) -> [i32; 3] {
         .unwrap_or(own)
 }
 
-pub(super) fn unwedge(ctx: &mut Ctx, body: &Body) -> bool {
+pub(super) fn unwedge(body: &Body) -> bool {
     const HEIGHT: f64 = 1.5;
     let top = body.pos[1] + HEIGHT - 0.05;
     let head = cell_of([body.pos[0], top, body.pos[2]]);
@@ -62,22 +61,11 @@ pub(super) fn unwedge(ctx: &mut Ctx, body: &Body) -> bool {
         return false;
     }
     let half = f64::from(crate::content::GOLEM_HALF_WIDTH) - 0.02;
-    let reach_in = (top - f64::from(head[1])) as f32;
-    let (x, z) = (
-        body.pos[0] - f64::from(head[0]),
-        body.pos[2] - f64::from(head[2]),
+    let head_box = (
+        [body.pos[0] - half, f64::from(head[1]), body.pos[2] - half],
+        [body.pos[0] + half, top, body.pos[2] + half],
     );
-    let wedged = get_block(head).is_some_and(|b| {
-        ctx.caches.block(b).is_some_and(|info| {
-            info.collision.iter().any(|(lo, hi)| {
-                lo[1] < reach_in
-                    && f64::from(lo[0]) < x + half
-                    && f64::from(hi[0]) > x - half
-                    && f64::from(lo[2]) < z + half
-                    && f64::from(hi[2]) > z - half
-            })
-        })
-    });
+    let wedged = boxes_clear(vec![head_box]).first() == Some(&false);
     if !wedged {
         return false;
     }

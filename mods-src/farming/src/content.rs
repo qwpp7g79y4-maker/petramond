@@ -93,9 +93,12 @@ impl Content {
         let fern = block(keys::FERN)?;
         let dead_bush = block(keys::DEAD_BUSH)?;
         let saplings = blocks_by_tag(keys::SAPLING_TAG);
-        let spreadable: Vec<BlockId> = blocks_by_tag(keys::ROOTS_IN_SOIL_TAG)
+        let spreadable: Vec<BlockId> = registered_blocks()
             .into_iter()
-            .filter(|b| !saplings.contains(b))
+            .filter(|(b, info)| {
+                info.roots_on.iter().any(|t| t == keys::SOIL_TAG) && !saplings.contains(b)
+            })
+            .map(|(b, _)| b)
             .collect();
         let mut sapling_finals = Vec::new();
         for [seedling, middle, last] in keys::SAPLINGS {

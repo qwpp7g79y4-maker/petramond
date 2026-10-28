@@ -1,6 +1,5 @@
 mod crafting;
 mod dispatch;
-mod furnace;
 mod generic;
 pub mod slots;
 mod state;
@@ -16,7 +15,6 @@ pub use target::{ContainerTarget, MenuAnchor};
 mod tests {
     use super::*;
     use crate::world::ServerWorld;
-    use petramond_math::facing::Facing;
     use petramond_math::math::IVec3;
     use petramond_world::block::Block;
     use petramond_world::crafting::{
@@ -29,16 +27,23 @@ mod tests {
     use petramond_world::item::{ItemStack, ItemType};
     #[test]
     fn the_chest_derives_its_slot_specs_from_its_document() {
-        let specs = super::slot_specs_for_kind(petramond_world::gui_state::GuiKind::Chest);
-        assert_eq!(
-            specs.len(),
-            crate::world::chest::CHEST_SLOTS,
-            "the chest document must declare one `container` slot per storage cell"
+        let specs = super::slot_specs_for_kind(doc_kind("petramond:chest"));
+        assert!(
+            !specs.is_empty(),
+            "the chest document declares its storage cells"
         );
         assert!(
             specs.iter().all(|s| !s.take_only && s.accepts.is_empty()),
             "chest cells are plain storage: no filters, no take-only outputs"
         );
+    }
+
+    fn table() -> CraftingStation {
+        CraftingStation::from_key("petramond:crafting_table").expect("a shipped station")
+    }
+
+    fn doc_kind(key: &str) -> petramond_world::gui_state::GuiKind {
+        petramond_world::gui_state::intern_kind(key).expect("a document kind")
     }
 
     fn world_with_empty_chunk() -> ServerWorld {
@@ -166,10 +171,10 @@ mod tests {
 
         let pos = IVec3::new(2, 64, 2);
         world.set_block_world(pos.x, pos.y, pos.z, Block::Furnace);
-        world.insert_furnace(pos, Facing::North);
+        world.ensure_container(pos, 3);
         world.container_at_mut(pos).unwrap().slots[petramond_world::furnace::SLOT_OUTPUT] =
             Some(ItemStack::new(ItemType::IronIngot, 5));
-        menu.open_furnace_screen(&mut world, pos);
+        menu.open_document_gui(&mut world, doc_kind("petramond:furnace"), Some(pos.into()));
         *inv.cursor_mut() = None;
 
         menu.click(
@@ -198,8 +203,8 @@ mod tests {
         let mut menu = ContainerMenu::new();
         let pos = IVec3::new(3, 64, 3);
         world.set_block_world(pos.x, pos.y, pos.z, Block::Chest);
-        world.insert_chest(pos, Facing::North);
-        menu.open_chest_screen(&mut world, pos);
+        world.ensure_container(pos, 27);
+        menu.open_document_gui(&mut world, doc_kind("petramond:chest"), Some(pos.into()));
 
         let mut inv = Inventory::new();
         inv.add(ItemStack::new(ItemType::Grass, 10));
@@ -238,9 +243,9 @@ mod tests {
         let mut inv = Inventory::new();
         let pos = IVec3::new(4, 64, 4);
         world.set_block_world(pos.x, pos.y, pos.z, Block::Chest);
-        world.insert_chest(pos, Facing::North);
+        world.ensure_container(pos, 27);
         world.container_at_mut(pos).unwrap().slots[0] = Some(ItemStack::new(ItemType::Coal, 5));
-        menu.open_chest_screen(&mut world, pos);
+        menu.open_document_gui(&mut world, doc_kind("petramond:chest"), Some(pos.into()));
 
         assert_eq!(
             menu.drop_slot(&mut world, &mut inv, MenuSlot::Container(0), false),
@@ -259,7 +264,7 @@ mod tests {
 
     #[test]
     fn occupied_output_and_wrong_station_are_atomic_failures() {
-        let recipes = player_crafting_recipes(CraftingStation::CraftingTable);
+        let recipes = player_crafting_recipes(table());
         let mut menu = ContainerMenu::new();
         let mut inv = Inventory::new();
         inv.add(ItemStack::new(ItemType::Coal, 2));
@@ -280,7 +285,7 @@ mod tests {
             Some(ItemStack::new(ItemType::Coal, 2))
         );
 
-        menu.open_crafting(CraftingStation::CraftingTable);
+        menu.open_crafting(table());
         assert!(menu
             .craft_recipe(
                 &mut inv,
@@ -409,8 +414,8 @@ mod tests {
         let mut menu = ContainerMenu::new();
         let pos = IVec3::new(2, 64, 2);
         world.set_block_world(pos.x, pos.y, pos.z, Block::Furnace);
-        world.insert_furnace(pos, Facing::North);
-        menu.open_furnace_screen(&mut world, pos);
+        world.ensure_container(pos, 3);
+        menu.open_document_gui(&mut world, doc_kind("petramond:furnace"), Some(pos.into()));
 
         let mut inv = Inventory::new();
         inv.add(ItemStack::new(ItemType::Coal, 5));
@@ -452,10 +457,10 @@ mod tests {
         let mut menu = ContainerMenu::new();
         let pos = IVec3::new(3, 64, 3);
         world.set_block_world(pos.x, pos.y, pos.z, Block::Furnace);
-        world.insert_furnace(pos, Facing::North);
+        world.ensure_container(pos, 3);
         world.container_at_mut(pos).unwrap().slots[petramond_world::furnace::SLOT_FUEL] =
             Some(ItemStack::new(ItemType::Coal, 60));
-        menu.open_furnace_screen(&mut world, pos);
+        menu.open_document_gui(&mut world, doc_kind("petramond:furnace"), Some(pos.into()));
 
         let mut inv = Inventory::new();
         inv.add(ItemStack::new(ItemType::Coal, 10));
@@ -476,9 +481,9 @@ mod tests {
         let mut menu = ContainerMenu::new();
         let pos = IVec3::new(4, 64, 4);
         world.set_block_world(pos.x, pos.y, pos.z, Block::Chest);
-        world.insert_chest(pos, Facing::North);
+        world.ensure_container(pos, 27);
         world.container_at_mut(pos).unwrap().slots[1] = Some(ItemStack::new(ItemType::Coal, 30));
-        menu.open_chest_screen(&mut world, pos);
+        menu.open_document_gui(&mut world, doc_kind("petramond:chest"), Some(pos.into()));
 
         let mut inv = Inventory::new();
         inv.add(ItemStack::new(ItemType::Coal, 10));

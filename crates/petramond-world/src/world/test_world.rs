@@ -113,7 +113,7 @@ impl TestWorld {
         true
     }
 
-    pub fn take_natural_breaks(&mut self) -> Vec<(IVec3, Block)> {
+    pub fn take_natural_breaks(&mut self) -> Vec<(IVec3, Block, crate::world::model::Removal)> {
         std::mem::take(&mut self.data.sim.pending_breaks)
     }
 
@@ -196,7 +196,8 @@ impl BehaviorWorld for TestWorld {
         if block == Block::Air {
             return;
         }
-        self.data.sim.pending_breaks.push((pos, block));
+        let removal = self.data.removal(pos);
+        self.data.sim.pending_breaks.push((pos, block, removal));
         let residue = self.data.break_residue_at(pos, block);
         TestWorld::set_block_world(self, pos.x, pos.y, pos.z, residue);
     }

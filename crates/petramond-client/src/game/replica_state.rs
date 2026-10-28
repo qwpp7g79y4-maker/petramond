@@ -2,7 +2,7 @@ use petramond::mob;
 use petramond::net::protocol::{ChatLine, CommandNode, PlayerMount};
 use petramond::player;
 use petramond::world::ReplicaWorld;
-use petramond_math::math::{IVec3, Vec3};
+use petramond_math::math::Vec3;
 use petramond_math::world_pos::WorldPos;
 use petramond_world::chunk::SectionPos;
 use petramond_world::collision::DynBox;
@@ -50,14 +50,6 @@ impl ReplicaState {
             section_installs: Vec::new(),
             section_cache: SectionCache::default(),
         }
-    }
-
-    pub(super) fn sleep_head_yaw(&self) -> Option<f32> {
-        let base = self.self_view.sleep_bed?;
-        let (_, _, cells) = self.world.model_group(base)?;
-        let other: IVec3 = cells.iter().copied().find(|c| *c != base)?;
-        let d = other - base;
-        Some((d.x as f32).atan2(d.z as f32))
     }
 
     pub(super) fn own_mount_mob(&self) -> Option<u64> {

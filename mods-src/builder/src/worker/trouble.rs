@@ -103,7 +103,7 @@ pub fn show(ctx: &mut Ctx, crew: &mut Crew, body: &Body, trouble: Option<Trouble
         })
         .into_iter()
         .collect();
-    if set_mob_draw(body.id, DrawFrame::World, prims) {
+    if set_entity_draw(body.id, DrawFrame::World, prims) {
         if super::TRACE && crew.presence.mark.map(|m| m.trouble) != trouble {
             log(&format!(
                 "TRACE mark t={} {:?} ({}; {})",

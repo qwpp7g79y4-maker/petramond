@@ -12,8 +12,6 @@ pub const ENGINE_NAMESPACE: &str = "petramond";
 
 pub const MAIN_GRID_SLOTS: usize = 27;
 pub const HOTBAR_SLOTS: usize = 9;
-pub const CHEST_SLOTS: usize = 27;
-pub const FURNACE_SLOTS: usize = 3;
 pub const MAX_CONTAINER_SLOTS: usize = 54;
 pub const MAX_SLOT_FILTERS: usize = u32::BITS as usize;
 /// One role per worn-equipment slot (`worn_<WearSlot key>`), head to feet.
@@ -44,15 +42,6 @@ const fn kind(
 
 pub const ENGINE_KINDS: &[EngineKind] = &[
     kind(
-        "petramond:chest",
-        Container,
-        &[
-            ("container", CHEST_SLOTS),
-            ("player_inv", MAIN_GRID_SLOTS),
-            ("hotbar", HOTBAR_SLOTS),
-        ],
-    ),
-    kind(
         "petramond:inventory",
         Container,
         &[
@@ -76,20 +65,10 @@ pub const ENGINE_KINDS: &[EngineKind] = &[
         ],
     ),
     kind(
-        "petramond:furnace",
-        Container,
-        &[
-            ("player_inv", MAIN_GRID_SLOTS),
-            ("hotbar", HOTBAR_SLOTS),
-            ("container", FURNACE_SLOTS),
-        ],
-    ),
-    kind(
         "petramond:hotbar",
         Hud,
         &[("hotbar", HOTBAR_SLOTS), ("off_hand", 1)],
     ),
-    kind("petramond:furniture_workbench", Container, &[]),
     kind("petramond:title", Screen, &[]),
     kind("petramond:world_select", Screen, &[]),
     kind("petramond:world_settings", Screen, &[]),
@@ -108,7 +87,6 @@ pub const ENGINE_KINDS: &[EngineKind] = &[
     kind("petramond:options_graphics", Screen, &[]),
     kind("petramond:creative", Container, &[("hotbar", HOTBAR_SLOTS)]),
     kind("petramond:schematics", Screen, &[]),
-    kind("petramond:chiseling_station", Container, &[]),
     kind("petramond:account", Screen, &[]),
     kind("petramond:account_sign_in", Screen, &[]),
     kind("petramond:content", Screen, &[]),
@@ -128,7 +106,8 @@ pub fn namespace(key: &str) -> Option<&str> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum KindClass {
     Engine(&'static EngineKind),
-    Mod,
+    /// A kind declared by its document alone (a pack's, or the engine's own content).
+    Document,
 }
 
 pub fn classify_kind(key: &str) -> Result<KindClass, String> {
@@ -136,8 +115,7 @@ pub fn classify_kind(key: &str) -> Result<KindClass, String> {
         return Ok(KindClass::Engine(kind));
     }
     match namespace(key) {
-        Some(ENGINE_NAMESPACE) => Err(format!("unknown kind '{key}'")),
-        Some(_) => Ok(KindClass::Mod),
+        Some(_) => Ok(KindClass::Document),
         None => Err(format!(
             "unknown kind '{key}' (mod kinds must be namespaced 'mod_id:name')"
         )),
@@ -145,12 +123,13 @@ pub fn classify_kind(key: &str) -> Result<KindClass, String> {
 }
 
 pub fn kind_permitted(key: &str, pack_id: Option<&str>) -> Result<(), String> {
-    if !matches!(classify_kind(key), Ok(KindClass::Mod)) {
+    if !matches!(classify_kind(key), Ok(KindClass::Document)) {
         return Ok(());
     }
     let owner = namespace(key).unwrap_or("");
     match pack_id {
         Some(id) if id == owner => Ok(()),
+        None if owner == ENGINE_NAMESPACE => Ok(()),
         Some(id) => Err(format!(
             "kind '{key}' does not belong to pack '{id}' (namespaced kinds must use the \
              shipping pack's own id)"
@@ -199,7 +178,7 @@ pub fn mod_document_contract(doc: &Document) -> Result<SlotContract, String> {
 pub fn contract_for_document(doc: &Document) -> Result<SlotContract, String> {
     match classify_kind(&doc.kind)? {
         KindClass::Engine(kind) => Ok(kind.contract()),
-        KindClass::Mod => mod_document_contract(doc),
+        KindClass::Document => mod_document_contract(doc),
     }
 }
 

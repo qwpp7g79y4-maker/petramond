@@ -129,7 +129,6 @@ fn schematic_preview_and_placement_share_the_rotated_footprint_center_and_height
         fluid: 0,
         kv: Default::default(),
         container: None,
-        furnace: None,
     });
     for (size, origins) in [
         ([5, 1, 5], [[6, 80, 3], [6, 80, 3]]),

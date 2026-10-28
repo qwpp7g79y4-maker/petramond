@@ -55,10 +55,13 @@ fn container_calls_canonicalize_to_the_group_anchor() {
         let got = handle_host_call(
             &mut store,
             HostCall::from(calls::ContainerGet {
-                at: anchor.to_array().into(),
+                addresses: vec![anchor.to_array().into()],
             }),
         );
-        let HostRet::ContainerSlots(Some(slots)) = got else {
+        let HostRet::Containers(mut got) = got else {
+            panic!("expected one container answer, got {got:?}");
+        };
+        let Some(Some(slots)) = got.pop() else {
             panic!("expected slots from the anchor, got {got:?}");
         };
         assert_eq!(slots[0].as_ref().map(|s| s.count), Some(3));
@@ -249,9 +252,12 @@ fn a_transfer_moves_only_what_the_destination_admits() {
             HostRet::ItemStack(Some(coal(4))),
             "only the fuel slot's room moves"
         );
-        let HostRet::ContainerSlots(Some(slots)) = call(HostCall::from(calls::ContainerGet {
-            at: chest.to_array().into(),
+        let HostRet::Containers(mut got) = call(HostCall::from(calls::ContainerGet {
+            addresses: vec![chest.to_array().into()],
         })) else {
+            panic!("the chest has slots");
+        };
+        let Some(Some(slots)) = got.pop() else {
             panic!("the chest has slots");
         };
         assert_eq!(slots[0], Some(coal(60)), "the refused part stayed put");
@@ -310,7 +316,7 @@ fn a_mobs_carried_slots_are_a_container_and_spill_when_it_leaves() {
         let mut call = |c| handle_host_call(&mut store, c);
         assert_eq!(
             call(HostCall::from(calls::ContainerTransfer {
-                from: mod_api::ContainerAddress::Mob(mob),
+                from: mod_api::ContainerAddress::Entity(mob),
                 slot: 0,
                 to: chest.to_array().into(),
                 count: 5,
@@ -324,7 +330,7 @@ fn a_mobs_carried_slots_are_a_container_and_spill_when_it_leaves() {
         assert!(
             matches!(
                 call(HostCall::from(calls::ContainerSet {
-                    at: mod_api::ContainerAddress::Mob(mob),
+                    at: mod_api::ContainerAddress::Entity(mob),
                     slots: vec![(0, None)],
                 })),
                 HostRet::Bool(false)

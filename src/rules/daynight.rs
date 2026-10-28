@@ -5,6 +5,8 @@ pub const MOON_PHASES: u64 = 8;
 
 pub const CLOCK_KEY: &str = "petramond:clock";
 pub const TIME_KEY: &str = "petramond:time";
+/// How much daylight there is (0 night, 1 day; f32 LE), off the one curve the sky draws.
+pub const DAYLIGHT_KEY: &str = "petramond:daylight";
 pub const NIGHT_KEY: &str = "petramond:is_night";
 pub const FROZEN_KEY: &str = "petramond:time_frozen";
 pub const SKY_TIME_PARAM: &str = "petramond:time";
@@ -62,7 +64,15 @@ pub fn sky_params(day_fraction: f32, moon_phase: f32) -> ([f32; 4], [f32; 4]) {
     )
 }
 
-fn daylight(t: f32) -> f32 {
+/// The daylight the server last published; full day before the first publish.
+pub fn published_daylight(world: &petramond_world::world::WorldData) -> f32 {
+    world
+        .world_kv_get(DAYLIGHT_KEY)
+        .and_then(|b| <[u8; 4]>::try_from(b).ok())
+        .map_or(1.0, f32::from_le_bytes)
+}
+
+pub fn daylight(t: f32) -> f32 {
     let h = (std::f32::consts::PI * TRANSITION).sin();
     smoothstep(-h, h, (std::f32::consts::TAU * t).sin())
 }
@@ -75,10 +85,6 @@ fn smoothstep(e0: f32, e1: f32, x: f32) -> f32 {
 fn lerp(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
 }
-
-#[cfg(test)]
-#[path = "../../mods-src/monsters/src/daylight.rs"]
-mod monsters_daylight;
 
 #[cfg(test)]
 mod tests {
@@ -102,17 +108,5 @@ mod tests {
         );
         assert_eq!(moon_phase(clock, C), 3.0);
         assert_eq!(moon_phase((MOON_PHASES + 1) * C, C), 1.0, "phases wrap");
-    }
-
-    #[test]
-    fn the_monsters_mod_mirrors_the_daylight_curve() {
-        for i in 0..=2000 {
-            let t = i as f32 / 2000.0;
-            assert_eq!(
-                super::monsters_daylight::daylight(t),
-                daylight(t),
-                "mods-src/monsters/src/daylight.rs disagrees with the sky at t = {t}"
-            );
-        }
     }
 }

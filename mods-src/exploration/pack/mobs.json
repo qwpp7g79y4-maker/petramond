@@ -28,7 +28,7 @@
       "jump_speed": 0.0,
       "turn_rate": 9.0,
       "walk_anim_rate": 1.4,
-      "category": "aquatic",
+      "category": "exploration:aquatic",
       "cap": 56,
       "spawn": {
         "chance": 0.8,
@@ -42,7 +42,6 @@
           "exploration:frozen_ocean",
           "exploration:deep_frozen_ocean"
         ],
-        "ground": [],
         "y": [
           34,
           61
@@ -143,7 +142,7 @@
       "jump_speed": 0.0,
       "turn_rate": 9.0,
       "walk_anim_rate": 1.4,
-      "category": "aquatic",
+      "category": "exploration:aquatic",
       "cap": 40,
       "spawn": {
         "chance": 0.9,
@@ -152,7 +151,6 @@
           "exploration:coral_reef",
           "petramond:ocean"
         ],
-        "ground": [],
         "y": [
           36,
           61
@@ -256,7 +254,7 @@
       "jump_speed": 0.0,
       "turn_rate": 9.0,
       "walk_anim_rate": 1.4,
-      "category": "aquatic",
+      "category": "exploration:aquatic",
       "cap": 10,
       "spawn": {
         "chance": 0.5,
@@ -264,7 +262,6 @@
           "petramond:deep_ocean",
           "exploration:deep_frozen_ocean"
         ],
-        "ground": [],
         "y": [
           -24,
           42
@@ -348,7 +345,7 @@
       "jump_speed": 7.2,
       "turn_rate": 6.0,
       "walk_anim_rate": 1.2,
-      "category": "aquatic",
+      "category": "exploration:aquatic",
       "cap": 12,
       "spawn": {
         "chance": 0.9,
@@ -461,7 +458,7 @@
       "jump_speed": 7.2,
       "turn_rate": 6.0,
       "walk_anim_rate": 0.7,
-      "category": "aquatic",
+      "category": "exploration:aquatic",
       "cap": 8,
       "spawn": {
         "chance": 0.3,
@@ -470,7 +467,6 @@
           "exploration:coral_reef",
           "petramond:ocean"
         ],
-        "ground": [],
         "y": [
           50,
           61
@@ -611,7 +607,7 @@
       "jump_speed": 0.0,
       "turn_rate": 9.0,
       "walk_anim_rate": 1.4,
-      "category": "aquatic",
+      "category": "exploration:aquatic",
       "cap": 12,
       "spawn": {
         "chance": 0.4,
@@ -622,7 +618,6 @@
           "exploration:warm_ocean",
           "exploration:coral_reef"
         ],
-        "ground": [],
         "y": [
           30,
           58
@@ -725,7 +720,7 @@
       "jump_speed": 0.0,
       "turn_rate": 9.0,
       "walk_anim_rate": 1.4,
-      "category": "aquatic",
+      "category": "exploration:aquatic",
       "cap": 3,
       "spawn": {
         "chance": 0.12,
@@ -735,7 +730,6 @@
           "exploration:warm_ocean",
           "exploration:coral_reef"
         ],
-        "ground": [],
         "y": [
           22,
           56

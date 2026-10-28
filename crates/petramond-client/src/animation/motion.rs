@@ -30,7 +30,7 @@ pub struct BodyState {
     pub walk_weight: f32,
     pub sneak_weight: f32,
     pub locomotion: LocomotionBlend,
-    pub sleeping: bool,
+    pub lying: bool,
     pub seated: bool,
     pub seat_tilt: Tilt,
     pub hurt: f32,

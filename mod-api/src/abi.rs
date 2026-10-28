@@ -27,7 +27,7 @@ impl fmt::Display for AbiVersion {
     }
 }
 
-pub const ABI_VERSION: AbiVersion = AbiVersion { major: 8, minor: 3 };
+pub const ABI_VERSION: AbiVersion = AbiVersion { major: 9, minor: 0 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Capabilities(u64);
@@ -303,7 +303,10 @@ mod tests {
                 variant: core_calls as u32
             }
         );
-        let mut truncated = encode(&HostCall::from(calls::GetBlock { pos: [1, 2, 3] })).unwrap();
+        let mut truncated = encode(&HostCall::from(calls::GetBlocks {
+            positions: vec![[1, 2, 3]],
+        }))
+        .unwrap();
         truncated.pop();
         assert!(decode_host_call(&truncated).is_err());
         assert!(decode_host_call(&[]).is_err());

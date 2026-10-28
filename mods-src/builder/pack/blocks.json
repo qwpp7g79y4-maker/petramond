@@ -12,10 +12,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "builder:schematic_table"
-      },
+      "open_gui": "builder:schematic_table",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -43,8 +40,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [

@@ -3,7 +3,8 @@ use crate::player::Player;
 use petramond_math::math::{IVec3, Vec3};
 use petramond_math::world_pos::WorldPos;
 use petramond_world::block::Block;
-use petramond_world::item::{ItemStack, ItemType, ItemUse};
+use petramond_world::item::{ItemStack, ItemType};
+use petramond_world::material::ToolKind;
 use petramond_world::world::{raycast, WorldData};
 
 pub trait ActorView {
@@ -35,12 +36,18 @@ pub fn held_item(actor: &impl ActorView) -> Option<ItemType> {
     actor.held().map(|st| st.item)
 }
 
-pub fn holds_shears(actor: &impl ActorView) -> bool {
-    held_item(actor).and_then(ItemType::item_use) == Some(ItemUse::Shear)
+/// The kind of tool the actor holds, if it holds one.
+pub fn held_tool_kind(actor: &impl ActorView) -> Option<ToolKind> {
+    held_item(actor).and_then(ItemType::tool).map(|t| t.kind)
 }
 
-pub fn can_shear_coat(kind: Mob, dead: bool, shorn: bool) -> bool {
-    crate::mob::def(kind).shear.is_some() && !dead && !shorn
+/// Whether a coat comes off a living, unshorn `kind` to a held tool of kind `tool`.
+pub fn can_shear_coat(kind: Mob, dead: bool, shorn: bool, tool: Option<ToolKind>) -> bool {
+    crate::mob::def(kind)
+        .shear
+        .is_some_and(|s| tool == Some(s.tool))
+        && !dead
+        && !shorn
 }
 
 pub fn is_contextual_placeable(item: ItemType) -> bool {
@@ -73,30 +80,29 @@ impl EngineItemUse {
     }
 }
 
+/// A held item's fluid use: taking up a fluid it `scoops` where one is in sight, else putting
+/// down the one it `pours`.
 pub fn resolve_engine_item_use(actor: &impl ActorView, world: &WorldData) -> Option<EngineItemUse> {
-    match held_item(actor)?.item_use()? {
-        ItemUse::BucketFill { fills } => {
-            bucket_fill_target(world, actor.eye(), actor.look_dir(), fills)
-                .map(|(source, becomes)| EngineItemUse::Fill { source, becomes })
+    let item = held_item(actor)?;
+    let (eye, dir) = (actor.eye(), actor.look_dir());
+    if !item.scoops().is_empty() {
+        if let Some((source, becomes)) = scoop_target(world, eye, dir, item.scoops()) {
+            return Some(EngineItemUse::Fill { source, becomes });
         }
-        ItemUse::BucketPour { becomes, fluid } => {
-            bucket_pour_cell(world, actor.eye(), actor.look_dir(), fluid).map(|cell| {
-                EngineItemUse::Pour {
-                    cell,
-                    fluid,
-                    becomes,
-                }
-            })
-        }
-        ItemUse::Shear => None,
     }
+    let pour = item.pours()?;
+    pour_cell(world, eye, dir, pour.fluid).map(|cell| EngineItemUse::Pour {
+        cell,
+        fluid: pour.fluid,
+        becomes: pour.becomes,
+    })
 }
 
 pub fn engine_item_use_claims(actor: &impl ActorView, world: &WorldData) -> bool {
     resolve_engine_item_use(actor, world).is_some_and(|u| u.lands(world))
 }
 
-pub fn bucket_fill_target(
+pub fn scoop_target(
     world: &WorldData,
     eye: WorldPos,
     dir: Vec3,
@@ -115,12 +121,7 @@ pub fn bucket_fill_target(
 /// Where a bucket of `fluid` pours: into the block looked at when that block takes it in place
 /// (a replaceable block, or one that can hold the fluid and holds none), else the cell before
 /// the face looked at.
-pub fn bucket_pour_cell(
-    world: &WorldData,
-    eye: WorldPos,
-    dir: Vec3,
-    fluid: Block,
-) -> Option<IVec3> {
+pub fn pour_cell(world: &WorldData, eye: WorldPos, dir: Vec3, fluid: Block) -> Option<IVec3> {
     let (hit, _) = raycast::including_any_fluid(eye, dir, world)?;
     let looked_at = Block::from_id(world.chunk_block(hit.block.x, hit.block.y, hit.block.z));
     if crate::world::placement::replaces_in_place(looked_at) || fills_held(world, hit.block, fluid)
@@ -220,9 +221,8 @@ mod tests {
     }
 
     fn run_ticks(w: &mut ServerWorld, n: u32) {
-        let recipes = petramond_world::crafting::Recipes::default();
         for _ in 0..n {
-            w.game_tick(&recipes);
+            w.game_tick();
         }
     }
 

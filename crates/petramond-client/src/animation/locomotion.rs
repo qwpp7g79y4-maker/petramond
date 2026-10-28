@@ -339,7 +339,7 @@ pub(super) fn layers<'a>(
     state: &BodyState,
 ) -> SmallVec<[(&'a Animation, f32, f32); 24]> {
     let mut out = SmallVec::new();
-    if state.sleeping || state.seated {
+    if state.lying || state.seated {
         return out;
     }
     let inputs = Inputs::from_state(state);

@@ -5,34 +5,30 @@ pub struct GuiKind(u8);
 
 #[allow(non_upper_case_globals)]
 impl GuiKind {
-    pub const Chest: GuiKind = GuiKind(0);
-    pub const Inventory: GuiKind = GuiKind(1);
-    pub const CraftingTable: GuiKind = GuiKind(2);
-    pub const Furnace: GuiKind = GuiKind(3);
-    pub const Hotbar: GuiKind = GuiKind(4);
-    pub const FurnitureWorkbench: GuiKind = GuiKind(5);
-    pub const Title: GuiKind = GuiKind(6);
-    pub const WorldSelect: GuiKind = GuiKind(7);
-    pub const WorldSettings: GuiKind = GuiKind(8);
-    pub const CreateWorld: GuiKind = GuiKind(9);
-    pub const DeleteWorld: GuiKind = GuiKind(10);
-    pub const Pause: GuiKind = GuiKind(11);
-    pub const Demo: GuiKind = GuiKind(12);
-    pub const Sleep: GuiKind = GuiKind(13);
-    pub const Death: GuiKind = GuiKind(14);
-    pub const ConnectServer: GuiKind = GuiKind(15);
-    pub const ModsMissing: GuiKind = GuiKind(16);
-    pub const ConnectionLost: GuiKind = GuiKind(17);
-    pub const Options: GuiKind = GuiKind(18);
-    pub const OptionsSound: GuiKind = GuiKind(19);
-    pub const OptionsControls: GuiKind = GuiKind(20);
-    pub const OptionsGraphics: GuiKind = GuiKind(21);
-    pub const Creative: GuiKind = GuiKind(22);
-    pub const Schematics: GuiKind = GuiKind(23);
-    pub const ChiselingStation: GuiKind = GuiKind(24);
-    pub const Account: GuiKind = GuiKind(25);
-    pub const AccountSignIn: GuiKind = GuiKind(26);
-    pub const Content: GuiKind = GuiKind(27);
+    pub const Inventory: GuiKind = GuiKind(0);
+    pub const CraftingTable: GuiKind = GuiKind(1);
+    pub const Hotbar: GuiKind = GuiKind(2);
+    pub const Title: GuiKind = GuiKind(3);
+    pub const WorldSelect: GuiKind = GuiKind(4);
+    pub const WorldSettings: GuiKind = GuiKind(5);
+    pub const CreateWorld: GuiKind = GuiKind(6);
+    pub const DeleteWorld: GuiKind = GuiKind(7);
+    pub const Pause: GuiKind = GuiKind(8);
+    pub const Demo: GuiKind = GuiKind(9);
+    pub const Sleep: GuiKind = GuiKind(10);
+    pub const Death: GuiKind = GuiKind(11);
+    pub const ConnectServer: GuiKind = GuiKind(12);
+    pub const ModsMissing: GuiKind = GuiKind(13);
+    pub const ConnectionLost: GuiKind = GuiKind(14);
+    pub const Options: GuiKind = GuiKind(15);
+    pub const OptionsSound: GuiKind = GuiKind(16);
+    pub const OptionsControls: GuiKind = GuiKind(17);
+    pub const OptionsGraphics: GuiKind = GuiKind(18);
+    pub const Creative: GuiKind = GuiKind(19);
+    pub const Schematics: GuiKind = GuiKind(20);
+    pub const Account: GuiKind = GuiKind(21);
+    pub const AccountSignIn: GuiKind = GuiKind(22);
+    pub const Content: GuiKind = GuiKind(23);
     pub const Other: GuiKind = GuiKind(u8::MAX);
 
     #[inline]
@@ -41,13 +37,10 @@ impl GuiKind {
     }
 }
 
-const ENGINE_GUI_KIND_NAMES: [&str; 28] = [
-    "petramond:chest",
+const ENGINE_GUI_KIND_NAMES: [&str; 24] = [
     "petramond:inventory",
     "petramond:crafting_table",
-    "petramond:furnace",
     "petramond:hotbar",
-    "petramond:furniture_workbench",
     "petramond:title",
     "petramond:world_select",
     "petramond:world_settings",
@@ -66,7 +59,6 @@ const ENGINE_GUI_KIND_NAMES: [&str; 28] = [
     "petramond:options_graphics",
     "petramond:creative",
     "petramond:schematics",
-    "petramond:chiseling_station",
     "petramond:account",
     "petramond:account_sign_in",
     "petramond:content",
@@ -92,9 +84,6 @@ pub fn intern_str(s: &str) -> &'static str {
 pub fn intern_kind(key: &str) -> Option<GuiKind> {
     if let Some(i) = ENGINE_GUI_KIND_NAMES.iter().position(|n| *n == key) {
         return Some(GuiKind(i as u8));
-    }
-    if crate::registry::namespace(key) == Some(crate::registry::ENGINE_NAMESPACE) {
-        return None;
     }
     if !crate::registry::is_namespaced(key) {
         return None;
@@ -140,13 +129,9 @@ pub fn kind_key(kind: GuiKind) -> Option<&'static str> {
 impl std::fmt::Debug for GuiKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 as usize {
-            0 => write!(f, "Chest"),
-            1 => write!(f, "Inventory"),
-            2 => write!(f, "CraftingTable"),
-            3 => write!(f, "Furnace"),
-            4 => write!(f, "Hotbar"),
-            5 => write!(f, "FurnitureWorkbench"),
-            24 => write!(f, "ChiselingStation"),
+            0 => write!(f, "Inventory"),
+            1 => write!(f, "CraftingTable"),
+            2 => write!(f, "Hotbar"),
             _ if *self == GuiKind::Other => write!(f, "Other"),
             i => match kind_key(*self) {
                 Some(key) => write!(f, "GuiKind({key:?})"),
@@ -162,13 +147,12 @@ mod tests {
 
     #[test]
     fn engine_names_resolve_to_consts_and_mod_keys_intern_once() {
-        assert_eq!(intern_kind("petramond:furnace"), Some(GuiKind::Furnace));
+        assert_eq!(intern_kind("petramond:hotbar"), Some(GuiKind::Hotbar));
         assert_eq!(resolve_kind("petramond:hotbar"), Some(GuiKind::Hotbar));
-        assert!(!GuiKind::Furnace.is_registered());
+        assert!(!GuiKind::Hotbar.is_registered());
         assert!(!GuiKind::Other.is_registered());
 
         assert_eq!(intern_kind("wheel"), None);
-        assert_eq!(intern_kind("petramond:wheel"), None);
         let a = intern_kind("kindtest:wheel").expect("namespaced key registers");
         let b = intern_kind("kindtest:wheel").unwrap();
         assert_eq!(a, b, "re-interning returns the same id");

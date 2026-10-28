@@ -19,7 +19,11 @@ fn row() -> Row {
         reach: 24.0,
         reel_speed: 20.0,
         lead: 0.0,
-        rules: br#"{"pickup":false,"tether":{}}"#.to_vec(),
+        rules: ItemEntityRules {
+            pickup: false,
+            lifetime_ticks: None,
+        },
+        rope: rope(LineEnd::Local([0.0; 3]), LineEnd::Local([0.0; 3])),
         sounds: Default::default(),
         motion: crate::throw::Motion {
             first_person: ["test:draw".into(), "test:throw".into()],
@@ -50,7 +54,7 @@ fn thrower(at: [f64; 3], held: Option<ItemId>) -> PlayerListEntry {
             held,
             off_held: None,
             held_count: 1,
-            pose_anchor: None,
+            attached: None,
             swing: Default::default(),
             half_width: 0.3,
             height: 1.8,
@@ -66,7 +70,6 @@ fn harpoons() -> Harpoons {
         rows: vec![row()],
         lines: RefCell::default(),
         charges: RefCell::default(),
-        pulls: RefCell::default(),
     }
 }
 
@@ -93,7 +96,22 @@ struct Seen {
     taken: u32,
     cut: u32,
     lost: u32,
+    /// Each draw set the harpoon was given: whether it still runs a rope to the thrower.
+    roped: Vec<bool>,
+    pulled: Vec<(EntityRef, [f32; 3])>,
     events: Vec<u8>,
+}
+
+fn roped_to_thrower(prims: &[DrawPrim]) -> bool {
+    prims.iter().any(|p| {
+        matches!(
+            p,
+            DrawPrim::Line {
+                to: LineEnd::Entity(EntityRef::Player(PlayerId(0))),
+                ..
+            }
+        )
+    })
 }
 
 #[test]
@@ -102,20 +120,30 @@ fn a_lodged_harpoon_is_reeled_out_with_a_pulling_hit_and_caught_at_the_hand() {
     let at = Rc::new(Cell::new([0.0, 1.0, 8.0]));
     let (log, pos) = (seen.clone(), at.clone());
     let _host = testing::install_host(move |call| match call {
-        HostCall::Entity(EntityCall::DamageMob { mob_id, amount, .. }) => {
+        HostCall::Entity(EntityCall::Damage {
+            target: EntityRef::Entity(mob_id),
+            amount,
+            ..
+        }) => {
             log.borrow_mut().damaged.push((*mob_id, *amount));
             HostRet::Unit
         }
-        HostCall::Entity(EntityCall::ItemEntity { entity }) => HostRet::ItemEntity(Some(Box::new(
-            harpoon(*entity, pos.get(), ItemMotion::Stuck { cell: [0, 1, 8] }),
-        ))),
-        HostCall::ItemMotion(ItemMotionCall::TakeItemEntity { entity }) => {
-            log.borrow_mut().taken += 1;
-            HostRet::ItemStack(Some(harpoon(*entity, pos.get(), ItemMotion::Flight).stack))
+        HostCall::Entity(EntityCall::EntityInfo { entities }) => {
+            HostRet::EntityInfos(vec![Some(EntityData::Item(harpoon(
+                entities[0],
+                pos.get(),
+                ItemMotion::Stuck { cell: [0, 1, 8] },
+            )))])
         }
-        HostCall::Entity(EntityCall::LaunchItem { vel, .. }) => {
+        HostCall::Entity(EntityCall::DespawnEntity { entity }) => {
+            log.borrow_mut().taken += 1;
+            HostRet::Despawned(Some(Despawned {
+                stack: Some(harpoon(*entity, pos.get(), ItemMotion::Flight).stack),
+            }))
+        }
+        HostCall::Entity(EntityCall::SpawnItem { vel: Some(vel), .. }) => {
             log.borrow_mut().launched.push(*vel);
-            HostRet::U64(77)
+            HostRet::Ids(vec![77])
         }
         HostCall::ItemMotion(ItemMotionCall::SteerItem { vel, .. }) => {
             log.borrow_mut()
@@ -128,6 +156,14 @@ fn a_lodged_harpoon_is_reeled_out_with_a_pulling_hit_and_caught_at_the_hand() {
                 last.1 = facing.unwrap_or_default();
             }
             HostRet::Bool(true)
+        }
+        HostCall::Entity(EntityCall::SetEntityDraw { prims, .. }) => {
+            log.borrow_mut().roped.push(roped_to_thrower(prims));
+            HostRet::Bool(true)
+        }
+        HostCall::Entity(EntityCall::EntityImpulses { impulses }) => {
+            log.borrow_mut().pulled.extend(impulses.iter().copied());
+            HostRet::Bools(vec![true; impulses.len()])
         }
         HostCall::Core(CoreCall::RngU64 { .. }) => HostRet::U64(0),
         HostCall::Core(CoreCall::EmitEventTo { data, .. }) => {
@@ -149,7 +185,7 @@ fn a_lodged_harpoon_is_reeled_out_with_a_pulling_hit_and_caught_at_the_hand() {
     let mut fate = ProjectileFate::Drop;
     assert!(harpoons.on_hit(
         42,
-        &ProjectileTarget::Mob(9),
+        &ProjectileTarget::Body(EntityRef::Entity(9)),
         [0.0, 1.0, 8.0],
         [0.0, 0.0, 20.0],
         &mut fate,
@@ -171,19 +207,20 @@ fn a_lodged_harpoon_is_reeled_out_with_a_pulling_hit_and_caught_at_the_hand() {
         "the reel tears it out with a second hit"
     );
     assert!(seen.borrow().damaged[1].1 < full_hit);
-    let mut feedback = MobDamageFeedback::default();
-    harpoons.on_mob_damage(PlayerId(0), 9, &mut feedback);
+    let pulled = seen.borrow().pulled.clone();
     assert!(
-        feedback.components.iter().any(|c| matches!(
-            c,
-            MobDamageFeedbackComponent::Knockback { scale, .. } if *scale < 0.0
-        )),
-        "and pulls the body toward the thrower"
+        matches!(pulled.as_slice(), [(EntityRef::Entity(9), [_, _, z])] if *z < 0.0),
+        "and pulls the body toward the thrower: {pulled:?}"
     );
     let launched = seen.borrow().launched[0];
     assert!(
         launched[2] < 0.0,
         "the harpoon flies back toward the hand: {launched:?}"
+    );
+    assert_eq!(
+        seen.borrow().roped,
+        vec![true],
+        "the relaunched harpoon still trails its rope to the thrower"
     );
 
     let roster = [me];
@@ -213,17 +250,21 @@ fn putting_the_harpoon_away_cuts_the_rope_and_leaves_it_where_it_is() {
         let seen = Rc::new(RefCell::new(Seen::default()));
         let log = seen.clone();
         let _host = testing::install_host(move |call| match call {
-            HostCall::Entity(EntityCall::ItemEntity { entity }) => {
+            HostCall::Entity(EntityCall::EntityInfo { entities }) => {
                 let z = if far { 40.0 } else { 6.0 };
-                HostRet::ItemEntity(Some(Box::new(harpoon(
-                    *entity,
+                HostRet::EntityInfos(vec![Some(EntityData::Item(harpoon(
+                    entities[0],
                     [0.0, 1.0, z],
                     ItemMotion::Flight,
-                ))))
+                )))])
             }
             HostCall::ItemMotion(ItemMotionCall::SetItemRules { rules, .. }) => {
                 assert!(rules.is_none(), "a plain harpoon, free to pick up");
                 log.borrow_mut().cut += 1;
+                HostRet::Bool(true)
+            }
+            HostCall::Entity(EntityCall::SetEntityDraw { prims, .. }) => {
+                log.borrow_mut().roped.push(roped_to_thrower(prims));
                 HostRet::Bool(true)
             }
             HostCall::Player(PlayerCall::TakeItem { item, count, .. }) => {
@@ -243,7 +284,7 @@ fn putting_the_harpoon_away_cuts_the_rope_and_leaves_it_where_it_is() {
             Line {
                 entity: 42,
                 row: 0,
-                hold: Hold::Lodged(EntityRef::Mob(9)),
+                hold: Hold::Lodged(EntityRef::Entity(9)),
             },
         );
         harpoons.step(&[thrower([0.0; 3], holding)]);
@@ -254,6 +295,7 @@ fn putting_the_harpoon_away_cuts_the_rope_and_leaves_it_where_it_is() {
             (1, 1),
             "the rope is cut and the harpoon leaves the pack (far line: {far})"
         );
+        assert_eq!(seen.roped, vec![false], "and its line is no longer drawn");
         assert_eq!(seen.events, vec![0]);
     }
 }

@@ -62,32 +62,7 @@ impl Profile {
 
 const NEAR: f32 = 0.3;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Aim {
-    pub eye: [f64; 3],
-    pub forward: [f32; 3],
-    pub across: [f32; 3],
-    pub up: [f32; 3],
-}
-
-impl Aim {
-    pub fn of(state: &PlayerSnapshot) -> Aim {
-        let (cp, sp) = (state.pitch.cos(), state.pitch.sin());
-        let (sy, cy) = (state.yaw.sin(), state.yaw.cos());
-        let forward = [sy * cp, sp, cy * cp];
-        let across = [cy, 0.0, -sy];
-        Aim {
-            eye: [
-                state.pos[0],
-                state.pos[1] + f64::from(state.eye_height),
-                state.pos[2],
-            ],
-            forward,
-            across,
-            up: cross(across, forward),
-        }
-    }
-}
+pub use mod_sdk::Aim;
 
 pub type Box3 = ([f64; 3], [f64; 3]);
 
@@ -213,7 +188,7 @@ pub fn land(me: PlayerId, profile: &Profile, state: &PlayerSnapshot) {
                 continue;
             }
             candidates.push(Candidate {
-                who: EntityRef::Mob(mob.id),
+                who: EntityRef::Entity(mob.id),
                 hit,
             });
         }
@@ -259,10 +234,7 @@ pub fn land(me: PlayerId, profile: &Profile, state: &PlayerSnapshot) {
     let attacker = Some(EntityRef::Player(me));
     for c in candidates {
         let amount = base * c.hit.multiplier;
-        match c.who {
-            EntityRef::Mob(id) => damage_mob(id, amount, origin, attacker),
-            EntityRef::Player(id) => damage_player(id, amount.round() as i32, origin, attacker),
-        }
+        damage(c.who, amount, origin, attacker);
     }
 }
 
@@ -296,14 +268,6 @@ pub(crate) fn relative(a: [f64; 3], origin: [f64; 3]) -> [f32; 3] {
 
 fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-}
-
-fn cross(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
-    [
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0],
-    ]
 }
 
 fn length(a: [f32; 3]) -> f32 {

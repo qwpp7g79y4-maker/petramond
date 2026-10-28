@@ -1,10 +1,11 @@
 use crate::geometry::offset;
 use crate::host::prelude::{
-    ActionRefusal, BlockChanges, BlockId, BlockInfoData, BlockRecord, ContainerAddress,
-    DigProgress, DrawFrame, DrawPrim, EntityRef, Flood, GuiViewerData, ItemId, ItemInfoData,
-    ItemStackData, MobId, MobSnapshot, MobTagLookup, MobTagValue, ModelGroupData, ParticleTexture,
-    PlaceRequest, PlayerId, PlayerIdentityData, RecordPlan, RecordStatus, Route,
+    ActionRefusal, BlockChanges, BlockId, BlockInfoData, CellGroupData, CellRecord,
+    ContainerAddress, Despawned, DigProgress, DrawFrame, DrawPrim, EntityRef, Flood, GuiViewerData,
+    ItemId, ItemInfoData, ItemStackData, MobId, MobSnapshot, MobTagLookup, MobTagValue,
+    ParticleTexture, PlaceRequest, PlayerId, PlayerIdentityData, RecordPlan, RecordStatus, Route,
     SchematicCellsData, SchematicGhostData, SchematicId, SchematicInfoData, SchematicLookup,
+    SoundAt,
 };
 use crate::host::Host;
 
@@ -15,7 +16,7 @@ use super::{stack, Deed, Fake, State};
 impl State {
     fn mob_of(&self, actor: EntityRef) -> Option<&super::Mob> {
         match actor {
-            EntityRef::Mob(id) => self.mobs.get(&id),
+            EntityRef::Entity(id) => self.mobs.get(&id),
             EntityRef::Player(_) => None,
         }
     }
@@ -49,7 +50,7 @@ impl State {
             .is_some_and(|slots| slots.iter().any(Option::is_some))
     }
 
-    fn plan(&self, record: &BlockRecord) -> RecordPlan {
+    fn plan(&self, record: &CellRecord) -> RecordPlan {
         let Some(block) = self.resolve_block(&record.block) else {
             return RecordPlan::Unsupported {
                 reason: format!("Unknown block {}", record.block),
@@ -75,7 +76,7 @@ impl State {
         }
     }
 
-    fn status(&self, pos: [i32; 3], record: &BlockRecord) -> RecordStatus {
+    fn status(&self, pos: [i32; 3], record: &CellRecord) -> RecordStatus {
         let Some(here) = self.block_at(pos) else {
             return RecordStatus::Unloaded;
         };
@@ -129,7 +130,7 @@ impl State {
         actor: EntityRef,
         feet: [f64; 3],
         pos: [i32; 3],
-        record: &BlockRecord,
+        record: &CellRecord,
         pay: bool,
     ) -> PlaceRequest {
         if self.mob_of(actor).is_none() {
@@ -152,9 +153,9 @@ impl State {
         }
         let paid = match (pay, self.item_of(block), actor) {
             (false, ..) => true,
-            (true, Some(item), EntityRef::Mob(id)) => self
+            (true, Some(item), EntityRef::Entity(id)) => self
                 .containers
-                .get(&ContainerAddress::Mob(id))
+                .get(&ContainerAddress::Entity(id))
                 .is_some_and(|slots| slots.iter().flatten().any(|s| s.item == item)),
             _ => false,
         };
@@ -199,11 +200,12 @@ impl Host for Fake {
         Some(found)
     }
 
-    fn block_model_group(&self, pos: [i32; 3]) -> Option<ModelGroupData> {
-        let base = *self.state().groups.get(&pos)?;
-        Some(ModelGroupData {
-            base,
-            facing: crate::host::prelude::Facing::North,
+    fn cell_group(&self, pos: [i32; 3]) -> Option<CellGroupData> {
+        let anchor = *self.state().groups.get(&pos)?;
+        Some(CellGroupData {
+            anchor,
+            facing: Some(crate::host::prelude::Facing::North),
+            cells: vec![anchor],
         })
     }
 
@@ -293,12 +295,12 @@ impl Host for Fake {
             .collect()
     }
 
-    fn block_record_plans(&self, records: Vec<BlockRecord>) -> Vec<RecordPlan> {
+    fn record_plans(&self, records: Vec<CellRecord>) -> Vec<RecordPlan> {
         let state = self.state();
         records.iter().map(|r| state.plan(r)).collect()
     }
 
-    fn block_record_statuses(&self, cells: Vec<([i32; 3], BlockRecord)>) -> Vec<RecordStatus> {
+    fn record_statuses(&self, cells: Vec<([i32; 3], CellRecord)>) -> Vec<RecordStatus> {
         let state = self.state();
         cells.iter().map(|(pos, r)| state.status(*pos, r)).collect()
     }
@@ -308,7 +310,7 @@ impl Host for Fake {
         actor: EntityRef,
         from: Vec<[f64; 3]>,
         pos: [i32; 3],
-        record: Option<BlockRecord>,
+        record: Option<CellRecord>,
     ) -> Vec<Result<[f64; 3], ActionRefusal>> {
         let state = self.state();
         if state.mob_of(actor).is_none() {
@@ -325,7 +327,7 @@ impl Host for Fake {
         actor: EntityRef,
         from: [f64; 3],
         pos: [i32; 3],
-        record: BlockRecord,
+        record: CellRecord,
         pay: bool,
     ) -> PlaceRequest {
         self.state().place_check(actor, from, pos, &record, pay)
@@ -335,7 +337,7 @@ impl Host for Fake {
         &self,
         actor: EntityRef,
         pos: [i32; 3],
-        record: BlockRecord,
+        record: CellRecord,
         pay: bool,
     ) -> PlaceRequest {
         let mut state = self.state_mut();
@@ -347,8 +349,8 @@ impl Host for Fake {
             return answer;
         }
         let block = state.resolve_block(&record.block).unwrap_or(AIR);
-        if let (true, Some(item), EntityRef::Mob(id)) = (pay, state.item_of(block), actor) {
-            state.spend(ContainerAddress::Mob(id), item, 1);
+        if let (true, Some(item), EntityRef::Entity(id)) = (pay, state.item_of(block), actor) {
+            state.spend(ContainerAddress::Entity(id), item, 1);
         }
         for cell in state.row(block).footprint.clone() {
             state.set(offset(pos, cell), block);
@@ -378,8 +380,8 @@ impl Host for Fake {
             return DigProgress::Refused(refusal);
         }
         state.set(pos, AIR);
-        if let (true, Some(item), EntityRef::Mob(id)) = (collect, state.item_of(block), actor) {
-            state.stow(ContainerAddress::Mob(id), stack(item, 1));
+        if let (true, Some(item), EntityRef::Entity(id)) = (collect, state.item_of(block), actor) {
+            state.stow(ContainerAddress::Entity(id), stack(item, 1));
         }
         state.deeds.push(Deed::Dug(pos));
         DigProgress::Breaking
@@ -390,11 +392,35 @@ impl Host for Fake {
         let usable = state.mob_of(actor).is_some()
             && state
                 .block_at(pos)
-                .is_some_and(|b| state.row(b).info.interaction.is_some());
+                .is_some_and(|b| state.row(b).info.answers_use);
         if usable {
             state.deeds.push(Deed::Used(pos));
         }
         usable
+    }
+
+    fn boxes_clear(&self, boxes: Vec<([f64; 3], [f64; 3])>) -> Vec<bool> {
+        let state = self.state();
+        let collides = |(lo, hi): ([f64; 3], [f64; 3])| {
+            let span = |i: usize| (lo[i].floor() as i32)..=((hi[i] - 1e-6).floor() as i32);
+            span(1).any(|y| {
+                span(2).any(|z| {
+                    span(0).any(|x| {
+                        let Some(block) = state.block_at([x, y, z]) else {
+                            return true;
+                        };
+                        let origin = [f64::from(x), f64::from(y), f64::from(z)];
+                        state.row(block).info.collision.iter().any(|(a, b)| {
+                            (0..3).all(|i| {
+                                lo[i] < origin[i] + f64::from(b[i])
+                                    && origin[i] + f64::from(a[i]) < hi[i]
+                            })
+                        })
+                    })
+                })
+            })
+        };
+        boxes.into_iter().map(|b| !collides(b)).collect()
     }
 
     fn footholds(&self, _key: &str, cells: Vec<[i32; 3]>) -> Vec<bool> {
@@ -456,10 +482,13 @@ impl Host for Fake {
         Some(self.state_mut().spawn(kind, pos, yaw))
     }
 
-    fn despawn_mob(&self, mob_id: u64) -> bool {
+    fn despawn_entity(&self, mob_id: u64) -> Option<Despawned> {
         let mut state = self.state_mut();
-        state.containers.remove(&ContainerAddress::Mob(mob_id));
-        state.mobs.remove(&mob_id).is_some()
+        state.containers.remove(&ContainerAddress::Entity(mob_id));
+        state
+            .mobs
+            .remove(&mob_id)
+            .map(|_| Despawned { stack: None })
     }
 
     fn mob_info(&self, mob_id: u64) -> Option<MobSnapshot> {
@@ -544,17 +573,20 @@ impl Host for Fake {
         }
     }
 
-    fn mob_held_display(&self, mob_id: u64, main: Option<String>, off: Option<String>) -> bool {
+    fn set_held_display(&self, body: EntityRef, main: Option<&str>, off: Option<&str>) -> bool {
+        let EntityRef::Entity(mob_id) = body else {
+            return false;
+        };
         match self.state_mut().mobs.get_mut(&mob_id) {
             Some(mob) => {
-                mob.held = (main, off);
+                mob.held = (main.map(str::to_owned), off.map(str::to_owned));
                 true
             }
             None => false,
         }
     }
 
-    fn set_mob_draw(&self, mob_id: u64, _frame: DrawFrame, _prims: Vec<DrawPrim>) -> bool {
+    fn set_entity_draw(&self, mob_id: u64, _frame: DrawFrame, _prims: Vec<DrawPrim>) -> bool {
         self.state().mobs.contains_key(&mob_id)
     }
 
@@ -704,10 +736,6 @@ impl Host for Fake {
         self.state().players.clone()
     }
 
-    fn acting_player(&self) -> Option<PlayerId> {
-        self.state().acting
-    }
-
     fn player_held(&self, player: PlayerId) -> Option<ItemStackData> {
         self.state().held.get(&player).cloned()
     }
@@ -720,7 +748,7 @@ impl Host for Fake {
         self.state().viewers.clone()
     }
 
-    fn gui_open(&self, kind_key: &str, _at: Option<ContainerAddress>) -> bool {
+    fn gui_open(&self, _player: PlayerId, kind_key: &str, _at: Option<ContainerAddress>) -> bool {
         self.state_mut().deeds.push(Deed::Opened(kind_key.into()));
         true
     }
@@ -737,7 +765,7 @@ impl Host for Fake {
         true
     }
 
-    fn sound_play_at(&self, key: &str, _pos: [f64; 3], _volume: f32, _pitch: f32) -> u64 {
+    fn sound_play(&self, key: &str, _at: SoundAt, _volume: f32, _pitch: f32) -> u64 {
         let mut state = self.state_mut();
         state.deeds.push(Deed::Sound(key.into()));
         state.deeds.len() as u64
@@ -768,8 +796,9 @@ impl Host for Fake {
         self.state().kv.get(key).cloned()
     }
 
-    fn world_kv_set(&self, key: &str, value: Vec<u8>) {
+    fn world_kv_set(&self, key: &str, value: Vec<u8>) -> bool {
         self.state_mut().kv.insert(key.into(), value);
+        true
     }
 }
 

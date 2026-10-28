@@ -1,9 +1,14 @@
+use crate::data::EntityRef;
 use crate::ids::PlayerId;
 use crate::legality::prelude::*;
 
 host_domain! {
     BodyCall {
-        PlayerState => legal(SERVER_CLIENT, Sim, Read),
+        /// One player's snapshot; `None` = no such reachable session. A client instance
+        /// answers only for the local player, during prediction dispatches.
+        PlayerState {
+            player: PlayerId,
+        } => legal(SERVER_CLIENT, Sim, Read),
         SetPlayerHeldPose {
             player: PlayerId,
             main: Option<crate::HeldPose>,
@@ -16,8 +21,11 @@ host_domain! {
         HoldUse {
             player: PlayerId,
         } => legal(SERVER_CLIENT, Sim, Write),
-        SetPlayerHeldDisplay {
-            player: PlayerId,
+        /// Draws `main`/`off` in a body's hands in place of what it holds (`None` = the real
+        /// item). A player's display is per mod and predicted by its own client; a client
+        /// instance may set only its local player's.
+        SetHeldDisplay {
+            body: EntityRef,
             main: Option<String>,
             off: Option<String>,
         } => legal(SERVER_CLIENT, Sim, Write),

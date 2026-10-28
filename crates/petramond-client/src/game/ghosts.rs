@@ -113,7 +113,6 @@ fn drawable(data: &CellData) -> Option<(Record, ResolvedCell)> {
             fluid: 0,
             kv: built.data.clone(),
             container: None,
-            furnace: None,
         };
         (record, cell)
     })

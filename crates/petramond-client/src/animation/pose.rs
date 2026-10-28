@@ -72,7 +72,7 @@ pub(super) fn pose_body(
     };
     let head_animated = |hb: usize| layers.iter().any(|(a, _, _)| a.affects_bone(hb));
 
-    if state.sleeping {
+    if state.lying {
         out.extend_from_slice(&pose);
         return Mat4::from_translation(Vec3::new(0.0, LIE_LIFT, 0.0))
             * Mat4::from_rotation_y(state.body_yaw)

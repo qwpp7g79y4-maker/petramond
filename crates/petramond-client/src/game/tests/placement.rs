@@ -15,9 +15,18 @@ fn right_clicking_interactable_blocks_requests_their_screen() {
 
     for (block, expected_kind) in [
         (Block::CraftingTable, GuiKind::CraftingTable),
-        (Block::Furnace, GuiKind::Furnace),
-        (Block::Chest, GuiKind::Chest),
-        (Block::FurnitureWorkbench, GuiKind::FurnitureWorkbench),
+        (
+            Block::Furnace,
+            petramond_world::gui_state::intern_kind("petramond:furnace").unwrap(),
+        ),
+        (
+            Block::Chest,
+            petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        ),
+        (
+            Block::FurnitureWorkbench,
+            petramond_world::gui_state::resolve_kind("petramond:furniture_workbench").unwrap(),
+        ),
     ] {
         let mut game = game_on_empty_chunk();
         let pos = IVec3::new(4, 64, 4);

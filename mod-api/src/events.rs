@@ -32,7 +32,7 @@ pub enum EventKind {
     ContainerClosed,
     SectionGenerated,
     SectionLoaded,
-    PlayerDismounted,
+    PlayerDetached,
     MobTagAdded,
     MobTagRemoved,
     ItemPickedUp,
@@ -47,12 +47,10 @@ pub enum EventKind {
     /// dispatch one.
     /// Cancel means the press is yours: the engine's own melee stands down, but the hand swing and
     /// cooldown still happen.
-    /// Landing the hit is on you, via [`EntityCall::DamageMob`] / [`PlayerCall::DamagePlayer`]
-    /// naming the presser as attacker.
+    /// Landing the hit is on you, via [`EntityCall::Damage`] naming the presser as attacker.
     /// Mining is the held button on a block, not the press, so it runs whoever takes the press.
     ///
-    /// [`EntityCall::DamageMob`]: crate::EntityCall::DamageMob
-    /// [`PlayerCall::DamagePlayer`]: crate::PlayerCall::DamagePlayer
+    /// [`EntityCall::Damage`]: crate::EntityCall::Damage
     AttackAttempt,
     ProjectileHit,
     ActorActed,
@@ -81,8 +79,7 @@ pub enum ProjectileFate {
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
 pub enum ProjectileTarget {
-    Mob(u64),
-    Player(PlayerId),
+    Body(crate::EntityRef),
     Block { pos: [i32; 3], face: [i32; 3] },
 }
 
@@ -230,6 +227,7 @@ pub enum EventPayload {
         player: PlayerId,
     },
     ItemUsePre {
+        player: PlayerId,
         item: ItemId,
         target: Option<[i32; 3]>,
     },
@@ -242,6 +240,7 @@ pub enum EventPayload {
         feedback: MobDamageFeedback,
     },
     PlayerDamagePre {
+        player: PlayerId,
         amount: i32,
         source: DamageSource,
         origin: Option<[f64; 3]>,
@@ -250,11 +249,15 @@ pub enum EventPayload {
         pos: [i32; 3],
         block: BlockId,
     },
+    /// `group` = the cells the broken block occupied with it (its model footprint or compound),
+    /// and `data` = the cell data its anchor held, both read before the cells were cleared.
     BlockBroken {
         pos: [i32; 3],
         block: BlockId,
         harvested: bool,
         natural: bool,
+        group: Option<crate::CellGroupData>,
+        data: Vec<(String, Vec<u8>)>,
     },
     ItemUsed {
         player: PlayerId,
@@ -272,10 +275,13 @@ pub enum EventPayload {
         pos: [f64; 3],
     },
     PlayerDamaged {
+        player: PlayerId,
         amount: i32,
         new_health: i32,
     },
-    PlayerDied,
+    PlayerDied {
+        player: PlayerId,
+    },
     ContainerOpened {
         kind: ContainerKind,
         at: Option<crate::ContainerAddress>,
@@ -290,9 +296,9 @@ pub enum EventPayload {
     SectionLoaded {
         pos: [i32; 3],
     },
-    PlayerDismounted {
+    PlayerDetached {
         player_id: PlayerId,
-        mount: crate::MountTarget,
+        from: crate::AttachTo,
     },
     MobTagAdded {
         mob_id: u64,
@@ -405,12 +411,12 @@ impl EventPayload {
             EventPayload::MobDied { .. } => EventKind::MobDied,
             EventPayload::MobSpawned { .. } => EventKind::MobSpawned,
             EventPayload::PlayerDamaged { .. } => EventKind::PlayerDamaged,
-            EventPayload::PlayerDied => EventKind::PlayerDied,
+            EventPayload::PlayerDied { .. } => EventKind::PlayerDied,
             EventPayload::ContainerOpened { .. } => EventKind::ContainerOpened,
             EventPayload::ContainerClosed { .. } => EventKind::ContainerClosed,
             EventPayload::SectionGenerated { .. } => EventKind::SectionGenerated,
             EventPayload::SectionLoaded { .. } => EventKind::SectionLoaded,
-            EventPayload::PlayerDismounted { .. } => EventKind::PlayerDismounted,
+            EventPayload::PlayerDetached { .. } => EventKind::PlayerDetached,
             EventPayload::MobTagAdded { .. } => EventKind::MobTagAdded,
             EventPayload::MobTagRemoved { .. } => EventKind::MobTagRemoved,
             EventPayload::ItemPickedUp { .. } => EventKind::ItemPickedUp,

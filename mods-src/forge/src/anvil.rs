@@ -45,7 +45,7 @@ use std::collections::{HashMap, HashSet};
 
 use mod_sdk::*;
 
-use machine_core::{write_changed_slots, Caches, Machine, MachineSpec, Presentation, StepCtx};
+use machine_core::{Caches, Machine, MachineSpec, Presentation, StepCtx};
 
 use crate::augments::Record;
 use crate::keys;
@@ -107,10 +107,8 @@ impl AnvilSpec {
 }
 
 impl MachineSpec for AnvilSpec {
-    const KIND_KEY: &'static str = keys::ANVIL_GUI;
     const BLOCK_KEY: &'static str = keys::ANVIL;
     const VARIANT_KEYS: &'static [&'static str] = &[];
-    const ANCHORS_KEY: &'static str = "forge:anvils";
     const STATE_KEY: &'static str = STATE_KEY;
 
     fn init(&mut self) {
@@ -126,29 +124,27 @@ impl MachineSpec for AnvilSpec {
         &mut self,
         ctx: &StepCtx<'_>,
         _caches: &mut Caches,
-        slots: Option<Vec<Option<ItemStackData>>>,
+        slots: &mut Vec<Option<ItemStackData>>,
         _stored: &mut Vec<u8>,
         _out: &mut Presentation,
     ) {
-        let mut slots = slots.unwrap_or_default();
         slots.resize(SLOTS, None);
-        let before = slots.clone();
 
         let mut gem_worked = false;
-        while let Some((carved, cell)) = self.carve(&slots) {
+        while let Some((carved, cell)) = self.carve(slots) {
             slots[SLOT_TOOL] = Some(carved);
             workstation::take(&mut slots[cell], 1);
             gem_worked = true;
         }
 
-        gem_worked |= self.tend_sockets(&mut slots);
+        gem_worked |= self.tend_sockets(slots);
 
         if gem_worked {
             emit_sound(SOUND_SOCKET, Some(at(ctx.pos)));
         }
 
         if self.pending.remove(&ctx.pos) {
-            if let Some((fitted, consumes)) = self.apply_staged(&slots) {
+            if let Some((fitted, consumes)) = self.apply_staged(slots) {
                 slots[SLOT_TOOL] = Some(fitted);
                 for (cell, cost) in consumes {
                     workstation::take(&mut slots[cell], cost);
@@ -158,33 +154,31 @@ impl MachineSpec for AnvilSpec {
         }
 
         if slots[SLOT_TOOL].is_none() {
-            self.return_cells(ctx, &mut slots, 1..SLOTS);
+            self.return_cells(ctx, slots, 1..SLOTS);
         } else {
-            let eject = self.cells_to_eject(&slots);
-            self.return_cells(ctx, &mut slots, eject);
+            let eject = self.cells_to_eject(slots);
+            self.return_cells(ctx, slots, eject);
         }
         let leaver = self.watched.get(&ctx.pos).and_then(|w| w.last().copied());
         if ctx.viewers.is_empty() {
             if let Some(player) = leaver {
-                self.deliver_cells(ctx, &mut slots, 0..SLOTS, Some(player));
+                self.deliver_cells(ctx, slots, 0..SLOTS, Some(player));
             } else if slots.iter().any(|s| s.is_some()) {
-                self.deliver_cells(ctx, &mut slots, 0..SLOTS, None);
+                self.deliver_cells(ctx, slots, 0..SLOTS, None);
             }
             self.watched.remove(&ctx.pos);
         } else {
             self.watched.insert(ctx.pos, ctx.viewers.to_vec());
         }
 
-        write_changed_slots(ctx.pos, &before, &slots);
-
         if ctx.gui_open() {
-            self.publish_stage(ctx, &slots);
+            self.publish_stage(ctx, slots);
         }
     }
 
-    fn forget(&mut self, pos: [i32; 3]) {
-        self.pending.remove(&pos);
-        self.watched.remove(&pos);
+    fn removed(&mut self, anchor: [i32; 3], _data: &[(String, Vec<u8>)]) {
+        self.pending.remove(&anchor);
+        self.watched.remove(&anchor);
     }
 }
 

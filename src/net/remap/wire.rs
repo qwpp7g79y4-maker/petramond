@@ -211,7 +211,7 @@ impl Remap for TickSection {
             TickSection::SleepTally(_)
             | TickSection::ActionOutcomes(_)
             | TickSection::Env(_)
-            | TickSection::OpenChests(_) => true,
+            | TickSection::HeldOpen(_) => true,
         }
     }
 }
@@ -298,7 +298,6 @@ impl Remap for ItemStateRow {
             pos: _,
             spin: _,
             flight: _,
-            tether: _,
             draw: _,
         } = self;
         IdRemap::rewrite(item_id, |id| map.item(id))
@@ -313,8 +312,6 @@ impl Remap for PlayerStateRow {
             transform: _,
             on_ground: _,
             sneaking: _,
-            sleeping: _,
-            sleep_yaw: _,
             alive: _,
             visible: _,
             held_item,
@@ -360,7 +357,6 @@ impl Remap for SelfState {
             eating: _,
             eating_off_hand: _,
             sleeping: _,
-            sleep_bed: _,
             move_scale: _,
             fly_scale: _,
             denied_actions: _,
@@ -451,10 +447,7 @@ impl Remap for WorldEventMsg {
                 *block_id = map.block(*block_id);
                 true
             }
-            WorldEventMsg::PanelToggled { .. }
-            | WorldEventMsg::ChestOpened { .. }
-            | WorldEventMsg::ChestClosed { .. }
-            | WorldEventMsg::ItemPickedUp { .. } => true,
+            WorldEventMsg::PanelToggled { .. } | WorldEventMsg::ItemPickedUp { .. } => true,
             WorldEventMsg::MobSound {
                 mob_id: _,
                 kind_id,
@@ -493,7 +486,7 @@ impl Remap for SpatialSoundMsg {
     fn remap(&mut self, map: &IdRemap) -> bool {
         match self {
             SpatialSoundMsg::PlayAt { sound_id, .. }
-            | SpatialSoundMsg::PlayOnMob { sound_id, .. } => {
+            | SpatialSoundMsg::PlayOnEntity { sound_id, .. } => {
                 IdRemap::rewrite(sound_id, |id| map.sound(id))
             }
             SpatialSoundMsg::Set { .. } | SpatialSoundMsg::Stop { .. } => true,

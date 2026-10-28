@@ -1,6 +1,6 @@
 use super::Mobs;
 use crate::mob::{Instance, MobId, MobTagValue};
-use petramond_math::math::Tilt;
+use petramond_math::math::{Tilt, Vec3};
 
 impl Mobs {
     pub(crate) fn exposure_mut(
@@ -68,6 +68,16 @@ impl Mobs {
         pace: f32,
     ) -> bool {
         self.mob_mut(id).is_some_and(|m| m.set_swim_to(to, pace))
+    }
+
+    /// Velocity added to a live mob: its horizontal part rides the knockback lane a hit uses, its
+    /// vertical part lifts it off the floor.
+    pub fn impulse_mob(&mut self, id: MobId, delta: Vec3) -> bool {
+        let Some(m) = self.mob_mut(id).filter(|m| !m.is_dead()) else {
+            return false;
+        };
+        m.apply_impulse(delta);
+        true
     }
 
     pub fn set_mob_kinematic(

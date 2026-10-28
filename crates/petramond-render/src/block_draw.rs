@@ -143,7 +143,7 @@ pub fn build_block_draws(draws: VisibleDraws<'_>, verts: &mut Vec<Vertex>, indic
                     }
                     multiply_tint(&mut verts[start..], *tint);
                 }
-                BlockDrawPrim::Sprite { .. } => {}
+                BlockDrawPrim::Sprite { .. } | BlockDrawPrim::Line { .. } => {}
             }
         }
     }
@@ -212,7 +212,7 @@ impl SpriteSlab {
                 emissive,
                 motion: Some(SlabMotion { bob, faces_viewer }),
             }),
-            BlockDrawPrim::Cuboid { .. } => None,
+            BlockDrawPrim::Cuboid { .. } | BlockDrawPrim::Line { .. } => None,
         }
     }
 }

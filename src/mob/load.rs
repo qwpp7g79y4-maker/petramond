@@ -41,10 +41,10 @@ use petramond_world::registry::NameTable;
 
 use super::brain::AiBehavior;
 use super::{
-    behavior, BrainNode, Buoyancy, Despawn, Habitat, Mob, MobCategory, MobCollision,
-    MobDamageFeedback, MobDamageFeedbackComponent, MobDamageSound, MobDef, MobSize,
-    MobSoundCategory, MobSoundSpec, MobTagValue, ShearSpec, SpawnGroup, SpawnRule, WanderCohesion,
-    WanderTuning, DEFAULT_DAMAGE_FLASH_SECS, DEFAULT_DAMAGE_KNOCKBACK_SECS, ENGINE_MOB_NAMES,
+    behavior, BrainNode, Buoyancy, Despawn, Habitat, Mob, MobCollision, MobDamageFeedback,
+    MobDamageFeedbackComponent, MobDamageSound, MobDef, MobSize, MobSoundCategory, MobSoundSpec,
+    MobTagValue, ShearSpec, SpawnGroup, SpawnRule, WanderCohesion, WanderTuning,
+    DEFAULT_DAMAGE_FLASH_SECS, DEFAULT_DAMAGE_KNOCKBACK_SECS, ENGINE_MOB_NAMES,
 };
 use petramond_world::ai_vocab::{RawBrainExtension, RawBrainNode};
 
@@ -83,13 +83,15 @@ struct RawMobDef {
     #[serde(default)]
     gait_facings: Option<Vec<f64>>,
     walk_anim_rate: f64,
-    category: MobCategory,
+    #[serde(default)]
+    category: Option<super::SpawnCategory>,
     #[serde(default)]
     despawn_radius: Option<f64>,
     #[serde(default = "noisy")]
     random_despawn: bool,
     cap: u32,
-    spawn: RawSpawn,
+    #[serde(default)]
+    spawn: Option<RawSpawn>,
     spawn_group: SpawnGroup,
     wander: RawWander,
     habitat: RawHabitat,
@@ -167,7 +169,8 @@ struct RawHands {
 struct RawSpawn {
     #[serde(default)]
     space: Option<Vec<Block>>,
-    biomes: Vec<String>,
+    #[serde(default)]
+    biomes: Option<Vec<String>>,
     #[serde(default)]
     underground: Vec<String>,
     #[serde(default)]
@@ -176,7 +179,14 @@ struct RawSpawn {
     chance: Option<f64>,
     #[serde(default)]
     chances: std::collections::BTreeMap<String, f64>,
-    ground: Vec<Block>,
+    #[serde(default)]
+    ground: Option<Vec<Block>>,
+    #[serde(default)]
+    light_below: Option<u8>,
+    #[serde(default)]
+    player_beyond: Option<f32>,
+    #[serde(default)]
+    crowd: Option<super::Crowd>,
 }
 
 #[derive(Deserialize)]
@@ -419,7 +429,7 @@ fn convert(
             }
             Some(radius as f32)
         }
-        None => r.category.default_despawn_radius(),
+        None => r.category.and_then(|c| c.def().despawn_radius),
     }
     .map(|radius| Despawn {
         radius,
@@ -523,7 +533,7 @@ fn convert(
         category: r.category,
         despawn,
         cap: r.cap,
-        spawn: convert_spawn(r.spawn)?,
+        spawn: r.spawn.map(convert_spawn).transpose()?,
         spawn_group: r.spawn_group,
         wander: WanderTuning {
             chance_per_tick: r.wander.chance_per_tick as f32,
@@ -724,7 +734,25 @@ fn convert_spawn(raw: RawSpawn) -> Result<SpawnRule, String> {
         }
         None => None,
     };
-    let biomes = resolve_biomes(raw.biomes)?;
+    if raw.biomes.as_ref().is_some_and(Vec::is_empty)
+        || raw.ground.as_ref().is_some_and(Vec::is_empty)
+    {
+        return Err("spawn biomes/ground: leave the list out for any, never empty".into());
+    }
+    if raw.light_below.is_some_and(|l| l == 0 || l > 64)
+        || raw
+            .player_beyond
+            .is_some_and(|d| !(d.is_finite() && d > 0.0))
+        || raw
+            .crowd
+            .is_some_and(|c| !(c.radius.is_finite() && c.radius > 0.0) || c.limit == 0)
+    {
+        return Err(
+            "spawn light_below must be 1..=64, player_beyond positive, crowd radius positive and limit at least 1"
+                .into(),
+        );
+    }
+    let biomes = raw.biomes.map(resolve_biomes).transpose()?;
     let chance = raw.chance.unwrap_or(1.0);
     if !chance.is_finite() || chance <= 0.0 || chance > 1.0 {
         return Err(format!(
@@ -734,6 +762,9 @@ fn convert_spawn(raw: RawSpawn) -> Result<SpawnRule, String> {
     let chances: &'static [f32] = if raw.chances.is_empty() {
         &[]
     } else {
+        let Some(biomes) = biomes else {
+            return Err("spawn chances name biomes, so the spawn needs its biomes list".into());
+        };
         let mut chances = vec![1.0f32; biomes.len()];
         for (name, chance) in raw.chances {
             let biome = Biome::from_name(&name)
@@ -757,7 +788,10 @@ fn convert_spawn(raw: RawSpawn) -> Result<SpawnRule, String> {
         space,
         chance: chance as f32,
         chances,
-        ground: Box::leak(raw.ground.into_boxed_slice()),
+        ground: raw.ground.map(|g| &*Box::leak(g.into_boxed_slice())),
+        light_below: raw.light_below,
+        player_beyond: raw.player_beyond,
+        crowd: raw.crowd,
     })
 }
 

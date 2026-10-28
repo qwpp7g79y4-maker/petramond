@@ -2,6 +2,7 @@
   "blocks": [
     {
       "block": "forge:anvil",
+      "behaviors": ["forge:anvil"],
       "shape": {
         "model": "forge:anvil"
       },
@@ -10,10 +11,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "forge:anvil"
-      },
+      "open_gui": "forge:anvil",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -47,10 +45,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "forge:pottery_table"
-      },
+      "open_gui": "forge:pottery_table",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -71,6 +66,7 @@
     },
     {
       "block": "forge:forging_furnace",
+      "behaviors": ["forge:forging_furnace"],
       "shape": {
         "model": "forge:forging_furnace"
       },
@@ -79,10 +75,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "forge:forging_furnace"
-      },
+      "open_gui": "forge:forging_furnace",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -182,6 +175,7 @@
     },
     {
       "block": "forge:forging_furnace_lit",
+      "behaviors": ["forge:forging_furnace"],
       "shape": {
         "model": "forge:forging_furnace_lit"
       },
@@ -190,10 +184,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "forge:forging_furnace"
-      },
+      "open_gui": "forge:forging_furnace",
       "collision": [],
       "emission": 10,
       "tiles": [
@@ -203,13 +194,9 @@
       ],
       "material": "stone",
       "data": {
-        "petramond:harvest": {
-          "tier": 1
-        },
-        "petramond:carry": [
-          "forge:fittings",
-          "petramond:info"
-        ]
+        "petramond:construction": {
+          "form": "forge:forging_furnace"
+        }
       },
       "hardness": 3.5,
       "drops": [
@@ -225,11 +212,11 @@
         0.72,
         0.42
       ],
-      "particle_emitter": "forge:forge_fire",
-      "data": { "petramond:construction": { "form": "forge:forging_furnace" } }
+      "particle_emitter": "forge:forge_fire"
     },
     {
       "block": "forge:forging_furnace_pour",
+      "behaviors": ["forge:forging_furnace"],
       "shape": {
         "model": "forge:forging_furnace_pour"
       },
@@ -238,10 +225,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "forge:forging_furnace"
-      },
+      "open_gui": "forge:forging_furnace",
       "collision": [],
       "emission": 13,
       "tiles": [
@@ -251,13 +235,9 @@
       ],
       "material": "stone",
       "data": {
-        "petramond:harvest": {
-          "tier": 1
-        },
-        "petramond:carry": [
-          "forge:fittings",
-          "petramond:info"
-        ]
+        "petramond:construction": {
+          "form": "forge:forging_furnace"
+        }
       },
       "hardness": 3.5,
       "drops": [
@@ -273,8 +253,7 @@
         0.72,
         0.42
       ],
-      "particle_emitter": "forge:forge_pour",
-      "data": { "petramond:construction": { "form": "forge:forging_furnace" } }
+      "particle_emitter": "forge:forge_pour"
     },
     {
       "block": "forge:petramond_ore",
@@ -287,8 +266,6 @@
       "tags": [
         "rock"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [

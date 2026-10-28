@@ -27,10 +27,10 @@ pub enum SpatialSoundCommand {
         volume: f32,
         pitch: f32,
     },
-    PlayOnMob {
+    PlayOnEntity {
         handle: u64,
         sound: petramond_world::sound_registry::Sound,
-        mob_id: u64,
+        entity: u64,
         volume: f32,
         pitch: f32,
         last_pos: petramond_math::world_pos::WorldPos,
@@ -88,7 +88,6 @@ pub struct WorldEvents {
     pub block_broken: Vec<BlockBrokenEvent>,
     pub block_placed: Vec<(IVec3, Block)>,
     pub panel_changed: Vec<(IVec3, bool)>,
-    pub chest_changed: Vec<(IVec3, bool)>,
     pub item_picked_up: Vec<(petramond_math::world_pos::WorldPos, PlayerId)>,
     pub emitter_bursts: Vec<BurstFired>,
     next_spatial_sound_handle: u64,
@@ -103,7 +102,6 @@ impl WorldEvents {
             block_broken: Vec::new(),
             block_placed: Vec::new(),
             panel_changed: Vec::new(),
-            chest_changed: Vec::new(),
             item_picked_up: Vec::new(),
             emitter_bursts: Vec::new(),
             next_spatial_sound_handle: next_spatial_sound_handle.max(1),

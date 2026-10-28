@@ -54,7 +54,13 @@ fn typed_registrations_allocate_ids_and_dispatch_to_their_closures() {
             m.handle_event(TYPED_ID_BASE, &mut mod_event()),
             Outcome::Cancel
         ));
-        m.block_hook(TYPED_ID_BASE, BlockHookKind::RandomTick, [1, 2, 3]);
+        m.block_hooks(
+            TYPED_ID_BASE,
+            &[
+                (BlockHookKind::RandomTick, [1, 2, 3]),
+                (BlockHookKind::ScheduledTick, [4, 5, 6]),
+            ],
+        );
     });
     assert!(host.calls().iter().any(|call| matches!(
         call,
@@ -75,7 +81,11 @@ fn typed_registrations_allocate_ids_and_dispatch_to_their_closures() {
     assert_eq!(m.state.typed_ticks, 1);
     assert_eq!(m.state.raw_ticks, vec![5], "a raw id reaches the raw hook");
     assert_eq!(m.state.events, 1);
-    assert_eq!(m.state.hooks, vec![[1, 2, 3]]);
+    assert_eq!(
+        m.state.hooks,
+        vec![[1, 2, 3], [4, 5, 6]],
+        "a per-hook handler sees each hook of the batch"
+    );
 }
 
 #[test]

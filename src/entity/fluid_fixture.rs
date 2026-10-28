@@ -9,6 +9,8 @@ pub const BRINE: &str = "bodyfluid:brine";
 pub const SYRUP: &str = "bodyfluid:syrup";
 pub const CINDER: &str = "bodyfluid:cinder";
 pub const REED: &str = "bodyfluid:reed";
+pub const PROOF: &str = "bodyfluid:proof";
+pub const DARK: &str = "bodyfluid:dark";
 pub const FLOOR_Y: i32 = 64;
 
 pub fn stage(tag: &str) -> TestScratchDir {
@@ -49,7 +51,16 @@ pub fn stage(tag: &str) -> TestScratchDir {
                 0.0,
             ),
             hazard_floor_row(CINDER),
+            floor_row(PROOF, &["spawn_proof"]),
             holding_row(REED, BRINE),
+        ]}),
+    );
+    write(
+        "spawn_categories.json",
+        serde_json::json!({"spawn_categories": [
+            {"category": "bodyfluid:aquatic", "cap": 72, "despawn_radius": 96,
+             "spawner": {"ring": {"every": 40, "near": 24, "far": 64}}},
+            {"category": DARK, "cap": 70, "spawner": {"scan": {"near": 24, "far": 128}}},
         ]}),
     );
     write(
@@ -65,6 +76,7 @@ pub fn stage(tag: &str) -> TestScratchDir {
             breathing(body_row("lunged", "swim", serde_json::json!({})), &["petramond:air"]),
             aquatic(breathing(body_row("gilled", "neutral", serde_json::json!({})), &[BRINE])),
             schooling(aquatic(body_row("minnow", "neutral", serde_json::json!({})))),
+            lurking(body_row("lurker", "sink", serde_json::json!({}))),
         ]}),
     );
     root
@@ -105,8 +117,8 @@ pub fn fluid_row(
                 "surface_alpha": 1.0
             }
         },
-        "shape": "cube", "flags": ["transparent", "fluid"], "tags": tags,
-        "behavior": "fluid", "interaction": "none", "collision": [], "emission": 0,
+        "shape": "cube", "flags": ["transparent", "fluid", "dims_sky"], "tags": tags,
+        "behaviors": ["fluid"], "collision": [], "emission": 0,
         "tiles": ["water_still", "water_still", "water_still"], "flow_tile": "water_flow",
         "material": "none", "hardness": -1, "drops": []
     })
@@ -119,10 +131,13 @@ fn flooding(mut row: serde_json::Value) -> serde_json::Value {
 }
 
 fn hazard_floor_row(name: &str) -> serde_json::Value {
+    floor_row(name, &["nav_hazard"])
+}
+
+fn floor_row(name: &str, tags: &[&str]) -> serde_json::Value {
     serde_json::json!({
         "block": name,
-        "shape": "cube", "flags": ["solid", "opaque"], "tags": ["nav_hazard"],
-        "behavior": "inert", "interaction": "none",
+        "shape": "cube", "flags": ["solid", "opaque"], "tags": tags,
         "collision": [{"min": [0, 0, 0], "max": [1, 1, 1]}], "emission": 0,
         "tiles": ["stone", "stone", "stone"],
         "material": "stone", "hardness": 1.5, "drops": []
@@ -133,7 +148,7 @@ fn holding_row(name: &str, fluid: &str) -> serde_json::Value {
     serde_json::json!({
         "block": name, "contained_fluid": fluid, "stacks": true,
         "shape": "cross", "flags": ["transparent"], "tags": ["fragile"],
-        "behavior": "fragile", "interaction": "none", "collision": [], "emission": 0,
+        "behaviors": ["fragile"], "collision": [], "emission": 0,
         "tiles": ["short_grass", "short_grass", "short_grass"],
         "material": "plant", "hardness": 0, "drops": []
     })
@@ -147,7 +162,6 @@ fn body_row(name: &str, buoyancy: &str, tolerates: serde_json::Value) -> serde_j
         "tags": {"petramond:health": 20.0},
         "walk_speed": 3.0, "jump_speed": 8.0, "turn_rate": 8.0, "walk_anim_rate": 1.0,
         "category": "passive", "cap": 1,
-        "spawn": {"biomes": [], "ground": []},
         "spawn_group": {"min": 1, "max": 1},
         "wander": {"chance_per_tick": 0.0, "radius": 1},
         "habitat": {"avoid": [], "prefer": []},
@@ -165,7 +179,7 @@ pub const BREATH_TICKS: u32 = 20;
 pub const BREATH_PULSE: u32 = 10;
 
 fn aquatic(mut row: serde_json::Value) -> serde_json::Value {
-    row["category"] = serde_json::json!("aquatic");
+    row["category"] = serde_json::json!("bodyfluid:aquatic");
     row["cap"] = serde_json::json!(60);
     row
 }
@@ -173,10 +187,18 @@ fn aquatic(mut row: serde_json::Value) -> serde_json::Value {
 /// Spawns naturally in schools through deep brine in the engine ocean.
 fn schooling(mut row: serde_json::Value) -> serde_json::Value {
     row["spawn"] = serde_json::json!({
-        "chance": 1.0, "biomes": ["petramond:ocean"], "ground": [],
+        "chance": 1.0, "biomes": ["petramond:ocean"],
         "y": SCHOOL_BAND, "space": [BRINE]
     });
     row["spawn_group"] = serde_json::json!({"min": 2, "max": 3});
+    row
+}
+
+/// Spawns by the dark scan wherever the light is low, a few to a crowd.
+fn lurking(mut row: serde_json::Value) -> serde_json::Value {
+    row["category"] = serde_json::json!(DARK);
+    row["cap"] = serde_json::json!(5);
+    row["spawn"] = serde_json::json!({"light_below": 24, "crowd": {"radius": 8, "limit": 2}});
     row
 }
 

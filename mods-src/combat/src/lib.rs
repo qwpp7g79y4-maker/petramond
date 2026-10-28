@@ -132,6 +132,7 @@ impl Combat {
 
     fn on_damage(&mut self, payload: &EventPayload) -> Outcome {
         let EventPayload::PlayerDamagePre {
+            player,
             source: DamageSource::MobAttack { .. },
             origin,
             ..
@@ -139,11 +140,10 @@ impl Combat {
         else {
             return Outcome::Continue;
         };
-        let state = player_state();
-        let Some(me) = state.id else {
+        let Some(state) = player_state(*player) else {
             return Outcome::Continue;
         };
-        if self.block(me, &state, *origin) {
+        if self.block(*player, &state, *origin) {
             Outcome::Cancel
         } else {
             Outcome::Continue
@@ -203,11 +203,11 @@ impl Combat {
         let speed = (vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]).sqrt();
         let roll = || strike::roll(arrow.damage_at(speed), rng_u64("arrow"));
         match target {
-            ProjectileTarget::Mob(mob) => {
-                damage_mob(*mob, roll(), Some(*pos), item.owner);
+            ProjectileTarget::Body(EntityRef::Entity(mob)) => {
+                damage(EntityRef::Entity(*mob), roll(), Some(*pos), item.owner);
                 *fate = ProjectileFate::Consume;
             }
-            ProjectileTarget::Player(victim) => {
+            ProjectileTarget::Body(EntityRef::Player(victim)) => {
                 let came_from = [
                     pos[0] - f64::from(vel[0]),
                     pos[1] - f64::from(vel[1]),
@@ -222,7 +222,7 @@ impl Combat {
                         vel: vel.map(|v| -v * DEFLECT_SPEED_SCALE),
                     };
                 } else {
-                    damage_player(*victim, roll().round() as i32, Some(*pos), item.owner);
+                    damage(EntityRef::Player(*victim), roll(), Some(*pos), item.owner);
                     *fate = ProjectileFate::Consume;
                 }
             }
@@ -238,8 +238,7 @@ impl Combat {
         if block.is_some() {
             return Outcome::Continue;
         }
-        let state = player_state();
-        if state.id != Some(*player) || !self.tools.lands(state.held) {
+        if !player_state(*player).is_some_and(|state| self.tools.lands(state.held)) {
             return Outcome::Continue;
         }
         Outcome::Cancel
@@ -247,7 +246,6 @@ impl Combat {
 
     fn on_mob_damage(&self, payload: &mut EventPayload) -> Outcome {
         let EventPayload::MobDamagePre {
-            mob_id,
             kind,
             source,
             feedback,
@@ -256,9 +254,6 @@ impl Combat {
         else {
             return Outcome::Continue;
         };
-        if let (Some(harpoons), DamageSource::PlayerAttack { id }) = (&self.harpoons, &*source) {
-            harpoons.on_mob_damage(*id, *mob_id, feedback);
-        }
         if !self.combo_mobs.contains(kind) {
             return Outcome::Continue;
         }
@@ -278,9 +273,11 @@ impl Combat {
         Outcome::Continue
     }
 
-    fn on_raise(&mut self) -> Outcome {
-        let state = player_state();
-        let Some(me) = state.id else {
+    fn on_raise(&mut self, payload: &EventPayload) -> Outcome {
+        let EventPayload::UseUnclaimed { player: me, .. } = *payload else {
+            return Outcome::Continue;
+        };
+        let Some(state) = player_state(me) else {
             return Outcome::Continue;
         };
         let Some(owner) = claims::taker(&self.rules, &state) else {
@@ -379,7 +376,7 @@ impl Mod for Combat {
             ATTACK_HANDLER => self.on_attack_attempt(payload),
             PROJECTILE_HANDLER => self.on_projectile_hit(payload),
             DAMAGE_HANDLER => self.on_damage(payload),
-            RAISE_HANDLER => self.on_raise(),
+            RAISE_HANDLER => self.on_raise(payload),
             IMPACT_HANDLER => {
                 match payload {
                     EventPayload::ModEvent { key, .. } if key == IMPACT_EVENT => {
@@ -397,8 +394,10 @@ impl Mod for Combat {
     }
 
     fn client_frame(&mut self, frame: &ClientFrameData) {
-        let state = player_state();
-        let Some(me) = state.id else {
+        let Some(me) = acting_player() else {
+            return;
+        };
+        let Some(state) = player_state(me) else {
             return;
         };
         let dt = frame.dt.max(0.0);

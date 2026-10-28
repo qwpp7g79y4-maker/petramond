@@ -5,7 +5,7 @@ use crate::registry::ContentNames;
 use crate::tile::Tile;
 
 use super::definition::ItemDef;
-use super::{HeldPose, ItemTag, ItemType, ItemUse, Tool, ToolKind};
+use super::{HeldPose, ItemTag, ItemType, Tool, ToolKind};
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -30,8 +30,6 @@ pub(super) struct RawItemDef {
     pub tags: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub block: Option<String>,
-    #[serde(default, rename = "use", skip_serializing_if = "Option::is_none")]
-    pub use_: Option<RawItemUse>,
     #[serde(default, skip_serializing_if = "RawUseRay::is_solid")]
     pub use_ray: RawUseRay,
     #[serde(default, skip_serializing_if = "serde_json::Map::is_empty")]
@@ -45,39 +43,19 @@ pub(super) struct RawItemDef {
 }
 
 #[derive(Serialize, Deserialize)]
-#[serde(untagged)]
-pub(super) enum RawItemUse {
-    Bare(String),
-    Tagged(RawTaggedUse),
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub(super) enum RawTaggedUse {
-    BucketFill(RawBucketFill),
-    BucketPour(RawBucketPour),
-}
-
-#[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct RawBucketFill {
-    pub becomes: std::collections::BTreeMap<String, String>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(super) struct RawBucketPour {
-    pub becomes: String,
+pub(super) struct RawPour {
     pub fluid: String,
+    pub becomes: String,
 }
 
-fn resolve_bucket_fluid(names: &ContentNames, name: &str) -> Result<crate::block::Block, String> {
+fn resolve_fluid(names: &ContentNames, name: &str) -> Result<crate::block::Block, String> {
     names
         .blocks
         .id(name)
         .map(crate::block::Block)
         .filter(|b| b.is_fluid())
-        .ok_or_else(|| format!("bucket fluid '{name}' is not a fluid block"))
+        .ok_or_else(|| format!("'{name}' is not a fluid block"))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -142,7 +120,7 @@ impl RawUseRay {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct RawTool {
-    pub kind: ToolKind,
+    pub kind: String,
     pub tier: u8,
     #[serde(default)]
     pub speed: Option<f32>,
@@ -274,52 +252,6 @@ fn convert(
         ),
         None => None,
     };
-    let becomes_item = |name: &str| {
-        names
-            .items
-            .id(name)
-            .map(ItemType)
-            .ok_or_else(|| format!("unknown 'becomes' item '{name}' in the row's use handler"))
-    };
-    let item_use = match &r.use_ {
-        None => None,
-        Some(RawItemUse::Bare(name)) => Some(match name.as_str() {
-            "shear" => ItemUse::Shear,
-            "bucket_fill" | "bucket_pour" => {
-                return Err(format!(
-                    "use '{name}' needs its result item: {{\"{name}\": {{\"becomes\": \
-                     \"<item>\"}}}}"
-                ))
-            }
-            other => {
-                return Err(format!(
-                    "unknown use handler '{other}' (engine handlers only; mods react via \
-                     the item_use_pre event)"
-                ))
-            }
-        }),
-        Some(RawItemUse::Tagged(tagged)) => Some(match tagged {
-            RawTaggedUse::BucketFill(b) => {
-                if b.becomes.is_empty() {
-                    return Err("bucket_fill: `becomes` names no fluid to scoop".into());
-                }
-                let fills = b
-                    .becomes
-                    .iter()
-                    .map(|(fluid, item)| {
-                        Ok((resolve_bucket_fluid(names, fluid)?, becomes_item(item)?))
-                    })
-                    .collect::<Result<Vec<_>, String>>()?;
-                ItemUse::BucketFill {
-                    fills: Box::leak(fills.into_boxed_slice()),
-                }
-            }
-            RawTaggedUse::BucketPour(b) => ItemUse::BucketPour {
-                becomes: becomes_item(&b.becomes)?,
-                fluid: resolve_bucket_fluid(names, &b.fluid)?,
-            },
-        }),
-    };
     let data = crate::registry::compile_data_map(
         names.items.name(item.0).unwrap_or(""),
         &r.data,
@@ -333,8 +265,42 @@ fn convert(
         .map(|name| &*Box::leak(name.into_boxed_str()));
     let fuel_burn_ticks = crate::registry::engine_data::<RawFuel>(data, "petramond:fuel")?
         .map_or(0, |f| f.burn_ticks);
+    let item_named = |name: &str| {
+        names
+            .items
+            .id(name)
+            .map(ItemType)
+            .ok_or_else(|| format!("unknown item '{name}'"))
+    };
+    let scoops: &'static [(crate::block::Block, ItemType)] = match crate::registry::engine_data::<
+        std::collections::BTreeMap<String, String>,
+    >(data, "petramond:scoops")?
+    {
+        None => &[],
+        Some(map) if map.is_empty() => {
+            return Err("petramond:scoops names no fluid to take up".into())
+        }
+        Some(map) => Box::leak(
+            map.iter()
+                .map(|(fluid, item)| Ok((resolve_fluid(names, fluid)?, item_named(item)?)))
+                .collect::<Result<Vec<_>, String>>()
+                .map_err(|e| format!("petramond:scoops: {e}"))?
+                .into_boxed_slice(),
+        ),
+    };
+    let pours = crate::registry::engine_data::<RawPour>(data, "petramond:pours")?
+        .map(|p| {
+            Ok::<_, String>(super::Pour {
+                fluid: resolve_fluid(names, &p.fluid)?,
+                becomes: item_named(&p.becomes)?,
+            })
+        })
+        .transpose()
+        .map_err(|e| format!("petramond:pours: {e}"))?;
     let tool = match crate::registry::engine_data::<RawTool>(data, "petramond:tool")? {
         Some(t) => {
+            let kind = ToolKind::by_name(&t.kind)
+                .ok_or_else(|| format!("unknown tool kind '{}'", t.kind))?;
             if !(1..=4).contains(&t.tier) {
                 return Err(format!(
                     "tool tier {} out of range (1 = wooden … 4 = diamond)",
@@ -347,7 +313,7 @@ fn convert(
                 Some(s) => return Err(format!("tool speed {s} must be finite and positive")),
             };
             let damage = match t.damage {
-                None => crate::item::default_damage(t.kind, t.tier),
+                None => crate::item::default_damage(kind, t.tier),
                 Some([lo, hi]) if lo.is_finite() && hi.is_finite() && lo >= 0.0 && hi >= lo => {
                     (lo, hi)
                 }
@@ -367,7 +333,7 @@ fn convert(
                 }
             };
             Some(Tool {
-                kind: t.kind,
+                kind,
                 tier: t.tier,
                 speed,
                 damage,
@@ -553,7 +519,8 @@ fn convert(
         creative_only,
         world_tool,
         placement_variants,
-        item_use,
+        scoops,
+        pours,
         use_ray: r.use_ray.resolve()?,
         fuel_burn_ticks,
         tool,
@@ -590,17 +557,20 @@ mod tests {
         let bare = r#"{"items": [{"item": "gadget", "key": "gadget", "name": "G", "max_stack_size": 64, "held_pose": {"pitch": 0, "yaw": 1.8, "roll": 0}, "tags": []}]}"#;
         let err = parse_test_layers(&[&base, bare]).expect_err("bare additions refused");
         assert!(err.contains("gadget") && err.contains("namespace"), "{err}");
-        let bad_use = r#"{"items": [{"item": "mymod:g", "key": "mymod:g", "name": "G", "max_stack_size": 64, "held_pose": {"pitch": 0, "yaw": 1.8, "roll": 0}, "tags": [], "use": "zap"}]}"#;
-        let err = parse_test_layers(&[&base, bad_use]).expect_err("unknown use refused");
-        assert!(err.contains("unknown use handler"), "{err}");
-        let bare_bucket = r#"{"items": [{"item": "mymod:g", "key": "mymod:g", "name": "G", "max_stack_size": 64, "held_pose": {"pitch": 0, "yaw": 1.8, "roll": 0}, "tags": [], "use": "bucket_fill"}]}"#;
-        let err = parse_test_layers(&[&base, bare_bucket]).expect_err("bare bucket use refused");
-        assert!(err.contains("becomes"), "{err}");
-        let bad_becomes = r#"{"items": [{"item": "mymod:g", "key": "mymod:g", "name": "G", "max_stack_size": 64, "held_pose": {"pitch": 0, "yaw": 1.8, "roll": 0}, "tags": [], "use": {"bucket_pour": {"becomes": "mymod:nope", "fluid": "petramond:water"}}}]}"#;
-        let err = parse_test_layers(&[&base, bad_becomes]).expect_err("unknown becomes refused");
-        assert!(err.contains("becomes"), "{err}");
-        let bad_fluid = r#"{"items": [{"item": "mymod:g", "key": "mymod:g", "name": "G", "max_stack_size": 64, "held_pose": {"pitch": 0, "yaw": 1.8, "roll": 0}, "tags": [], "use": {"bucket_fill": {"becomes": {"petramond:stone": "mymod:g"}}}}]}"#;
-        let err = parse_test_layers(&[&base, bad_fluid]).expect_err("non-fluid key refused");
+        let item = |data: &str| {
+            format!(
+                r#"{{"items": [{{"item": "mymod:g", "key": "mymod:g", "name": "G", "max_stack_size": 1, "held_pose": {{"pitch": 0, "yaw": 1.8, "roll": 0}}, "tags": [], "data": {data}}}]}}"#
+            )
+        };
+        let empty = item(r#"{"petramond:scoops": {}}"#);
+        let err = parse_test_layers(&[&base, &empty]).expect_err("a scoop of nothing refused");
+        assert!(err.contains("no fluid"), "{err}");
+        let bad_becomes =
+            item(r#"{"petramond:pours": {"fluid": "petramond:water", "becomes": "mymod:nope"}}"#);
+        let err = parse_test_layers(&[&base, &bad_becomes]).expect_err("unknown becomes refused");
+        assert!(err.contains("mymod:nope"), "{err}");
+        let bad_fluid = item(r#"{"petramond:scoops": {"petramond:stone": "mymod:g"}}"#);
+        let err = parse_test_layers(&[&base, &bad_fluid]).expect_err("non-fluid key refused");
         assert!(err.contains("fluid"), "{err}");
         let bad_block = r#"{"items": [{"item": "mymod:g", "key": "mymod:g", "name": "G", "max_stack_size": 64, "held_pose": {"pitch": 0, "yaw": 1.8, "roll": 0}, "tags": [], "block": "bogus_block"}]}"#;
         let err = parse_test_layers(&[&base, bad_block]).expect_err("unknown block refused");

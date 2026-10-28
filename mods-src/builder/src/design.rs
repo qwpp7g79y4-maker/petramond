@@ -30,7 +30,7 @@ pub struct Design {
     pub title: String,
     sections: u32,
     next_section: u32,
-    pub records: Vec<BlockRecord>,
+    pub records: Vec<CellRecord>,
     pub plans: Vec<Plan>,
     costs: Vec<Vec<ItemStackData>>,
     pub units: Vec<Unit>,
@@ -39,7 +39,7 @@ pub struct Design {
     pub min: [i32; 3],
     pub max: [i32; 3],
     pub complete: bool,
-    record_index: HashMap<BlockRecord, u32>,
+    record_index: HashMap<CellRecord, u32>,
     at: HashMap<[i32; 3], usize>,
     tagged: HashMap<&'static str, HashSet<BlockId>>,
     passages: HashSet<usize>,
@@ -143,19 +143,19 @@ impl Design {
     }
 
     fn add_section(&mut self, section: SchematicCellsData) {
-        let fresh: Vec<BlockRecord> = section
+        let fresh: Vec<CellRecord> = section
             .palette
             .iter()
             .filter(|r| !self.record_index.contains_key(*r))
             .cloned()
             .collect();
         let mut seen = HashSet::default();
-        let fresh: Vec<BlockRecord> = fresh
+        let fresh: Vec<CellRecord> = fresh
             .into_iter()
             .filter(|r| seen.insert(r.clone()))
             .collect();
         if !fresh.is_empty() {
-            let plans = paged(fresh.clone(), block_record_plans);
+            let plans = paged(fresh.clone(), record_plans);
             let shapes = record_shapes(&fresh);
             for ((record, plan), (full, panel)) in fresh.into_iter().zip(plans).zip(shapes) {
                 let index = self.records.len() as u32;
@@ -257,14 +257,9 @@ impl Design {
     }
 
     fn add_rooms(&mut self) {
-        let empty = BlockRecord {
-            block: AIR.into(),
-            state: Vec::new(),
-            refs: Vec::new(),
-            data: Vec::new(),
-        };
+        let empty = CellRecord::of(AIR);
         if !matches!(
-            block_record_plans(vec![empty.clone()]).first(),
+            record_plans(vec![empty.clone()]).first(),
             Some(RecordPlan::Air)
         ) {
             return;
@@ -395,7 +390,7 @@ fn turned_size(size: [i32; 3], turns: u8) -> [i32; 3] {
     }
 }
 
-fn record_shapes(records: &[BlockRecord]) -> Vec<(bool, bool)> {
+fn record_shapes(records: &[CellRecord]) -> Vec<(bool, bool)> {
     let ids: Vec<Option<BlockId>> = records.iter().map(|r| resolve_block(&r.block)).collect();
     let known: Vec<BlockId> = ids.iter().flatten().copied().collect();
     let infos = paged(known, block_infos);

@@ -61,7 +61,7 @@
           "petramond:stone"
         ],
         "vegetation": {
-          "sand_cover": {"chance": 0.007, "roll": [[45, "petramond:dead_bush"], [100, "petramond:cactus"]]}
+          "covers": [{"on": ["petramond:sand", "petramond:red_sand"], "roll": {"chance": 0.007, "roll": [[45, "petramond:dead_bush"], [100, "petramond:cactus"]]}}]
         }
       }
     },
@@ -370,7 +370,7 @@
         "vegetation": {
           "grass": {"tuft": "petramond:short_grass", "density": 0.0},
           "flowers": {"palette": ["petramond:oxeye_daisy", "petramond:poppy"], "coverage": 0.05, "density": 0.14},
-          "podzol_cover": {"chance": 0.55, "roll": [[70, "petramond:fern"], [90, "petramond:short_grass"], [95, "petramond:red_mushroom"], [100, "petramond:brown_mushroom"]]},
+          "covers": [{"on": ["petramond:podzol"], "clustered": true, "roll": {"chance": 0.55, "roll": [[70, "petramond:fern"], [90, "petramond:short_grass"], [95, "petramond:red_mushroom"], [100, "petramond:brown_mushroom"]]}}],
           "grass_cover": {"chance": 0.55, "roll": [[70, "petramond:fern"], [90, "petramond:short_grass"], [95, "petramond:red_mushroom"], [100, "petramond:brown_mushroom"]]},
           "cover_cluster": {"salt": 279354572668929, "period": 9.0, "coverage": 0.5}
         }
@@ -396,7 +396,7 @@
         ],
         "vegetation": {
           "grass": {"tuft": "petramond:fern", "density": 0.12},
-          "podzol_cover": {"chance": 0.1, "roll": [[58, "petramond:fern"], [80, "petramond:short_grass"], [90, "petramond:red_mushroom"], [100, "petramond:brown_mushroom"]]}
+          "covers": [{"on": ["petramond:podzol"], "clustered": true, "roll": {"chance": 0.1, "roll": [[58, "petramond:fern"], [80, "petramond:short_grass"], [90, "petramond:red_mushroom"], [100, "petramond:brown_mushroom"]]}}]
         }
       }
     },
@@ -569,7 +569,7 @@
           "petramond:stone"
         ],
         "vegetation": {
-          "sand_cover": {"chance": 0.007, "roll": [[45, "petramond:dead_bush"], [100, "petramond:cactus"]]}
+          "covers": [{"on": ["petramond:sand", "petramond:red_sand"], "roll": {"chance": 0.007, "roll": [[45, "petramond:dead_bush"], [100, "petramond:cactus"]]}}]
         }
       }
     },

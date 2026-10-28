@@ -140,16 +140,17 @@ fn headless_disconnect_detaches_before_player_id_reuse() {
     let dismounts = Arc::new(AtomicUsize::new(0));
     let observed = Arc::clone(&dismounts);
     server.mods.bus_mut().on_post(
-        crate::events::PostEventKind::PlayerDismounted,
+        crate::events::PostEventKind::PlayerDetached,
         0,
         move |_, event| {
             if matches!(
                 event,
-                crate::events::PostEvent::PlayerDismounted {
+                crate::events::PostEvent::PlayerDetached {
                     player: PlayerId(0),
                     mount: crate::mob::riding::Mount {
-                        target: crate::mob::riding::MountTarget::Mob(77),
+                        target: crate::mob::riding::MountTarget::Entity(77),
                         seat: 0,
+                        ..
                     }
                 }
             ) {
@@ -162,10 +163,12 @@ fn headless_disconnect_detaches_before_player_id_reuse() {
         .admit_remote_player(key(1), "First", 16, &[])
         .expect("admitted");
     assert_eq!(first.player_id, PlayerId(0));
-    assert!(server
-        .world
-        .riding_mut()
-        .mount(0, crate::mob::riding::MountTarget::Mob(77), 0));
+    assert!(server.world.riding_mut().mount(
+        0,
+        crate::mob::riding::MountTarget::Entity(77),
+        0,
+        crate::mob::riding::Posture::Seated
+    ));
     server.sessions[0].sim.mount = server.world.riding().mount_of(0);
 
     assert_eq!(

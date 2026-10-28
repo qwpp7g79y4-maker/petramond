@@ -10,7 +10,7 @@ use crate::inventory::WearSlot;
 pub struct Wear {
     pub slot: WearSlot,
     /// Scales multiplied into the wearer's body attributes while it is worn.
-    pub attributes: &'static [(PlayerAttribute, f32)],
+    pub attributes: crate::attribute::AttributeScales,
     /// A GUI texture laid over the wearer's own first-person view.
     pub overlay: Option<&'static str>,
     /// What the wearer shows, in the model's `head` display pose; without one a model or block
@@ -40,26 +40,13 @@ impl RawWear {
                 known.join(", ")
             )
         })?;
-        let attributes = self
-            .attributes
-            .iter()
-            .map(|(key, &scale)| {
-                let attribute = PlayerAttribute::from_key(key)
-                    .ok_or_else(|| format!("wear attribute '{key}' is not a body attribute"))?;
-                if !scale.is_finite() || scale < 0.0 {
-                    return Err(format!(
-                        "wear attribute '{key}' scale {scale} must be finite and non-negative"
-                    ));
-                }
-                Ok((attribute, scale))
-            })
-            .collect::<Result<Vec<_>, String>>()?;
+        let attributes = crate::attribute::resolve(&self.attributes, "wear")?;
         if self.overlay.as_deref().is_some_and(str::is_empty) {
             return Err("wear overlay path is empty".into());
         }
         Ok(Wear {
             slot,
-            attributes: Box::leak(attributes.into_boxed_slice()),
+            attributes,
             overlay: self
                 .overlay
                 .clone()
@@ -72,10 +59,6 @@ impl RawWear {
 impl Wear {
     /// This item's factor on `attribute` (1 when it does not touch it).
     pub fn scale(&self, attribute: PlayerAttribute) -> f32 {
-        self.attributes
-            .iter()
-            .filter(|(a, _)| *a == attribute)
-            .map(|(_, s)| s)
-            .product()
+        crate::attribute::scale(self.attributes, attribute)
     }
 }

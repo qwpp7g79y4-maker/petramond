@@ -30,7 +30,7 @@ impl Vessels {
         }
         for (dish, returns) in &self.rows {
             if *dish == item {
-                give_item_to(player, returns, 1, &[]);
+                give_item(player, returns, 1, &[]);
             }
         }
     }

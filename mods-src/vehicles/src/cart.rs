@@ -5,10 +5,6 @@ use crate::track::{dot2, grade, xz, yaw_facing, Path, RAIL_TOP};
 
 pub type Aabb = ([f64; 3], [f64; 3]);
 
-pub fn overlaps(a: Aabb, b: Aabb) -> bool {
-    (0..3).all(|i| a.0[i] < b.1[i] && b.0[i] < a.1[i])
-}
-
 pub fn cell_box(cell: [i32; 3]) -> Aabb {
     let min = [cell[0] as f64, cell[1] as f64, cell[2] as f64];
     (min, [min[0] + 1.0, min[1] + 1.0, min[2] + 1.0])
@@ -387,7 +383,8 @@ mod tests {
     const OPEN: &dyn Fn(Aabb) -> bool = &|_| false;
 
     fn block_at(cell: [i32; 3]) -> impl Fn(Aabb) -> bool {
-        move |probe| overlaps(probe, cell_box(cell))
+        let solid = cell_box(cell);
+        move |probe| (0..3).all(|i| probe.0[i] < solid.1[i] && solid.0[i] < probe.1[i])
     }
     const BODY: Body = Body {
         half_width: 0.45,

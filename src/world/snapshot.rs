@@ -3,6 +3,22 @@ use crate::mob::SavedMob;
 use crate::save::{SectionSnapshot, WorldSave};
 use crate::world::ServerWorld;
 use petramond_world::chunk::SectionPos;
+use petramond_world::section::CellMap;
+
+/// What a section holds that changes without a block edit: item entities, mobs and pending
+/// block ticks (as ticks left).
+#[derive(Default)]
+pub(super) struct LiveContent {
+    pub entities: Vec<DroppedItem>,
+    pub mobs: Vec<SavedMob>,
+    pub ticks: CellMap<u64>,
+}
+
+impl LiveContent {
+    fn is_empty(&self) -> bool {
+        self.entities.is_empty() && self.mobs.is_empty() && self.ticks.is_empty()
+    }
+}
 
 impl ServerWorld {
     pub fn attach_save(&mut self, save: WorldSave, saved: super::SavedIndex) {
@@ -22,19 +38,18 @@ impl ServerWorld {
     /// Shared gate for flush (autosave/quit) and unload (eviction) to decide if a section needs
     /// saving, and build the `SectionSnapshot` when it does.
     ///
-    /// Persists if blocks were modified, section still has item entities or mobs, or
-    /// `record_holds_entities` is set: the on-disk record may still have drops/mobs the section no
-    /// longer carries, so it must be rewritten to keep reloads correct. The caller works that
-    /// out from the save handle.
+    /// Persists if blocks were modified, the section holds live content, or `record_holds_live`
+    /// is set: the on-disk record may still have drops, mobs or ticks the section no longer
+    /// carries, so it must be rewritten to keep reloads correct. The caller works that out from
+    /// the save handle.
     ///
     /// Harvest policy and post-action are the caller's job: flush clears `modified` and keeps the
     /// section active, unload evicts it.
     pub(super) fn snapshot_section_for_save(
         &self,
         pos: SectionPos,
-        entities: Vec<DroppedItem>,
-        mobs: Vec<SavedMob>,
-        record_holds_entities: bool,
+        live: LiveContent,
+        record_holds_live: bool,
     ) -> Option<SectionSnapshot> {
         let section = self.data.sections.get(&pos)?;
         let light_final = !section.light_dirty || section.all_opaque();
@@ -49,12 +64,12 @@ impl ServerWorld {
         let light_stale_persisted = !light_final
             && self.data.light_edited_since_persist.contains(&pos)
             && (authoritative_exists || explored_exists);
-        let authoritative =
-            section.modified || !entities.is_empty() || !mobs.is_empty() || record_holds_entities;
+        let authoritative = section.modified || !live.is_empty() || record_holds_live;
         if authoritative || explored_first_persist || relit_persisted || light_stale_persisted {
             let mut snap = SectionSnapshot::from_section(section);
-            snap.entities = entities;
-            snap.mobs = mobs;
+            snap.entities = live.entities;
+            snap.mobs = live.mobs;
+            snap.ticks = live.ticks;
             snap.cache_only = !authoritative && !authoritative_exists;
             Some(snap)
         } else {
@@ -64,7 +79,7 @@ impl ServerWorld {
 
     /// Persists every loaded section whose saved form is out of date. Only sections touched
     /// since the last flush, relit or light-edited since their last persist, holding (or with a
-    /// record holding) entities can be, so those are the only ones examined.
+    /// record holding) live content can be, so those are the only ones examined.
     pub fn flush_modified_chunks(&mut self) {
         if self.side.save.is_none() {
             return;
@@ -73,17 +88,19 @@ impl ServerWorld {
         self.repair_random_tick_index();
         let mut by_section = self.side.entities.dropped_items.items_by_section();
         let mut mobs_by_section = self.side.entities.mobs.saved_by_section();
+        let mut ticks_by_section = self.scheduled_ticks_by_section();
         let mut positions: Vec<SectionPos> = std::mem::take(&mut self.data.persist_candidates)
             .into_iter()
             .chain(by_section.keys().copied())
             .chain(mobs_by_section.keys().copied())
+            .chain(ticks_by_section.keys().copied())
             .chain(self.data.relit_since_persist.iter().copied())
             .chain(self.data.light_edited_since_persist.iter().copied())
             .chain(
                 self.side
                     .save
                     .iter()
-                    .flat_map(|save| save.sections_holding_entities()),
+                    .flat_map(|save| save.sections_holding_live()),
             )
             .filter(|pos| self.data.sections.contains_key(pos))
             .collect();
@@ -92,16 +109,17 @@ impl ServerWorld {
         let mut snaps = Vec::new();
         let mut persisted = Vec::new();
         for pos in positions {
-            let entities = by_section.remove(&pos).unwrap_or_default();
-            let mobs = mobs_by_section.remove(&pos).unwrap_or_default();
-            let record_holds_entities = self
+            let live = LiveContent {
+                entities: by_section.remove(&pos).unwrap_or_default(),
+                mobs: mobs_by_section.remove(&pos).unwrap_or_default(),
+                ticks: ticks_by_section.remove(&pos).unwrap_or_default(),
+            };
+            let record_holds_live = self
                 .side
                 .save
                 .as_ref()
-                .is_some_and(|s| s.record_holds_entities(pos));
-            if let Some(snap) =
-                self.snapshot_section_for_save(pos, entities, mobs, record_holds_entities)
-            {
+                .is_some_and(|s| s.record_holds_live(pos));
+            if let Some(snap) = self.snapshot_section_for_save(pos, live, record_holds_live) {
                 snaps.push(snap);
                 persisted.push(pos);
             }
@@ -138,13 +156,16 @@ impl ServerWorld {
         {
             return None;
         }
-        let entities = self.side.entities.dropped_items.take_items_in_section(sp);
-        let mobs = self.side.entities.mobs.take_in_section(sp);
-        let record_holds_entities = self
+        let live = LiveContent {
+            entities: self.side.entities.dropped_items.take_items_in_section(sp),
+            mobs: self.side.entities.mobs.take_in_section(sp),
+            ticks: self.scheduled_ticks_in(sp),
+        };
+        let record_holds_live = self
             .side
             .save
             .as_ref()
-            .is_some_and(|s| s.record_holds_entities(sp));
-        self.snapshot_section_for_save(sp, entities, mobs, record_holds_entities)
+            .is_some_and(|s| s.record_holds_live(sp));
+        self.snapshot_section_for_save(sp, live, record_holds_live)
     }
 }

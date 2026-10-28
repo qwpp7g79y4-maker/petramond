@@ -1,20 +1,34 @@
-use mod_api::{BlockId, CollisionShape, LightData, ModelGroupData, RayFilter, RaycastHitData};
+use mod_api::{
+    BlockId, CellGroupData, CellRecord, CollisionShape, LightData, RayFilter, RaycastHitData,
+    RecordStatus,
+};
 
 use crate::__rt::host_fn;
-use crate::__rt::try_host_fn;
-
-try_host_fn! {
-    pub fn try_light_at_many(positions: Vec<[i32; 3]>) -> Vec<Option<LightData>>
-        => LightAtMany { positions } => Lights
-}
-
-host_fn! {
-    pub fn get_block(pos: [i32; 3]) -> Option<BlockId> => GetBlock { pos } => Block
-}
 
 host_fn! {
     pub fn get_blocks(positions: Vec<[i32; 3]>) -> Vec<Option<BlockId>>
         => GetBlocks { positions } => Blocks
+}
+
+pub fn get_block(pos: [i32; 3]) -> Option<BlockId> {
+    get_blocks(vec![pos]).pop().flatten()
+}
+
+host_fn! {
+    /// Each cell whole (block, state, fluid level, data, container), ready to write back with
+    /// [`set_cells`] here or anywhere else.
+    pub fn get_cells(positions: Vec<[i32; 3]>) -> Vec<Option<CellRecord>>
+        => GetCells { positions } => Cells
+}
+
+pub fn get_cell(pos: [i32; 3]) -> Option<CellRecord> {
+    get_cells(vec![pos]).pop().flatten()
+}
+
+host_fn! {
+    /// Writes whole cells as one edit; a compound is listed whole. `false` = nothing was
+    /// written (an unloaded cell, an incomplete compound, an unknown name).
+    pub fn set_cells(cells: Vec<([i32; 3], CellRecord)>) -> bool => SetCells { cells } => Bool
 }
 
 host_fn! {
@@ -35,46 +49,51 @@ host_fn! {
 }
 
 host_fn! {
-    pub fn set_block(pos: [i32; 3], block: BlockId) -> bool => SetBlock { pos, block } => Bool
+    pub fn set_blocks(blocks: Vec<([i32; 3], BlockId)>) -> Vec<bool> => SetBlocks { blocks } => Bools
+}
+
+pub fn set_block(pos: [i32; 3], block: BlockId) -> bool {
+    set_blocks(vec![(pos, block)]).pop().unwrap_or(false)
 }
 
 host_fn! {
-    pub fn swap_block(pos: [i32; 3], block: BlockId) -> bool
-        => SwapBlock { pos, block } => Bool
+    pub fn swap_blocks(swaps: Vec<([i32; 3], BlockId)>) -> Vec<bool> => SwapBlocks { swaps } => Bools
+}
+
+pub fn swap_block(pos: [i32; 3], block: BlockId) -> bool {
+    swap_blocks(vec![(pos, block)]).pop().unwrap_or(false)
 }
 
 host_fn! {
-    /// Set the PER-INSTANCE presentation of the model block at `pos` (any of
-    /// its footprint cells): `parts` is a bitmask over the row's declared
-    /// optional `parts` — bit `i` shows `parts[i]` — and `tint` multiplies the
-    /// row's `tint_parts` cubes. `None` means "I am not tinting", NOT "clear
-    /// the tint": the colour rides the cell's shared dye key, so a machine
-    /// that never tints must not erase what a dye put there.
+    /// Set the PER-INSTANCE presentation of model blocks (any of their footprint cells): `parts`
+    /// is a bitmask over the row's declared optional `parts` — bit `i` shows `parts[i]` — and
+    /// `tint` multiplies the row's `tint_parts` cubes. `None` means "I am not tinting", NOT "clear
+    /// the tint": the colour rides the cell's shared dye key, so a machine that never tints must
+    /// not erase what a dye put there.
     ///
-    /// Reach for this instead of a block row per combination whenever a
-    /// machine has more than ONE independently varying visual. Swap the ROW
-    /// when the block's identity changes (a lit furnace has its own emission
-    /// and drops); set PARTS when the same placed machine is merely showing
+    /// Reach for this instead of a block row per combination whenever a machine has more than ONE
+    /// independently varying visual. Swap the ROW when the block's identity changes (a lit furnace
+    /// has its own emission and drops); set PARTS when the same placed machine is merely showing
     /// something different. Render only — the hitbox never moves.
     ///
-    /// `false` = not a model block, or a footprint cell is unloaded.
-    pub fn set_model_parts(pos: [i32; 3], parts: u32, tint: Option<[u8; 3]>) -> bool
-        => SetModelParts { pos, parts, tint } => Bool
-}
-
-host_fn! {
+    /// Per entry `false` = not a model block, or a footprint cell is unloaded.
     pub fn set_model_parts_many(sets: Vec<([i32; 3], u32, Option<[u8; 3]>)>) -> Vec<bool>
-        => SetModelPartsMany { sets } => Bools
+        => SetModelParts { sets } => Bools
 }
 
-host_fn! {
-    pub fn set_block_draw(pos: [i32; 3], prims: Vec<mod_api::DrawPrim>) -> bool
-        => SetBlockDraw { pos, prims } => Bool
+pub fn set_model_parts(pos: [i32; 3], parts: u32, tint: Option<[u8; 3]>) -> bool {
+    set_model_parts_many(vec![(pos, parts, tint)])
+        .pop()
+        .unwrap_or(false)
 }
 
 host_fn! {
     pub fn set_block_draws(sets: Vec<([i32; 3], Vec<mod_api::DrawPrim>)>) -> Vec<bool>
         => SetBlockDraws { sets } => Bools
+}
+
+pub fn set_block_draw(pos: [i32; 3], prims: Vec<mod_api::DrawPrim>) -> bool {
+    set_block_draws(vec![(pos, prims)]).pop().unwrap_or(false)
 }
 
 host_fn! {
@@ -93,34 +112,46 @@ host_fn! {
 }
 
 host_fn! {
-    pub fn set_blocks(blocks: Vec<([i32; 3], BlockId)>) -> u64 => SetBlocks { blocks } => U64
+    /// Runs each cell's block behaviors' scheduled tick after `delay` ticks; pending ticks are
+    /// saved with their section.
+    pub fn schedule_ticks(ticks: Vec<([i32; 3], u64)>) => ScheduleTicks { ticks }
+}
+
+pub fn schedule_tick(pos: [i32; 3], delay: u64) {
+    schedule_ticks(vec![(pos, delay)]);
 }
 
 host_fn! {
-    pub fn schedule_tick(pos: [i32; 3], delay: u64) => ScheduleTick { pos, delay }
+    pub fn cell_groups(positions: Vec<[i32; 3]>) -> Vec<Option<CellGroupData>>
+        => CellGroup { positions } => CellGroups
+}
+
+pub fn cell_group(pos: [i32; 3]) -> Option<CellGroupData> {
+    cell_groups(vec![pos]).pop().flatten()
 }
 
 host_fn! {
-    pub fn block_model_group(pos: [i32; 3]) -> Option<ModelGroupData>
-        => BlockModelGroup { pos } => ModelGroup
+    pub fn loaded_many(positions: Vec<[i32; 3]>) -> Vec<bool> => IsLoaded { positions } => Bools
 }
 
-host_fn! {
-    pub fn is_loaded(pos: [i32; 3]) -> bool => IsLoaded { pos } => Bool
-}
-
-host_fn! {
-    pub fn light_at(pos: [i32; 3]) -> Option<LightData> => LightAt { pos } => Light
+pub fn is_loaded(pos: [i32; 3]) -> bool {
+    loaded_many(vec![pos]).pop().unwrap_or(false)
 }
 
 host_fn! {
     pub fn light_at_many(positions: Vec<[i32; 3]>) -> Vec<Option<LightData>>
-        => LightAtMany { positions } => Lights
+        => LightAt { positions } => Lights
+}
+
+pub fn light_at(pos: [i32; 3]) -> Option<LightData> {
+    light_at_many(vec![pos]).pop().flatten()
 }
 
 host_fn! {
-    pub fn supported_at(positions: Vec<[i32; 3]>) -> Vec<bool>
-        => SupportedAt { positions } => Bools
+    /// Whether a block would be held at each cell by the world's support rule: `None` asks about
+    /// the block there now, `Some` about that block standing there instead.
+    pub fn supported_at(cells: Vec<([i32; 3], Option<BlockId>)>) -> Vec<bool>
+        => SupportedAt { cells } => Bools
 }
 
 host_fn! {
@@ -129,24 +160,62 @@ host_fn! {
 }
 
 host_fn! {
-    pub fn break_naturally(pos: [i32; 3]) -> bool => BreakNaturally { pos } => Bool
+    /// Breaks each cell as the world does when a block loses its support (bare-hand drops,
+    /// container spilled, residue left in place).
+    pub fn break_blocks(positions: Vec<[i32; 3]>) -> Vec<bool> => BreakBlocks { positions } => Bools
+}
+
+pub fn break_block(pos: [i32; 3]) -> bool {
+    break_blocks(vec![pos]).pop().unwrap_or(false)
 }
 
 host_fn! {
-    pub fn collision_shape_at(pos: [i32; 3]) -> Option<CollisionShape>
-        => CollisionShapeAt { pos } => CollisionShape
+    pub fn collision_shapes_at(positions: Vec<[i32; 3]>) -> Vec<Option<CollisionShape>>
+        => CollisionShapeAt { positions } => CollisionShapes
+}
+
+pub fn collision_shape_at(pos: [i32; 3]) -> Option<CollisionShape> {
+    collision_shapes_at(vec![pos]).pop().flatten()
 }
 
 host_fn! {
-    pub fn biome_at(pos: [i32; 2]) -> Option<u8> => BiomeAt { pos } => MaybeByte
+    pub fn biomes_at(columns: Vec<[i32; 2]>) -> Vec<Option<u8>> => BiomeAt { columns } => Biomes
+}
+
+pub fn biome_at(column: [i32; 2]) -> Option<u8> {
+    biomes_at(vec![column]).pop().flatten()
 }
 
 host_fn! {
-    pub fn surface_y_at(pos: [i32; 2]) -> Option<i32> => SurfaceYAt { pos } => MaybeI32
+    pub fn surface_ys_at(columns: Vec<[i32; 2]>) -> Vec<Option<i32>>
+        => SurfaceYAt { columns } => MaybeI32s
+}
+
+pub fn surface_y_at(column: [i32; 2]) -> Option<i32> {
+    surface_ys_at(vec![column]).pop().flatten()
 }
 
 host_fn! {
     pub fn raycast(from: [f64; 3], dir: [f32; 3], max: f32, filter: RayFilter)
         -> Option<RaycastHitData>
         => Raycast { from, dir, max, filter } => Raycast
+}
+
+host_fn! {
+    /// How each cell compares to the record wanted there.
+    pub fn record_statuses(cells: Vec<([i32; 3], CellRecord)>) -> Vec<RecordStatus>
+        => RecordStatuses { cells } => RecordStatuses
+}
+
+host_fn! {
+    /// Grows a `features.json` feature at `pos` the way a sapling grows its tree; see
+    /// [`mod_api::BlockCall::PlaceFeature`].
+    pub fn place_feature(feature: &str, pos: [i32; 3], seed: u64, over: Vec<BlockId>, keep: Vec<BlockId>) -> bool
+        => PlaceFeature { feature: feature.into(), pos, seed, over, keep } => Bool
+}
+
+host_fn! {
+    /// Whether each world-space box is clear of collidable terrain; unreadable cells count as
+    /// blocked.
+    pub fn boxes_clear(boxes: Vec<([f64; 3], [f64; 3])>) -> Vec<bool> => BoxesClear { boxes } => Bools
 }

@@ -1,0 +1,10 @@
+{
+  "spawn_categories": [
+    {
+      "category": "monsters:hostile",
+      "cap": 70,
+      "despawn_radius": 128,
+      "spawner": {"scan": {"near": 24, "far": 128}}
+    }
+  ]
+}

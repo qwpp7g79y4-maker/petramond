@@ -24,7 +24,7 @@ pub fn fold_spatial_loops(
     let orphaned: Vec<u64> = live
         .iter()
         .filter_map(|(&handle, remembered)| match *remembered {
-            SpatialSoundMsg::PlayOnMob { mob_id, .. } if !alive(mob_id) => Some(handle),
+            SpatialSoundMsg::PlayOnEntity { entity, .. } if !alive(entity) => Some(handle),
             _ => None,
         })
         .collect();
@@ -49,7 +49,7 @@ pub fn note_loop_commands(
             SpatialSoundMsg::PlayAt {
                 handle, sound_id, ..
             }
-            | SpatialSoundMsg::PlayOnMob {
+            | SpatialSoundMsg::PlayOnEntity {
                 handle, sound_id, ..
             } => {
                 if looped(sound_id) {
@@ -67,7 +67,7 @@ pub fn note_loop_commands(
                         pitch: p,
                         ..
                     }
-                    | SpatialSoundMsg::PlayOnMob {
+                    | SpatialSoundMsg::PlayOnEntity {
                         volume: v,
                         pitch: p,
                         ..
@@ -93,11 +93,11 @@ mod tests {
     const LOOP_ROW: u8 = 200;
     const ONE_SHOT_ROW: u8 = 201;
 
-    fn play_on_mob(handle: u64, sound_id: u8, mob_id: u64) -> WorldEventMsg {
-        WorldEventMsg::SpatialSound(SpatialSoundMsg::PlayOnMob {
+    fn play_on_entity(handle: u64, sound_id: u8, entity: u64) -> WorldEventMsg {
+        WorldEventMsg::SpatialSound(SpatialSoundMsg::PlayOnEntity {
             handle,
             sound_id,
-            mob_id,
+            entity,
             volume: 0.5,
             pitch: 1.0,
             last_pos: WorldPos::ZERO,
@@ -109,8 +109,8 @@ mod tests {
         let mut live = LiveSpatialLoops::new();
         let looped = |id: u8| id == LOOP_ROW;
         let mut window = vec![
-            play_on_mob(1, LOOP_ROW, 10),
-            play_on_mob(2, ONE_SHOT_ROW, 10),
+            play_on_entity(1, LOOP_ROW, 10),
+            play_on_entity(2, ONE_SHOT_ROW, 10),
             WorldEventMsg::SpatialSound(SpatialSoundMsg::Set {
                 handle: 1,
                 volume: 0.9,
@@ -121,7 +121,7 @@ mod tests {
         assert_eq!(window.len(), 3, "nothing appended while the mob lives");
         assert!(!live.contains_key(&2), "a one-shot is never remembered");
         match live.get(&1) {
-            Some(SpatialSoundMsg::PlayOnMob { volume, pitch, .. }) => {
+            Some(SpatialSoundMsg::PlayOnEntity { volume, pitch, .. }) => {
                 assert_eq!(
                     (*volume, *pitch),
                     (0.9, 1.5),
@@ -137,7 +137,7 @@ mod tests {
         fold_spatial_loops(&mut live, &mut window, looped, |_| true);
         assert!(live.is_empty(), "a stopped loop is forgotten");
 
-        let mut window = vec![play_on_mob(3, LOOP_ROW, 10)];
+        let mut window = vec![play_on_entity(3, LOOP_ROW, 10)];
         fold_spatial_loops(&mut live, &mut window, looped, |_| true);
         let mut window = Vec::new();
         fold_spatial_loops(&mut live, &mut window, looped, |mob| mob != 10);

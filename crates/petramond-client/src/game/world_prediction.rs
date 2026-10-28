@@ -128,10 +128,24 @@ impl Game {
                 .map(|st| mod_api::ItemId(st.item.id())),
             use_held: self.local.intent_use_held,
             holds_use: false,
-            pose_anchor: self.replica.entities.own_mount().and_then(|m| match m {
-                petramond::net::protocol::PlayerMount::Anchor { pos, .. } => Some(pos.to_array()),
-                petramond::net::protocol::PlayerMount::Mob { .. } => None,
-            }),
+            attached: self
+                .replica
+                .entities
+                .own_mount()
+                .map(|m| mod_api::Attachment {
+                    to: match m {
+                        petramond::net::protocol::PlayerMount::Anchor { pos, yaw, .. } => {
+                            mod_api::AttachTo::At {
+                                pos: pos.to_array(),
+                                yaw,
+                            }
+                        }
+                        petramond::net::protocol::PlayerMount::Mob { id, seat, .. } => {
+                            mod_api::AttachTo::Seat { entity: id, seat }
+                        }
+                    },
+                    posture: m.posture(),
+                }),
             swing,
             half_width: petramond::player::HALF_W,
             height: petramond::player::HEIGHT,
@@ -188,15 +202,16 @@ impl Game {
         let Some(id) = use_mob else {
             return false;
         };
-        if !item_rules::holds_shears(&self.predicted_actor()) {
+        let Some(tool) = item_rules::held_tool_kind(&self.predicted_actor()) else {
             return false;
-        }
+        };
         self.replica.entities.mobs().iter().any(|e| {
             e.curr.id == id
                 && item_rules::can_shear_coat(
                     petramond::mob::Mob(e.curr.kind_id),
                     e.curr.dead,
                     e.curr.shorn,
+                    Some(tool),
                 )
         })
     }
@@ -206,6 +221,7 @@ impl Game {
             return false;
         };
         let payload = mod_api::EventPayload::ItemUsePre {
+            player: mod_api::PlayerId(self.replica.entities.self_id().0),
             item: mod_api::ItemId(item.id()),
             target: self.local.look.map(|l| l.block.to_array()),
         };
@@ -485,7 +501,7 @@ impl Game {
             cells: previous_cells.clone(),
         };
         let id = self.prediction.begin(snapshot);
-        let _ = self.replica.world.commit_placement(&plan, false);
+        let _ = self.replica.world.commit_placement(&plan);
         self.predict_restore_carry(block, place_pos, plan.anchor_part());
         self.replica.world.present_predicted_edit(&previous_cells);
         let hand = self.local.player.acting_hand;
@@ -600,7 +616,7 @@ impl Game {
             cells: previous_cells.clone(),
         };
         let id = self.prediction.begin(snapshot);
-        let _ = self.replica.world.commit_placement(&plan, false);
+        let _ = self.replica.world.commit_placement(&plan);
         self.predict_restore_carry(block, anchor, 0);
         if let Some(b) = &sim_boxes {
             self.replica.world.set_custom_bake(anchor, b);

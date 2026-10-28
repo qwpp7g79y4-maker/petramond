@@ -175,7 +175,7 @@ fn dress(sk: &mut Skeletons, id: u64, mut body: Body) {
         .presence
         .display(kit.held.each_ref().map(|v| v.as_deref()))
     {
-        mob_held_display(id, main, off);
+        set_held_display(EntityRef::Entity(id), main.as_deref(), off.as_deref());
     }
     let mut ops = Vec::new();
     body.presence

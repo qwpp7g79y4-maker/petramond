@@ -308,7 +308,7 @@ impl ReplicatedMobs {
 
     pub fn mount_pose(&self, mount: PlayerMount, alpha: f32) -> Option<MountPose> {
         match mount {
-            PlayerMount::Mob { id, seat } => {
+            PlayerMount::Mob { id, seat, .. } => {
                 let entry = self.get(id)?;
                 let def = petramond::mob::def(petramond::mob::Mob(entry.curr.kind_id));
                 let offset = *def.seats.get(seat as usize)?;
@@ -394,6 +394,10 @@ impl ReplicatedItems {
     pub fn iter(&self) -> impl Iterator<Item = &ReplicatedItem> {
         self.rows.iter()
     }
+
+    pub fn get(&self, id: u64) -> Option<&ReplicatedItem> {
+        self.rows.get(&id)
+    }
 }
 
 pub struct SelfView {
@@ -408,7 +412,6 @@ pub struct SelfView {
     pub eating: Option<f32>,
     pub eating_off_hand: bool,
     pub sleeping: Option<f32>,
-    pub sleep_bed: Option<IVec3>,
     pub move_scale: f32,
     pub fly_scale: f32,
     pub denied_actions: petramond::player::DeniedActions,
@@ -442,7 +445,6 @@ impl SelfView {
             eating: None,
             eating_off_hand: false,
             sleeping: None,
-            sleep_bed: None,
             move_scale: player
                 .claims
                 .replicated_attribute(mod_api::PlayerAttribute::MoveSpeed),
@@ -496,7 +498,6 @@ impl SelfView {
             sleeping: self
                 .sleeping
                 .map(|p| (p.clamp(0.0, 1.0) * 255.0).round() as u8),
-            sleep_bed: self.sleep_bed,
             move_scale: self.move_scale,
             fly_scale: self.fly_scale,
             denied_actions: self.denied_actions,
@@ -547,7 +548,6 @@ impl SelfView {
         self.eating = state.eating.map(|p| p as f32 / 255.0);
         self.eating_off_hand = state.eating_off_hand;
         self.sleeping = state.sleeping.map(|p| p as f32 / 255.0);
-        self.sleep_bed = state.sleep_bed;
         self.move_scale = state.move_scale;
         self.fly_scale = state.fly_scale;
         self.denied_actions = state.denied_actions;
@@ -841,7 +841,7 @@ impl Game {
         let mut outcomes = Vec::new();
         let mut self_state = None;
         let mut menu_sync = None;
-        let mut open_chests = Vec::new();
+        let mut held_open = Vec::new();
         let mut world_events = Vec::new();
         for section in sections {
             match section {
@@ -877,7 +877,7 @@ impl Game {
                         self.replica.world.set_shader_param(key, value);
                     }
                 }
-                TickSection::OpenChests(chests) => open_chests = chests,
+                TickSection::HeldOpen(chests) => held_open = chests,
                 TickSection::Events(events) => world_events = events,
                 TickSection::SelfEvents(events) => {
                     self.replica.events.self_events.merge_from(events);
@@ -887,7 +887,7 @@ impl Game {
         let tally = sleep_tally.unwrap_or_else(|| self.replica.entities.sleep_tally());
         let committed = self.replica.entities.receive(tally, StagedRows::new(rows));
         self.after_commit(committed);
-        self.fx.set_open_chests(open_chests.into_iter().collect());
+        self.fx.set_held_open(held_open.into_iter().collect());
         self.apply_authority(&outcomes, self_state, menu_sync, &delta_cells, world_events);
     }
 
@@ -1038,10 +1038,18 @@ impl Game {
                 });
             }
             WorldEventMsg::PanelToggled { anchor, open } => {
-                ev.world.push(WorldEvent::PanelToggled { anchor, open })
+                let block = petramond_world::block::Block::from_id(
+                    self.replica
+                        .world
+                        .data()
+                        .chunk_block(anchor.x, anchor.y, anchor.z),
+                );
+                ev.world.push(WorldEvent::PanelToggled {
+                    anchor,
+                    block,
+                    open,
+                })
             }
-            WorldEventMsg::ChestOpened { pos } => ev.world.push(WorldEvent::ChestOpened { pos }),
-            WorldEventMsg::ChestClosed { pos } => ev.world.push(WorldEvent::ChestClosed { pos }),
             WorldEventMsg::ItemPickedUp { pos, by } => ev.world.push(WorldEvent::ItemPickedUp {
                 pos,
                 by_self: by == self.replica.entities.self_id(),
@@ -1106,17 +1114,17 @@ impl Game {
                     volume,
                     pitch,
                 },
-                SpatialSoundMsg::PlayOnMob {
+                SpatialSoundMsg::PlayOnEntity {
                     handle,
                     sound_id,
-                    mob_id,
+                    entity,
                     volume,
                     pitch,
                     last_pos,
-                } => SpatialSoundCommand::PlayOnMob {
+                } => SpatialSoundCommand::PlayOnEntity {
                     handle,
                     sound: petramond_world::sound_registry::Sound(sound_id),
-                    mob_id,
+                    entity,
                     volume,
                     pitch,
                     last_pos,

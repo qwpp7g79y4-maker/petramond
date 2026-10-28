@@ -19,7 +19,7 @@ struct Tool {
     style: Style,
 }
 
-pub const TICK_SECONDS: f32 = 1.0 / 20.0;
+pub use mod_sdk::TICK_SECONDS;
 
 #[derive(Default)]
 pub struct BodyClocks {
@@ -200,7 +200,11 @@ fn publish(player: PlayerId, claims: Claims, authority: bool) {
         set_player_denied_actions(player, claims.denied);
     }
     let [display_main, display_off] = &claims.display;
-    set_player_held_display(player, display_main.as_deref(), display_off.as_deref());
+    set_held_display(
+        EntityRef::Player(player),
+        display_main.as_deref(),
+        display_off.as_deref(),
+    );
     set_player_held_pose(player, claims.main, claims.off);
     set_player_bone_pose(player, claims.bones);
     set_player_animator_params(player, claims.params);

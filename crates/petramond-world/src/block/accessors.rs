@@ -4,9 +4,9 @@ use crate::sound_registry::Sound;
 use crate::tile::Tile;
 
 use super::{
-    data, definition, sounds, Aabb, Block, BlockBehavior, BlockFlags, BlockInteraction,
-    BlockLightShape, BlockMaterial, BlockShapeKind, BlockSoundAction, BlockTag, MeshEmitter,
-    ParticleEmitter, ShapeFamily, ShapeKindDef, ShapeState, SupportDir, ENGINE_BLOCK_NAMES,
+    data, definition, Aabb, Block, BlockFlags, BlockLightShape, BlockShapeKind, BlockSoundAction,
+    BlockTag, MeshEmitter, ParticleEmitter, ShapeFamily, ShapeKindDef, ShapeState, SupportDir,
+    ENGINE_BLOCK_NAMES,
 };
 
 impl Block {
@@ -109,13 +109,15 @@ impl Block {
         k.sim.light_shape(&k.params, self)
     }
 
+    /// Direct skylight passes straight down: open and transparent, and neither the row nor the
+    /// fluid the cell holds `dims_sky`.
     #[inline]
     pub fn transmits_direct_skylight(self) -> bool {
         self == Block::Air
             || (self.light_shape() == BlockLightShape::Open
                 && self.is_transparent()
-                && self.fluid().is_none()
-                && !self.is_leaves())
+                && !self.flags().dims_sky()
+                && !self.fluid().is_some_and(|f| f.flags().dims_sky()))
     }
 
     pub fn has_same_light_behavior(self, other: Block) -> bool {
@@ -253,13 +255,13 @@ impl Block {
     }
 
     #[inline]
-    pub fn behavior(self) -> &'static dyn BlockBehavior {
-        self.def().behavior
+    pub fn behaviors(self) -> &'static [&'static dyn super::behavior::BlockBehavior] {
+        self.def().behaviors
     }
 
     #[inline]
-    pub fn interaction(self) -> BlockInteraction {
-        self.def().interaction
+    pub fn open_gui(self) -> Option<crate::gui_state::GuiKind> {
+        self.def().open_gui
     }
 
     #[inline]
@@ -273,8 +275,21 @@ impl Block {
     }
 
     #[inline]
+    pub fn advance_chance(self) -> f32 {
+        self.def().advance_chance
+    }
+
+    pub fn grows_over(self, other: Block) -> bool {
+        self.def().grows_over.iter().any(|t| other.has_tag(*t))
+    }
+
+    pub fn grows_through(self, other: Block) -> bool {
+        self.def().grows_through.iter().any(|t| other.has_tag(*t))
+    }
+
+    #[inline]
     pub fn has_random_tick(self) -> bool {
-        self.behavior().has_random_tick()
+        self.behaviors().iter().any(|b| b.has_random_tick())
     }
 
     #[inline]
@@ -443,18 +458,15 @@ impl Block {
         }
     }
 
+    /// The ground tags this block roots on; empty = any ground.
+    #[inline]
+    pub fn roots_on(self) -> &'static [BlockTag] {
+        self.def().roots_on
+    }
+
     pub fn can_root_on(self, ground: Block) -> bool {
-        let soil = self.has_tag(BlockTag::ROOTS_IN_SOIL);
-        let sand = self.has_tag(BlockTag::ROOTS_IN_SAND);
-        let stone = self.has_tag(BlockTag::ROOTS_IN_STONE);
         let named = self.def().roots_on;
-        if !(soil || sand || stone) && named.is_empty() {
-            return true;
-        }
-        (soil && ground.has_tag(BlockTag::SOIL))
-            || (sand && ground.has_tag(BlockTag::SAND))
-            || (stone && ground.material() == BlockMaterial::Stone)
-            || named.iter().any(|t| ground.has_tag(*t))
+        named.is_empty() || named.iter().any(|t| ground.has_tag(*t))
     }
 
     #[inline]
@@ -462,9 +474,14 @@ impl Block {
         self.def().support
     }
 
+    /// Whether `other`, in this block's support direction, is part of the same stack.
     #[inline]
-    pub fn stacks(self) -> bool {
-        self.def().stacks
+    pub fn stacks_on(self, other: Block) -> bool {
+        match self.def().stacks {
+            super::definition::Stacks::No => false,
+            super::definition::Stacks::Same => other == self,
+            super::definition::Stacks::Tagged(tag) => other.has_tag(tag),
+        }
     }
 
     #[inline]
@@ -511,7 +528,7 @@ impl Block {
     }
 
     #[inline]
-    pub fn material(self) -> BlockMaterial {
+    pub fn material(self) -> crate::material::MaterialId {
         self.def().material
     }
 
@@ -537,24 +554,12 @@ impl Block {
 
     #[inline]
     pub fn preferred_tool(self) -> Option<ToolKind> {
-        match self.material() {
-            BlockMaterial::Stone | BlockMaterial::Ore | BlockMaterial::Ice => {
-                Some(ToolKind::Pickaxe)
-            }
-            BlockMaterial::Wood => Some(ToolKind::Axe),
-            BlockMaterial::Dirt | BlockMaterial::Sand | BlockMaterial::Snow => {
-                Some(ToolKind::Shovel)
-            }
-            BlockMaterial::Wool | BlockMaterial::Plant | BlockMaterial::Foliage => {
-                Some(ToolKind::Shears)
-            }
-            _ => None,
-        }
+        self.material().def().tool
     }
 
     #[inline]
     pub fn cut_by_preferred_tool(self) -> bool {
-        matches!(self.material(), BlockMaterial::Foliage)
+        self.material().def().cut
     }
 
     #[inline]
@@ -589,21 +594,7 @@ impl Block {
 
     #[inline]
     pub fn sound(self, action: BlockSoundAction) -> Option<Sound> {
-        self.sound_set().get(action)
-    }
-
-    #[inline]
-    fn sound_set(self) -> &'static sounds::BlockSoundSet {
-        match self.material() {
-            BlockMaterial::Wood => &sounds::WOOD,
-            BlockMaterial::Stone | BlockMaterial::Ore => &sounds::STONE,
-            BlockMaterial::Dirt => &sounds::DIRT,
-            BlockMaterial::Sand => &sounds::SAND,
-            BlockMaterial::Snow => &sounds::SNOW,
-            BlockMaterial::Plant | BlockMaterial::Foliage => &sounds::LEAF,
-            BlockMaterial::Glass | BlockMaterial::Ice => &sounds::GLASS,
-            _ => &sounds::SILENT,
-        }
+        self.def().sounds.get(action)
     }
 
     #[inline]

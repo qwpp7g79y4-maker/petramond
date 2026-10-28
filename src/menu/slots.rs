@@ -1,11 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use petramond_ui::contract::{self, slot_semantics_issues, EngineCatalog};
 use petramond_ui::Document;
 use petramond_world::container::{SlotFilter, SlotSpec};
-use petramond_world::furnace::{FURNACE_SLOTS, SLOT_FUEL, SLOT_INPUT, SLOT_OUTPUT};
 use petramond_world::gui_state::GuiKind;
 use petramond_world::item::ItemTag;
 
@@ -18,10 +17,12 @@ struct SlotTable {
     widgets: HashSet<&'static str>,
 }
 
-static TABLE: OnceLock<SlotTable> = OnceLock::new();
+/// Rebuilt with the content: registered kind ids and the active documents both belong to it.
+static TABLE: petramond_world::content::Slot<SlotTable> =
+    petramond_world::content::Slot::new("container slots", &[], |_| Ok(load()));
 
 fn table() -> &'static SlotTable {
-    TABLE.get_or_init(load)
+    TABLE.current()
 }
 
 pub fn slot_specs_for_kind(kind: GuiKind) -> Arc<Vec<SlotSpec>> {
@@ -49,14 +50,6 @@ pub fn declare_widget_for_test(id: &str) {
     if !widgets.contains(&id) {
         widgets.push(petramond_world::gui_state::intern_str(id));
     }
-}
-
-fn furnace_slot_specs() -> Vec<SlotSpec> {
-    let mut specs = vec![SlotSpec::default(); FURNACE_SLOTS];
-    specs[SLOT_INPUT].accepts = vec![SlotFilter::Tag(ItemTag::SMELTABLE)];
-    specs[SLOT_FUEL].accepts = vec![SlotFilter::Tag(ItemTag::FUEL)];
-    specs[SLOT_OUTPUT].take_only = true;
-    specs
 }
 
 pub(crate) struct ItemTags;
@@ -169,6 +162,5 @@ fn load() -> SlotTable {
             Err(e) => log::warn!("container slots: ignoring {} — {e}", path.display()),
         }
     }
-    by_kind.insert(GuiKind::Furnace, Arc::new(furnace_slot_specs()));
     SlotTable { by_kind, widgets }
 }

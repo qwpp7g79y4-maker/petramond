@@ -136,7 +136,7 @@ fn available(
     let mine: HashSet<[i32; 3]> = stock.containers.iter().copied().collect();
     let mut totals = stock.totals.clone();
     if let Some(mob) = jobs.map.get(&project.id).and_then(|j| j.crew.mob) {
-        if let Some(slots) = container_get(ContainerAddress::Mob(mob)) {
+        if let Some(slots) = container_get(ContainerAddress::Entity(mob)) {
             supplies::add_totals(&mut totals, &slots);
         }
     }

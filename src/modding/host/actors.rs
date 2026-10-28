@@ -1,11 +1,11 @@
 use mod_api::{
-    ActionRefusal, ActorCall, BlockRecord, DigProgress, EntityRef, HostRet, PlaceRequest,
+    ActionRefusal, ActorCall, CellRecord, DigProgress, EntityRef, HostRet, PlaceRequest,
 };
 use petramond_math::math::IVec3;
 use petramond_world::construction::Record;
 
-use super::construction::record_in;
 use super::guards::{batch_guard, finite_pos, key_owned_by_namespace, sim_query};
+use super::records::construction_record;
 use crate::events::{DeferredAction, SimCtx};
 use crate::world::actor::PlaceCheck;
 
@@ -37,7 +37,7 @@ pub(super) fn handle_actor_call(mod_id: &str, call: ActorCall) -> HostRet {
             sim_query(|ctx| HostRet::Place(place(ctx, actor, IVec3::from_array(pos), record, pay)))
         }
         ActorCall::ActorInteract { actor, pos } => sim_query(|ctx| {
-            let EntityRef::Mob(mob_id) = actor else {
+            let EntityRef::Entity(mob_id) = actor else {
                 return HostRet::Bool(false);
             };
             let pos = IVec3::from_array(pos);
@@ -68,7 +68,7 @@ pub(super) fn handle_actor_call(mod_id: &str, call: ActorCall) -> HostRet {
                 Err(err) => return err,
             };
             sim_query(|ctx| {
-                let EntityRef::Mob(mob_id) = actor else {
+                let EntityRef::Entity(mob_id) = actor else {
                     return HostRet::Place(PlaceRequest::Refused(ActionRefusal::NoActor));
                 };
                 let actor = match ctx.world.actor(mob_id) {
@@ -88,7 +88,7 @@ pub(super) fn handle_actor_call(mod_id: &str, call: ActorCall) -> HostRet {
             if let Some(err) = batch_guard("ActorAims position", from.len()) {
                 return err;
             }
-            let record = match record.as_ref().map(record_in) {
+            let record = match record.as_ref().map(construction_record) {
                 Some(Err(_)) => {
                     return HostRet::Aims(vec![Err(ActionRefusal::Unsupported); from.len()])
                 }
@@ -101,7 +101,7 @@ pub(super) fn handle_actor_call(mod_id: &str, call: ActorCall) -> HostRet {
                 Err(err) => return err,
             };
             sim_query(|ctx| {
-                let EntityRef::Mob(mob_id) = actor else {
+                let EntityRef::Entity(mob_id) = actor else {
                     return HostRet::Aims(vec![Err(ActionRefusal::NoActor); from.len()]);
                 };
                 let actor = match ctx.world.actor(mob_id) {
@@ -132,8 +132,8 @@ fn feet_of(
     from.iter().map(|&feet| finite_pos(feet, what)).collect()
 }
 
-fn payable_record(mod_id: &str, record: &BlockRecord, pay: bool) -> Result<Record, ActionRefusal> {
-    let record = record_in(record).map_err(|_| ActionRefusal::Unsupported)?;
+fn payable_record(mod_id: &str, record: &CellRecord, pay: bool) -> Result<Record, ActionRefusal> {
+    let record = construction_record(record).map_err(|_| ActionRefusal::Unsupported)?;
     let owned = petramond_world::registry::names()
         .blocks
         .name(record.block.id())
@@ -152,7 +152,7 @@ fn dig(
     tool_slot: Option<u32>,
     collect: bool,
 ) -> Result<DigProgress, ActionRefusal> {
-    let EntityRef::Mob(mob_id) = actor else {
+    let EntityRef::Entity(mob_id) = actor else {
         return Err(ActionRefusal::NoActor);
     };
     let actor = ctx.world.actor(mob_id)?;
@@ -186,7 +186,7 @@ fn place(
     record: Record,
     pay: bool,
 ) -> PlaceRequest {
-    let EntityRef::Mob(mob_id) = actor else {
+    let EntityRef::Entity(mob_id) = actor else {
         return PlaceRequest::Refused(ActionRefusal::NoActor);
     };
     let actor = match ctx.world.actor(mob_id) {
@@ -224,3 +224,6 @@ fn judge(
         PlaceCheck::Ready(_) => PlaceRequest::Queued,
     }
 }
+
+#[cfg(test)]
+mod tests;

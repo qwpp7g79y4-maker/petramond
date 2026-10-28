@@ -83,7 +83,7 @@ impl Supplies {
                 if !block.is_some_and(|b| self.kinds.contains(&b)) {
                     continue;
                 }
-                let anchor = block_model_group(*n).map_or(*n, |g| g.base);
+                let anchor = cell_group(*n).map_or(*n, |g| g.anchor);
                 if anchors.insert(anchor) {
                     found.push(anchor);
                     if found.len() == MAX_CONTAINERS {

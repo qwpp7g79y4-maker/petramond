@@ -343,7 +343,11 @@ mod tests {
         let floor = f64::from(63.0 + fluid_height(0, None, Block::Water));
         game.local.cam.pos = WorldPos::new(8.5, floor + 0.02, 8.5);
         let over = game.environment(0.0).eye.expect("the pocket's floor");
-        assert_eq!(over.surface, Some(floor), "the waterline stays the pocket's floor");
+        assert_eq!(
+            over.surface,
+            Some(floor),
+            "the waterline stays the pocket's floor"
+        );
         assert!(
             (f64::from(over.depth) - (70.0 - (floor + 0.02))).abs() < 1e-4,
             "looking down from the pocket sees the sea's depth, got {}",

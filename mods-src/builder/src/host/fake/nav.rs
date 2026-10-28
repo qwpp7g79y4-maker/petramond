@@ -144,7 +144,7 @@ impl<'a> Ground<'a> {
         &self,
         feet: [f64; 3],
         pos: [i32; 3],
-        record: Option<&BlockRecord>,
+        record: Option<&CellRecord>,
     ) -> Result<[f64; 3], ActionRefusal> {
         let Some(block) = self.state.block_at(pos) else {
             return Err(ActionRefusal::Unloaded);

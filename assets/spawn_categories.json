@@ -1,0 +1,10 @@
+{
+  "spawn_categories": [
+    {
+      "category": "passive",
+      "cap": 25,
+      "populates": true,
+      "spawner": {"ring": {"every": 400, "near": 50, "far": 128}}
+    }
+  ]
+}

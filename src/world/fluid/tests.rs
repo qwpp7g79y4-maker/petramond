@@ -16,9 +16,8 @@ mod quenching;
 mod source_renewal;
 
 fn run_ticks(w: &mut ServerWorld, n: u32) {
-    let recipes = petramond_world::crafting::Recipes::default();
     for _ in 0..n {
-        w.game_tick(&recipes);
+        w.game_tick();
     }
 }
 
@@ -326,7 +325,7 @@ fn flowing_water_washes_away_a_fragile_plant() {
     assert!(
         breaks
             .iter()
-            .any(|&(p, b)| p == flower && b == Block::Poppy),
+            .any(|&(p, b, _)| p == flower && b == Block::Poppy),
         "the washed-away flower was recorded for its drop + burst"
     );
 }

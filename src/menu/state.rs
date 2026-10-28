@@ -1,6 +1,5 @@
 use super::{ContainerTarget, MenuAnchor};
 use crate::world::ServerWorld;
-use petramond_math::math::IVec3;
 use petramond_world::crafting::CraftingStation;
 use petramond_world::gui_state::GuiKind;
 use petramond_world::inventory::Inventory;
@@ -42,33 +41,6 @@ impl ContainerMenu {
         };
     }
 
-    pub fn open_furnace_screen(&mut self, world: &mut ServerWorld, pos: IVec3) {
-        if world.furnace_at(pos).is_none() {
-            world.insert_furnace(pos, petramond_math::facing::Facing::default());
-        }
-        self.target = ContainerTarget::Gui {
-            kind: GuiKind::Furnace,
-            anchor: Some(MenuAnchor::Block(pos)),
-        };
-    }
-
-    pub fn close_furnace(&mut self) {
-        self.close_kind(|kind| kind == GuiKind::Furnace);
-    }
-
-    pub fn open_chest_screen(&mut self, world: &mut ServerWorld, pos: IVec3) {
-        world.stock_loot(pos);
-        world.ensure_container(pos, crate::world::chest::CHEST_SLOTS);
-        self.target = ContainerTarget::Gui {
-            kind: GuiKind::Chest,
-            anchor: Some(MenuAnchor::Block(pos)),
-        };
-    }
-
-    pub fn close_chest(&mut self) {
-        self.close_kind(|kind| kind == GuiKind::Chest);
-    }
-
     pub fn open_document_gui(
         &mut self,
         world: &mut ServerWorld,
@@ -77,13 +49,14 @@ impl ContainerMenu {
     ) {
         let anchor = anchor.map(|anchor| match anchor {
             MenuAnchor::Block(p) => MenuAnchor::Block(world.container_anchor(p)),
-            mob @ MenuAnchor::Mob(_) => mob,
+            mob @ MenuAnchor::Entity(_) => mob,
         });
         if let Some(MenuAnchor::Block(p)) = anchor {
             let specs = super::slot_specs_for_kind(kind);
             if !specs.is_empty() {
                 world.ensure_container(p, specs.len());
             }
+            world.stock_loot(p);
         }
         self.target = ContainerTarget::Gui { kind, anchor };
     }

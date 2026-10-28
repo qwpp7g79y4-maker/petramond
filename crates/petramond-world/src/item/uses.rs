@@ -1,13 +1,10 @@
+/// Row data `petramond:pours`: used on the world, the item puts down `fluid` and becomes
+/// `becomes`. Its sibling `petramond:scoops` lists the fluids it takes up, each with the item it
+/// turns into.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ItemUse {
-    BucketFill {
-        fills: &'static [(crate::block::Block, super::ItemType)],
-    },
-    BucketPour {
-        becomes: super::ItemType,
-        fluid: crate::block::Block,
-    },
-    Shear,
+pub struct Pour {
+    pub fluid: crate::block::Block,
+    pub becomes: super::ItemType,
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]

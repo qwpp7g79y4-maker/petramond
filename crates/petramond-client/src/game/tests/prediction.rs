@@ -6,8 +6,8 @@ use petramond::net::protocol::{ActionDenyReason, ClientToServer, PlayerAction, T
 use petramond_math::math::IVec3;
 use petramond_math::world_pos::WorldPos;
 use petramond_world::block::Block;
+use petramond_world::gui_state::MenuSlot;
 use petramond_world::gui_state::PointerButton;
-use petramond_world::gui_state::{GuiKind, MenuSlot};
 
 #[test]
 fn menu_click_deny_restores_inventory_snapshot() {
@@ -51,13 +51,19 @@ fn mixed_menu_drag_prediction_rolls_back_as_one_unit_on_deny() {
         ));
     game.game.replica.self_view.inventory.click_slot(0);
     game.game.replica.menu_view.container = Some(petramond_world::gui_state::ContainerView {
-        slots: vec![None; petramond::world::chest::CHEST_SLOTS],
+        slots: vec![
+            None;
+            petramond::menu::slot_specs_for_kind(
+                petramond_world::gui_state::intern_kind("petramond:chest").unwrap()
+            )
+            .len()
+        ],
     });
     game.game.replica.menu_view.container_kind =
         petramond_world::gui_state::resolve_kind("petramond:chest");
 
     game.game.menu_drag(
-        GuiKind::Chest,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
         vec![MenuSlot::Inventory(9), MenuSlot::Container(0)],
         PointerButton::Primary,
     );
@@ -118,7 +124,7 @@ fn accepted_menu_drag_prediction_reconciles_without_double_applying() {
     game.server_world_mut()
         .set_block_world(3, 64, 3, Block::Chest);
     game.server_world_mut()
-        .insert_chest(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
+        .insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
     game.server_player_mut()
         .inventory
         .add(petramond_world::item::ItemStack::new(
@@ -127,12 +133,17 @@ fn accepted_menu_drag_prediction_reconciles_without_double_applying() {
         ));
     game.server_player_mut().inventory.click_slot(0);
     let mut ev = TickEvents::default();
-    game.sim_mut().open_chest_screen_for(0, pos, &mut ev);
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+        &mut ev,
+    );
     game.sync_self_view_for_test();
     game.sync_menu_view_for_test();
 
     game.game.menu_drag(
-        GuiKind::Chest,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
         vec![MenuSlot::Inventory(9), MenuSlot::Container(0)],
         PointerButton::Primary,
     );
@@ -199,7 +210,7 @@ fn a_drag_leg_over_a_filtered_slot_predicts_what_the_server_applies() {
     game.server_world_mut()
         .set_block_world(3, 64, 3, Block::Furnace);
     game.server_world_mut()
-        .insert_furnace(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
+        .insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
     game.server_player_mut()
         .inventory
         .add(petramond_world::item::ItemStack::new(
@@ -207,12 +218,17 @@ fn a_drag_leg_over_a_filtered_slot_predicts_what_the_server_applies() {
             10,
         ));
     game.server_player_mut().inventory.click_slot(0);
-    game.sim_mut().open_furnace_screen_for(0, pos);
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:furnace").unwrap(),
+        Some(pos.into()),
+        &mut Default::default(),
+    );
     game.sync_self_view_for_test();
     game.sync_menu_view_for_test();
 
     game.game.menu_drag(
-        GuiKind::Furnace,
+        petramond_world::gui_state::intern_kind("petramond:furnace").unwrap(),
         vec![
             MenuSlot::Inventory(9),
             MenuSlot::Container(petramond_world::furnace::SLOT_FUEL),
@@ -253,7 +269,7 @@ fn predicted_chest_slot_click_applies_immediately_and_survives_reconcile() {
     game.server_world_mut()
         .set_block_world(3, 64, 3, Block::Chest);
     game.server_world_mut()
-        .insert_chest(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
+        .insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
     game.server_player_mut()
         .inventory
         .add(petramond_world::item::ItemStack::new(
@@ -262,7 +278,12 @@ fn predicted_chest_slot_click_applies_immediately_and_survives_reconcile() {
         ));
     game.server_player_mut().inventory.click_slot(0);
     let mut ev = TickEvents::default();
-    game.sim_mut().open_chest_screen_for(0, pos, &mut ev);
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+        &mut ev,
+    );
     game.sync_self_view_for_test();
     game.sync_menu_view_for_test();
 
@@ -337,7 +358,13 @@ fn a_stale_authoritative_pair_does_not_stomp_a_newer_pending_click() {
         .add(petramond_world::item::ItemStack::new(grass, 10));
     game.game.replica.self_view.inventory.click_slot(0);
     game.game.replica.menu_view.container = Some(petramond_world::gui_state::ContainerView {
-        slots: vec![None; petramond::world::chest::CHEST_SLOTS],
+        slots: vec![
+            None;
+            petramond::menu::slot_specs_for_kind(
+                petramond_world::gui_state::intern_kind("petramond:chest").unwrap()
+            )
+            .len()
+        ],
     });
     game.game.replica.menu_view.container_kind =
         petramond_world::gui_state::resolve_kind("petramond:chest");
@@ -401,12 +428,17 @@ fn a_stale_authoritative_pair_does_not_stomp_a_newer_pending_click() {
             bone_poses: Vec::new(),
             animator: Default::default(),
             sleeping: None,
-            sleep_bed: None,
             transform: None,
         }
     };
     let chest_sync = |count: u8| {
-        let mut slots: Vec<Option<ItemSlotWire>> = vec![None; petramond::world::chest::CHEST_SLOTS];
+        let mut slots: Vec<Option<ItemSlotWire>> = vec![
+            None;
+            petramond::menu::slot_specs_for_kind(
+                petramond_world::gui_state::intern_kind("petramond:chest").unwrap()
+            )
+            .len()
+        ];
         slots[0] = Some(ItemSlotWire {
             item_id: grass.0,
             count,

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MenuAnchor {
     Block(IVec3),
-    Mob(u64),
+    Entity(u64),
 }
 
 impl From<IVec3> for MenuAnchor {
@@ -21,21 +21,21 @@ impl MenuAnchor {
     pub fn block(self) -> Option<IVec3> {
         match self {
             MenuAnchor::Block(pos) => Some(pos),
-            MenuAnchor::Mob(_) => None,
+            MenuAnchor::Entity(_) => None,
         }
     }
 
     pub fn present(self, world: &ServerWorld) -> bool {
         match self {
             MenuAnchor::Block(_) => true,
-            MenuAnchor::Mob(id) => world.mobs().live(id).is_some(),
+            MenuAnchor::Entity(id) => world.mobs().live(id).is_some(),
         }
     }
 
     pub fn container(self, world: &ServerWorld) -> Option<&Container> {
         match self {
             MenuAnchor::Block(pos) => world.container_at(pos),
-            MenuAnchor::Mob(id) => world.mobs().live(id).map(|m| m.container()),
+            MenuAnchor::Entity(id) => world.mobs().live(id).map(|m| m.container()),
         }
     }
 
@@ -50,7 +50,7 @@ impl MenuAnchor {
                 world.mark_chunk_modified(pos);
                 out
             }
-            MenuAnchor::Mob(id) => {
+            MenuAnchor::Entity(id) => {
                 world.mobs().live(id)?;
                 world.mobs_mut().container_mut(id).map(edit)
             }
@@ -87,6 +87,6 @@ impl ContainerTarget {
 
     #[inline]
     pub fn kind_anchor_backed(kind: GuiKind) -> bool {
-        kind == GuiKind::Chest || kind == GuiKind::Furnace || kind.is_registered()
+        kind.is_registered()
     }
 }

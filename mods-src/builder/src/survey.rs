@@ -235,7 +235,7 @@ impl Survey {
     }
 
     pub fn measure(&mut self, design: &Design, indices: &[usize]) {
-        let asks: Vec<(usize, ([i32; 3], BlockRecord))> = indices
+        let asks: Vec<(usize, ([i32; 3], CellRecord))> = indices
             .iter()
             .filter(|&&i| !matches!(design.plan(design.units[i]), Plan::Unsupported(_)))
             .map(|&i| {
@@ -244,7 +244,7 @@ impl Survey {
             })
             .collect();
         let (which, cells): (Vec<usize>, Vec<_>) = asks.into_iter().unzip();
-        let statuses = paged(cells, block_record_statuses);
+        let statuses = paged(cells, record_statuses);
         for (i, status) in which.into_iter().zip(statuses) {
             let known = Known::of(status);
             if matches!(known, Known::Unloaded | Known::Pending)

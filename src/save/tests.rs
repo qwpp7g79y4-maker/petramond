@@ -94,6 +94,7 @@ fn load_blocking(
                     section,
                     entities,
                     mobs,
+                    ..
                 } => Some((*section, entities, mobs)),
                 SectionRecord::Absent => panic!("no record for {pos:?}"),
                 SectionRecord::Unreadable(u) => panic!("unreadable record for {pos:?}: {u:?}"),
@@ -249,7 +250,7 @@ fn re_saving_a_drop_free_section_clears_its_stale_record() {
     ));
     opened.save.save_sections(&mut opened.saved, vec![snap]);
     assert!(
-        opened.save.record_holds_entities(pos),
+        opened.save.record_holds_live(pos),
         "record now carries a drop"
     );
 
@@ -260,7 +261,7 @@ fn re_saving_a_drop_free_section_clears_its_stale_record() {
     let empty = SectionSnapshot::from_section(&section);
     opened.save.save_sections(&mut opened.saved, vec![empty]);
     assert!(
-        !opened.save.record_holds_entities(pos),
+        !opened.save.record_holds_live(pos),
         "rewrite cleared the flag"
     );
 
@@ -290,7 +291,7 @@ fn re_saving_a_mob_free_section_clears_its_stale_record() {
     });
     opened.save.save_sections(&mut opened.saved, vec![snap]);
     assert!(
-        opened.save.record_holds_entities(pos),
+        opened.save.record_holds_live(pos),
         "record now carries a mob"
     );
 
@@ -300,7 +301,7 @@ fn re_saving_a_mob_free_section_clears_its_stale_record() {
     let empty = SectionSnapshot::from_section(&section);
     opened.save.save_sections(&mut opened.saved, vec![empty]);
     assert!(
-        !opened.save.record_holds_entities(pos),
+        !opened.save.record_holds_live(pos),
         "rewrite cleared the flag"
     );
 

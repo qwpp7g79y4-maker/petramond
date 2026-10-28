@@ -69,7 +69,7 @@ impl StepCtx<'_> {
                     let (lo, hi) = b.aabb();
                     meets(lo, hi)
                 }),
-            EntityRef::Mob(id) => self
+            EntityRef::Entity(id) => self
                 .world
                 .mobs()
                 .instances()
@@ -90,7 +90,7 @@ impl StepCtx<'_> {
                 .iter()
                 .find(|a| a.id == id && a.alive)
                 .map(|a| (a.pos, a.yaw)),
-            EntityRef::Mob(id) => self
+            EntityRef::Entity(id) => self
                 .world
                 .mobs()
                 .instances()

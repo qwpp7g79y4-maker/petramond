@@ -2,35 +2,7 @@ use super::ItemStack;
 
 pub const TOOL_DATA_KEY: &str = "petramond:tool";
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ToolKind {
-    Pickaxe,
-    Axe,
-    Shovel,
-    Shears,
-    Sword,
-}
-
-impl ToolKind {
-    pub fn name(self) -> &'static str {
-        match self {
-            ToolKind::Pickaxe => "pickaxe",
-            ToolKind::Axe => "axe",
-            ToolKind::Shovel => "shovel",
-            ToolKind::Shears => "shears",
-            ToolKind::Sword => "sword",
-        }
-    }
-
-    #[inline]
-    pub fn mining_efficiency(self) -> f32 {
-        match self {
-            ToolKind::Pickaxe | ToolKind::Axe | ToolKind::Shears | ToolKind::Sword => 1.0,
-            ToolKind::Shovel => 0.5625,
-        }
-    }
-}
+pub use crate::material::ToolKind;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Tool {
@@ -54,18 +26,9 @@ pub fn default_speed(tier: u8) -> f32 {
 }
 
 pub fn default_damage(kind: ToolKind, tier: u8) -> (f32, f32) {
-    use ToolKind::*;
-    if tier >= 4 {
-        return (5.0, 7.0);
-    }
-    match (kind, tier) {
-        (Axe, 1) => (1.5, 2.5),
-        (Axe, 2) => (2.0, 3.0),
-        (Axe, 3) => (4.0, 6.0),
-        (_, 1) => (1.0, 1.5),
-        (_, 2) => (1.0, 2.5),
-        (_, 3) => (2.5, 4.5),
-        _ => FIST_DAMAGE,
+    match tier {
+        0 => FIST_DAMAGE,
+        t => kind.def().damage[usize::from(t.min(4)) - 1],
     }
 }
 

@@ -177,10 +177,10 @@ fn seated_swings_the_thighs_forward_and_hangs_the_shins() {
 }
 
 #[test]
-fn sleeping_lies_the_body_flat() {
+fn a_lying_body_lies_flat() {
     let standing = bake(&BodyState::default());
     let lying = bake(&BodyState {
-        sleeping: true,
+        lying: true,
         ..Default::default()
     });
     let height = |v: &[Vec3]| {
@@ -191,7 +191,7 @@ fn sleeping_lies_the_body_flat() {
     assert!(height(&standing) > 1.5, "standing body is tall");
     assert!(
         height(&lying) < 0.8,
-        "sleeping body lies flat: {}",
+        "lying body is flat: {}",
         height(&lying)
     );
     let min_y = lying.iter().map(|v| v.y).fold(f32::MAX, f32::min);

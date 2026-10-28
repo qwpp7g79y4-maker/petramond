@@ -108,8 +108,9 @@ fn a_mounted_player_sets_spawn_but_cannot_start_sleeping() {
     let before = game.server_player().pos;
     assert!(game.server_world_mut().riding_mut().mount(
         player_id,
-        petramond::mob::riding::MountTarget::Mob(77),
-        0
+        petramond::mob::riding::MountTarget::Entity(77),
+        0,
+        petramond::mob::riding::Posture::Seated,
     ));
 
     let events = interact_with_bed(&mut game, base);
@@ -165,6 +166,7 @@ fn completing_a_sleep_skips_to_morning_and_wakes_beside_the_bed() {
         let mut events = TickEvents::default();
         game.sim_mut().tick_bed_and_respawn(0, &mut events);
         game.sim_mut().resolve_sleep_completion(&mut events);
+        game.sim_mut().tick_riding();
         ended = events.player_at(0).sleep_ended;
     }
 
@@ -201,6 +203,34 @@ fn cancelling_a_sleep_wakes_without_skipping_time() {
     assert!(
         game.server_player().bed_spawn.is_some(),
         "cancelling keeps the spawn point — one interaction was enough"
+    );
+}
+
+#[test]
+fn a_sleeper_let_go_by_the_bed_wakes_beside_it_without_skipping_time() {
+    let (mut game, base) = game_with_bed();
+    make_night(&mut game);
+    interact_with_bed(&mut game, base);
+    game.sim_mut().tick_riding();
+    let player_id = game.session().id().0;
+    assert!(game.server_world().riding().mount_of(player_id).is_some());
+    let clock_before = clock(&game);
+
+    game.sim_mut().release_bed_at(base);
+    let mut events = TickEvents::default();
+    game.sim_mut().tick_bed_and_respawn(0, &mut events);
+    game.sim_mut().resolve_sleep_completion(&mut events);
+    game.sim_mut().tick_riding();
+
+    assert!(
+        events.player_at(0).sleep_ended,
+        "losing the bed ends the sleep"
+    );
+    assert_eq!(clock(&game), clock_before, "and skips no time");
+    let feet = game.server_player().pos;
+    assert!(
+        (feet.x.floor() as i32, feet.z.floor() as i32) != (base.x, base.z),
+        "set down beside the bed: {feet:?}"
     );
 }
 
@@ -334,7 +364,7 @@ fn broken_bed_clears_the_spawn_and_respawn_falls_back_to_the_surface() {
     game.sim_mut()
         .tick_bed_and_respawn(0, &mut TickEvents::default());
 
-    game.sim_mut().clear_bed_spawn_at(base);
+    game.sim_mut().release_bed_at(base);
     game.server_world_mut().remove_compound(base);
     assert!(
         game.server_player().bed_spawn.is_none(),

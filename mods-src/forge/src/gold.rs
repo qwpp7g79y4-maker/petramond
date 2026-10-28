@@ -157,7 +157,10 @@ mod tests {
             fluid: None,
             medium: None,
             replaceable: false,
-            interaction: None,
+            open_gui: None,
+            behaviors: Vec::new(),
+            answers_use: false,
+            roots_on: Vec::new(),
         }
     }
 

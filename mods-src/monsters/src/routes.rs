@@ -40,6 +40,4 @@ routes!(Handler {
 
 routes!(Feature { Camps = 1, });
 
-routes!(Spawner { Hostiles = 1, });
-
 routes!(AiNode { SkeletonPost = 1, });

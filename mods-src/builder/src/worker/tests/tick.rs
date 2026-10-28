@@ -14,7 +14,7 @@ fn middle_left() -> (Session, crate::project::ProjectId, u64) {
     let golem = session.golem(id, HOME, AT);
     session
         .world
-        .give(ContainerAddress::Mob(golem), "petramond:stone", 3);
+        .give(ContainerAddress::Entity(golem), "petramond:stone", 3);
     (session, id, golem)
 }
 

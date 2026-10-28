@@ -77,14 +77,11 @@ impl ServerGame {
     pub(super) fn take_window_feeds(&mut self, events: &mut TickEvents) -> WindowFeeds {
         let mut world_events = self.broadcast.take_wire_events();
         world_events.extend(wire_world_events(&mut events.world));
+        let world = &self.world;
         self.broadcast
-            .track_spatial_loops(self.world.mobs(), &mut world_events);
-        let mobs = self.world.mobs().instances();
-        let loops = event_scope::live_loops(self.broadcast.spatial_loops(), |id| {
-            mobs.iter()
-                .find(|m| m.id() == id && !m.is_dead())
-                .map(|m| m.pos)
-        });
+            .track_spatial_loops(|id| world.entity_pos(id).is_some(), &mut world_events);
+        let loops =
+            event_scope::live_loops(self.broadcast.spatial_loops(), |id| world.entity_pos(id));
         let reaches = world_events.iter().map(event_scope::reach).collect();
         WindowFeeds {
             events: world_events,
@@ -106,7 +103,7 @@ impl ServerGame {
                 .count() as u16,
             connected: self.sessions.len() as u16,
         };
-        let open_chests = self.containers.open_chests();
+        let held_open = self.containers.held_open();
         let env = self
             .broadcast
             .env_update(self.world.data().environment().shader_params().clone());
@@ -115,7 +112,7 @@ impl ServerGame {
             clock: crate::server::daynight::current_clock(&self.world),
             recipients,
             sleep_tally,
-            open_chests,
+            held_open,
             env,
             feeds: WindowFeeds::default(),
         }
@@ -189,7 +186,7 @@ impl ServerGame {
         if let Some(env) = &shared.env {
             update.push(env.clone());
         }
-        update.push_list(shared.open_chests.clone());
+        update.push_list(shared.held_open.clone());
         update.push_list(world_events);
         let self_events = self.build_self_events(s, events);
         if self_events != SelfEvents::default() {
@@ -286,7 +283,6 @@ impl ServerGame {
 
     pub fn build_self_state(&mut self, s: usize) -> SelfState {
         let sleeping = self.sleep_progress01(s).map(|p| (p * 255.0).round() as u8);
-        let sleep_bed = self.sleep_bed_base(s);
         let sess = &mut self.sessions[s];
         let player = &sess.player;
         // Transform correction: ships only on REAL divergence from the last
@@ -362,7 +358,6 @@ impl ServerGame {
                 .as_ref()
                 .is_some_and(|eat| eat.hand == petramond_world::inventory::Hand::Off),
             sleeping,
-            sleep_bed,
             move_scale: player
                 .claims
                 .replicated_attribute(mod_api::PlayerAttribute::MoveSpeed),
@@ -464,13 +459,6 @@ pub fn wire_world_events(world: &mut WorldEvents) -> Vec<WorldEventMsg> {
     for (anchor, open) in world.panel_changed.drain(..) {
         out.push(WorldEventMsg::PanelToggled { anchor, open });
     }
-    for (pos, open) in world.chest_changed.drain(..) {
-        out.push(if open {
-            WorldEventMsg::ChestOpened { pos }
-        } else {
-            WorldEventMsg::ChestClosed { pos }
-        });
-    }
     for (pos, by) in world.item_picked_up.drain(..) {
         out.push(WorldEventMsg::ItemPickedUp { pos, by });
     }
@@ -525,17 +513,17 @@ pub fn wire_world_events(world: &mut WorldEvents) -> Vec<WorldEventMsg> {
                 volume,
                 pitch,
             },
-            Cmd::PlayOnMob {
+            Cmd::PlayOnEntity {
                 handle,
                 sound,
-                mob_id,
+                entity,
                 volume,
                 pitch,
                 last_pos,
-            } => SpatialSoundMsg::PlayOnMob {
+            } => SpatialSoundMsg::PlayOnEntity {
                 handle,
                 sound_id: sound.0,
-                mob_id,
+                entity,
                 volume,
                 pitch,
                 last_pos,

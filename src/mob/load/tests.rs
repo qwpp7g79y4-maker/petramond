@@ -155,8 +155,7 @@ fn namespaced_pack_row_registers_a_hostile_mob_with_a_data_brain() {
             "mob": "mymod:zombling", "key": "mymod:zombling", "model": "models/owl.bbmodel",
             "scale": 0.25, "size": {"half_width": 0.3, "height": 1.8}, "tags": {"petramond:health": 20.0},
             "walk_speed": 2.0, "jump_speed": 7.2, "turn_rate": 6.0, "walk_anim_rate": 1.0,
-            "category": "hostile", "despawn_radius": 64.0, "cap": 8,
-            "spawn": {"biomes": [], "ground": []},
+            "category": "passive", "despawn_radius": 64.0, "cap": 8,
             "spawn_group": {"min": 1, "max": 1},
             "wander": {"chance_per_tick": 0.0125, "radius": 8},
             "habitat": {"avoid": [], "prefer": []},
@@ -175,12 +174,9 @@ fn namespaced_pack_row_registers_a_hostile_mob_with_a_data_brain() {
     let z = &defs[engine];
     assert_eq!(z.mob, Mob(engine as u8));
     assert_eq!(z.name, "mymod:zombling");
-    assert_eq!(z.category, MobCategory::Hostile);
+    assert_eq!(z.category, crate::mob::SpawnCategory::by_name("passive"));
     assert_eq!(z.despawn.map(|d| d.radius), Some(64.0));
-    assert!(
-        !z.spawn.is_spawnable(),
-        "an empty spawn rule = programmatic-spawn-only"
-    );
+    assert!(z.spawn.is_none(), "no spawn rule = programmatic-spawn-only");
 
     let mut brain = super::super::build_brain(z);
     let world = {
@@ -238,7 +234,6 @@ fn unknown_and_reserved_brain_nodes_are_load_errors() {
                     "scale": 0.25, "size": {{"half_width": 0.3, "height": 1.0}}, "tags": {{"petramond:health": 4.0}},
                     "walk_speed": 2.0, "jump_speed": 7.2, "turn_rate": 6.0, "walk_anim_rate": 1.0,
                     "category": "passive", "cap": 8,
-                    "spawn": {{"biomes": [], "ground": []}},
                     "spawn_group": {{"min": 1, "max": 1}},
                     "wander": {{"chance_per_tick": 0.0125, "radius": 8}},
                     "habitat": {{"avoid": [], "prefer": []}},
@@ -257,7 +252,6 @@ fn unknown_and_reserved_brain_nodes_are_load_errors() {
             "scale": 0.25, "size": {"half_width": 0.3, "height": 1.0}, "tags": {"petramond:health": 4.0},
             "walk_speed": 2.0, "jump_speed": 7.2, "turn_rate": 6.0, "walk_anim_rate": 1.0,
             "category": "passive", "cap": 8,
-            "spawn": {"biomes": [], "ground": []},
             "spawn_group": {"min": 1, "max": 1},
             "wander": {"chance_per_tick": 0.0125, "radius": 8},
             "habitat": {"avoid": [], "prefer": []},
@@ -275,7 +269,7 @@ fn bare_additions_and_bad_references_are_rejected() {
     let bare = r#"{"mobs": [{"mob": "zombling", "key": "zombling", "model": "m", "scale": 1.0,
             "size": {"half_width": 0.3, "height": 1.0}, "tags": {"petramond:health": 4.0}, "walk_speed": 2.0,
             "jump_speed": 7.2, "turn_rate": 6.0, "walk_anim_rate": 1.0, "category": "passive",
-            "cap": 8, "spawn": {"biomes": [], "ground": []}, "spawn_group": {"min": 1, "max": 1},
+            "cap": 8, "spawn_group": {"min": 1, "max": 1},
             "wander": {"chance_per_tick": 0.0125, "radius": 8},
             "habitat": {"avoid": [], "prefer": []}, "avoid_fluids": false, "brain": []}]}"#;
     let err = parse_layers(&[&base(), bare])
@@ -289,7 +283,7 @@ fn bare_additions_and_bad_references_are_rejected() {
     let bad_biome = r#"{"mobs": [{"mob": "mymod:z", "key": "mymod:z", "model": "m", "scale": 1.0,
             "size": {"half_width": 0.3, "height": 1.0}, "tags": {"petramond:health": 4.0}, "walk_speed": 2.0,
             "jump_speed": 7.2, "turn_rate": 6.0, "walk_anim_rate": 1.0, "category": "passive",
-            "cap": 8, "spawn": {"biomes": ["atlantis"], "ground": []},
+            "cap": 8, "spawn": {"biomes": ["atlantis"]},
             "spawn_group": {"min": 1, "max": 1},
             "wander": {"chance_per_tick": 0.0125, "radius": 8},
             "habitat": {"avoid": [], "prefer": []}, "avoid_fluids": false, "brain": []}]}"#;
@@ -301,7 +295,7 @@ fn bare_additions_and_bad_references_are_rejected() {
     let bad_companion = r#"{"mobs": [{"mob": "mymod:z", "key": "mymod:z", "model": "m", "scale": 1.0,
             "size": {"half_width": 0.3, "height": 1.0}, "tags": {"petramond:health": 4.0}, "walk_speed": 2.0,
             "jump_speed": 7.2, "turn_rate": 6.0, "walk_anim_rate": 1.0, "category": "passive",
-            "cap": 8, "spawn": {"biomes": [], "ground": []}, "spawn_group": {"min": 1, "max": 1},
+            "cap": 8, "spawn_group": {"min": 1, "max": 1},
             "wander": {"chance_per_tick": 0.0125, "radius": 8,
                        "cohesion": {"companion": "ghost", "search_radius_multiplier": 2}},
             "habitat": {"avoid": [], "prefer": []}, "avoid_fluids": false, "brain": []}]}"#;
@@ -326,7 +320,7 @@ fn loader_rejects_incomplete_tables_and_duplicate_keys() {
     let clash = r#"{"mobs": [{"mob": "mymod:z", "key": "petramond:owl", "model": "m", "scale": 1.0,
             "size": {"half_width": 0.3, "height": 1.0}, "tags": {"petramond:health": 4.0}, "walk_speed": 2.0,
             "jump_speed": 7.2, "turn_rate": 6.0, "walk_anim_rate": 1.0, "category": "passive",
-            "cap": 8, "spawn": {"biomes": [], "ground": []}, "spawn_group": {"min": 1, "max": 1},
+            "cap": 8, "spawn_group": {"min": 1, "max": 1},
             "wander": {"chance_per_tick": 0.0125, "radius": 8},
             "habitat": {"avoid": [], "prefer": []}, "avoid_fluids": false, "brain": []}]}"#;
     let err = parse_layers(&[&base(), clash])
@@ -352,8 +346,7 @@ fn dynamic_pack_mob_flows_end_to_end() {
                 "model": "models/owl.bbmodel", "scale": 0.25,
                 "size": {"half_width": 0.3, "height": 1.8}, "tags": {"petramond:health": 20.0},
                 "walk_speed": 2.0, "jump_speed": 7.2, "turn_rate": 6.0, "walk_anim_rate": 1.0,
-                "category": "hostile", "cap": 8,
-                "spawn": {"biomes": [], "ground": []},
+                "category": "passive", "cap": 8, "despawn_radius": 128.0,
                 "spawn_group": {"min": 1, "max": 1},
                 "wander": {"chance_per_tick": 0.0125, "radius": 8},
                 "habitat": {"avoid": [], "prefer": []},
@@ -402,7 +395,7 @@ fn dynamic_pack_mob_inner(save: &std::path::Path) {
             false,
         );
     }
-    assert_eq!(mobs.len(), 1, "a near player keeps the hostile mob alive");
+    assert_eq!(mobs.len(), 1, "a near player keeps the mob alive");
     mobs.tick(
         0.05,
         &world,
@@ -414,7 +407,7 @@ fn dynamic_pack_mob_inner(save: &std::path::Path) {
     );
     assert!(
         mobs.is_empty(),
-        "a far player culls the hostile mob immediately"
+        "a player past its despawn radius culls the mob immediately"
     );
 
     std::fs::create_dir_all(save).unwrap();
@@ -514,7 +507,7 @@ fn spawn_chances_resolve_aligned_and_bad_rows_fail_the_load() {
     let defs = parse_layers(&[&text])
         .expect("a valid chance map loads")
         .defs;
-    let spawn = &defs[Mob::Owl.0 as usize].spawn;
+    let spawn = defs[Mob::Owl.0 as usize].spawn.as_ref().unwrap();
     use petramond_world::biome::Biome;
     assert_eq!(spawn.chance_in(Biome::FOREST), 1.0, "unmapped listed biome");
     assert_eq!(spawn.chance_in(Biome::REDWOOD_FOREST), 0.25, "mapped biome");
@@ -544,7 +537,7 @@ fn spawn_chances_resolve_aligned_and_bad_rows_fail_the_load() {
     let defs = parse_layers(&[&text])
         .expect("a species-wide chance loads")
         .defs;
-    let spawn = &defs[Mob::Owl.0 as usize].spawn;
+    let spawn = defs[Mob::Owl.0 as usize].spawn.as_ref().unwrap();
     assert_eq!(
         spawn.chance_in(Biome::FOREST),
         0.25,

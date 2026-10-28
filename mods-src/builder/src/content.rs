@@ -66,13 +66,8 @@ impl ScaffoldKind {
         kinds
     }
 
-    pub fn record(&self) -> BlockRecord {
-        BlockRecord {
-            block: self.name.clone(),
-            state: Vec::new(),
-            refs: Vec::new(),
-            data: Vec::new(),
-        }
+    pub fn record(&self) -> CellRecord {
+        CellRecord::of(self.name.clone())
     }
 }
 

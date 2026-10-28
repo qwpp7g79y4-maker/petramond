@@ -132,7 +132,10 @@ fn a_flight_strikes_the_first_body_on_its_path_and_stops_there() {
 
     let step = w.tick_item_physics(0.05, &[]);
     assert_eq!(step.impacts.len(), 1);
-    assert_eq!(step.impacts[0].target, ImpactTarget::Mob(owl));
+    assert_eq!(
+        step.impacts[0].target,
+        ImpactTarget::Body(crate::mob::EntityRef::Entity(owl))
+    );
     let it = &w.item_entities()[0];
     assert!(
         it.pos.x < 5.5,
@@ -221,7 +224,7 @@ fn a_deflected_contact_is_spared_until_the_flight_has_cleared_its_body() {
     assert!(step
         .impacts
         .iter()
-        .any(|hit| hit.target == ImpactTarget::Player(owner)));
+        .any(|hit| hit.target == ImpactTarget::Body(crate::mob::EntityRef::Player(owner))));
 }
 
 #[test]
@@ -311,7 +314,10 @@ fn a_flight_spares_its_launcher_only_until_it_has_left_the_body() {
         1,
         "a returning launch strikes its launcher"
     );
-    assert_eq!(step.impacts[0].target, ImpactTarget::Player(me));
+    assert_eq!(
+        step.impacts[0].target,
+        ImpactTarget::Body(crate::mob::EntityRef::Player(me))
+    );
 }
 
 #[test]
@@ -410,7 +416,7 @@ fn dislodged_projectiles_use_the_same_body_sweep_and_keep_their_launcher() {
         let (target, owner, anchors) = if player {
             let id = PlayerId(3);
             (
-                ImpactTarget::Player(id),
+                ImpactTarget::Body(crate::mob::EntityRef::Player(id)),
                 EntityRef::Player(id),
                 vec![PlayerAnchor {
                     id,
@@ -422,7 +428,11 @@ fn dislodged_projectiles_use_the_same_body_sweep_and_keep_their_launcher() {
         } else {
             assert!(w.mobs_mut().spawn(crate::mob::Mob::Owl, feet, 0.0));
             let id = w.mobs().instances()[0].id();
-            (ImpactTarget::Mob(id), EntityRef::Mob(id), vec![])
+            (
+                ImpactTarget::Body(crate::mob::EntityRef::Entity(id)),
+                EntityRef::Entity(id),
+                vec![],
+            )
         };
         let block = IVec3::new(5, 69, 5);
         w.set_block_world(
@@ -488,7 +498,7 @@ fn item_rules_prevent_collection_and_keep_their_own_expiry_after_lodging() {
     .into();
     let stack = ItemStack::with_variant(ItemType::Stone, 1, variant::intern(&rules).unwrap());
     let at = WorldPos::new(0.0, 64.0, 0.0);
-    let mut shot = DroppedItem::launched(at, stack, Vec3::Z, Some(EntityRef::Mob(42)));
+    let mut shot = DroppedItem::launched(at, stack, Vec3::Z, Some(EntityRef::Entity(42)));
     assert!(!shot.collectable());
     shot.lodge(IVec3::new(0, 64, 1));
     assert!(!shot.collectable());

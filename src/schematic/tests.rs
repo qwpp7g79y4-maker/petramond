@@ -4,7 +4,6 @@ use petramond_world::{
     block::{Block, CellCodec, CellView, ShapeState},
     block_state::{SlabSplit, SlabState},
     container::Container,
-    furnace::Furnace,
     item::{variant, ItemStack, ItemType},
 };
 use std::collections::BTreeMap;
@@ -16,7 +15,6 @@ fn cell(block: Block) -> ResolvedCell {
         fluid: 0,
         kv: Default::default(),
         container: None,
-        furnace: None,
     }
 }
 fn schematic(cells: Vec<(IVec3, ResolvedCell)>, size: [i32; 3]) -> Schematic {
@@ -51,11 +49,6 @@ fn portable_cell_round_trip_keeps_shape_references_and_all_instance_stores() {
             Some(ItemStack::with_variant(ItemType::Stone, 12, variant)),
             None,
         ],
-    });
-    d.furnace = Some(Furnace {
-        cook_progress: 12,
-        burn_remaining: 30,
-        burn_max: 60,
     });
     let saved = CellData::capture(&d);
     assert!(!saved.state_ids.is_empty());

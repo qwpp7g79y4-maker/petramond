@@ -20,21 +20,22 @@ impl UsePlan {
         self,
         content: &Content,
         sky: Option<&FieldParams>,
+        player: PlayerId,
         item: ItemId,
         pos: [i32; 3],
     ) -> Outcome {
         match self {
             UsePlan::Till { cover } => tilling::till(content, sky, pos, cover),
-            UsePlan::Fertilize { at, action } => fertilize::apply(at, item, action),
-            UsePlan::Compost { stage } => compost::fill(content, item, pos, stage),
-            UsePlan::Trough(using) => trough::apply(content, pos, using),
+            UsePlan::Fertilize { at, action } => fertilize::apply(player, at, item, action),
+            UsePlan::Compost { stage } => compost::fill(content, player, item, pos, stage),
+            UsePlan::Trough(using) => trough::apply(content, player, pos, using),
         }
     }
 }
 
 pub fn item_use(
     content: &Content,
-    world: &impl WorldView,
+    player: PlayerId,
     item: ItemId,
     target: Option<[i32; 3]>,
     mut act: impl FnMut([i32; 3], UsePlan) -> Outcome,
@@ -42,17 +43,17 @@ pub fn item_use(
     let Some(pos) = target else {
         return Outcome::Continue;
     };
-    let Some(block) = world.block(pos) else {
+    let Some(block) = get_block(pos) else {
         return Outcome::Continue;
     };
     let links: [&dyn Fn() -> Option<UsePlan>; 4] = [
-        &|| tilling::gate(content, world, item, pos, block).map(|cover| UsePlan::Till { cover }),
+        &|| tilling::gate(content, item, pos, block).map(|cover| UsePlan::Till { cover }),
         &|| {
-            fertilize::gate(content, world, item, pos, block)
+            fertilize::gate(content, item, pos, block)
                 .map(|(at, action)| UsePlan::Fertilize { at, action })
         },
         &|| compost::fill_gate(content, item, block).map(|stage| UsePlan::Compost { stage }),
-        &|| trough::use_gate(content, item, block).map(UsePlan::Trough),
+        &|| trough::use_gate(content, player, item, block).map(UsePlan::Trough),
     ];
     for link in links {
         if let Some(plan) = link() {
@@ -72,25 +73,33 @@ pub enum InteractPlan<'c> {
 }
 
 impl InteractPlan<'_> {
-    pub fn execute(self, content: &Content, growth: &mut Growth, pos: [i32; 3]) -> Outcome {
+    pub fn execute(
+        self,
+        content: &Content,
+        growth: &mut Growth,
+        player: PlayerId,
+        pos: [i32; 3],
+    ) -> Outcome {
         match self {
             InteractPlan::Harvest(def) => crops::harvest(content, growth, pos, def),
             InteractPlan::CompostCollect => compost::collect(content, pos),
-            InteractPlan::TroughTakeOut => trough::take_out(content, pos),
+            InteractPlan::TroughTakeOut => trough::take_out(content, player, pos),
         }
     }
 }
 
 pub fn interact<'c>(
     content: &'c Content,
-    world: &impl WorldView,
+    player: PlayerId,
     pos: [i32; 3],
     mut act: impl FnMut(InteractPlan<'c>) -> Outcome,
 ) -> Outcome {
-    let Some(block) = world.block(pos) else {
+    let Some(block) = get_block(pos) else {
         return Outcome::Continue;
     };
-    let actor = player_state();
+    let Some(actor) = player_state(player) else {
+        return Outcome::Continue;
+    };
     let links = [
         crops::harvest_gate(content, block, &actor).map(InteractPlan::Harvest),
         compost::collect_gate(content, block).then_some(InteractPlan::CompostCollect),

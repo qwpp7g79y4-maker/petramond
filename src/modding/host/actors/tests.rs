@@ -72,13 +72,13 @@ fn aim(
     server: &mut ServerGame,
     mob: u64,
     pos: IVec3,
-    record: Option<mod_api::BlockRecord>,
+    record: Option<mod_api::CellRecord>,
 ) -> Result<[f64; 3], ActionRefusal> {
     let feet = server.world().mobs().instances()[0].pos;
     match call(
         server,
         HostCall::from(calls::ActorAims {
-            actor: EntityRef::Mob(mob),
+            actor: EntityRef::Entity(mob),
             from: vec![[feet.x, feet.y, feet.z]],
             pos: pos.to_array(),
             record,
@@ -89,7 +89,7 @@ fn aim(
     }
 }
 
-fn look(server: &mut ServerGame, mob: u64, pos: IVec3, record: Option<mod_api::BlockRecord>) {
+fn look(server: &mut ServerGame, mob: u64, pos: IVec3, record: Option<mod_api::CellRecord>) {
     let at = aim(server, mob, pos, record).expect("the work is seen from here");
     let eye = server.world().actor(mob).unwrap().eye;
     let to = WorldPos::new(at[0], at[1], at[2]) - eye;
@@ -100,13 +100,18 @@ fn look(server: &mut ServerGame, mob: u64, pos: IVec3, record: Option<mod_api::B
     );
 }
 
-fn stone_record() -> mod_api::BlockRecord {
-    mod_api::BlockRecord {
-        block: "petramond:cobblestone".into(),
-        state: Vec::new(),
-        refs: Vec::new(),
-        data: Vec::new(),
-    }
+fn portable(record: &petramond_world::construction::Record) -> mod_api::CellRecord {
+    crate::modding::host::records::record_out(&crate::world::cells::ResolvedCell {
+        block: record.block,
+        state: record.state,
+        fluid: 0,
+        kv: record.data.clone(),
+        container: None,
+    })
+}
+
+fn stone_record() -> mod_api::CellRecord {
+    mod_api::CellRecord::of("petramond:cobblestone")
 }
 
 #[test]
@@ -121,7 +126,7 @@ fn a_dig_accrues_on_consecutive_ticks_and_collects_its_drop() {
         call(
             server,
             HostCall::from(calls::ActorDig {
-                actor: EntityRef::Mob(mob),
+                actor: EntityRef::Entity(mob),
                 pos: target.to_array(),
                 tool_slot: None,
                 collect: true,
@@ -181,7 +186,7 @@ fn an_interrupted_dig_starts_over() {
         match call(
             server,
             HostCall::from(calls::ActorDig {
-                actor: EntityRef::Mob(mob),
+                actor: EntityRef::Entity(mob),
                 pos: target.to_array(),
                 tool_slot: None,
                 collect: false,
@@ -211,7 +216,7 @@ fn a_placement_pays_once_from_the_actors_slots_and_needs_a_face() {
         call(
             server,
             HostCall::from(calls::ActorPlace {
-                actor: EntityRef::Mob(mob),
+                actor: EntityRef::Entity(mob),
                 pos: at.to_array(),
                 record: stone_record(),
                 pay: true,
@@ -293,7 +298,7 @@ fn reach_is_measured_from_the_actors_eye() {
     let reply = call(
         &mut server,
         HostCall::from(calls::ActorPlace {
-            actor: EntityRef::Mob(mob),
+            actor: EntityRef::Entity(mob),
             pos: [14, 65, 14],
             record: stone_record(),
             pay: true,
@@ -307,7 +312,7 @@ fn reach_is_measured_from_the_actors_eye() {
         call(
             &mut server,
             HostCall::from(calls::ActorDig {
-                actor: EntityRef::Mob(mob + 1000),
+                actor: EntityRef::Entity(mob + 1000),
                 pos: [9, 64, 8],
                 tool_slot: None,
                 collect: false,
@@ -340,7 +345,7 @@ fn a_turned_block_goes_in_only_from_where_a_click_turns_it_so() {
     use petramond_world::block_state::{StairHalf, StairState};
     let (mut server, mob) = server_with_worker(vec![]);
     let stair = |facing| {
-        super::record_out(&petramond_world::construction::Record {
+        portable(&petramond_world::construction::Record {
             block: Block::OakStairs,
             state: StairState::new(facing, StairHalf::Bottom).to_cell(),
             data: Default::default(),
@@ -372,7 +377,7 @@ fn a_cell_of_two_parts_goes_in_a_click_at_a_time_each_paid_with_its_own_item() {
     let both = SlabState::single(SlabSplit::Y, 0, Block::DirtSlab)
         .with_slot(1, Block::StoneSlab)
         .unwrap();
-    let record = super::record_out(&petramond_world::construction::Record {
+    let record = portable(&petramond_world::construction::Record {
         block: petramond_world::slab::representative_block(both),
         state: both.to_cell(),
         data: Default::default(),
@@ -383,7 +388,7 @@ fn a_cell_of_two_parts_goes_in_a_click_at_a_time_each_paid_with_its_own_item() {
         let answer = call(
             server,
             HostCall::from(calls::ActorPlace {
-                actor: EntityRef::Mob(mob),
+                actor: EntityRef::Entity(mob),
                 pos: cell.to_array(),
                 record: record.clone(),
                 pay: true,

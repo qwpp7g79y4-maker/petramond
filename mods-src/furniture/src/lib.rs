@@ -172,13 +172,14 @@ impl Mod for Furniture {
                     ..
                 },
             ) => {
-                let actor = player_state();
+                let Some(actor) = player_state(*player) else {
+                    return Outcome::Continue;
+                };
                 let claimed = if self.client {
-                    let replica = SideWorld::Replica;
-                    self.cauldron_claims(&replica, *pos, &actor)
-                        || self.seat_gate(&replica, *pos, &actor).is_some()
+                    self.cauldron_claims(*pos, &actor) || self.seat_gate(*pos, &actor).is_some()
                 } else {
-                    self.try_use_cauldron(*pos, &actor) || self.try_sit(*pos, *player, &actor)
+                    self.try_use_cauldron(*pos, *player, &actor)
+                        || self.try_sit(*pos, *player, &actor)
                 };
                 if claimed {
                     Outcome::Cancel
@@ -192,9 +193,14 @@ impl Mod for Furniture {
                 }
                 Outcome::Continue
             }
-            (ON_BLOCK_BROKEN, EventPayload::BlockBroken { pos, block, .. }) => {
-                if let Some(resolved) = self.pieces.iter().find(|p| p.block == *block) {
-                    release_broken_piece_sitters(resolved.block, &resolved.piece, *pos);
+            (
+                ON_BLOCK_BROKEN,
+                EventPayload::BlockBroken {
+                    pos, block, group, ..
+                },
+            ) => {
+                if self.pieces.iter().any(|p| p.block == *block) {
+                    release_broken_piece_sitters(*pos, group.as_ref());
                 }
                 Outcome::Continue
             }
@@ -409,8 +415,7 @@ mod cabinet_documents {
                 .find(|b| b.get("block").and_then(Value::as_str) == Some(*kind))
                 .unwrap_or_else(|| panic!("{kind} has a block row"));
             let opened = row
-                .get("interaction")
-                .and_then(|i| i.get("open_gui"))
+                .get("open_gui")
                 .and_then(Value::as_str)
                 .expect("{kind} opens a GUI on click");
             assert_eq!(

@@ -191,8 +191,7 @@ impl DeltaRow for ItemStateRow {
         f.f64(5, self.pos.z, base.pos.z);
         f.f32(6, self.spin, base.spin);
         f.value(7, &self.flight, &base.flight);
-        f.value(8, &self.tether, &base.tether);
-        f.value(9, &self.draw, &base.draw);
+        f.value(8, &self.draw, &base.draw);
         f.mask
     }
 
@@ -206,8 +205,7 @@ impl DeltaRow for ItemStateRow {
         p.f64(5, &mut row.pos.z)?;
         p.f32(6, &mut row.spin)?;
         p.value(7, &mut row.flight)?;
-        p.value(8, &mut row.tether)?;
-        p.value(9, &mut row.draw)?;
+        p.value(8, &mut row.draw)?;
         Ok(())
     }
 }

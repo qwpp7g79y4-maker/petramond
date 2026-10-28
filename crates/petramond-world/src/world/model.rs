@@ -1,10 +1,68 @@
+use std::collections::BTreeMap;
+
 use crate::block::{Aabb, Block};
 use crate::block_model::{self, BlockModelKind};
 use crate::facing::Facing;
 use crate::mathh::{IVec3, Mat4, Vec3};
 use crate::world::data::WorldData;
 
+/// The cells that belong together with a cell: a model block's footprint (turned by its facing)
+/// or a compound's members (a door's two halves), and the cell they are anchored at.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CellGroup {
+    pub anchor: IVec3,
+    pub facing: Option<Facing>,
+    pub cells: Vec<IVec3>,
+}
+
+/// What a removal takes with it, read before its cells clear: the group the block spanned and
+/// the data its anchor cell held.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Removal {
+    pub group: Option<CellGroup>,
+    pub data: BTreeMap<String, Vec<u8>>,
+}
+
 impl WorldData {
+    pub fn removal(&self, pos: IVec3) -> Removal {
+        let group = self.cell_group(pos);
+        let anchor = group.as_ref().map_or(pos, |g| g.anchor);
+        let data = self
+            .chunk_at_world(anchor.x, anchor.y, anchor.z)
+            .and_then(|(s, lx, ly, lz)| {
+                let cell = crate::chunk::section_idx(lx, ly, lz) as u16;
+                s.cell_kv().get(&cell).cloned()
+            })
+            .unwrap_or_default();
+        Removal { group, data }
+    }
+
+    pub fn cell_group(&self, pos: IVec3) -> Option<CellGroup> {
+        let block = Block::from_id(self.chunk_block(pos.x, pos.y, pos.z));
+        if let Some(kind) = block.model_kind() {
+            let off = self.model_offset_at(pos.x, pos.y, pos.z);
+            let facing = self.model_facing_at(pos.x, pos.y, pos.z);
+            let anchor = block_model::base_from_cell(pos, kind, off, facing);
+            return Some(CellGroup {
+                anchor,
+                facing: Some(facing),
+                cells: Self::model_footprint_cells_facing(anchor, kind, facing),
+            });
+        }
+        let state = crate::block::ShapeNeighborhood::shape_state(self, pos);
+        let cells: Vec<IVec3> = block
+            .compound_members(pos, state)?
+            .into_iter()
+            .map(|(cell, _)| cell)
+            .collect();
+        let anchor = *cells.iter().min_by_key(|c| (c.y, c.z, c.x))?;
+        Some(CellGroup {
+            anchor,
+            facing: None,
+            cells,
+        })
+    }
+
     #[inline]
     pub fn model_offset_at(&self, wx: i32, wy: i32, wz: i32) -> [u8; 3] {
         match self.chunk_at_world(wx, wy, wz) {

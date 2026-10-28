@@ -173,7 +173,7 @@ impl RemotePlayer {
     }
 
     pub fn push_body(&self) -> Option<petramond_world::body::Body> {
-        (self.curr.visible && !self.curr.sleeping && self.curr.mount.is_none()).then(|| {
+        (self.curr.visible && self.curr.mount.is_none()).then(|| {
             petramond_world::body::Body::new(
                 self.curr.transform.pos,
                 petramond::player::HALF_W,
@@ -236,8 +236,11 @@ impl RemotePlayers {
     ) {
         let ease = 1.0 - (-petramond_render::POSE_EASE_RATE * dt).exp();
         for p in self.map.iter_mut() {
-            if p.curr.sleeping {
-                p.pose.lie(p.curr.sleep_yaw.unwrap_or(p.curr.transform.yaw));
+            if let Some(mount) = p.curr.mount.filter(|m| m.lying()) {
+                p.pose.lie(match mount {
+                    petramond::net::protocol::PlayerMount::Anchor { yaw, .. } => yaw,
+                    petramond::net::protocol::PlayerMount::Mob { .. } => p.curr.transform.yaw,
+                });
             } else {
                 let vel = p.prev.transform.vel.lerp(p.curr.transform.vel, alpha);
                 let pos = p.prev.transform.pos.lerp(p.curr.transform.pos, alpha);
@@ -335,10 +338,6 @@ impl RemotePlayers {
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
-    }
-
-    pub fn sleeping_count(&self) -> usize {
-        self.map.iter().filter(|p| p.curr.sleeping).count()
     }
 }
 

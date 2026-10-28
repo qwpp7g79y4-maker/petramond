@@ -12,9 +12,8 @@ const SPREAD_TRIES: usize = 6;
 const SPREAD_KEY: &str = "farming:spread";
 
 pub fn on_hook(content: &Content, kind: BlockHookKind, pos: [i32; 3]) {
-    match kind {
-        BlockHookKind::RandomTick => random_tick(content, pos),
-        BlockHookKind::NeighborUpdate | BlockHookKind::ScheduledTick => {}
+    if kind == BlockHookKind::RandomTick {
+        random_tick(content, pos);
     }
 }
 

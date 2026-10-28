@@ -7,7 +7,7 @@ use crate::rules::interact::{ConsumerKind, USE_REPEAT_TICKS};
 use crate::rules::use_click::{self, UseClickConsumers};
 use crate::server::player::PendingUseClick;
 use petramond_math::math::IVec3;
-use petramond_world::block::{Block, BlockInteraction};
+use petramond_world::block::Block;
 
 pub struct ClickMeta {
     pub target: Option<TargetRef>,
@@ -308,6 +308,22 @@ impl ServerGame {
         Some(now_open)
     }
 
+    /// A use of the block at `pos` by session `s`, or by a mob actor when `None`: the first of
+    /// its row behaviors that answers use and acts. Returns whether one did.
+    pub(super) fn use_block(
+        &mut self,
+        s: Option<usize>,
+        pos: IVec3,
+        events: &mut TickEvents,
+    ) -> bool {
+        let block = Block::from_id(self.world.data().chunk_block(pos.x, pos.y, pos.z));
+        block
+            .behaviors()
+            .iter()
+            .filter_map(|b| native_use(b.key()))
+            .any(|answer| answer(self, s, pos, events))
+    }
+
     fn consume_builtin_block(
         &mut self,
         s: usize,
@@ -322,8 +338,8 @@ impl ServerGame {
             return Claim::Pass;
         }
         let block = Block::from_id(self.world.data().chunk_block(pos.x, pos.y, pos.z));
-        let claimed = match block.interaction() {
-            BlockInteraction::OpenGui(kind) => {
+        let claimed = match block.open_gui() {
+            Some(kind) => {
                 self.queue_menu_action(
                     s,
                     crate::server::player::PendingMenuAction::OpenGui {
@@ -333,29 +349,7 @@ impl ServerGame {
                 );
                 true
             }
-            BlockInteraction::ToggleDoor => {
-                let Some(now_open) = self.swing_door(pos, events) else {
-                    return Claim::Pass;
-                };
-                events.player(s).toggled_panel = Some(now_open);
-                true
-            }
-            BlockInteraction::ToggleTrapdoor => {
-                let Some(now_open) = self.swing_trapdoor(pos, events) else {
-                    return Claim::Pass;
-                };
-                events.player(s).toggled_panel = Some(now_open);
-                true
-            }
-
-            BlockInteraction::Sleep => {
-                let acted = self.start_sleep(s, pos);
-                if acted {
-                    events.player(s).bed_interacted = true;
-                }
-                acted
-            }
-            BlockInteraction::None => false,
+            None => self.use_block(Some(s), pos, events),
         };
         if claimed {
             events.player(s).interacted = true;
@@ -460,6 +454,43 @@ impl ServerGame {
             false,
         ));
     }
+}
+
+type UseAnswer = fn(&mut ServerGame, Option<usize>, IVec3, &mut TickEvents) -> bool;
+
+/// What each native behavior that answers use does with a use of its block.
+fn native_use(key: &str) -> Option<UseAnswer> {
+    Some(match key {
+        "door" => |game, s, pos, events| {
+            let Some(open) = game.swing_door(pos, events) else {
+                return false;
+            };
+            if let Some(s) = s {
+                events.player(s).toggled_panel = Some(open);
+            }
+            true
+        },
+        "trapdoor" => |game, s, pos, events| {
+            let Some(open) = game.swing_trapdoor(pos, events) else {
+                return false;
+            };
+            if let Some(s) = s {
+                events.player(s).toggled_panel = Some(open);
+            }
+            true
+        },
+        "bed" => |game, s, pos, events| {
+            let Some(s) = s else {
+                return false;
+            };
+            let slept = game.start_sleep(s, pos);
+            if slept {
+                events.player(s).bed_interacted = true;
+            }
+            slept
+        },
+        _ => return None,
+    })
 }
 
 #[cfg(test)]

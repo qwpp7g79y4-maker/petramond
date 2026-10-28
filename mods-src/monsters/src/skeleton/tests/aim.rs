@@ -1,8 +1,9 @@
-use crate::skeleton::aim::{aim_at, scatter, Flight, TICK_SECONDS};
+use crate::skeleton::aim::{aim_at, scatter};
+use mod_sdk::{ItemFlight, TICK_SECONDS};
 
 /// An item entity in flight, stepped the way the engine steps one: gravity, drag on the whole
 /// velocity, then the move.
-fn closest_approach(flight: Flight, from: [f64; 3], vel: [f32; 3], target: [f64; 3]) -> f64 {
+fn closest_approach(flight: ItemFlight, from: [f64; 3], vel: [f32; 3], target: [f64; 3]) -> f64 {
     let mut pos = from;
     let mut vel = vel.map(f64::from);
     let k = f64::from((1.0 - flight.drag).max(0.0).powf(TICK_SECONDS));
@@ -33,7 +34,7 @@ fn segment_distance(a: [f64; 3], b: [f64; 3], p: [f64; 3]) -> f64 {
 
 #[test]
 fn a_launched_arrow_arrives_on_a_standing_target() {
-    let arrow = Flight {
+    let arrow = ItemFlight {
         gravity: 20.0,
         drag: 0.2,
     };
@@ -58,7 +59,7 @@ fn a_launched_arrow_arrives_on_a_standing_target() {
 
 #[test]
 fn a_target_beyond_the_shots_reach_is_not_aimed_at() {
-    let slow = Flight {
+    let slow = ItemFlight {
         gravity: 20.0,
         drag: 0.0,
     };

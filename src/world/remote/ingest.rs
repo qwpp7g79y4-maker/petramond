@@ -339,7 +339,6 @@ impl RemoteSection {
             petramond_world::section::BlockCube::from_ids(&blocks.0),
             fluid.map(|w| w.0),
             CellMap::new(),
-            CellMap::new(),
             cell_states.into_iter().collect(),
             cell_kv,
             metrics,

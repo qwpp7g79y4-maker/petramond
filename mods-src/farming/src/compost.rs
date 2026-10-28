@@ -13,8 +13,14 @@ pub fn fill_gate(content: &Content, item: ItemId, block: BlockId) -> Option<u8> 
     }
 }
 
-pub fn fill(content: &Content, item: ItemId, pos: [i32; 3], stage: u8) -> Outcome {
-    if !consume_held(item, 1) {
+pub fn fill(
+    content: &Content,
+    player: PlayerId,
+    item: ItemId,
+    pos: [i32; 3],
+    stage: u8,
+) -> Outcome {
+    if !consume_held(player, item, 1) {
         return Outcome::Continue;
     }
     swap_block(pos, content.compost[stage as usize + 1]);

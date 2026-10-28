@@ -309,9 +309,9 @@ fn a_mods_damage_player_action_routes_through_the_funnel() {
     game.sim_mut()
         .bus_mut()
         .queue_mut()
-        .push_action(DeferredAction::DamagePlayer {
-            player,
-            amount: 3,
+        .push_action(DeferredAction::Damage {
+            target: petramond::mob::EntityRef::Player(player),
+            amount: 3.0,
             source: DamageSource::Mod("testmod"),
             origin: None,
         });
@@ -337,9 +337,9 @@ fn a_mods_damage_player_action_routes_through_the_funnel() {
     game.sim_mut()
         .bus_mut()
         .queue_mut()
-        .push_action(DeferredAction::DamagePlayer {
-            player,
-            amount: 5,
+        .push_action(DeferredAction::Damage {
+            target: petramond::mob::EntityRef::Player(player),
+            amount: 5.0,
             source: DamageSource::Mod("testmod"),
             origin: None,
         });
@@ -347,7 +347,7 @@ fn a_mods_damage_player_action_routes_through_the_funnel() {
     assert_eq!(
         game.server_player().health(),
         h0 - 3,
-        "a cancelling player_damage_pre blocks a mod's DamagePlayer"
+        "a cancelling player_damage_pre blocks a mod's Damage"
     );
 }
 
@@ -362,9 +362,9 @@ fn queued_mod_actions_apply_within_a_game_tick() {
     game.sim_mut()
         .bus_mut()
         .queue_mut()
-        .push_action(DeferredAction::DamagePlayer {
-            player,
-            amount: 2,
+        .push_action(DeferredAction::Damage {
+            target: petramond::mob::EntityRef::Player(player),
+            amount: 2.0,
             source: DamageSource::Mod("testmod"),
             origin: None,
         });
@@ -745,12 +745,11 @@ fn a_mod_hit_landed_for_a_player_shoves_like_the_players_own_melee() {
             DamageSource::Mod("testmod")
         };
         game.sim_mut().bus_mut().queue_mut().push_action(
-            petramond::events::DeferredAction::DamageMob {
-                mob_id: id,
+            petramond::events::DeferredAction::Damage {
+                target: petramond::mob::EntityRef::Entity(id),
                 amount: 1.0,
                 source,
                 origin: Some(from),
-                feedback: None,
             },
         );
         game.sim_mut().apply_deferred_actions(&mut ev);
@@ -814,8 +813,9 @@ fn a_newly_boarded_player_cannot_attack_their_mount_before_mirror_reconciliation
 
     assert!(game.server_world_mut().riding_mut().mount(
         player_id,
-        petramond::mob::riding::MountTarget::Mob(mob_id),
-        0
+        petramond::mob::riding::MountTarget::Entity(mob_id),
+        0,
+        petramond::mob::riding::Posture::Seated,
     ));
     assert!(game.session().mount().is_none());
     let mut events = TickEvents::default();

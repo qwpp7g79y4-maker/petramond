@@ -74,7 +74,7 @@ impl ServerGame {
             .sessions
             .iter()
             .map(|sess| match sess.sim.mount?.target {
-                MountTarget::Mob(id) => mob_index.position_of(id),
+                MountTarget::Entity(id) => mob_index.position_of(id),
                 MountTarget::Anchor(_) => None,
             })
             .collect();
@@ -169,8 +169,6 @@ impl ServerGame {
             },
             on_ground: sess.player.on_ground,
             sneaking: sess.sneaking(),
-            sleeping: sess.sim.sleep.is_some(),
-            sleep_yaw: self.sleep_head_yaw(s),
             alive,
             visible: alive && !sess.player.is_spectator(),
             held_item: sess.selected_item().map(|item| item.0),
@@ -265,7 +263,6 @@ fn item_row(it: &crate::entity::DroppedItem) -> ItemStateRow {
         pos: it.pos,
         spin: it.spin,
         flight: it.heading().map(|h| [h.yaw, h.pitch, it.vel.length()]),
-        tether: it.tether.map(crate::net::protocol::TetherWire::of),
         draw: it.draw.clone(),
     }
 }

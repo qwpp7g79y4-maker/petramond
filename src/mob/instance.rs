@@ -325,11 +325,15 @@ impl Instance {
         }
     }
 
-    pub(super) fn shear(&mut self) -> Option<u8> {
+    pub(super) fn shear(
+        &mut self,
+        tool: Option<petramond_world::material::ToolKind>,
+    ) -> Option<u8> {
         if !crate::rules::item_use::can_shear_coat(
             self.kind,
             self.combat.death.is_dead(),
             self.is_shorn(),
+            tool,
         ) {
             return None;
         }

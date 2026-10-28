@@ -1,0 +1,10 @@
+{
+  "spawn_categories": [
+    {
+      "category": "exploration:aquatic",
+      "cap": 72,
+      "despawn_radius": 96,
+      "spawner": {"ring": {"every": 40, "near": 24, "far": 64}}
+    }
+  ]
+}

@@ -10,9 +10,6 @@ mod_sdk::pack_keys! {
     pub LEAF_TAG: Tag = "petramond:leaves";
 
     pub SNOW_LAYER: Block = "petramond:snow_layer";
-    pub ICE: Block = "petramond:ice";
-    pub PACKED_ICE: Block = "petramond:packed_ice";
-    pub WATER: Block = "petramond:water";
 }
 
 #[cfg(test)]

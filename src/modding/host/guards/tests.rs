@@ -38,29 +38,28 @@ fn a_read_only_dispatch_refuses_every_write_and_answers_reads() {
     };
     scope::enter_read_only(&mut ctx, || {
         let writes = [
-            HostCall::from(calls::WorldKvDelete {
+            HostCall::from(calls::WorldKvSet {
                 key: "fixture:k".into(),
+                value: None,
             }),
-            HostCall::from(calls::SectionKvDelete {
-                pos: [1, 64, 1],
+            HostCall::from(calls::SectionKvSet {
                 key: "fixture:c".into(),
+                writes: vec![([1, 64, 1], None)],
             }),
             HostCall::from(calls::MobTagDelete {
                 mob_id: 0,
                 key: "fixture:t".into(),
             }),
-            HostCall::from(calls::SetBlock {
-                pos: [1, 64, 1],
-                block: BlockId(Block::Air.id()),
+            HostCall::from(calls::SetBlocks {
+                blocks: vec![([1, 64, 1], BlockId(Block::Air.id()))],
             }),
             HostCall::from(calls::SectionKvSet {
-                pos: [1, 64, 1],
                 key: "fixture:c".into(),
-                value: vec![9],
+                writes: vec![([1, 64, 1], Some(vec![9]))],
             }),
             HostCall::from(calls::WorldKvSet {
                 key: "fixture:k".into(),
-                value: vec![9],
+                value: Some(vec![9]),
             }),
             HostCall::from(calls::MemoPut {
                 key: b"k".to_vec(),
@@ -87,18 +86,20 @@ fn a_read_only_dispatch_refuses_every_write_and_answers_reads() {
             handle_host_call(
                 &mut store,
                 HostCall::from(calls::SectionKvGet {
-                    pos: [1, 64, 1],
-                    key: "fixture:c".into()
+                    key: "fixture:c".into(),
+                    positions: vec![[1, 64, 1]],
                 })
             ),
-            HostRet::Bytes(Some(vec![2]))
+            HostRet::BytesMany(vec![Some(vec![2])])
         );
         assert_eq!(
             handle_host_call(
                 &mut store,
-                HostCall::from(calls::GetBlock { pos: [1, 64, 1] })
+                HostCall::from(calls::GetBlocks {
+                    positions: vec![[1, 64, 1]]
+                })
             ),
-            HostRet::Block(Some(BlockId(Block::Stone.id())))
+            HostRet::Blocks(vec![Some(BlockId(Block::Stone.id()))])
         );
         assert_eq!(
             handle_host_call(&mut store, HostCall::from(calls::CurrentTick)),

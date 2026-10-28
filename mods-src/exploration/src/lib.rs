@@ -235,11 +235,13 @@ impl Mod for Exploration {
             HANDLER_INTERACT,
             Some(taking_out),
             EventPayload::InteractAttempt {
-                block: Some(pos), ..
+                block: Some(pos),
+                player,
+                ..
             },
         ) = (handler_id, &self.taking_out, &*payload)
         {
-            return taking_out.on_interact(SideWorld::current(), *pos);
+            return taking_out.on_interact(*player, *pos);
         }
         if let (HANDLER_USE, Some(fishing), EventPayload::UseUnclaimed { player, .. }) =
             (handler_id, &mut self.fishing, &*payload)

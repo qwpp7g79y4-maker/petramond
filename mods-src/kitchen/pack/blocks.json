@@ -2,6 +2,7 @@
   "blocks": [
     {
       "block": "kitchen:oven",
+      "behaviors": ["kitchen:oven"],
       "shape": {
         "model": "kitchen:oven"
       },
@@ -12,10 +13,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "kitchen:oven"
-      },
+      "open_gui": "kitchen:oven",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -41,6 +39,7 @@
     },
     {
       "block": "kitchen:oven_lit",
+      "behaviors": ["kitchen:oven"],
       "shape": {
         "model": "kitchen:oven_lit"
       },
@@ -51,10 +50,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "kitchen:oven"
-      },
+      "open_gui": "kitchen:oven",
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -69,8 +65,8 @@
       ],
       "material": "stone",
       "data": {
-        "petramond:harvest": {
-          "tier": 1
+        "petramond:construction": {
+          "form": "kitchen:oven"
         }
       },
       "hardness": 3.5,
@@ -138,11 +134,11 @@
           0.7
         ],
         "self_lit": 1.0
-      },
-      "data": { "petramond:construction": { "form": "kitchen:oven" } }
+      }
     },
     {
       "block": "kitchen:miller",
+      "behaviors": ["kitchen:miller"],
       "shape": {
         "model": "kitchen:miller"
       },
@@ -151,10 +147,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "kitchen:miller"
-      },
+      "open_gui": "kitchen:miller",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -180,6 +173,7 @@
     },
     {
       "block": "kitchen:miller_full",
+      "behaviors": ["kitchen:miller"],
       "shape": {
         "model": "kitchen:miller_full"
       },
@@ -188,10 +182,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "kitchen:miller"
-      },
+      "open_gui": "kitchen:miller",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -201,8 +192,8 @@
       ],
       "material": "stone",
       "data": {
-        "petramond:harvest": {
-          "tier": 1
+        "petramond:construction": {
+          "form": "kitchen:miller"
         }
       },
       "hardness": 3.5,
@@ -213,8 +204,7 @@
           "max": 1,
           "chance": 1.0
         }
-      ],
-      "data": { "petramond:construction": { "form": "kitchen:miller" } }
+      ]
     }
   ]
 }

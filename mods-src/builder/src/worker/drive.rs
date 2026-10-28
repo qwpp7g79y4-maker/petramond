@@ -43,7 +43,7 @@ pub(super) fn act_out(
             }
             if matches!(job.crew.step, Step::Plan | Step::Walk { .. })
                 && ctx.now.is_multiple_of(UNWEDGE_EVERY)
-                && unwedge(ctx, body)
+                && unwedge(body)
             {
                 job.crew.trail.broken();
                 job.crew.presence.set_goal(id, None);

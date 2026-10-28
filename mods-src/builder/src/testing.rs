@@ -130,7 +130,7 @@ impl Session {
             .insert(PROJECT_TAG.into(), MobTagValue::I64(id as i64));
         let blueprint = self.blueprint(id);
         self.world
-            .put(ContainerAddress::Mob(golem), 0, Some(blueprint));
+            .put(ContainerAddress::Entity(golem), 0, Some(blueprint));
         let job = self
             .builder
             .jobs
@@ -153,7 +153,7 @@ impl Session {
             yaw: mob.yaw,
             slots: state
                 .containers
-                .get(&ContainerAddress::Mob(golem))
+                .get(&ContainerAddress::Entity(golem))
                 .cloned()
                 .unwrap_or_default(),
         }

@@ -76,7 +76,7 @@ impl Renderer {
             };
 
         self.item_entity.visible.clear();
-        // An item a mod draws (`drawn_top`) shows only its draw set; it stays an instance for its line.
+        // An item a mod draws shows only its draw set.
         for inst in self
             .item_entity
             .instances
@@ -301,7 +301,7 @@ impl Renderer {
             .map(|(_, rig)| rig);
         // Where each body's main-hand item ends, for the lines tethered items trail. A culled
         // body keeps a point at its chest so a line from it still reaches a visible item.
-        let mut tips = std::mem::take(&mut self.actor.tether_tips);
+        let mut tips = std::mem::take(&mut self.actor.line_tips);
         tips.clear();
         tips.extend(self.actor.bodies.iter().map(|b| {
             let chest = b.body.pos.relative_to(render_origin) + glam::Vec3::Y * 1.3;
@@ -328,36 +328,36 @@ impl Renderer {
         }
         self.actor.player_gpu.drawn = bodies_first..self.actor.skin.batch.next_instance();
         let viewmodel_tip = self.viewmodel_tip_world(render_origin);
-        for inst in &self.item_entity.instances {
-            let Some(tether) = inst.tether else {
-                continue;
+        for line in &self.item_entity.lines {
+            let end = |anchor: crate::LineAnchor| match anchor {
+                crate::LineAnchor::At(at) => Some((at.relative_to(render_origin), None)),
+                crate::LineAnchor::Viewmodel => viewmodel_tip.map(|(at, near)| (at, Some(near))),
+                crate::LineAnchor::Body(key) => tips
+                    .iter()
+                    .find(|(k, _)| *k == key)
+                    .map(|(_, tip)| (*tip, None)),
+                crate::LineAnchor::Item(id) => self
+                    .item_entity
+                    .instances
+                    .iter()
+                    .find(|i| i.id == id)
+                    .map(|i| (crate::item_entity::tie_on(i, render_origin), None)),
             };
-            let (from, near) = match tether {
-                crate::TetherFrom::Viewmodel => (
-                    viewmodel_tip.map(|(at, _)| at),
-                    viewmodel_tip.map(|(_, n)| n),
-                ),
-                crate::TetherFrom::Body(key) => (
-                    tips.iter().find(|(k, _)| *k == key).map(|(_, tip)| *tip),
-                    None,
-                ),
-            };
-            let (Some(from), Some(style)) =
-                (from, petramond_world::item::TetherStyle::of(inst.variant))
+            let (Some((from, near_from)), Some((to, near_to))) = (end(line.from), end(line.to))
             else {
                 continue;
             };
-            crate::tether::push(
+            crate::line::push(
                 &mut streams.block_verts,
                 &mut streams.block_indices,
                 from,
-                crate::item_entity::tether_anchor(inst, render_origin),
-                style,
-                crate::lighting::DynLight::at(inst.skylight, inst.blocklight, inst.pos),
-                near,
+                to,
+                line.style,
+                crate::lighting::DynLight::at(line.skylight, line.blocklight, line.lit_at),
+                near_from.or(near_to),
             );
         }
-        self.actor.tether_tips = tips;
+        self.actor.line_tips = tips;
         self.actor.skin.upload(&self.device, &self.queue);
         for held in mob_held {
             streams.push(
@@ -507,7 +507,7 @@ impl super::Renderer {
     fn viewmodel_tip_world(
         &self,
         render_origin: glam::IVec3,
-    ) -> Option<(glam::Vec3, crate::tether::NearEye)> {
+    ) -> Option<(glam::Vec3, crate::line::NearEye)> {
         let (ndc, dist) = self.hand.main_tip?;
         let eye = self.view.cam_pos.relative_to(render_origin);
         let on_ray = self
@@ -520,7 +520,7 @@ impl super::Renderer {
         let start = dist.min(inside_player_box(dir));
         Some((
             eye + dir * start,
-            crate::tether::NearEye { eye, full_at: dist },
+            crate::line::NearEye { eye, full_at: dist },
         ))
     }
 }
@@ -570,7 +570,7 @@ pub(super) fn bake_player_body(
         } else {
             crate::player_model::Grip::body(hand_mat)
         };
-        let Some(item) = (!inst.sleeping).then_some(view.item).flatten() else {
+        let Some(item) = (!inst.lying).then_some(view.item).flatten() else {
             if !off_side {
                 tip = Some(grip.frame.transform_point3(crate::player_model::FIST_PX));
             }

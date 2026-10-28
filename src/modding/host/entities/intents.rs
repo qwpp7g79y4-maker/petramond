@@ -171,7 +171,7 @@ pub(super) fn riders(ctx: &SimCtx<'_>, mob_id: u64) -> Option<MobRidersData> {
     let riders = ctx
         .world
         .riding()
-        .riders_of(crate::mob::riding::MountTarget::Mob(mob_id))
+        .riders_of(crate::mob::riding::MountTarget::Entity(mob_id))
         .into_iter()
         .map(|(seat, player_id)| MobRiderData {
             seat,

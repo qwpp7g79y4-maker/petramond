@@ -1155,7 +1155,7 @@ impl super::Game {
 pub(super) fn carried_cloths(entities: &[mod_api::ClientEntityData]) -> Vec<MountedCloth> {
     let mut out = Vec::new();
     for e in entities {
-        let (Some(kind), mod_api::EntityRef::Mob(mob)) = (e.mob_kind, e.id) else {
+        let (Some(kind), mod_api::EntityRef::Entity(mob)) = (e.mob_kind, e.id) else {
             continue;
         };
         let cloths = petramond::mob::def(petramond::mob::Mob(kind.0)).cloths;

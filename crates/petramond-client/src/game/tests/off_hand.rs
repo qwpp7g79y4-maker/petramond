@@ -296,10 +296,15 @@ fn menu_f_swap_respects_container_slot_specs() {
     game.server_world_mut()
         .set_block_world(3, 64, 3, Block::Chest);
     game.server_world_mut()
-        .insert_chest(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
+        .insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
     game.server_player_mut().inventory = hands(None, Some(ItemStack::new(ItemType::Dirt, 5)));
     let mut ev = TickEvents::default();
-    game.sim_mut().open_chest_screen_for(0, pos, &mut ev);
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+        &mut ev,
+    );
     game.sync_self_view_for_test();
     game.sync_menu_view_for_test();
 
@@ -326,9 +331,14 @@ fn menu_f_swap_respects_container_slot_specs() {
     game.server_world_mut()
         .set_block_world(3, 64, 3, Block::Furnace);
     game.server_world_mut()
-        .insert_furnace(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
+        .insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
     game.server_player_mut().inventory = hands(None, Some(ItemStack::new(ItemType::Dirt, 5)));
-    game.sim_mut().open_furnace_screen_for(0, pos);
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:furnace").unwrap(),
+        Some(pos.into()),
+        &mut Default::default(),
+    );
     game.sync_self_view_for_test();
     game.sync_menu_view_for_test();
 

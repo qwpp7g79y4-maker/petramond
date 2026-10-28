@@ -163,20 +163,25 @@ fn open_chest_state_replicates_and_drives_the_lid_target() {
     assert!(game
         .server_world_mut()
         .set_block_world(pos.x, pos.y, pos.z, Block::Chest));
-    game.server_world_mut().insert_chest(pos, Facing::West);
+    game.server_world_mut()
+        .insert_entity_facing(pos, Facing::West);
 
-    game.sim_mut()
-        .open_chest_screen_for(0, pos, &mut Default::default());
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+        &mut Default::default(),
+    );
     frame(&mut game);
     assert!(
-        game.fx.open_chests().contains(&pos),
+        game.fx.held_open().contains(&pos),
         "an open chest screen replicates into the batch's open set"
     );
 
     game.close_open_menu();
     frame(&mut game);
     assert!(
-        game.fx.open_chests().is_empty(),
+        game.fx.held_open().is_empty(),
         "closing the screen empties the replicated set on the next batch"
     );
 }

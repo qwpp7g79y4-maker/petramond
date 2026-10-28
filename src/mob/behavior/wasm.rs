@@ -124,14 +124,14 @@ impl AiBehavior for WasmNodeAi {
 fn abi_entity(who: EntityRef) -> mod_api::EntityRef {
     match who {
         EntityRef::Player(id) => mod_api::EntityRef::Player(mod_api::PlayerId(id.0)),
-        EntityRef::Mob(id) => mod_api::EntityRef::Mob(id),
+        EntityRef::Entity(id) => mod_api::EntityRef::Entity(id),
     }
 }
 
 fn engine_entity(who: mod_api::EntityRef) -> EntityRef {
     match who {
         mod_api::EntityRef::Player(id) => EntityRef::Player(crate::player::PlayerId(id.0)),
-        mod_api::EntityRef::Mob(id) => EntityRef::Mob(id),
+        mod_api::EntityRef::Entity(id) => EntityRef::Entity(id),
     }
 }
 

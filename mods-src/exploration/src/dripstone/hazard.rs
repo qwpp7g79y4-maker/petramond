@@ -30,10 +30,7 @@ pub fn on_projectile_hit(payload: &mut EventPayload) -> Outcome {
     let speed = (vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]).sqrt();
     let amount = impact_damage(speed);
     match target {
-        ProjectileTarget::Mob(mob) => damage_mob(*mob, amount, Some(*pos), None),
-        ProjectileTarget::Player(victim) => {
-            damage_player(*victim, amount.round() as i32, Some(*pos), None)
-        }
+        ProjectileTarget::Body(body) => damage(*body, amount, Some(*pos), None),
         ProjectileTarget::Block { .. } => {}
     }
     *fate = ProjectileFate::Drop;
@@ -42,6 +39,7 @@ pub fn on_projectile_hit(payload: &mut EventPayload) -> Outcome {
 
 pub fn on_player_damage(d: &Dripstone, payload: &mut EventPayload) -> Outcome {
     let EventPayload::PlayerDamagePre {
+        player,
         amount,
         source: DamageSource::Fall,
         ..
@@ -49,7 +47,7 @@ pub fn on_player_damage(d: &Dripstone, payload: &mut EventPayload) -> Outcome {
     else {
         return Outcome::Continue;
     };
-    if spike_under(d, player_state().pos) {
+    if player_state(*player).is_some_and(|state| spike_under(d, state.pos)) {
         *amount = spiked(*amount);
     }
     Outcome::Continue

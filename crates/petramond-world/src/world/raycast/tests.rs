@@ -36,7 +36,7 @@ fn shelf_pack() -> Pack {
         (
             "blocks.json",
             r#"{"blocks": [{"block": "fx:shelf", "shape": {"model": "fx:shelf"}, "flags": ["solid"],
-                "tags": [], "behavior": "inert", "interaction": "none", "collision": [], "emission": 0,
+                "tags": [], "collision": [], "emission": 0,
                 "tiles": ["oak_planks", "oak_planks", "oak_planks"], "material": "wood",
                 "hardness": 1.0, "drops": []}]}"#
                 .to_string(),

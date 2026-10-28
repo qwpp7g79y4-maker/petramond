@@ -38,6 +38,7 @@ impl ServerGame {
 
     #[cfg(any(test, feature = "test-support"))]
     pub fn install_recipes_for_test(&mut self, recipes: petramond_world::crafting::Recipes) {
+        self.world.set_recipes(std::sync::Arc::new(recipes.clone()));
         self.catalog = crate::server::progression::RecipeCatalog::new(recipes);
         for s in 0..self.sessions.len() {
             self.unlock_all_recipes_for_test(s);

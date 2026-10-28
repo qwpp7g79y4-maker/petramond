@@ -177,7 +177,7 @@ fn a_subject_and_an_anchor_present_from_another_players_body() {
 
     game.apply_view_fold(ViewFold {
         camera: Some(ViewCameraClaim {
-            anchor: Some(mod_api::EntityRef::Mob(u64::MAX)),
+            anchor: Some(mod_api::EntityRef::Entity(u64::MAX)),
             ..anchored
         }),
         ..Default::default()

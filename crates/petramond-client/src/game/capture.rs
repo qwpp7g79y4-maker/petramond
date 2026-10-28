@@ -408,12 +408,12 @@ impl Game {
             );
         }
         let changes = self.replica.world.changes_mut();
-        let mut open_chests: Vec<IVec3> = self.fx.open_chests().iter().copied().collect();
-        open_chests.sort_unstable_by_key(|c| (c.x, c.y, c.z));
+        let mut held_open: Vec<IVec3> = self.fx.held_open().iter().copied().collect();
+        held_open.sort_unstable_by_key(|c| (c.x, c.y, c.z));
         let activity = CapturedActivity {
             loops: self.world_capture.loops.values().copied().collect(),
             dig: self.world_capture.dig,
-            open_chests,
+            held_open,
         };
         moment.set_activity(activity, changes);
         let predicted: Vec<IVec3> = self.prediction.predicted_cells().collect();

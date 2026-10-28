@@ -129,6 +129,7 @@ pub fn dispatch_roundtrip_ns(
     inst.take_registrations();
     // A fixed-class call (never throttled) the SDK answers without reaching mod code.
     let call = GuestCall::GuiClick {
+        player: mod_api::PlayerId(0),
         kind_key: "bench:none".into(),
         widget_id: String::new(),
         at: None,
@@ -149,17 +150,15 @@ pub fn dispatch_roundtrip_ns(
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use mod_api::{EventFilter, EventKind, EventPayload, GuestCall, GuestRet, HostileSpawnCandidate};
+use mod_api::{EventFilter, EventKind, EventPayload, GuestCall, GuestRet};
 
 use crate::events::tick::TickEvents;
 use crate::events::{
     EventBus, MobDamageFeedback, MobDamageFeedbackComponent, MobDamageSound, Outcome, PostEvent,
     SimCtx, TickSystems,
 };
-use crate::mob::{Mob, MobCategory};
 use crate::player::BonePose;
 use crate::world::ServerWorld;
-use petramond_math::math::IVec3;
 
 pub use client::{
     ClientCanvasSceneData, ClientCommand, ClientImageData, ClientOverlayRegistration,
@@ -175,13 +174,6 @@ struct ModMeta {
     module: Option<wasmtime::Module>,
 }
 
-struct HostileSpawnerRegistration {
-    instance: SharedInstance,
-    priority: i32,
-    callback_id: u32,
-    order: usize,
-}
-
 struct BlockBehaviorRegistration {
     instance: SharedInstance,
     callback_id: u32,
@@ -190,7 +182,6 @@ struct BlockBehaviorRegistration {
 pub struct ModHost {
     instances: Vec<SharedInstance>,
     metas: Vec<ModMeta>,
-    hostile_spawners: Vec<HostileSpawnerRegistration>,
     block_behaviors: std::collections::HashMap<String, BlockBehaviorRegistration>,
     ai_nodes: std::collections::HashMap<String, ai::AiNodeRegistration>,
     health: ModHealthBoard,
@@ -239,7 +230,6 @@ impl ModHost {
         Self {
             instances,
             metas,
-            hostile_spawners: Vec::new(),
             block_behaviors: std::collections::HashMap::new(),
             ai_nodes: std::collections::HashMap::new(),
             health,
@@ -287,7 +277,6 @@ impl ModHost {
                 id: mod_id.to_owned(),
                 module: Some(module),
             }],
-            hostile_spawners: Vec::new(),
             block_behaviors: std::collections::HashMap::new(),
             ai_nodes: std::collections::HashMap::new(),
             health: ModHealthBoard::default(),
@@ -309,7 +298,6 @@ impl ModHost {
                 .map(|i| Arc::new(Mutex::new(i)))
                 .collect(),
             metas,
-            hostile_spawners: Vec::new(),
             block_behaviors: std::collections::HashMap::new(),
             ai_nodes: std::collections::HashMap::new(),
             health: ModHealthBoard::default(),
@@ -326,7 +314,6 @@ impl ModHost {
         let mut gen_hooks = gen::GenHooksBuilder::new(world.data().seed, self.health.clone());
         let mut ai_nodes: std::collections::HashMap<String, ai::AiNodeRegistration> =
             std::collections::HashMap::new();
-        let mut hostile_order = self.hostile_spawners.len();
         for (shared, meta) in self.instances.iter().zip(&self.metas) {
             let mut feed = TickEvents::with_next_spatial_sound_handle(*next_spatial_sound_handle);
             let t_init = std::time::Instant::now();
@@ -352,18 +339,6 @@ impl ModHost {
             *next_spatial_sound_handle = feed.next_spatial_sound_handle();
             for registration in registrations {
                 match registration {
-                    Registration::HostileSpawner {
-                        priority,
-                        callback_id,
-                    } => {
-                        self.hostile_spawners.push(HostileSpawnerRegistration {
-                            instance: Arc::clone(shared),
-                            priority,
-                            callback_id,
-                            order: hostile_order,
-                        });
-                        hostile_order += 1;
-                    }
                     Registration::BlockBehavior { key, callback_id } => {
                         if self
                             .block_behaviors
@@ -415,7 +390,6 @@ impl ModHost {
                 }
             }
         }
-        self.hostile_spawners.sort_by_key(|r| (r.priority, r.order));
         gen::install(gen_hooks.build());
         ai::install(ai_nodes.clone());
         self.ai_nodes = ai_nodes;
@@ -428,6 +402,7 @@ impl ModHost {
     pub fn dispatch_gui_click(
         &mut self,
         ctx: &mut SimCtx,
+        player: crate::player::PlayerId,
         kind_key: &str,
         widget_id: &str,
         anchor: Option<crate::menu::MenuAnchor>,
@@ -439,15 +414,12 @@ impl ModHost {
             return;
         };
         let call = GuestCall::GuiClick {
+            player: mod_api::PlayerId(player.0),
             kind_key: kind_key.to_owned(),
             widget_id: widget_id.to_owned(),
             at: anchor.map(convert::container_address),
         };
         self.instances[i].lock().unwrap().call_guest(ctx, &call);
-    }
-
-    pub fn has_hostile_spawners(&self) -> bool {
-        !self.hostile_spawners.is_empty()
     }
 
     pub fn has_block_behaviors(&self) -> bool {
@@ -459,14 +431,21 @@ impl ModHost {
         ctx: &mut SimCtx,
         hooks: &[petramond_world::block::behavior::BlockHook],
     ) {
+        type Batch = Vec<(mod_api::BlockHookKind, [i32; 3])>;
+        let mut batches: Vec<(&'static str, Batch)> = Vec::new();
         for hook in hooks {
-            let Some(reg) = self.block_behaviors.get(hook.key) else {
+            match batches.iter_mut().find(|(key, _)| *key == hook.key) {
+                Some((_, batch)) => batch.push((hook.kind, hook.pos.to_array())),
+                None => batches.push((hook.key, vec![(hook.kind, hook.pos.to_array())])),
+            }
+        }
+        for (key, hooks) in batches {
+            let Some(reg) = self.block_behaviors.get(key) else {
                 continue;
             };
             let call = GuestCall::BlockBehavior {
                 callback_id: reg.callback_id,
-                kind: hook.kind,
-                pos: hook.pos.to_array(),
+                hooks,
             };
             let reply = reg.instance.lock().unwrap().call_guest(ctx, &call);
             match reply {
@@ -604,69 +583,11 @@ impl ModHost {
             .map(|i| &self.instances[i])
     }
 
-    pub fn hostile_spawn_kind(
-        &self,
-        ctx: &mut SimCtx,
-        candidate: &HostileSpawnCandidate,
-    ) -> Option<Mob> {
-        for spawner in &self.hostile_spawners {
-            let call = GuestCall::HostileSpawnCandidate {
-                callback_id: spawner.callback_id,
-                candidate: candidate.clone(),
-            };
-            let reply = {
-                let mut inst = spawner.instance.lock().unwrap();
-                inst.call_guest(ctx, &call)
-            };
-            let Some(reply) = reply else {
-                continue;
-            };
-            match reply {
-                GuestRet::HostileSpawn(Some(key)) => {
-                    if let Some(kind) = hostile_kind_for_key(ctx.world, &key, candidate) {
-                        return Some(kind);
-                    }
-                }
-                GuestRet::HostileSpawn(None) => {}
-                _ => {
-                    spawner
-                        .instance
-                        .lock()
-                        .unwrap()
-                        .disable("returned a non-hostile-spawn reply to a hostile spawn dispatch");
-                }
-            }
-        }
-        None
-    }
-
     #[cfg(any(test, feature = "test-support"))]
     pub fn probe(&self, index: usize) -> (bool, u64, host::HostStats) {
         let inst = self.instances[index].lock().unwrap();
         (inst.disabled(), inst.dispatches(), inst.stats())
     }
-}
-
-fn hostile_kind_for_key(
-    world: &ServerWorld,
-    key: &str,
-    candidate: &HostileSpawnCandidate,
-) -> Option<Mob> {
-    let kind = crate::mob::defs()
-        .iter()
-        .position(|d| d.key == key)
-        .map(|i| Mob(i as u8))?;
-    let def = crate::mob::def(kind);
-    if def.category != MobCategory::Hostile {
-        return None;
-    }
-    if petramond_world::registry::namespace(def.name)
-        .is_some_and(|ns| world.data().disabled_mods().contains(ns))
-    {
-        return None;
-    }
-    let feet = IVec3::from(candidate.cell);
-    crate::mob::spawn_body_fits_at(world, kind, feet).then_some(kind)
 }
 
 fn session_wasm_mods(
@@ -716,7 +637,6 @@ fn apply_registration(
         Registration::WorldgenFeature { .. }
         | Registration::StageReplacement { .. }
         | Registration::Generator { .. }
-        | Registration::HostileSpawner { .. }
         | Registration::BlockBehavior { .. }
         | Registration::AiNode { .. } => {
             unreachable!("non-system registrations are routed during ModHost::initialize")

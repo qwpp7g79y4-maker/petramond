@@ -35,7 +35,6 @@ mod structures;
 mod tags;
 mod view;
 mod world;
-mod world_view;
 mod worldgen;
 
 #[doc(hidden)]
@@ -84,7 +83,6 @@ pub use structures::*;
 pub use tags::*;
 pub use view::*;
 pub use world::*;
-pub use world_view::*;
 pub use worldgen::*;
 
 /// A mod's logic. One instance lives for the whole session (state persists
@@ -134,14 +132,22 @@ pub trait Mod: Default {
         GenOutput::default()
     }
 
-    fn gui_click(&mut self, _kind_key: &str, _widget_id: &str, _at: Option<ContainerAddress>) {}
-
-    fn hostile_spawn_candidate(
+    fn gui_click(
         &mut self,
-        _callback_id: u32,
-        _candidate: &HostileSpawnCandidate,
-    ) -> Option<String> {
-        None
+        _player: PlayerId,
+        _kind_key: &str,
+        _widget_id: &str,
+        _at: Option<ContainerAddress>,
+    ) {
+    }
+
+    /// Every hook one behavior's cells raised this tick, in order. Override this to handle the
+    /// tick's cells together (one batched read for all of them); the default hands each to
+    /// [`block_hook`](Self::block_hook).
+    fn block_hooks(&mut self, callback_id: u32, hooks: &[(BlockHookKind, [i32; 3])]) {
+        for &(kind, pos) in hooks {
+            self.block_hook(callback_id, kind, pos);
+        }
     }
 
     fn block_hook(&mut self, _callback_id: u32, _kind: BlockHookKind, _pos: [i32; 3]) {}

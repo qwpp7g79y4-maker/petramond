@@ -45,7 +45,10 @@ fn block(name: &'static str, collision: Vec<([f32; 3], [f32; 3])>) -> BlockRow {
             fluid: None,
             medium: None,
             replaceable: false,
-            interaction: None,
+            open_gui: None,
+            behaviors: Vec::new(),
+            answers_use: false,
+            roots_on: Vec::new(),
         },
         tags: Vec::new(),
         data: Vec::new(),
@@ -71,8 +74,17 @@ impl BlockRow {
         self
     }
 
-    fn used(mut self, interaction: BlockUse) -> Self {
-        self.info.interaction = Some(interaction);
+    fn opens(mut self, kind: &str) -> Self {
+        self.info.open_gui = Some(kind.to_owned());
+        self.info.answers_use = true;
+        self
+    }
+
+    fn swings(mut self) -> Self {
+        self.info
+            .behaviors
+            .push(crate::worker::DOOR_BEHAVIOR.to_owned());
+        self.info.answers_use = true;
         self
     }
 
@@ -92,13 +104,11 @@ fn item(name: &'static str, display: &str, block: Option<BlockId>) -> ItemRow {
         name,
         info: ItemInfoData {
             max_stack: 64,
-            fuel_burn_ticks: 0,
             tags: Vec::new(),
             display_name: display.into(),
             block,
             tool: None,
             food: None,
-            item_use: None,
         },
     }
 }
@@ -130,7 +140,7 @@ pub fn blocks() -> Vec<BlockRow> {
     let mut door = block("petramond:oak_door", vec![([0.0; 3], [1.0, 1.0, 0.1875])])
         .hard(3.0, 0, Some("axe"))
         .placed_by(4)
-        .used(BlockUse::ToggleDoor);
+        .swings();
     door.footprint = vec![[0, 0, 0], [0, 1, 0]];
     let mut fluid = block("petramond:water", Vec::new()).replaceable();
     fluid.info.fluid = Some(water);
@@ -160,12 +170,12 @@ pub fn blocks() -> Vec<BlockRow> {
         )
         .hard(2.5, 0, Some("axe"))
         .placed_by(5)
-        .used(BlockUse::OpenGui)
+        .opens("petramond:chest")
         .with_data(crate::keys::SUPPLY_DATA),
         block(crate::keys::TABLE_BLOCK, Vec::new())
             .hard(2.5, 0, Some("axe"))
             .placed_by(6)
-            .used(BlockUse::OpenGui),
+            .opens(crate::keys::TABLE_BLOCK),
         block("petramond:oak_leaves", vec![CUBE])
             .hard(0.2, 0, None)
             .placed_by(7)

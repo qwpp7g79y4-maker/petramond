@@ -334,7 +334,7 @@ fn pose_row(
             emitter_tint: body.emitter_tint,
             emitter_self_lit: body.emitter_self_lit,
             pos: body.pos,
-            sleeping: body.state.sleeping,
+            lying: body.state.lying,
             hurt: body.state.hurt,
             skylight: body.skylight,
             blocklight: body.blocklight,

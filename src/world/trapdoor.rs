@@ -43,7 +43,7 @@ mod tests {
             open: false,
             top,
         };
-        assert!(w.commit_placement(&PlacementPlan::single(pos, TRAPDOOR, state.to_cell()), true));
+        assert!(w.commit_placement(&PlacementPlan::single(pos, TRAPDOOR, state.to_cell())));
         (w, pos)
     }
 

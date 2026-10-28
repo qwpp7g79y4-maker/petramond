@@ -76,7 +76,6 @@ struct Hull {
 
 struct Boat {
     kind: MobId,
-    riders: Vec<PlayerId>,
     speed: f32,
     yaw: f32,
     yaw_vel: f32,
@@ -88,7 +87,6 @@ impl Boat {
     fn new(kind: MobId, yaw: f32) -> Self {
         Self {
             kind,
-            riders: Vec::new(),
             speed: 0.0,
             yaw: wrap_yaw(yaw),
             yaw_vel: 0.0,
@@ -121,7 +119,12 @@ impl Boats {
         self.hulls.iter().find(|h| h.kind == kind)
     }
 
-    pub fn on_item_use(&mut self, item: ItemId, target: Option<[i32; 3]>) -> Outcome {
+    pub fn on_item_use(
+        &mut self,
+        player: PlayerId,
+        item: ItemId,
+        target: Option<[i32; 3]>,
+    ) -> Outcome {
         let Some(hull) = self.hulls.iter().find(|h| h.item == item) else {
             return Outcome::Continue;
         };
@@ -133,12 +136,14 @@ impl Boats {
         {
             return Outcome::Continue;
         }
-        if !consume_held(item, 1) {
+        let Some(state) = player_state(player) else {
+            return Outcome::Continue;
+        };
+        if !consume_held(player, item, 1) {
             return Outcome::Continue;
         }
         let mob_key = mob_names(vec![hull.kind]).pop().flatten();
-        let player = player_state();
-        let yaw = player.yaw + std::f32::consts::PI;
+        let yaw = state.yaw + std::f32::consts::PI;
         let spawned = mob_key.as_deref().and_then(|key| {
             NUDGE_OFFSETS.iter().find_map(|&(dx, dz)| {
                 let c = [pos[0] + dx, pos[1], pos[2] + dz];
@@ -153,7 +158,7 @@ impl Boats {
             })
         });
         if spawned.is_none() {
-            give_item(&hull.row.item, 1);
+            give_item(player, &hull.row.item, 1, &[]);
         }
         Outcome::Cancel
     }
@@ -169,37 +174,36 @@ impl Boats {
         }
     }
 
-    pub fn on_dismounted(&mut self, player_id: PlayerId, mount: &MountTarget) {
-        if let MountTarget::Mob(mob_id) = mount {
-            if let Some(boat) = self.boats.get_mut(mob_id) {
-                boat.riders.retain(|p| *p != player_id);
-            }
-        }
-    }
-
     fn board(&mut self, mob_id: u64, kind: MobId, player_id: PlayerId) -> bool {
         let Some(seat) = mob_riders(mob_id).and_then(|seats| seats.first_free_seat()) else {
             return false;
         };
-        if !mob_mount(mob_id, player_id, seat) {
+        if !attach(
+            player_id,
+            AttachTo::Seat {
+                entity: mob_id,
+                seat,
+            },
+            Posture::Seated,
+        ) {
             return false;
         }
-        let boat = self.boats.entry(mob_id).or_insert_with(|| {
-            let p = player_state();
-            let yaw = mobs_in_radius(p.pos, 8.0)
-                .into_iter()
-                .find(|m| m.id == mob_id)
-                .map(|m| m.yaw)
-                .unwrap_or(0.0);
+        self.boats.entry(mob_id).or_insert_with(|| {
+            let yaw = mob_info(mob_id).map_or(0.0, |m| m.yaw);
             Boat::new(kind, yaw)
         });
-        boat.riders.push(player_id);
         true
     }
 
+    /// The rider in the lowest seat steers: the first aboard, until they step off.
     pub fn tick(&mut self) {
         let mut retired: Vec<u64> = Vec::new();
-        for (&id, boat) in self.boats.iter_mut() {
+        let riders = mob_riders_many(self.boats.keys().copied().collect());
+        for ((&id, boat), riders) in self.boats.iter_mut().zip(riders) {
+            let Some(riders) = riders else {
+                retired.push(id);
+                continue;
+            };
             let Some(row) = self
                 .hulls
                 .iter()
@@ -209,7 +213,8 @@ impl Boats {
                 retired.push(id);
                 continue;
             };
-            let input = boat.riders.first().and_then(|&driver| player_input(driver));
+            let driver = riders.riders.iter().min_by_key(|r| r.seat);
+            let input = driver.and_then(|r| player_input(r.player_id));
             let (forward, strafe) = input.map_or((0.0, 0.0), |i| (i.forward, i.strafe));
             let facing = mob_facing_xz(boat.yaw);
 
@@ -227,7 +232,7 @@ impl Boats {
                 row_oars(id, boat, forward, strafe);
             }
 
-            if boat.riders.is_empty()
+            if riders.riders.is_empty()
                 && boat.speed.abs() < REST_SPEED
                 && boat.yaw_vel.abs() < REST_YAW_VEL
             {

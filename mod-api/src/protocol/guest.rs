@@ -4,7 +4,7 @@ use crate::data::MobTagValue;
 
 pub use super::host::HostCall;
 use crate::client::{ClientCanvasEvent, ClientFrameData, ClientUiEvent};
-use crate::data::{AiNodeCtx, AiNodeDecision, BlockHookKind, HostileSpawnCandidate};
+use crate::data::{AiNodeCtx, AiNodeDecision, BlockHookKind};
 use crate::events::{EventPayload, Outcome};
 use crate::ids::BlockId;
 use crate::sched::WorldgenStage;
@@ -415,20 +415,16 @@ pub enum GuestCall {
     },
 
     GuiClick {
+        player: crate::PlayerId,
         kind_key: String,
         widget_id: String,
         at: Option<crate::ContainerAddress>,
     },
 
-    HostileSpawnCandidate {
-        callback_id: u32,
-        candidate: HostileSpawnCandidate,
-    },
-
+    /// Every hook this behavior's cells raised this tick, in the order they were raised.
     BlockBehavior {
         callback_id: u32,
-        kind: BlockHookKind,
-        pos: [i32; 3],
+        hooks: Vec<(BlockHookKind, [i32; 3])>,
     },
 
     /// One AI decision for one mob this tick, for the node registered via
@@ -516,7 +512,6 @@ pub enum GuestRet {
     GenOutput(GenOutput),
     GenBlocks(Vec<u16>),
     GenBiomes(#[serde(with = "serde_bytes")] Vec<u8>),
-    HostileSpawn(Option<String>),
     AiDecision(Option<AiNodeDecision>),
 
     BakedSim(Vec<BakedSimCell>),

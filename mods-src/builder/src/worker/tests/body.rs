@@ -24,10 +24,10 @@ fn a_body_stands_in_the_cell_under_its_feet_or_the_one_it_rests_on() {
 fn a_body_wedged_under_a_block_is_set_down_on_free_ground_beside() {
     let (mut session, id, golem) = working([4, 0, 4]);
     let body = session.body(golem);
-    assert!(!at_work(&mut session, id, |ctx, _, _| unwedge(ctx, &body)));
+    assert!(!at_work(&mut session, id, |_, _, _| unwedge(&body)));
     assert_eq!(session.world.mob_pos(golem), Some(feet_of([4, 0, 4])));
 
     session.world.set([4, 1, 4], STONE);
-    assert!(at_work(&mut session, id, |ctx, _, _| unwedge(ctx, &body)));
+    assert!(at_work(&mut session, id, |_, _, _| unwedge(&body)));
     assert_eq!(session.world.mob_pos(golem), Some(feet_of([3, 0, 4])));
 }

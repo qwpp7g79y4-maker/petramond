@@ -153,7 +153,8 @@ pub fn build_server_with_pool(
 
     let recipes = load_recipes_for(&disabled_mods)
         .unwrap_or_else(|error| panic!("failed to load crafting recipes: {error}"));
-    crate::modding::install_recipes(std::sync::Arc::new(recipes.clone()));
+    let shared = std::sync::Arc::new(recipes.clone());
+    crate::modding::install_recipes(shared.clone());
     let catalog = RecipeCatalog::new(recipes);
     perf.mark("recipes");
     let mods = crate::modding::ModHost::load(seed, &disabled_mods);
@@ -168,6 +169,7 @@ pub fn build_server_with_pool(
         jobs: pool.clone(),
         account_policy: crate::account::AccountPolicy::from_env(),
     });
+    server.world.set_recipes(shared);
     server.install_core_systems();
     server.catch_up_sessions();
     server.world.set_replication_capture(true);

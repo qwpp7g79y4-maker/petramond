@@ -129,7 +129,7 @@ impl ServerGame {
                 self.placement_occupied_by_body(Some(s), cell, boxes)
             })?;
         self.touch_edit_cells(s, plan.cells());
-        if !self.world.commit_placement(&plan, true) {
+        if !self.world.commit_placement(&plan) {
             return None;
         }
         self.carry_held_into(s, block, plan.anchor, plan.anchor_part());
@@ -240,7 +240,7 @@ impl ServerGame {
             petramond_world::block::ShapeState::NONE,
         );
         self.touch_edit_cells(s, plan.cells());
-        if !self.world.commit_placement(&plan, true) {
+        if !self.world.commit_placement(&plan) {
             return Some(None);
         }
         self.carry_held_into(s, block, anchor, 0);

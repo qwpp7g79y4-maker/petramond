@@ -60,6 +60,7 @@ pub struct ProjectileHit {
 
 #[derive(Copy, Clone, Debug)]
 pub struct ItemUsePre {
+    pub player: crate::player::PlayerId,
     pub item: ItemType,
     pub target: Option<IVec3>,
 }
@@ -76,6 +77,7 @@ pub struct MobDamagePre {
 
 #[derive(Copy, Clone, Debug)]
 pub struct PlayerDamagePre {
+    pub player: crate::player::PlayerId,
     pub amount: i32,
     pub source: DamageSource,
     pub origin: Option<petramond_math::world_pos::WorldPos>,
@@ -106,7 +108,7 @@ impl DamageSource {
     pub fn attacker(self) -> Option<crate::mob::EntityRef> {
         match self {
             Self::PlayerAttack(pid) => Some(crate::mob::EntityRef::Player(pid)),
-            Self::MobAttack { id, .. } => Some(crate::mob::EntityRef::Mob(id)),
+            Self::MobAttack { id, .. } => Some(crate::mob::EntityRef::Entity(id)),
             Self::Fall | Self::Fluid(_) | Self::Condition(_) | Self::Breath(_) | Self::Mod(_) => {
                 None
             }
@@ -116,18 +118,11 @@ impl DamageSource {
 
 #[derive(Clone, Debug)]
 pub enum DeferredAction {
-    DamagePlayer {
-        player: crate::player::PlayerId,
-        amount: i32,
-        source: DamageSource,
-        origin: Option<petramond_math::world_pos::WorldPos>,
-    },
-    DamageMob {
-        mob_id: u64,
+    Damage {
+        target: crate::mob::EntityRef,
         amount: f32,
         source: DamageSource,
         origin: Option<petramond_math::world_pos::WorldPos>,
-        feedback: Option<crate::mob::MobDamageFeedback>,
     },
     OpenGui {
         player: crate::player::PlayerId,
@@ -196,6 +191,7 @@ pub enum PostEvent {
         harvested: bool,
         natural: bool,
         player: Option<crate::player::PlayerId>,
+        removal: petramond_world::world::model::Removal,
     },
     ItemUsed {
         player: crate::player::PlayerId,
@@ -236,7 +232,7 @@ pub enum PostEvent {
     SectionLoaded {
         pos: SectionPos,
     },
-    PlayerDismounted {
+    PlayerDetached {
         player: crate::player::PlayerId,
         mount: crate::mob::riding::Mount,
     },
@@ -319,7 +315,7 @@ pub enum PostEventKind {
     ContainerClosed,
     SectionGenerated,
     SectionLoaded,
-    PlayerDismounted,
+    PlayerDetached,
     MobTagAdded,
     MobTagRemoved,
     ItemPickedUp,
@@ -351,7 +347,7 @@ impl PostEvent {
             PostEvent::ContainerClosed { .. } => PostEventKind::ContainerClosed,
             PostEvent::SectionGenerated { .. } => PostEventKind::SectionGenerated,
             PostEvent::SectionLoaded { .. } => PostEventKind::SectionLoaded,
-            PostEvent::PlayerDismounted { .. } => PostEventKind::PlayerDismounted,
+            PostEvent::PlayerDetached { .. } => PostEventKind::PlayerDetached,
             PostEvent::MobTagAdded { .. } => PostEventKind::MobTagAdded,
             PostEvent::MobTagRemoved { .. } => PostEventKind::MobTagRemoved,
             PostEvent::ItemPickedUp { .. } => PostEventKind::ItemPickedUp,
@@ -376,7 +372,7 @@ impl PostEvent {
             | PostEvent::PlayerDied { player }
             | PostEvent::ContainerOpened { player, .. }
             | PostEvent::ContainerClosed { player, .. }
-            | PostEvent::PlayerDismounted { player, .. }
+            | PostEvent::PlayerDetached { player, .. }
             | PostEvent::ItemPickedUp { player, .. }
             | PostEvent::ItemObtained { player, .. }
             | PostEvent::Interacted { player, .. }

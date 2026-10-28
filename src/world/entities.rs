@@ -32,8 +32,7 @@ pub struct ItemReactionFx {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ImpactTarget {
-    Mob(u64),
-    Player(PlayerId),
+    Body(crate::mob::EntityRef),
     Block { cell: IVec3, face: IVec3 },
 }
 
@@ -54,14 +53,20 @@ pub struct ItemStep {
 #[derive(Default)]
 pub struct DroppedItems {
     items: Vec<DroppedItem>,
-    next_id: u64,
+    ids: crate::entity::EntityIds,
     change_seq: u64,
 }
 
 impl DroppedItems {
+    pub fn with_ids(ids: crate::entity::EntityIds) -> Self {
+        Self {
+            ids,
+            ..Self::default()
+        }
+    }
+
     fn assign_id(&mut self, item: &mut DroppedItem) {
-        self.next_id += 1;
-        item.id = self.next_id;
+        item.id = self.ids.next();
     }
 
     pub fn spawn(&mut self, mut item: DroppedItem) -> u64 {
@@ -444,6 +449,16 @@ impl ServerWorld {
 
     pub fn dropped_items(&self) -> &DroppedItems {
         &self.side.entities.dropped_items
+    }
+
+    /// Where a live mob or item entity is now; `None` once it is gone.
+    pub fn entity_pos(&self, id: u64) -> Option<petramond_math::world_pos::WorldPos> {
+        self.side
+            .entities
+            .mobs
+            .live(id)
+            .map(|m| m.pos)
+            .or_else(|| self.side.entities.dropped_items.get(id).map(|it| it.pos))
     }
 
     pub fn dropped_items_mut(&mut self) -> &mut DroppedItems {

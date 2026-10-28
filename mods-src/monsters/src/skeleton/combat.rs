@@ -144,11 +144,11 @@ impl Foe {
                     vel: p.vel,
                 })
             }
-            EntityRef::Mob(id) => {
+            EntityRef::Entity(id) => {
                 let m = mob_info(id).filter(|m| m.health > 0.0)?;
                 let body = upright(&m);
                 Some(Self {
-                    id: EntityRef::Mob(id),
+                    id: EntityRef::Entity(id),
                     body,
                     eye: body.at(EYE),
                     vel: m.vel,
@@ -241,7 +241,7 @@ pub fn tick(sk: &mut Skeletons, engagement: &Engagement) {
         }
         let plays = std::mem::take(&mut turn.plays);
         if let Some([main, off]) = body.presence.display(held_display(kit, &body.fight, now)) {
-            mob_held_display(me.id, main, off);
+            set_held_display(EntityRef::Entity(me.id), main.as_deref(), off.as_deref());
         }
         body.presence.frame(
             me.id,
@@ -255,7 +255,7 @@ pub fn tick(sk: &mut Skeletons, engagement: &Engagement) {
             body.fight = Fight::default();
             let kit = kits.of(body.kind).kit(body.loadout);
             if let Some([main, off]) = body.presence.display(held_display(kit, &body.fight, now)) {
-                mob_held_display(*id, main, off);
+                set_held_display(EntityRef::Entity(*id), main.as_deref(), off.as_deref());
             }
             // Distant guards carry loosely, leaving their return walk free to move the arms.
             body.presence

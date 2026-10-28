@@ -369,6 +369,7 @@ mod tests {
             });
         }
         let mut ev = ItemUsePre {
+            player: crate::player::PlayerId(0),
             item: ItemType::Dirt,
             target: None,
         };
@@ -400,6 +401,7 @@ mod tests {
             });
         }
         let mut ev = PlayerDamagePre {
+            player: crate::player::PlayerId(0),
             amount: 7,
             source: DamageSource::Fall,
             origin: None,

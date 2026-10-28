@@ -540,7 +540,7 @@ impl Audio {
     pub fn update_spatial(
         &mut self,
         listener: SpatialListener,
-        mobs: &[(u64, petramond_math::world_pos::WorldPos)],
+        bodies: &[(u64, petramond_math::world_pos::WorldPos)],
     ) {
         if self.mixer(Lane::World).is_none() {
             self.spatial.clear();
@@ -550,8 +550,8 @@ impl Audio {
         self.oneshots.retain(|shot| !shot.sink.empty());
         self.listener_target = Some(listener);
         for active in self.spatial.values_mut() {
-            if let SpatialSoundSource::Mob(id) = active.source {
-                if let Some((_, pos)) = mobs.iter().find(|(mob_id, _)| *mob_id == id) {
+            if let SpatialSoundSource::Entity(id) = active.source {
+                if let Some((_, pos)) = bodies.iter().find(|(body, _)| *body == id) {
                     active.target = *pos;
                 }
             }

@@ -155,8 +155,6 @@ pub struct DroppedItem {
     pub motion: Motion,
     pub prev_pos: petramond_math::world_pos::WorldPos,
     pub prev_spin: f32,
-    /// Who the item's line runs back to, for an item launched on a tether.
-    pub tether: Option<crate::mob::EntityRef>,
     /// Prims a mod draws in place of the item's own art.
     pub draw: crate::world::draw::BodyDraw,
     rules: super::item_rules::ItemRules,
@@ -183,9 +181,8 @@ impl DroppedItem {
             motion,
             prev_pos: pos,
             prev_spin: 0.0,
-            tether: None,
             draw: Default::default(),
-            rules: super::item_rules::ItemRules::of(stack),
+            rules: super::item_rules::of(stack),
             escape: Default::default(),
         }
     }
@@ -218,36 +215,27 @@ impl DroppedItem {
         vel: Vec3,
         owner: Option<crate::mob::EntityRef>,
     ) -> Self {
-        let mut item = Self::with_motion(pos, stack, vel, Motion::flying(vel, owner));
-        item.tether = owner.filter(|_| item.rules.tether.is_some());
-        item
+        Self::with_motion(pos, stack, vel, Motion::flying(vel, owner))
     }
 
     /// Replaces the item's `petramond:item_entity` rules, keeping its other data; `None` drops
-    /// them, so it behaves like a plain stack. A line, once let go, is not picked back up.
-    pub fn set_rules(&mut self, rules: Option<&[u8]>) -> Result<(), String> {
+    /// them, so it behaves like a plain stack.
+    pub fn set_rules(&mut self, rules: Option<super::item_rules::ItemRules>) -> Result<(), String> {
         use petramond_world::item::{variant, ITEM_ENTITY_DATA_KEY};
-        let parsed = match rules {
-            Some(raw) => serde_json::from_slice::<super::item_rules::ItemRules>(raw)
-                .map_err(|e| format!("item rules: {e}"))?,
-            None => Default::default(),
-        };
         let mut data = variant::get(self.stack.variant)
             .map(|m| (*m).clone())
             .unwrap_or_default();
         match rules {
-            Some(raw) => data.insert(ITEM_ENTITY_DATA_KEY.to_owned(), raw.to_vec()),
+            Some(rules) => data.insert(ITEM_ENTITY_DATA_KEY.to_owned(), rules.data().1),
             None => data.remove(ITEM_ENTITY_DATA_KEY),
         };
+        let parsed = rules.unwrap_or_default();
         self.stack.variant = if data.is_empty() {
             variant::VariantId::NONE
         } else {
             variant::intern(&data).map_err(|e| format!("item rules: {e:?}"))?
         };
         self.rules = parsed;
-        if parsed.tether.is_none() {
-            self.tether = None;
-        }
         Ok(())
     }
 
@@ -389,8 +377,7 @@ impl DroppedItem {
         self.spin = (self.spin + params.sprite_spin * dt).rem_euclid(std::f32::consts::TAU);
         // A steered flight moves at the velocity its controller set: the controller is its physics.
         if flight.control_ticks.is_none() {
-            self.vel.y -= params.gravity * dt;
-            self.vel *= params.drag_factor(dt);
+            self.vel = Vec3::from_array(params.flight().step(self.vel.to_array(), dt));
         }
         flight.turn_with(self.vel);
         Some(self.vel * dt)
@@ -628,7 +615,7 @@ mod tests {
             Vec3::new(0.0, 0.0, 8.0),
             None,
         );
-        it.embed(crate::mob::EntityRef::Mob(7), body, 0.0);
+        it.embed(crate::mob::EntityRef::Entity(7), body, 0.0);
         assert!(matches!(it.motion, Motion::Embedded(_)));
         assert!(
             !it.collectable(),
@@ -683,8 +670,8 @@ mod tests {
     }
 
     #[test]
-    fn rules_set_after_launch_cut_the_line_and_clear_back_to_a_plain_stack() {
-        let rules = br#"{"pickup":false,"tether":{}}"#;
+    fn rules_set_after_launch_clear_back_to_a_plain_stack() {
+        let rules = br#"{"pickup":false}"#;
         let data = [(
             petramond_world::item::ITEM_ENTITY_DATA_KEY.to_owned(),
             rules.to_vec(),
@@ -699,14 +686,11 @@ mod tests {
             Vec3::X,
             Some(crate::mob::EntityRef::Player(crate::player::PlayerId(1))),
         );
-        assert!(it.tether.is_some());
         it.release();
         assert!(!it.collectable());
 
         it.set_rules(None).expect("clears");
-        assert_eq!(it.tether, None, "the line is cut");
         assert!(it.collectable());
         assert_eq!(it.stack, stack(), "and the stack is plain again");
-        assert!(it.set_rules(Some(b"not json")).is_err());
     }
 }

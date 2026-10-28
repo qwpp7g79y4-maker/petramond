@@ -40,45 +40,20 @@ pub struct Growth {
     pending: HashMap<[i32; 3], u64>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Planting {
-    NotACrop,
-    Refused,
-    Allowed,
-    SoilUnknown,
-}
-
-pub fn planting(
-    content: &Content,
-    world: &impl WorldView,
-    pos: [i32; 3],
-    block: BlockId,
-) -> Planting {
-    let Some((_, stage)) = content.crop_stage(block) else {
-        return Planting::NotACrop;
-    };
-    if stage != 0 {
-        return Planting::Refused;
-    }
-    match world.block([pos[0], pos[1] - 1, pos[2]]) {
-        Some(b) if content.is_farmland(b) => Planting::Allowed,
-        Some(_) => Planting::Refused,
-        None => Planting::SoilUnknown,
-    }
-}
-
+/// Only a fresh planting (stage 0) is placed, and only where it gets light to grow; the engine's
+/// support rule (`roots_on` farmland) already refuses any other ground.
 pub fn on_place_pre(content: &Content, pos: [i32; 3], block: BlockId) -> Outcome {
-    match planting(content, &SideWorld::Server, pos, block) {
-        Planting::NotACrop => Outcome::Continue,
-        Planting::Allowed if !too_dark(pos) => Outcome::Continue,
-        Planting::Allowed | Planting::Refused | Planting::SoilUnknown => Outcome::Cancel,
+    match content.crop_stage(block) {
+        None => Outcome::Continue,
+        Some((_, 0)) if !too_dark(pos) => Outcome::Continue,
+        Some(_) => Outcome::Cancel,
     }
 }
 
-pub fn predict_place_pre(content: &Content, pos: [i32; 3], block: BlockId) -> Outcome {
-    match planting(content, &SideWorld::Replica, pos, block) {
-        Planting::Refused => Outcome::Cancel,
-        Planting::NotACrop | Planting::Allowed | Planting::SoilUnknown => Outcome::Continue,
+pub fn predict_place_pre(content: &Content, block: BlockId) -> Outcome {
+    match content.crop_stage(block) {
+        Some((_, stage)) if stage != 0 => Outcome::Cancel,
+        _ => Outcome::Continue,
     }
 }
 
@@ -195,7 +170,7 @@ pub fn on_hook(
     match kind {
         BlockHookKind::ScheduledTick => attempt(content, growth, sky, pos),
         BlockHookKind::RandomTick => rearm_if_lost(content, growth, rests, pos),
-        BlockHookKind::NeighborUpdate => support_check(content, growth, pos),
+        _ => {}
     }
 }
 
@@ -257,22 +232,6 @@ fn rearm_if_lost(content: &Content, growth: &mut Growth, rests: &mut Rests, pos:
     if stage <= 2 {
         arm(growth, pos, stage, soil_is_fertile(content, pos));
     }
-}
-
-fn support_check(content: &Content, growth: &mut Growth, pos: [i32; 3]) {
-    let Some(block) = get_block(pos) else {
-        return;
-    };
-    let Some((def, _)) = content.crop_stage(block) else {
-        return;
-    };
-    let Some(below) = get_block([pos[0], pos[1] - 1, pos[2]]) else {
-        return;
-    };
-    if content.is_farmland(below) {
-        return;
-    }
-    pop_planting_stock(growth, def, pos);
 }
 
 fn pop_planting_stock(growth: &mut Growth, def: &CropDef, pos: [i32; 3]) {

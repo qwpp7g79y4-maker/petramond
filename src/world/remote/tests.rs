@@ -33,12 +33,25 @@ fn server_and_replica() -> (ServerWorld, ReplicaWorld) {
     (server, replica)
 }
 
+/// Gives the furnace at `pos` its slots and `burn` ticks of fire, and wakes it.
+fn set_furnace_burn(server: &mut ServerWorld, pos: IVec3, burn: u16) {
+    server.ensure_container(pos, petramond_world::furnace::FURNACE_SLOTS);
+    let state = petramond_world::furnace::Furnace {
+        burn_remaining: burn,
+        burn_max: 100,
+        ..Default::default()
+    };
+    let key = petramond_world::furnace::KV_KEY.to_owned();
+    assert!(server.cell_kv_set(pos.x, pos.y, pos.z, key, state.to_bytes()));
+    server.schedule_tick(pos, 1);
+}
+
 #[test]
 fn furnace_lit_flip_reaches_the_replica_through_a_delta() {
     let (mut server, mut replica) = server_and_replica();
     let pos = IVec3::new(4, 65, 4);
     assert!(server.set_block_world(pos.x, pos.y, pos.z, Block::Furnace));
-    server.insert_furnace(pos, Facing::South);
+    server.insert_entity_facing(pos, Facing::South);
 
     for cp in server.data.columns.keys().copied().collect::<Vec<_>>() {
         replica.install_remote_column(server.column_payload(cp).unwrap());
@@ -54,12 +67,8 @@ fn furnace_lit_flip_reaches_the_replica_through_a_delta() {
     );
 
     server.set_replication_capture(true);
-    {
-        let (furnace, _) = server.furnace_parts_mut(pos).unwrap();
-        furnace.burn_remaining = 50;
-        furnace.burn_max = 100;
-    }
-    server.game_tick(&petramond_world::crafting::Recipes::default());
+    set_furnace_burn(&mut server, pos, 50);
+    server.game_tick();
     assert_eq!(
         Block::from_id(server.data.chunk_block(4, 65, 4)),
         Block::FurnaceLit,
@@ -82,11 +91,8 @@ fn furnace_lit_flip_reaches_the_replica_through_a_delta() {
         "the front facing survives the row swap on the wire"
     );
 
-    {
-        let (furnace, _) = server.furnace_parts_mut(pos).unwrap();
-        furnace.burn_remaining = 1;
-    }
-    server.game_tick(&petramond_world::crafting::Recipes::default());
+    set_furnace_burn(&mut server, pos, 1);
+    server.game_tick();
     for d in server.take_block_deltas() {
         replica.apply_remote_delta(d);
     }
@@ -135,14 +141,9 @@ fn replica_converges_on_payloads_and_deltas() {
     assert!(server.place_log(IVec3::new(1, 65, 6), Block::OakLog, LogAxis::X));
     assert!(server.set_block_world(2, 65, 6, Block::OakSapling));
     assert!(server.set_block_world(1, 65, 1, Block::Chest));
-    server.insert_chest(IVec3::new(1, 65, 1), Facing::West);
+    server.insert_entity_facing(IVec3::new(1, 65, 1), Facing::West);
     assert!(server.set_block_world(4, 65, 4, Block::FurnaceLit));
-    server.insert_furnace(IVec3::new(4, 65, 4), Facing::South);
-    {
-        let (furnace, _) = server.furnace_parts_mut(IVec3::new(4, 65, 4)).unwrap();
-        furnace.burn_remaining = 50;
-        furnace.burn_max = 100;
-    }
+    server.insert_entity_facing(IVec3::new(4, 65, 4), Facing::South);
     assert!(server.place_slab_layer(
         IVec3::new(6, 65, 1),
         Block::CobblestoneSlab,
@@ -349,7 +350,7 @@ fn deltas_carry_cell_state_and_replicas_converge_on_it() {
     assert!(server.place_log(log, Block::OakLog, LogAxis::X));
     assert!(server.place_model_block_facing(model, Block::FurnitureWorkbench, Facing::East));
     assert!(server.set_block_world(chest.x, chest.y, chest.z, Block::Chest));
-    server.insert_chest(chest, Facing::West);
+    server.insert_entity_facing(chest, Facing::West);
 
     let deltas = server.take_block_deltas();
     let state_at = |pos: IVec3| {

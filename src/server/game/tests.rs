@@ -290,16 +290,16 @@ fn a_mob_holding_a_chest_open_lifts_its_lid_until_it_lets_go_or_leaves() {
         .containers
         .set_mob_hold(&server.world, mob, chest, true, &mut events);
     assert_eq!(
-        server.chest_viewers(chest),
+        server.container_viewers(chest),
         1,
         "a mob is one viewer however often it asks"
     );
-    assert_eq!(events.world.chest_changed, vec![(chest, true)]);
+    assert_eq!(events.world.panel_changed, vec![(chest, true)]);
 
     server
         .containers
         .set_mob_hold(&server.world, mob, chest, false, &mut events);
-    assert_eq!(server.chest_viewers(chest), 0);
+    assert_eq!(server.container_viewers(chest), 0);
     server
         .containers
         .set_mob_hold(&server.world, mob, chest, true, &mut events);
@@ -309,12 +309,12 @@ fn a_mob_holding_a_chest_open_lifts_its_lid_until_it_lets_go_or_leaves() {
         .containers
         .release_absent_holders(server.world.mobs(), &mut events);
     assert_eq!(
-        server.chest_viewers(chest),
+        server.container_viewers(chest),
         0,
         "a mob gone from the world lets go"
     );
     assert_eq!(
-        events.world.chest_changed,
+        events.world.panel_changed,
         vec![(chest, true), (chest, false), (chest, true), (chest, false)]
     );
 }

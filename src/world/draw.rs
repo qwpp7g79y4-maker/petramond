@@ -86,9 +86,21 @@ pub enum BlockDrawPrim {
         tint: [u8; 3],
         emissive: bool,
     },
+    Line {
+        from: mod_api::LineEnd,
+        to: mod_api::LineEnd,
+        tile: petramond_world::tile::Tile,
+        tint: [u8; 3],
+        width: f32,
+    },
 }
 
 impl BlockDrawPrim {
+    /// Whether this prim draws a body of its own (a line hangs off whatever is drawn).
+    pub fn is_body(&self) -> bool {
+        !matches!(self, BlockDrawPrim::Line { .. })
+    }
+
     pub fn resolve(prim: &DrawPrim) -> Option<BlockDrawPrim> {
         match prim {
             DrawPrim::Cuboid {
@@ -164,6 +176,26 @@ impl BlockDrawPrim {
                     emissive: *emissive,
                 })
             }
+            DrawPrim::Line {
+                from,
+                to,
+                tile,
+                tint,
+                width,
+            } => {
+                let tile = petramond_world::tile::Tile::from_name(tile)?;
+                let sane = from.is_finite()
+                    && to.is_finite()
+                    && *width > 0.0
+                    && *width <= mod_api::LINE_WIDTH_MAX;
+                sane.then_some(BlockDrawPrim::Line {
+                    from: *from,
+                    to: *to,
+                    tile,
+                    tint: *tint,
+                    width: *width,
+                })
+            }
         }
     }
 }
@@ -176,6 +208,26 @@ pub struct BlockDrawSet {
 }
 
 impl BlockDrawSet {
+    /// Whether the set draws a body (an item entity's set then stands in for its art).
+    pub fn draws_body(&self) -> bool {
+        self.resolved.iter().any(BlockDrawPrim::is_body)
+    }
+
+    /// The top of what the set draws, lines left out; `None` when it draws no body.
+    pub fn body_top(&self) -> Option<f32> {
+        let body: Vec<BlockDrawPrim> = self
+            .resolved
+            .iter()
+            .filter(|p| p.is_body())
+            .cloned()
+            .collect();
+        prim_bounds(&body).map(|(_, hi)| hi[1])
+    }
+
+    pub fn lines(&self) -> impl Iterator<Item = &BlockDrawPrim> {
+        self.resolved.iter().filter(|p| !p.is_body())
+    }
+
     pub fn new(wire: DrawPrims) -> BlockDrawSet {
         let resolved: Vec<BlockDrawPrim> = wire
             .as_slice()
@@ -264,6 +316,13 @@ fn prim_bounds(prims: &[BlockDrawPrim]) -> Option<DrawBox> {
                     [at[0] - r, at[1] - r, at[2] - r],
                     [at[0] + r, at[1] + r, at[2] + r],
                 );
+            }
+            BlockDrawPrim::Line { from, to, .. } => {
+                for end in [from, to] {
+                    if let mod_api::LineEnd::Local(p) = end {
+                        grow(*p, *p);
+                    }
+                }
             }
         }
     }

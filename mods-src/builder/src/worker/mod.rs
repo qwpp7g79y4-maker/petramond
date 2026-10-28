@@ -75,6 +75,14 @@ const HEALTH_TAG: &str = "petramond:health";
 
 pub const TRACE: bool = false;
 
+/// The engine behavior that swings a door open and shut when used.
+pub(crate) const DOOR_BEHAVIOR: &str = "door";
+
+/// A door a golem can open by using it, as its block row says.
+pub(crate) fn swings(info: &mod_sdk::BlockInfoData) -> bool {
+    info.behaviors.iter().any(|b| b == DOOR_BEHAVIOR)
+}
+
 pub struct Ctx<'a> {
     pub now: u64,
     pub content: &'a Content,
@@ -127,7 +135,7 @@ pub fn tick(ctx: &mut Ctx, projects: &mut Projects, job: &mut Job) {
         },
         on_ground: info.on_ground,
         yaw: info.yaw,
-        slots: container_get(ContainerAddress::Mob(id)).unwrap_or_default(),
+        slots: container_get(ContainerAddress::Entity(id)).unwrap_or_default(),
     };
     if TRACE && ctx.now.is_multiple_of(2000) {
         let held: Vec<String> = body

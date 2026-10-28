@@ -6,36 +6,36 @@ use rustc_hash::FxHashSet;
 #[derive(Default)]
 pub(super) struct BlockAnimations {
     swings: HashMap<IVec3, f32>,
-    open_chests: FxHashSet<IVec3>,
+    held_open: FxHashSet<IVec3>,
 }
 
 impl BlockAnimations {
-    pub(super) fn set_open_chests(&mut self, open: FxHashSet<IVec3>) {
-        let entered: Vec<IVec3> = open.difference(&self.open_chests).copied().collect();
-        let left: Vec<IVec3> = self.open_chests.difference(&open).copied().collect();
+    pub(super) fn set_held_open(&mut self, open: FxHashSet<IVec3>) {
+        let entered: Vec<IVec3> = open.difference(&self.held_open).copied().collect();
+        let left: Vec<IVec3> = self.held_open.difference(&open).copied().collect();
         for pos in entered {
             self.begin(pos, false);
         }
         for pos in left {
             self.begin(pos, true);
         }
-        self.open_chests = open;
+        self.held_open = open;
     }
 
-    pub(super) fn open_chests(&self) -> &FxHashSet<IVec3> {
-        &self.open_chests
+    pub(super) fn held_open(&self) -> &FxHashSet<IVec3> {
+        &self.held_open
     }
 
     pub(super) fn open_progress(&self, anchor: IVec3, pose_open: bool) -> f32 {
-        self.progress(anchor, pose_open || self.open_chests.contains(&anchor))
+        self.progress(anchor, pose_open || self.held_open.contains(&anchor))
     }
 
     pub(super) fn advance_poses(&mut self, dt: f32, pose: impl Fn(IVec3) -> Option<(bool, f32)>) {
-        let open_chests = std::mem::take(&mut self.open_chests);
+        let held_open = std::mem::take(&mut self.held_open);
         self.advance(dt, |anchor| {
-            pose(anchor).map(|(open, speed)| (open || open_chests.contains(&anchor), speed))
+            pose(anchor).map(|(open, speed)| (open || held_open.contains(&anchor), speed))
         });
-        self.open_chests = open_chests;
+        self.held_open = held_open;
     }
 
     pub(super) fn begin(&mut self, anchor: IVec3, was_open: bool) {

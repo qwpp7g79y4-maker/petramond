@@ -138,7 +138,7 @@ impl ServerGame {
                         self.sessions[s].player.apply_knockback(impulse);
                     }
                 }
-                crate::mob::EntityRef::Mob(target_id) => {
+                crate::mob::EntityRef::Entity(target_id) => {
                     self.damage_mob_through_pipeline(
                         target_id,
                         a.damage.max(0.0),

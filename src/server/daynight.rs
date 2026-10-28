@@ -1,7 +1,8 @@
 use crate::events::{Attach, Stage, TickSystems};
 use crate::rules::daynight::{
-    clock_from_fraction, day_fraction, fresh_clock, moon_phase, morning_after, sky_params,
-    CLOCK_KEY, FROZEN_KEY, NIGHT_KEY, SKY_LIGHT_PARAM, SKY_TIME_PARAM, TIME_KEY,
+    clock_from_fraction, day_fraction, daylight, fresh_clock, moon_phase, morning_after,
+    sky_params, CLOCK_KEY, DAYLIGHT_KEY, FROZEN_KEY, NIGHT_KEY, SKY_LIGHT_PARAM, SKY_TIME_PARAM,
+    TIME_KEY,
 };
 use crate::world::ServerWorld;
 
@@ -79,6 +80,7 @@ impl DayNightCycle {
 
         world.world_kv_set(CLOCK_KEY.into(), self.clock.to_le_bytes().to_vec());
         world.world_kv_set(TIME_KEY.into(), t_bytes.to_vec());
+        world.world_kv_set(DAYLIGHT_KEY.into(), daylight(t).to_le_bytes().to_vec());
         world.world_kv_set(NIGHT_KEY.into(), vec![u8::from(t >= 0.5)]);
         world.world_kv_set(FROZEN_KEY.into(), vec![u8::from(self.frozen)]);
         self.published_clock = Some(self.clock);
@@ -164,7 +166,6 @@ fn read_time_bytes(bytes: &[u8]) -> Option<[u8; 4]> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use petramond_world::crafting::Recipes;
 
     use crate::rules::daynight::DEFAULT_CYCLE_TICKS;
 
@@ -202,7 +203,7 @@ mod tests {
         );
         assert_eq!(params.get(SKY_TIME_PARAM).expect("sky time param")[0], t0);
 
-        world.game_tick(&Recipes::default());
+        world.game_tick();
         let mut feed = TickEvents::default();
         let mut bus = EventBus::default();
         systems.run(
@@ -224,7 +225,7 @@ mod tests {
         );
 
         world.world_kv_set(TIME_KEY.into(), 0.25f32.to_le_bytes().to_vec());
-        world.game_tick(&Recipes::default());
+        world.game_tick();
         systems.run(
             Attach::After(Stage::Spawning),
             &mut world,
@@ -238,7 +239,7 @@ mod tests {
         );
 
         world.world_kv_set(CLOCK_KEY.into(), (C / 2).to_le_bytes().to_vec());
-        world.game_tick(&Recipes::default());
+        world.game_tick();
         systems.run(
             Attach::After(Stage::Spawning),
             &mut world,
@@ -274,7 +275,7 @@ mod tests {
         let mut feed = TickEvents::default();
         let mut bus = EventBus::default();
         for _ in 0..3 {
-            world.game_tick(&Recipes::default());
+            world.game_tick();
             systems.run(
                 Attach::After(Stage::Spawning),
                 &mut world,
@@ -287,7 +288,7 @@ mod tests {
         assert_eq!(world.data().world_kv_get(FROZEN_KEY), Some(&[1][..]));
 
         set_frozen(&mut world, false);
-        world.game_tick(&Recipes::default());
+        world.game_tick();
         systems.run(
             Attach::After(Stage::Spawning),
             &mut world,

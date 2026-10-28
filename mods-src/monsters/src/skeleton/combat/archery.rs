@@ -17,6 +17,8 @@ const DRAW_BACKOFF: u64 = 10;
 /// A drawn foe this far past the bow's reach is given up.
 const DRAW_SLACK: f64 = 4.0;
 const NOCK_HEIGHT: f32 = 0.8;
+/// A loosed arrow left lying is gone after two minutes.
+const ARROW_LIFETIME_TICKS: u32 = 2400;
 const NOCK_AHEAD: f64 = 0.35;
 const AIM_HEIGHT: f32 = 0.55;
 
@@ -51,7 +53,7 @@ impl Turn<'_> {
         self.hold = true;
         self.plays.push(Play {
             clip: &bow.ranged.clip_draw,
-            hold_at: Some(draw as f32 * aim::TICK_SECONDS),
+            hold_at: Some(draw as f32 * TICK_SECONDS),
         });
     }
 
@@ -129,7 +131,7 @@ impl Turn<'_> {
         let radius = (0.5 * distance(from, to) + 2.0) as f32;
         mobs_in_radius(mid, radius)
             .iter()
-            .filter(|m| m.id != self.me.id && target != EntityRef::Mob(m.id))
+            .filter(|m| m.id != self.me.id && target != EntityRef::Entity(m.id))
             .all(|m| {
                 let r = f64::from(m.half_width.max(m.half_length));
                 let [x, y, z] = m.pos;
@@ -152,15 +154,17 @@ impl Turn<'_> {
         let roll = rng_u64("skeleton_arrow") ^ self.me.id;
         let rolls = [splitmix64_mix(roll), splitmix64_mix(roll.rotate_left(29))];
         let dir = aim::scatter(shot.dir, bow.ranged.spread, rolls);
+        let (key, rules) = ItemEntityRules {
+            pickup: false,
+            lifetime_ticks: Some(ARROW_LIFETIME_TICKS),
+        }
+        .data();
         launch_item(
             &bow.ranged.ammo,
             from,
             dir.map(|c| c * speed),
-            Some(EntityRef::Mob(self.me.id)),
-            &[(
-                "petramond:item_entity",
-                br#"{"pickup":false,"lifetime_ticks":2400}"#,
-            )],
+            Some(EntityRef::Entity(self.me.id)),
+            &[(key, &rules)],
         );
         true
     }

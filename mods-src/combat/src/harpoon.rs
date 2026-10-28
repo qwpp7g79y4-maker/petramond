@@ -56,8 +56,6 @@ pub struct Harpoons {
     lines: RefCell<BTreeMap<PlayerId, Line>>,
     /// How long each harpoon in flight was drawn, which sets how hard it strikes.
     charges: RefCell<BTreeMap<u64, u32>>,
-    /// Reel hits waiting for their `mob_damage_pre`, which turns their knockback toward the thrower.
-    pulls: RefCell<Vec<(PlayerId, u64, f32)>>,
 }
 
 fn hand_of(state: &PlayerSnapshot) -> [f64; 3] {
@@ -76,15 +74,6 @@ fn advance(clock: &mut Option<f32>, dt: f32, length: f32) {
             *clock = None;
         }
     }
-}
-
-fn toward(from: [f64; 3], to: [f64; 3], speed: f32) -> ([f32; 3], f32) {
-    let d: [f32; 3] = std::array::from_fn(|i| (to[i] - from[i]) as f32);
-    let length = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
-    if length < 1e-4 {
-        return ([0.0; 3], length);
-    }
-    (d.map(|v| v / length * speed), length)
 }
 
 /// Steers a reeled harpoon home tail first: the rope pulls on the end it is tied to.
@@ -109,7 +98,6 @@ impl Harpoons {
             rows,
             lines: RefCell::default(),
             charges: RefCell::default(),
-            pulls: RefCell::default(),
         })
     }
 
@@ -125,12 +113,13 @@ impl Harpoons {
     }
 
     fn data(&self, row: &Row, stack: &ItemStackData) -> Vec<(String, Vec<u8>)> {
+        let (key, rules) = row.rules.data();
         stack
             .data
             .iter()
-            .filter(|(k, _)| k != "petramond:item_entity")
+            .filter(|(k, _)| k != key)
             .cloned()
-            .chain([("petramond:item_entity".to_owned(), row.rules.clone())])
+            .chain([(key.to_owned(), rules)])
             .collect()
     }
 
@@ -161,6 +150,11 @@ impl Harpoons {
         if entity == 0 {
             return;
         }
+        set_entity_draw(
+            entity,
+            DrawFrame::Body,
+            vec![row.rope_between(entity, player)],
+        );
         play(&row.sounds.throw, from);
         self.lines.borrow_mut().insert(
             player,
@@ -200,8 +194,7 @@ impl Harpoons {
                 play(&row.sounds.hit, pos);
                 return true;
             }
-            ProjectileTarget::Mob(id) => EntityRef::Mob(*id),
-            ProjectileTarget::Player(id) => EntityRef::Player(*id),
+            ProjectileTarget::Body(body) => *body,
         };
         let origin = std::array::from_fn(|axis| pos[axis] - f64::from(vel[axis]));
         if let EntityRef::Player(victim) = body {
@@ -212,37 +205,13 @@ impl Harpoons {
             }
         }
         let ticks = self.charges.borrow_mut().remove(&entity).unwrap_or(1);
-        let damage = strike::roll(row.damage(ticks), rng_u64("harpoon"));
+        let amount = strike::roll(row.damage(ticks), rng_u64("harpoon"));
         let attacker = Some(EntityRef::Player(owner));
-        match body {
-            EntityRef::Mob(mob) => {
-                damage_mob(mob, damage, Some(pos), attacker);
-            }
-            EntityRef::Player(player) => {
-                damage_player(player, damage.round() as i32, Some(pos), attacker);
-            }
-        }
+        damage(body, amount, Some(pos), attacker);
         play(&row.sounds.hit, pos);
         *fate = ProjectileFate::Lodge;
         line.hold = Hold::Lodged(body);
         true
-    }
-
-    /// SERVER: a reel's hit on `mob` is about to land; pull it toward the thrower instead.
-    pub fn on_mob_damage(&self, attacker: PlayerId, mob: u64, feedback: &mut MobDamageFeedback) {
-        let mut pulls = self.pulls.borrow_mut();
-        let Some(at) = pulls
-            .iter()
-            .position(|&(p, m, _)| p == attacker && m == mob)
-        else {
-            return;
-        };
-        let (_, _, pull) = pulls.remove(at);
-        for component in &mut feedback.components {
-            if let MobDamageFeedbackComponent::Knockback { scale, .. } = component {
-                *scale = -pull * scale.abs().max(1.0);
-            }
-        }
     }
 
     /// SERVER: use while the line is out reels the harpoon in.
@@ -260,19 +229,11 @@ impl Harpoons {
         };
         let hand = hand_of(state);
         if let Hold::Lodged(body) = line.hold {
-            let damage = strike::roll(row.reel_damage, rng_u64("harpoon"));
+            let amount = strike::roll(row.reel_damage, rng_u64("harpoon"));
             let attacker = Some(EntityRef::Player(owner));
-            match body {
-                EntityRef::Mob(mob) => {
-                    self.pulls.borrow_mut().push((owner, mob, row.pull));
-                    damage_mob(mob, damage, Some(hand), attacker);
-                }
-                EntityRef::Player(victim) => {
-                    damage_player(victim, damage.round() as i32, Some(hand), attacker);
-                    let (impulse, _) = toward(item.pos, hand, row.pull * 4.0);
-                    apply_knockback_to(victim, impulse);
-                }
-            }
+            damage(body, amount, None, attacker);
+            let (impulse, _) = velocity_toward(item.pos, hand, row.pull * 4.0);
+            entity_impulse(body, impulse);
         }
         play(&row.sounds.reel, item.pos);
         let Some(stack) = take_item_entity(line.entity) else {
@@ -283,7 +244,7 @@ impl Harpoons {
             .iter()
             .map(|(k, v)| (k.as_str(), v.as_slice()))
             .collect();
-        let (vel, _) = toward(item.pos, hand, row.reel_speed);
+        let (vel, _) = velocity_toward(item.pos, hand, row.reel_speed);
         let entity = launch_item(
             &row.name,
             item.pos,
@@ -296,6 +257,11 @@ impl Harpoons {
             emit_event_to(owner, LINE_EVENT, &[0]);
             return;
         }
+        set_entity_draw(
+            entity,
+            DrawFrame::Body,
+            vec![row.rope_between(entity, owner)],
+        );
         tow(entity, vel);
         line.entity = entity;
         line.hold = Hold::Reeling;
@@ -303,6 +269,7 @@ impl Harpoons {
 
     /// Cuts the rope: the harpoon stays where it is, free to be picked up, and leaves the pack.
     fn abandon(&self, owner: PlayerId, line: &Line) {
+        set_entity_draw(line.entity, DrawFrame::Body, Vec::new());
         set_item_rules(line.entity, None);
         take_item(owner, &self.rows[line.row].name, 1, None);
         emit_event_to(owner, LINE_EVENT, &[0]);
@@ -329,7 +296,7 @@ impl Harpoons {
                 continue;
             };
             let hand = hand_of(state);
-            let (vel, distance) = toward(item.pos, hand, row.reel_speed);
+            let (vel, distance) = velocity_toward(item.pos, hand, row.reel_speed);
             if distance > row.reach {
                 ended.push((owner, true));
                 continue;

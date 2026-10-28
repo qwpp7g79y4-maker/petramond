@@ -178,9 +178,7 @@ pub(super) fn swings_open(
     unit: usize,
 ) -> bool {
     let block = &design.records[design.units[unit].record as usize].block;
-    caches
-        .block_named(block)
-        .is_some_and(|info| info.interaction == Some(BlockUse::ToggleDoor))
+    caches.block_named(block).is_some_and(crate::worker::swings)
 }
 
 fn work_near(job: &Job, unit: usize, n: [i32; 3]) -> bool {

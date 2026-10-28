@@ -187,7 +187,7 @@ impl LocalPlayer {
     fn sync_camera_to_eye(&mut self, replica: &ReplicaState, dt: f32) {
         let mounted = replica.entities.own_mount().is_some();
         let spectator = self.player.is_spectator();
-        let sleeping = replica.self_view.sleeping.is_some();
+        let lying = replica.entities.own_mount().is_some_and(|m| m.lying());
         let body = EyeInputs {
             eye: self.player.eye(),
             feet_y: self.player.pos.y,
@@ -200,13 +200,9 @@ impl LocalPlayer {
             // this), so suppressing the sway here is what keeps it out of the
             // boom; easing to rest rather than skipping the apply means
             // toggling back mid-stride eases the sway in.
-            striding: self.player.on_ground
-                && !spectator
-                && !mounted
-                && !sleeping
-                && !self.third_person.enabled,
+            striding: self.player.on_ground && !spectator && !mounted && !self.third_person.enabled,
             hspeed: Vec3::new(self.player.vel.x, 0.0, self.player.vel.z).length(),
-            sleeping,
+            lying,
             yaw: self.cam.yaw,
         };
         self.cam.pos = self.camera_rig.place_eye(dt, body);

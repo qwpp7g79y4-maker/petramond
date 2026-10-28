@@ -122,19 +122,25 @@ impl Mod for Farming {
             return Outcome::Continue;
         };
         if self.client {
-            let replica = SideWorld::Replica;
             return match (handler_id, &*payload) {
                 (
                     ON_INTERACT_ATTEMPT,
                     EventPayload::InteractAttempt {
-                        block: Some(pos), ..
+                        block: Some(pos),
+                        player,
+                        ..
                     },
-                ) => claims::interact(content, &replica, *pos, |_| Outcome::Cancel),
-                (ON_ITEM_USE_PRE, EventPayload::ItemUsePre { item, target }) => {
-                    claims::item_use(content, &replica, *item, *target, |_, _| Outcome::Cancel)
-                }
-                (ON_BLOCK_PLACE_PRE, EventPayload::BlockPlacePre { pos, block, .. }) => {
-                    crops::predict_place_pre(content, *pos, *block)
+                ) => claims::interact(content, *player, *pos, |_| Outcome::Cancel),
+                (
+                    ON_ITEM_USE_PRE,
+                    EventPayload::ItemUsePre {
+                        player,
+                        item,
+                        target,
+                    },
+                ) => claims::item_use(content, *player, *item, *target, |_, _| Outcome::Cancel),
+                (ON_BLOCK_PLACE_PRE, EventPayload::BlockPlacePre { block, .. }) => {
+                    crops::predict_place_pre(content, *block)
                 }
                 _ => Outcome::Continue,
             };
@@ -145,10 +151,17 @@ impl Mod for Farming {
         }
         let sky = self.weather.params();
         match (handler_id, &mut *payload) {
-            (ON_ITEM_USE_PRE, EventPayload::ItemUsePre { item, target, .. }) => {
-                let item = *item;
-                claims::item_use(content, &SideWorld::Server, item, *target, |pos, plan| {
-                    plan.execute(content, sky.as_ref(), item, pos)
+            (
+                ON_ITEM_USE_PRE,
+                EventPayload::ItemUsePre {
+                    player,
+                    item,
+                    target,
+                },
+            ) => {
+                let (player, item) = (*player, *item);
+                claims::item_use(content, player, item, *target, |pos, plan| {
+                    plan.execute(content, sky.as_ref(), player, item, pos)
                 })
             }
             (ON_BLOCK_PLACE_PRE, EventPayload::BlockPlacePre { pos, block, .. }) => {
@@ -162,17 +175,19 @@ impl Mod for Farming {
             (
                 ON_INTERACT_ATTEMPT,
                 EventPayload::InteractAttempt {
-                    block: Some(pos), ..
+                    block: Some(pos),
+                    player,
+                    ..
                 },
             ) => {
-                let pos = *pos;
+                let (pos, player) = (*pos, *player);
                 let growth = &mut self.growth;
-                claims::interact(content, &SideWorld::Server, pos, |plan| {
-                    plan.execute(content, growth, pos)
+                claims::interact(content, player, pos, |plan| {
+                    plan.execute(content, growth, player, pos)
                 })
             }
-            (ON_PLAYER_DAMAGE_PRE, EventPayload::PlayerDamagePre { amount, .. }) => {
-                wellfed::on_player_damage(amount);
+            (ON_PLAYER_DAMAGE_PRE, EventPayload::PlayerDamagePre { player, amount, .. }) => {
+                wellfed::on_player_damage(*player, amount);
                 Outcome::Continue
             }
             (
@@ -182,6 +197,7 @@ impl Mod for Farming {
                     block,
                     harvested,
                     natural,
+                    ..
                 },
             ) => {
                 crops::on_block_broken(content, *pos, *block, *harvested);

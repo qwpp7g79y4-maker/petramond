@@ -1,25 +1,22 @@
-//! The monsters pack: hostile spawning, sunburn, skeleton camps and the skeletons that guard
-//! them. Each subsystem registers its own callbacks under a `routes` id; the [`Mod`] impl below
+//! The monsters pack: sunburn, skeleton camps and the skeletons that guard them (its species
+//! spawn by their own rows under the `monsters:hostile` spawn category). Each subsystem registers its own callbacks under a `routes` id; the [`Mod`] impl below
 //! only routes each call back to its subsystem.
 
 mod camp;
 mod day_clock;
-mod daylight;
 mod keys;
 mod routes;
 mod skeleton;
-mod spawning;
 mod sunburn;
 
 use mod_sdk::*;
 
-use routes::{AiNode, Feature, Handler, Spawner, TickSystem};
+use routes::{AiNode, Feature, Handler, TickSystem};
 
 #[derive(Default)]
 struct Monsters {
     camps: Option<camp::Camps>,
     sunburn: sunburn::Sunburn,
-    spawner: spawning::Spawner,
     skeletons: Option<skeleton::Skeletons>,
 }
 
@@ -29,8 +26,7 @@ impl Mod for Monsters {
         if self.camps.is_some() {
             register_worldgen_feature(WorldgenStage::Trees, Feature::Camps.id(), camp::GEN_FILTER);
         }
-        self.spawner = spawning::Spawner::init();
-        self.sunburn = sunburn::Sunburn::init(self.spawner.zombie());
+        self.sunburn = sunburn::Sunburn::init(resolve_mob_logged(keys::ZOMBIE));
         self.skeletons = skeleton::Skeletons::init();
     }
 
@@ -85,16 +81,6 @@ impl Mod for Monsters {
     fn ai_node(&mut self, callback_id: u32, ctx: &AiNodeCtx) -> Option<AiNodeDecision> {
         match AiNode::from_id(callback_id)? {
             AiNode::SkeletonPost => self.skeletons.as_ref()?.post_node(ctx),
-        }
-    }
-
-    fn hostile_spawn_candidate(
-        &mut self,
-        callback_id: u32,
-        candidate: &HostileSpawnCandidate,
-    ) -> Option<String> {
-        match Spawner::from_id(callback_id)? {
-            Spawner::Hostiles => self.spawner.candidate(candidate),
         }
     }
 }

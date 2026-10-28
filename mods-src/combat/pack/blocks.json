@@ -11,10 +11,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": {
-        "open_gui": "combat:weapons_workbench"
-      },
+      "open_gui": "combat:weapons_workbench",
       "collision": [],
       "emission": 0,
       "tiles": [

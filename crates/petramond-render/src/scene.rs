@@ -18,6 +18,7 @@ pub struct Scene {
     emitter_trails: Vec<petramond::world::TrailPoint>,
     block_entities: Vec<BlockEntityInstance>,
     block_draws: Vec<crate::BlockDrawInstance>,
+    lines: Vec<crate::LinePresentation>,
     cloths: Vec<crate::views::ClothPresentation>,
     cloth_points: Vec<crate::views::ClothPoint>,
     cloth_texels: Vec<Option<[f32; 3]>>,
@@ -44,6 +45,7 @@ impl Scene {
         self.particle_emitters.clear();
         self.block_entities.clear();
         self.block_draws.clear();
+        self.lines.clear();
         self.cloths.clear();
         self.cloth_points.clear();
         self.cloth_texels.clear();
@@ -62,6 +64,8 @@ impl Scene {
         bake_item_entities(presentation.item_entities, alpha, &mut self.item_entities);
         self.block_draws.clear();
         self.block_draws.extend_from_slice(presentation.block_draws);
+        self.lines.clear();
+        self.lines.extend_from_slice(presentation.lines);
         self.cloths.clear();
         self.cloths.extend_from_slice(presentation.cloths);
         self.cloth_points.clear();
@@ -117,6 +121,7 @@ impl Scene {
         renderer.swap_item_entities(&mut self.item_entities);
         renderer.swap_block_entities(&mut self.block_entities);
         renderer.swap_block_draws(&mut self.block_draws);
+        renderer.swap_lines(&mut self.lines);
         renderer.swap_cloths(
             &mut self.cloths,
             &mut self.cloth_points,
@@ -131,6 +136,7 @@ impl Scene {
         self.item_entities.clear();
         self.block_entities.clear();
         self.block_draws.clear();
+        self.lines.clear();
         self.cloths.clear();
         self.cloth_points.clear();
         self.cloth_texels.clear();
@@ -182,7 +188,7 @@ fn bake_item_entities(
 ) {
     out.clear();
     out.extend(items.iter().map(|d| ItemEntityInstance {
-        tether: d.tether,
+        id: d.id,
         drawn_top: d.drawn_top,
         pos: d.prev_pos.lerp(d.pos, alpha),
         item: d.item,

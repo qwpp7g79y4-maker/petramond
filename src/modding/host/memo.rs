@@ -274,12 +274,8 @@ fn key_guard(key: &[u8]) -> Option<HostRet> {
 pub(super) fn handle_memo_call(data: &ModStoreData, call: MemoCall) -> HostRet {
     let seed = data.world_seed();
     match call {
-        MemoCall::MemoGet { key } => match key_guard(&key) {
-            Some(err) => err,
-            None => HostRet::Bytes(STORE.get(&scoped_key(&data.mod_id, seed, &key))),
-        },
-        MemoCall::MemoGetMany { keys } => {
-            if let Some(err) = batch_guard("MemoGetMany key", keys.len()) {
+        MemoCall::MemoGet { keys } => {
+            if let Some(err) = batch_guard("MemoGet key", keys.len()) {
                 return err;
             }
             if let Some(err) = keys.iter().find_map(|key| key_guard(key)) {
@@ -329,8 +325,13 @@ mod tests {
 
     fn get(mod_id: &str, seed: u32, key: &[u8]) -> Option<Vec<u8>> {
         let data = ModStoreData::new(mod_id, seed);
-        match handle_memo_call(&data, calls::MemoGet { key: key.to_vec() }) {
-            HostRet::Bytes(v) => v,
+        match handle_memo_call(
+            &data,
+            calls::MemoGet {
+                keys: vec![key.to_vec()],
+            },
+        ) {
+            HostRet::BytesMany(mut v) => v.pop().flatten(),
             other => panic!("{other:?}"),
         }
     }

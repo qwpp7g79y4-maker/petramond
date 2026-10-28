@@ -9,6 +9,9 @@ use crate::slab::{SlabRotation, SlabSlot};
 
 pub mod authored;
 
+#[cfg(test)]
+mod tests;
+
 pub fn replaces_in_place(looked_at: Block) -> bool {
     looked_at.is_replaceable() && looked_at != Block::Air
 }
@@ -433,7 +436,7 @@ impl WorldData {
         }
         let dir = block.support_dir();
         let s = dir.support_cell(pos);
-        if block.stacks() && self.physics_block(s.x, s.y, s.z) == block {
+        if block.stacks_on(self.physics_block(s.x, s.y, s.z)) {
             return true;
         }
         match dir {
@@ -451,6 +454,10 @@ impl WorldData {
                 // the cover rule instead of its own.
                 if block.roots_face() != crate::block::RootsFace::Any {
                     return self.roots_face_ok(block, crate::mathh::IVec3::Y, s, ground);
+                }
+                // A declared substrate supplies support without requiring an opaque cube.
+                if !block.roots_on().is_empty() {
+                    return true;
                 }
                 if crate::block::rests_flat_on_floor(nb, pos, block) {
                     return super::query::full_unit_cube(self.collision_boxes_at(s.x, s.y, s.z));
@@ -529,7 +536,7 @@ impl WorldData {
         }
         let s = block.support_dir().support_cell(p);
         let ground = self.physics_block(s.x, s.y, s.z);
-        if block.stacks() && ground == block {
+        if block.stacks_on(ground) {
             return true;
         }
         if !block.can_root_on(ground) {

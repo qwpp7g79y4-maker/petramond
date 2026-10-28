@@ -318,13 +318,6 @@
       "result": "exploration:cooked_glimmerfin"
     },
     {
-      "type": "processing",
-      "recipe": "exploration:dry_kelp",
-      "class": "petramond:smelting",
-      "ingredient": "exploration:kelp",
-      "result": "exploration:dried_kelp"
-    },
-    {
       "type": "crafting",
       "recipe": "exploration:fishing_rod",
       "station": "petramond:crafting_table",

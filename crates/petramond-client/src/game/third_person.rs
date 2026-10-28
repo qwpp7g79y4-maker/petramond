@@ -229,16 +229,14 @@ impl Game {
         }
         let boom = self.third_person_enabled();
 
-        // Asleep: the body lies in the bed (head toward the pillow) and the
-        // camera looks DOWN at the player from above the foot end — a boom
-        // behind the pillow-height eye would end up under the bed. The asleep
-        // flag reads the replicated self view; `sleep_head_yaw` derives from
-        // the session's bed cell against the REPLICA's model group.
-        if self.replica.self_view.sleeping.is_some() {
+        // Lying: the body lies flat, head toward the attachment's facing, and
+        // the camera looks DOWN at the player from above the foot end — a boom
+        // behind the pillow-height eye would end up under the bed.
+        if self.replica.entities.own_mount().is_some_and(|m| m.lying()) {
             let head_yaw = self
                 .replica
-                .sleep_head_yaw()
-                .unwrap_or(self.local.player.yaw);
+                .self_mount_pose()
+                .map_or(self.local.player.yaw, |pose| pose.body_yaw);
             self.local.third_person.pose.lie(head_yaw);
             if !boom {
                 return;

@@ -320,6 +320,28 @@ impl Screen {
     }
 }
 
+/// The kinds the engine's own content declares by document alone (the chest, the furnace).
+fn engine_document_kinds() -> Vec<GuiKind> {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/ui/documents");
+    let mut kinds: Vec<GuiKind> = std::fs::read_dir(&dir)
+        .expect("engine documents list")
+        .flatten()
+        .filter_map(|e| {
+            let text = std::fs::read_to_string(e.path()).ok()?;
+            let key = serde_json::from_str::<serde_json::Value>(&text).ok()?["kind"]
+                .as_str()?
+                .to_owned();
+            matches!(
+                petramond_ui::contract::classify_kind(&key),
+                Ok(petramond_ui::contract::KindClass::Document)
+            )
+            .then(|| petramond_world::gui_state::intern_kind(&key))?
+        })
+        .collect();
+    kinds.sort_by_key(|k| crate::gui::kind_key(*k));
+    kinds
+}
+
 fn engine_screen(kind: GuiKind) -> Option<Screen> {
     let (text, _) =
         petramond_world::assets::read_base_text("ui/bindings.json").expect("catalog ships");
@@ -377,7 +399,9 @@ fn pack_screens() -> Vec<Screen> {
 fn screens() -> Vec<Screen> {
     let mut screens: Vec<Screen> = SHELL_KINDS
         .iter()
-        .filter_map(|&k| engine_screen(k))
+        .copied()
+        .chain(engine_document_kinds())
+        .filter_map(engine_screen)
         .collect();
     screens.extend(pack_screens());
     screens
@@ -385,11 +409,8 @@ fn screens() -> Vec<Screen> {
 
 const SHELL_KINDS: &[GuiKind] = &[
     GuiKind::Creative,
-    GuiKind::Chest,
     GuiKind::Inventory,
     GuiKind::CraftingTable,
-    GuiKind::Furnace,
-    GuiKind::FurnitureWorkbench,
     GuiKind::Title,
     GuiKind::WorldSelect,
     GuiKind::WorldSettings,

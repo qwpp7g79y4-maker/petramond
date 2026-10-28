@@ -71,14 +71,45 @@ pub fn mob_yaw_facing(dir: [f32; 2]) -> f32 {
     (-dir[0]).atan2(-dir[1])
 }
 
-host_fn! {
-    pub fn item_entities_in_radius(pos: [f64; 3], radius: f32, limit: u32) -> Vec<mod_api::ItemEntityData>
-        => ItemEntitiesInRadius { pos, radius, limit } => ItemEntities
+/// The velocity that carries a body from `from` straight at `to` at `speed`, and how far it has
+/// to go: what a homing flight steers by each tick (zero once it is there).
+pub fn velocity_toward(from: [f64; 3], to: [f64; 3], speed: f32) -> ([f32; 3], f32) {
+    let d: [f32; 3] = std::array::from_fn(|i| (to[i] - from[i]) as f32);
+    let distance = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
+    if distance < 1e-4 {
+        return ([0.0; 3], distance);
+    }
+    (d.map(|v| v / distance * speed), distance)
 }
 
 host_fn! {
-    pub fn item_impulses(impulses: Vec<(u64, [f32; 3])>) -> Vec<bool>
-        => ItemImpulses { impulses } => Bools
+    /// The entities `filter` takes within `radius` of `pos`, nearest first (then by id), at most
+    /// `limit` of them.
+    pub fn entities_in_radius(pos: [f64; 3], radius: f32, filter: mod_api::EntityFilter, limit: u32) -> Vec<mod_api::EntityData>
+        => EntitiesInRadius { pos, radius, filter, limit } => Entities
+}
+
+/// The item entities within `radius` of `pos`, nearest first, at most `limit`.
+pub fn item_entities_in_radius(
+    pos: [f64; 3],
+    radius: f32,
+    limit: u32,
+) -> Vec<mod_api::ItemEntityData> {
+    entities_in_radius(pos, radius, mod_api::EntityFilter::Items, limit)
+        .into_iter()
+        .filter_map(mod_api::EntityData::item)
+        .collect()
+}
+
+host_fn! {
+    /// Velocity added to each body (a player, a mob, a loose or flying item entity); `false`
+    /// where it is absent or held still.
+    pub fn entity_impulses(impulses: Vec<(EntityRef, [f32; 3])>) -> Vec<bool>
+        => EntityImpulses { impulses } => Bools
+}
+
+pub fn entity_impulse(entity: EntityRef, impulse: [f32; 3]) -> bool {
+    entity_impulses(vec![(entity, impulse)]).first() == Some(&true)
 }
 
 host_fn! {
@@ -91,19 +122,46 @@ host_fn! {
         => SpawnMob { key: key.into(), pos, yaw, checked: true } => SpawnedMob
 }
 
-host_fn! {
-    pub fn mobs_in_radius(pos: [f64; 3], radius: f32) -> Vec<MobSnapshot>
-        => MobsInRadius { pos, radius } => Mobs
+fn mobs_of(found: Vec<mod_api::EntityData>) -> Vec<MobSnapshot> {
+    found
+        .into_iter()
+        .filter_map(mod_api::EntityData::mob)
+        .collect()
+}
+
+/// The live mobs within `radius` of `pos`, nearest first.
+pub fn mobs_in_radius(pos: [f64; 3], radius: f32) -> Vec<MobSnapshot> {
+    let limit = crate::SIM_BATCH_MAX as u32;
+    mobs_of(entities_in_radius(
+        pos,
+        radius,
+        mod_api::EntityFilter::Mobs,
+        limit,
+    ))
+}
+
+/// [`mobs_in_radius`] for the species `kinds` only: the host snapshots nothing else.
+pub fn mobs_in_radius_of(pos: [f64; 3], radius: f32, kinds: Vec<MobId>) -> Vec<MobSnapshot> {
+    let limit = crate::SIM_BATCH_MAX as u32;
+    mobs_of(entities_in_radius(
+        pos,
+        radius,
+        mod_api::EntityFilter::MobsOf(kinds),
+        limit,
+    ))
 }
 
 host_fn! {
-    /// [`mobs_in_radius`] for the species `kinds` only: the host snapshots nothing else.
-    pub fn mobs_in_radius_of(pos: [f64; 3], radius: f32, kinds: Vec<MobId>) -> Vec<MobSnapshot>
-        => MobsInRadiusOf { pos, radius, kinds } => Mobs
+    /// Each entity's snapshot, `None` where none lives.
+    pub fn entity_info(entities: Vec<u64>) -> Vec<Option<mod_api::EntityData>>
+        => EntityInfo { entities } => EntityInfos
 }
 
-host_fn! {
-    pub fn mob_info(mob_id: u64) -> Option<MobSnapshot> => MobInfo { mob_id } => Mob
+pub fn mob_info(mob_id: u64) -> Option<MobSnapshot> {
+    entity_info(vec![mob_id])
+        .pop()
+        .flatten()
+        .and_then(mod_api::EntityData::mob)
 }
 
 host_fn! {
@@ -117,32 +175,21 @@ host_fn! {
 }
 
 host_fn! {
-    /// Damages a live mob (STABLE id) via `mob_damage_pre`, using the species' resolved
-    /// `damage_feedback`. Applied at the next in-tick drain, so a mob that's already gone just
-    /// no-ops.
+    /// Damages a player or live mob through its `*_damage_pre` event and its own feedback.
+    /// Applied at the next in-tick drain, so a body already gone just no-ops; a player takes the
+    /// amount rounded to whole points.
     ///
-    /// `attacker` decides credit. `None` is the mod's own damage, so no knockback and no
-    /// retaliation memory. A player makes it their melee strike: the victim remembers them and
-    /// `origin` drives the knockback direction. Forward a hit owed from `attack_attempt` this way.
-    /// The id has to be a connected session or it's a mod bug. A mob makes it that mob's strike.
-    pub fn damage_mob(
-        mob_id: u64,
+    /// `attacker` decides credit. `None` is the mod's own damage: no retaliation memory. A
+    /// player or mob makes it their strike: the victim remembers them. `origin` drives the
+    /// knockback direction; `None` = no knockback. Forward a hit owed from `attack_attempt` this
+    /// way. A player attacker has to be a connected session or it's a mod bug.
+    pub fn damage(
+        target: EntityRef,
         amount: f32,
         origin: Option<[f64; 3]>,
         attacker: Option<EntityRef>,
     )
-        => DamageMob { mob_id, amount, origin, feedback: None, attacker }
-}
-
-host_fn! {
-    pub fn damage_mob_with_feedback(
-        mob_id: u64,
-        amount: f32,
-        origin: Option<[f64; 3]>,
-        feedback: crate::MobDamageFeedback,
-        attacker: Option<EntityRef>,
-    )
-        => DamageMob { mob_id, amount, origin, feedback: Some(feedback), attacker }
+        => Damage { target, amount, origin, attacker }
 }
 
 host_fn! {
@@ -225,17 +272,13 @@ host_fn! {
 }
 
 host_fn! {
-    pub fn mob_mount(mob_id: u64, player_id: PlayerId, seat: u8) -> bool
-        => MobMount { mob_id, player_id, seat } => Bool
+    /// Pins `player_id`'s body to `to` in `posture`; see [`mod_api::calls::Attach`].
+    pub fn attach(player_id: PlayerId, to: mod_api::AttachTo, posture: mod_api::Posture) -> bool
+        => Attach { player_id, to, posture } => Bool
 }
 
 host_fn! {
-    pub fn player_pose_set(player_id: PlayerId, anchor: [f64; 3], yaw: f32, pose: u8) -> bool
-        => PlayerPoseSet { player_id, anchor, yaw, pose } => Bool
-}
-
-host_fn! {
-    pub fn mob_dismount(player_id: PlayerId) -> bool => MobDismount { player_id } => Bool
+    pub fn detach(player_id: PlayerId) -> bool => Detach { player_id } => Bool
 }
 
 host_fn! {
@@ -302,37 +345,82 @@ mod tests {
             [10.25, 4.75, 10.5]
         );
     }
+    #[test]
+    fn a_solved_launch_lands_where_it_was_thrown_drag_and_all() {
+        let flight = mod_api::ItemFlight {
+            gravity: 20.0,
+            drag: 0.3,
+        };
+        let want = [6.0, -1.5, -2.0];
+        let ticks = 17;
+        let mut vel = launch_velocity(flight, want, ticks);
+        let mut at = [0.0f32; 3];
+        for _ in 0..ticks {
+            vel = flight.step(vel, crate::TICK_SECONDS);
+            for (a, v) in at.iter_mut().zip(vel) {
+                *a += v * crate::TICK_SECONDS;
+            }
+        }
+        for (got, want) in at.into_iter().zip(want) {
+            assert!((got - want).abs() < 1.0e-3, "{at:?}");
+        }
+    }
 }
 
 host_fn! {
-    pub fn despawn_mob(mob_id: u64) -> bool => DespawnMob { mob_id } => Bool
+    /// Removes a live entity; an item entity hands back its stack. `None` = no such entity.
+    pub fn despawn_entity(entity: u64) -> Option<mod_api::Despawned>
+        => DespawnEntity { entity } => Despawned
 }
 
 host_fn! {
-    pub fn spawn_item(item: &str, count: u8, pos: [f64; 3]) -> bool
-        => SpawnItem { item: item.into(), count, pos, data: Vec::new() } => Bool
-}
-
-host_fn! {
-    pub fn launch_item(
+    /// Spawns `count` of `item` at `pos`: loose stacks without `vel`, one flying stack with it.
+    /// The new entities' ids.
+    pub fn spawn_items(
         item: &str,
+        count: u8,
         pos: [f64; 3],
-        vel: [f32; 3],
-        owner: Option<mod_api::EntityRef>,
         data: &[(&str, &[u8])],
-    ) -> u64
-        => LaunchItem {
+        vel: Option<[f32; 3]>,
+        owner: Option<EntityRef>,
+    ) -> Vec<u64>
+        => SpawnItem {
             item: item.into(),
+            count,
             pos,
+            data: data.iter().map(|(k, v)| (k.to_string(), v.to_vec())).collect(),
             vel,
             owner,
-            data: data.iter().map(|(k, v)| (k.to_string(), v.to_vec())).collect(),
-        } => U64
+        } => Ids
 }
 
-host_fn! {
-    pub fn item_entity(entity: u64) -> Option<Box<mod_api::ItemEntityData>>
-        => ItemEntity { entity } => ItemEntity
+pub fn spawn_item(item: &str, count: u8, pos: [f64; 3]) -> bool {
+    !spawn_items(item, count, pos, &[], None, None).is_empty()
+}
+
+pub fn spawn_item_data(item: &str, count: u8, pos: [f64; 3], data: &[(&str, &[u8])]) -> bool {
+    !spawn_items(item, count, pos, data, None, None).is_empty()
+}
+
+/// One `item` flying from `pos` at `vel`, launched by `owner`: its id, or 0 when none spawned.
+pub fn launch_item(
+    item: &str,
+    pos: [f64; 3],
+    vel: [f32; 3],
+    owner: Option<EntityRef>,
+    data: &[(&str, &[u8])],
+) -> u64 {
+    spawn_items(item, 1, pos, data, Some(vel), owner)
+        .first()
+        .copied()
+        .unwrap_or(0)
+}
+
+pub fn item_entity(entity: u64) -> Option<mod_api::ItemEntityData> {
+    entity_info(vec![entity])
+        .pop()
+        .flatten()
+        .and_then(mod_api::EntityData::item)
 }
 
 host_fn! {
@@ -340,34 +428,19 @@ host_fn! {
         => SteerItem { entity, vel } => Bool
 }
 
-host_fn! {
-    pub fn set_item_draw(entity: u64, frame: mod_api::DrawFrame, prims: Vec<mod_api::DrawPrim>) -> bool
-        => SetItemDraw { entity, frame, prims } => Bool
+/// Removes a live item entity and hands back its whole stack, exactly once.
+pub fn take_item_entity(entity: u64) -> Option<mod_api::ItemStackData> {
+    despawn_entity(entity)?.stack
 }
 
 host_fn! {
-    pub fn take_item_entity(entity: u64) -> Option<mod_api::ItemStackData>
-        => TakeItemEntity { entity } => ItemStack
-}
-
-host_fn! {
-    pub fn set_item_rules(entity: u64, rules: Option<Vec<u8>>) -> bool
+    pub fn set_item_rules(entity: u64, rules: Option<mod_api::ItemEntityRules>) -> bool
         => SetItemRules { entity, rules } => Bool
 }
 
 host_fn! {
     pub fn set_item_facing(entity: u64, facing: Option<[f32; 3]>) -> bool
         => SetItemFacing { entity, facing } => Bool
-}
-
-host_fn! {
-    pub fn spawn_item_data(item: &str, count: u8, pos: [f64; 3], data: &[(&str, &[u8])]) -> bool
-        => SpawnItem {
-            item: item.into(),
-            count,
-            pos,
-            data: data.iter().map(|(k, v)| (k.to_string(), v.to_vec())).collect(),
-        } => Bool
 }
 
 host_fn! {
@@ -394,14 +467,45 @@ host_fn! {
         => Footholds { key: key.into(), cells } => Bools
 }
 
-host_fn! {
-    pub fn mob_held_display(mob_id: u64, main: Option<String>, off: Option<String>) -> bool
-        => MobHeldDisplay { mob_id, main, off } => Bool
+/// The launch velocity that carries an item flying by `flight` through `displacement` in exactly
+/// `ticks` engine ticks, solved against the engine's own per-tick flight (drag included).
+pub fn launch_velocity(
+    flight: mod_api::ItemFlight,
+    displacement: [f32; 3],
+    ticks: u32,
+) -> [f32; 3] {
+    // The distance flown is linear in the launch velocity: `v0 * reach + fall`.
+    let k = flight.drag_factor(crate::TICK_SECONDS);
+    let (mut reach, mut keep) = (0.0f32, 1.0f32);
+    let (mut vel, mut fall) = ([0.0f32; 3], [0.0f32; 3]);
+    for _ in 0..ticks.max(1) {
+        keep *= k;
+        reach += keep * crate::TICK_SECONDS;
+        vel = flight.step(vel, crate::TICK_SECONDS);
+        for (f, v) in fall.iter_mut().zip(vel) {
+            *f += v * crate::TICK_SECONDS;
+        }
+    }
+    std::array::from_fn(|i| (displacement[i] - fall[i]) / reach.max(1.0e-6))
+}
+
+/// A [`DrawPrim::Line`](mod_api::DrawPrim::Line) between two ends in the plain rope look:
+/// pale wool, half a texel thick.
+pub fn rope(from: mod_api::LineEnd, to: mod_api::LineEnd) -> mod_api::DrawPrim {
+    mod_api::DrawPrim::Line {
+        from,
+        to,
+        tile: "wool_block".into(),
+        tint: [222, 214, 200],
+        width: 0.5,
+    }
 }
 
 host_fn! {
-    pub fn set_mob_draw(mob_id: u64, frame: mod_api::DrawFrame, prims: Vec<mod_api::DrawPrim>) -> bool
-        => SetMobDraw { mob_id, frame, prims } => Bool
+    /// Draws a live entity as `prims` about its position (an item entity in place of its own
+    /// art); an empty list restores it.
+    pub fn set_entity_draw(entity: u64, frame: mod_api::DrawFrame, prims: Vec<mod_api::DrawPrim>) -> bool
+        => SetEntityDraw { entity, frame, prims } => Bool
 }
 
 host_fn! {

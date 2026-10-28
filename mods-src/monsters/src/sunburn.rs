@@ -94,7 +94,7 @@ impl Sunburn {
             if rain == 0.0 && !sun_can_burn {
                 continue;
             }
-            let entity = EntityRef::Mob(mob.id);
+            let entity = EntityRef::Entity(mob.id);
             let cell = cell_of(mob.pos);
             let Some(sky) = sky_light(cell) else {
                 continue;

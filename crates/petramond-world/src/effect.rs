@@ -30,47 +30,23 @@ impl Effect {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum EffectBehavior {
-    None,
-    Regen {
-        interval: u32,
-        amount: i32,
-    },
-    Speed {
-        scale: f32,
-    },
-    /// Scales the breath a body spends away from what it breathes (0 = holds it forever).
-    Breath {
-        scale: f32,
-    },
-}
-
-impl EffectBehavior {
-    #[inline]
-    pub fn speed_scale(self) -> f32 {
-        match self {
-            Self::Speed { scale } => scale,
-            _ => 1.0,
-        }
-    }
-
-    #[inline]
-    pub fn breath_scale(self) -> f32 {
-        match self {
-            Self::Breath { scale } => scale,
-            _ => 1.0,
-        }
-    }
-}
-
 pub struct EffectDef {
     pub effect: Effect,
     pub name: &'static str,
     #[allow(dead_code)]
     pub display: &'static str,
     pub icon: &'static str,
-    pub behavior: EffectBehavior,
+    /// Body attribute scales multiplied in while the effect is active.
+    pub attributes: crate::attribute::AttributeScales,
+    /// Health restored every `interval` ticks while active.
+    pub heal: Option<crate::condition::Pulse>,
+}
+
+impl EffectDef {
+    /// This effect's factor on `attribute` (1 when it does not touch it).
+    pub fn scale(&self, attribute: mod_api::PlayerAttribute) -> f32 {
+        crate::attribute::scale(self.attributes, attribute)
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -85,52 +61,10 @@ struct RawEffectDef {
     effect: String,
     display: String,
     icon: String,
-    behavior: RawBehavior,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "lowercase")]
-enum RawBehavior {
-    None,
-    Regen { interval: u32, amount: i32 },
-    Speed { scale: f32 },
-    Breath { scale: f32 },
-}
-
-const SPEED_SCALE_MAX: f32 = 5.0;
-
-const BREATH_SCALE_MAX: f32 = 10.0;
-
-impl RawBehavior {
-    fn resolve(&self, effect: &str) -> Result<EffectBehavior, String> {
-        match *self {
-            RawBehavior::None => Ok(EffectBehavior::None),
-            RawBehavior::Regen { interval, amount } => {
-                if interval == 0 || amount <= 0 {
-                    return Err(format!(
-                        "effect '{effect}': regen interval and amount must be positive"
-                    ));
-                }
-                Ok(EffectBehavior::Regen { interval, amount })
-            }
-            RawBehavior::Speed { scale } => {
-                if !scale.is_finite() || scale <= 0.0 || scale > SPEED_SCALE_MAX {
-                    return Err(format!(
-                        "effect '{effect}': speed scale must be in (0, {SPEED_SCALE_MAX}], got {scale}"
-                    ));
-                }
-                Ok(EffectBehavior::Speed { scale })
-            }
-            RawBehavior::Breath { scale } => {
-                if !scale.is_finite() || !(0.0..=BREATH_SCALE_MAX).contains(&scale) {
-                    return Err(format!(
-                        "effect '{effect}': breath scale must be in [0, {BREATH_SCALE_MAX}], got {scale}"
-                    ));
-                }
-                Ok(EffectBehavior::Breath { scale })
-            }
-        }
-    }
+    #[serde(default)]
+    attributes: std::collections::BTreeMap<String, f32>,
+    #[serde(default)]
+    heal: Option<crate::condition::RawPulse>,
 }
 
 #[derive(Deserialize)]
@@ -167,7 +101,12 @@ fn parse_layers(texts: &[&str]) -> Result<crate::registry::Catalog<EffectDef>, S
         ENGINE_EFFECT_NAMES,
         "effect",
         |r, id, names| {
-            let behavior = r.behavior.resolve(&r.effect)?;
+            let what = format!("effect '{}'", r.effect);
+            let attributes = crate::attribute::resolve(&r.attributes, &what)?;
+            let heal = r
+                .heal
+                .map(|pulse| pulse.resolve().map_err(|e| format!("{what}: heal: {e}")))
+                .transpose()?;
             if r.icon.is_empty() {
                 return Err(format!("effect '{}': icon path is empty", r.effect));
             }
@@ -176,7 +115,8 @@ fn parse_layers(texts: &[&str]) -> Result<crate::registry::Catalog<EffectDef>, S
                 name: names.name(id).expect("id resolved from this table"),
                 display: Box::leak(r.display.into_boxed_str()),
                 icon: Box::leak(r.icon.into_boxed_str()),
-                behavior,
+                attributes,
+                heal,
             })
         },
     )

@@ -216,18 +216,20 @@ mod tests {
             queue: &mut queue,
         };
         scope::enter(&mut ctx, || {
-            match handle_host_call(&mut data, HostCall::from(calls::MobInfo { mob_id: id })) {
-                HostRet::Mob(Some(snap)) => assert_eq!(snap.id, id),
-                other => panic!("live mob answers a snapshot, got {other:?}"),
-            }
-            assert_eq!(
-                handle_host_call(
-                    &mut data,
-                    HostCall::from(calls::MobInfo { mob_id: id + 999 })
-                ),
-                HostRet::Mob(None),
-                "an unknown id is honestly absent"
+            let info = handle_host_call(
+                &mut data,
+                HostCall::from(calls::EntityInfo {
+                    entities: vec![id, id + 999],
+                }),
             );
+            let HostRet::EntityInfos(found) = info else {
+                panic!("EntityInfo answers its own reply kind, got {info:?}");
+            };
+            assert!(
+                matches!(&found[0], Some(mod_api::EntityData::Mob(snap)) if snap.id == id),
+                "a live mob answers a snapshot"
+            );
+            assert_eq!(found[1], None, "an unknown id is honestly absent");
         });
     }
 }

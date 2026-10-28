@@ -1,4 +1,4 @@
-use mod_api::ItemId;
+use mod_api::{ItemId, PlayerId};
 
 use crate::{
     emit_sound, item_info, item_names, replace_held_one, resolve_item, PackKey, PackKeyKind,
@@ -79,12 +79,18 @@ impl WaterBuckets {
         }
     }
 
-    pub fn perform(&self, swap: BucketSwap, pos: [i32; 3], flip: impl FnOnce()) -> bool {
+    pub fn perform(
+        &self,
+        player: PlayerId,
+        swap: BucketSwap,
+        pos: [i32; 3],
+        flip: impl FnOnce(),
+    ) -> bool {
         let (spent, replacement) = match swap {
             BucketSwap::Pour => (self.full, WOODEN_BUCKET),
             BucketSwap::Scoop => (self.empty, WATER_BUCKET),
         };
-        if !replace_held_one(spent, replacement) {
+        if !replace_held_one(player, spent, replacement) {
             return false;
         }
         flip();

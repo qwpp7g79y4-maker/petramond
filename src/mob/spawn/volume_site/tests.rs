@@ -4,13 +4,16 @@ use petramond_world::chunk::{Chunk, SectionPos};
 
 fn rule() -> SpawnRule {
     SpawnRule {
-        biomes: &[Biome::PLAINS],
+        biomes: Some(&[Biome::PLAINS]),
         underground: &[],
         y: Some([18, 28]),
         space: None,
         chance: 1.0,
         chances: &[],
-        ground: &[Block::Grass],
+        ground: Some(&[Block::Grass]),
+        light_below: None,
+        player_beyond: None,
+        crowd: None,
     }
 }
 
@@ -63,7 +66,7 @@ fn territory_constraints_are_independent_of_surface_climate() {
     assert!(find(&world, Mob::Owl, &rule, 8, 8, [18, 28]).is_none());
     let rule = SpawnRule {
         underground: Box::leak(vec![territory].into_boxed_slice()),
-        biomes: &[],
+        biomes: None,
         ..rule
     };
     assert!(find(&world, Mob::Owl, &rule, 8, 8, [18, 28]).is_some());
@@ -74,11 +77,10 @@ fn volume_spawns_need_the_declared_medium_without_inventing_a_floor() {
     let mut world = cave();
     world.set_block_world(8, 24, 8, Block::Water);
     let rule = SpawnRule {
-        ground: &[],
+        ground: None,
         space: Some(&[Block::Water]),
         ..rule()
     };
-    assert!(rule.is_spawnable());
     assert_eq!(
         find(&world, Mob::Owl, &rule, 8, 8, [24, 24]),
         Some(WorldPos::new(8.5, 24.0, 8.5))

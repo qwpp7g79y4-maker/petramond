@@ -455,7 +455,7 @@ fn blocking_bearing(
             continue;
         }
         match c {
-            EntityRef::Mob(id) => {
+            EntityRef::Entity(id) => {
                 if let Some(m) = mobs.live(*id) {
                     consider(m.pos);
                 }

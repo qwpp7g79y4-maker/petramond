@@ -1,6 +1,6 @@
-pub const PROJECTILE_DATA_KEY: &str = "petramond:projectile";
+pub const PROJECTILE_DATA_KEY: &str = mod_api::PROJECTILE_KEY;
 
-pub const DEFAULT_GRAVITY: f32 = 20.0;
+pub const DEFAULT_GRAVITY: f32 = mod_api::DEFAULT_ITEM_GRAVITY;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Projectile {
@@ -25,7 +25,10 @@ impl Default for Projectile {
 
 impl Projectile {
     #[inline]
-    pub fn drag_factor(self, dt: f32) -> f32 {
-        (1.0 - self.drag).max(0.0).powf(dt)
+    pub fn flight(self) -> mod_api::ItemFlight {
+        mod_api::ItemFlight {
+            gravity: self.gravity,
+            drag: self.drag,
+        }
     }
 }

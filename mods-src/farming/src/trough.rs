@@ -13,22 +13,27 @@ pub enum TroughUse {
     PackWheat,
 }
 
-pub fn use_gate(content: &Content, item: ItemId, block: BlockId) -> Option<TroughUse> {
+pub fn use_gate(
+    content: &Content,
+    player: PlayerId,
+    item: ItemId,
+    block: BlockId,
+) -> Option<TroughUse> {
     if let Some((swap, _)) = bucket_swap(content, block, item) {
         return Some(match swap {
             BucketSwap::Pour => TroughUse::Fill,
             BucketSwap::Scoop => TroughUse::Drain,
         });
     }
-    let bundle = || u32::from(player_state().held_count) >= FILL_WHEAT;
+    let bundle = || player_state(player).is_some_and(|p| u32::from(p.held_count) >= FILL_WHEAT);
     (block == content.trough && item == content.wheat_item && bundle())
         .then_some(TroughUse::PackWheat)
 }
 
-pub fn apply(content: &Content, pos: [i32; 3], using: TroughUse) -> Outcome {
+pub fn apply(content: &Content, player: PlayerId, pos: [i32; 3], using: TroughUse) -> Outcome {
     match using {
         TroughUse::Fill => {
-            if !content.buckets.perform(BucketSwap::Pour, pos, || {
+            if !content.buckets.perform(player, BucketSwap::Pour, pos, || {
                 swap_block(pos, content.trough_filled);
                 crate::husbandry::clear_sips(content, pos);
             }) {
@@ -36,7 +41,7 @@ pub fn apply(content: &Content, pos: [i32; 3], using: TroughUse) -> Outcome {
             }
         }
         TroughUse::Drain => {
-            if !content.buckets.perform(BucketSwap::Scoop, pos, || {
+            if !content.buckets.perform(player, BucketSwap::Scoop, pos, || {
                 swap_block(pos, content.trough);
                 crate::husbandry::clear_sips(content, pos);
             }) {
@@ -44,7 +49,7 @@ pub fn apply(content: &Content, pos: [i32; 3], using: TroughUse) -> Outcome {
             }
         }
         TroughUse::PackWheat => {
-            if !consume_held(content.wheat_item, FILL_WHEAT) {
+            if !consume_held(player, content.wheat_item, FILL_WHEAT) {
                 return Outcome::Continue;
             }
             swap_block(pos, content.trough_wheat);
@@ -58,11 +63,11 @@ pub fn take_out_gate(content: &Content, block: BlockId, actor: &PlayerSnapshot) 
     block == content.trough_wheat && actor.held.is_none() && actor.sneak
 }
 
-pub fn take_out(content: &Content, pos: [i32; 3]) -> Outcome {
+pub fn take_out(content: &Content, player: PlayerId, pos: [i32; 3]) -> Outcome {
     let meals = crate::husbandry::meals_at(pos);
     let back = crate::husbandry::wheat_yield(meals);
     if back > 0 {
-        give_item(keys::WHEAT, back);
+        give_item(player, keys::WHEAT, back, &[]);
     }
     swap_block(pos, content.trough);
     crate::husbandry::clear_meals(content, pos);

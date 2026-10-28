@@ -7,8 +7,6 @@
       "tags": [
         "replaceable"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -32,8 +30,13 @@
         "terrain",
         "soil"
       ],
-      "behavior": "grass",
-      "interaction": "none",
+      "behaviors": ["cover"],
+      "data": {
+        "petramond:cover": {
+          "bare": "petramond:dirt",
+          "spread": 2
+        }
+      },
       "collision": [
         {
           "min": [
@@ -82,8 +85,7 @@
         "terrain",
         "soil"
       ],
-      "behavior": "dirt",
-      "interaction": "none",
+      "behaviors": ["bare"],
       "collision": [
         {
           "min": [
@@ -133,8 +135,6 @@
         "terrain",
         "rock"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -187,8 +187,6 @@
         "terrain",
         "sand"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -241,8 +239,9 @@
         "replaceable",
         "snow_cover"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -308,11 +307,23 @@
           ]
         },
         "medium": {
-          "fog_color": [0.04, 0.16, 0.30],
+          "fog_color": [
+            0.04,
+            0.16,
+            0.3
+          ],
           "fog_start": 0.5,
           "fog_end": 22.0,
-          "volume_tint": [0.42, 0.62, 0.85],
-          "surface_tint": [0.42, 0.62, 0.85],
+          "volume_tint": [
+            0.42,
+            0.62,
+            0.85
+          ],
+          "surface_tint": [
+            0.42,
+            0.62,
+            0.85
+          ],
           "surface_alpha": 0.78,
           "albedo_mix": {
             "toward": 0.32,
@@ -321,8 +332,16 @@
           "sheen": true,
           "eye_margin": 0.03,
           "optics": {
-            "absorption": [0.13, 0.06, 0.05],
-            "glow": [0.08, 0.3, 0.42],
+            "absorption": [
+              0.13,
+              0.06,
+              0.05
+            ],
+            "glow": [
+              0.08,
+              0.3,
+              0.42
+            ],
             "depth_shift": 0.5,
             "depth_dim": 0.1,
             "biome_tint": 0.6
@@ -332,13 +351,15 @@
       "shape": "cube",
       "flags": [
         "transparent",
-        "fluid"
+        "fluid",
+        "dims_sky"
       ],
       "tags": [
         "replaceable"
       ],
-      "behavior": "fluid",
-      "interaction": "none",
+      "behaviors": [
+        "fluid"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -390,11 +411,23 @@
           "destroys_items": true
         },
         "medium": {
-          "fog_color": [0.45, 0.09, 0.012],
+          "fog_color": [
+            0.45,
+            0.09,
+            0.012
+          ],
           "fog_start": 0.1,
           "fog_end": 2.2,
-          "volume_tint": [1.0, 0.55, 0.35],
-          "surface_tint": [0.85, 0.55, 0.45],
+          "volume_tint": [
+            1.0,
+            0.55,
+            0.35
+          ],
+          "surface_tint": [
+            0.85,
+            0.55,
+            0.45
+          ],
           "surface_alpha": 1.0,
           "self_lit": 1.0
         }
@@ -402,14 +435,16 @@
       "shape": "cube",
       "flags": [
         "transparent",
-        "fluid"
+        "fluid",
+        "dims_sky"
       ],
       "tags": [
         "replaceable",
         "nav_hazard"
       ],
-      "behavior": "fluid",
-      "interaction": "none",
+      "behaviors": [
+        "fluid"
+      ],
       "collision": [],
       "emission": 30,
       "light_color": [
@@ -439,8 +474,6 @@
       "tags": [
         "log"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -487,15 +520,17 @@
       "flags": [
         "solid",
         "ao_occluder",
-        "transparent"
+        "transparent",
+        "dims_sky"
       ],
       "tags": [
         "leaves",
         "canopy",
         "no_grass_decay"
       ],
-      "behavior": "leaves",
-      "interaction": "none",
+      "behaviors": [
+        "leaves"
+      ],
       "collision": [
         {
           "min": [
@@ -538,8 +573,6 @@
       "tags": [
         "log"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -591,8 +624,6 @@
       "tags": [
         "log"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -644,8 +675,6 @@
       "tags": [
         "log"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -697,8 +726,6 @@
       "tags": [
         "log"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -745,15 +772,17 @@
       "flags": [
         "solid",
         "ao_occluder",
-        "transparent"
+        "transparent",
+        "dims_sky"
       ],
       "tags": [
         "leaves",
         "canopy",
         "no_grass_decay"
       ],
-      "behavior": "leaves",
-      "interaction": "none",
+      "behaviors": [
+        "leaves"
+      ],
       "collision": [
         {
           "min": [
@@ -791,15 +820,17 @@
       "flags": [
         "solid",
         "ao_occluder",
-        "transparent"
+        "transparent",
+        "dims_sky"
       ],
       "tags": [
         "leaves",
         "canopy",
         "no_grass_decay"
       ],
-      "behavior": "leaves",
-      "interaction": "none",
+      "behaviors": [
+        "leaves"
+      ],
       "collision": [
         {
           "min": [
@@ -837,15 +868,17 @@
       "flags": [
         "solid",
         "ao_occluder",
-        "transparent"
+        "transparent",
+        "dims_sky"
       ],
       "tags": [
         "leaves",
         "canopy",
         "no_grass_decay"
       ],
-      "behavior": "leaves",
-      "interaction": "none",
+      "behaviors": [
+        "leaves"
+      ],
       "collision": [
         {
           "min": [
@@ -883,15 +916,17 @@
       "flags": [
         "solid",
         "ao_occluder",
-        "transparent"
+        "transparent",
+        "dims_sky"
       ],
       "tags": [
         "leaves",
         "canopy",
         "no_grass_decay"
       ],
-      "behavior": "leaves",
-      "interaction": "none",
+      "behaviors": [
+        "leaves"
+      ],
       "collision": [
         {
           "min": [
@@ -929,15 +964,17 @@
       "flags": [
         "solid",
         "ao_occluder",
-        "transparent"
+        "transparent",
+        "dims_sky"
       ],
       "tags": [
         "leaves",
         "canopy",
         "no_grass_decay"
       ],
-      "behavior": "leaves",
-      "interaction": "none",
+      "behaviors": [
+        "leaves"
+      ],
       "collision": [
         {
           "min": [
@@ -973,8 +1010,6 @@
       "tags": [
         "sand"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1015,8 +1050,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1062,8 +1095,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1109,8 +1140,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1156,8 +1185,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1203,8 +1230,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1250,8 +1275,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1297,8 +1320,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1344,8 +1365,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1391,8 +1410,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1440,8 +1457,6 @@
       "tags": [
         "soil"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1482,8 +1497,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1524,8 +1537,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1566,8 +1577,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1608,8 +1617,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1650,8 +1657,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1692,8 +1697,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1737,8 +1740,6 @@
         "snow_cover",
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1782,8 +1783,6 @@
         "slippery",
         "merges_with_self"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1833,8 +1832,6 @@
         "slippery",
         "merges_with_self"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1880,8 +1877,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1929,8 +1924,6 @@
       "tags": [
         "rock"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -1980,8 +1973,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2029,8 +2020,6 @@
       "tags": [
         "rock"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2078,8 +2067,6 @@
       "tags": [
         "rock"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2127,8 +2114,6 @@
       "tags": [
         "rock"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2176,8 +2161,6 @@
       "tags": [
         "rock"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2225,8 +2208,6 @@
       "tags": [
         "rock"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2272,8 +2253,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2314,8 +2293,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2427,11 +2404,14 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_sand",
         "no_pane_connect"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "sand"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2459,11 +2439,14 @@
       "tags": [
         "fragile",
         "replaceable",
-        "roots_in_soil",
         "snow_bedded"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2496,11 +2479,14 @@
       "tags": [
         "fragile",
         "replaceable",
-        "roots_in_soil",
         "snow_bedded"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2526,11 +2512,14 @@
         "transparent"
       ],
       "tags": [
-        "fragile",
-        "roots_in_soil"
+        "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2556,11 +2545,14 @@
         "transparent"
       ],
       "tags": [
-        "fragile",
-        "roots_in_soil"
+        "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2586,11 +2578,14 @@
         "transparent"
       ],
       "tags": [
-        "fragile",
-        "roots_in_soil"
+        "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2616,11 +2611,14 @@
         "transparent"
       ],
       "tags": [
-        "fragile",
-        "roots_in_soil"
+        "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2646,11 +2644,14 @@
         "transparent"
       ],
       "tags": [
-        "fragile",
-        "roots_in_soil"
+        "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2676,11 +2677,14 @@
         "transparent"
       ],
       "tags": [
-        "fragile",
-        "roots_in_soil"
+        "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2706,11 +2710,14 @@
         "transparent"
       ],
       "tags": [
-        "fragile",
-        "roots_in_soil"
+        "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2737,11 +2744,14 @@
       ],
       "tags": [
         "fragile",
-        "replaceable",
-        "roots_in_sand"
+        "replaceable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "roots_on": [
+        "sand"
+      ],
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2767,13 +2777,16 @@
         "transparent"
       ],
       "tags": [
-        "fragile",
-        "roots_in_soil",
-        "roots_in_stone"
+        "fragile"
+      ],
+      "roots_on": [
+        "soil",
+        "stony"
       ],
       "roots_face": "full_cube",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2799,13 +2812,16 @@
         "transparent"
       ],
       "tags": [
-        "fragile",
-        "roots_in_soil",
-        "roots_in_stone"
+        "fragile"
+      ],
+      "roots_on": [
+        "soil",
+        "stony"
       ],
       "roots_face": "full_cube",
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -2833,8 +2849,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2884,8 +2898,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2939,8 +2951,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -2987,8 +2997,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -3035,8 +3043,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -3083,8 +3089,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -3131,8 +3135,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -3179,8 +3181,7 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "open_crafting_table",
+      "open_gui": "petramond:crafting_table",
       "collision": [
         {
           "min": [
@@ -3222,8 +3223,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "open_furnace",
+      "open_gui": "petramond:furnace",
       "collision": [
         {
           "min": [
@@ -3249,6 +3249,10 @@
       "data": {
         "petramond:harvest": {
           "tier": 1
+        },
+        "petramond:furnace": {
+          "idle": "petramond:furnace",
+          "burning": "petramond:furnace_lit"
         }
       },
       "hardness": 3.5,
@@ -3259,6 +3263,9 @@
           "max": 1,
           "chance": 1
         }
+      ],
+      "behaviors": [
+        "furnace"
       ]
     },
     {
@@ -3271,8 +3278,7 @@
         "directional_view"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "open_furnace",
+      "open_gui": "petramond:furnace",
       "collision": [
         {
           "min": [
@@ -3301,8 +3307,12 @@
       "front": "furnace_front_on",
       "material": "stone",
       "data": {
-        "petramond:harvest": {
-          "tier": 1
+        "petramond:construction": {
+          "form": "petramond:furnace"
+        },
+        "petramond:furnace": {
+          "idle": "petramond:furnace",
+          "burning": "petramond:furnace_lit"
         }
       },
       "hardness": 3.5,
@@ -3314,7 +3324,9 @@
           "chance": 1
         }
       ],
-      "data": { "petramond:construction": { "form": "petramond:furnace" } }
+      "behaviors": [
+        "furnace"
+      ]
     },
     {
       "block": "petramond:chest",
@@ -3327,8 +3339,7 @@
       "tags": [
         "no_pane_connect"
       ],
-      "behavior": "inert",
-      "interaction": "open_chest",
+      "open_gui": "petramond:chest",
       "collision": [
         {
           "min": [
@@ -3359,7 +3370,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:chest_open",
+        "close": "petramond:chest_close"
+      }
     },
     {
       "block": "petramond:torch",
@@ -3370,8 +3385,9 @@
       "tags": [
         "fragile"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 28,
       "light_color": [
@@ -3408,8 +3424,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "open_furniture_workbench",
+      "open_gui": "petramond:furniture_workbench",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -3437,11 +3452,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -3469,11 +3488,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -3501,11 +3524,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -3533,11 +3560,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -3565,11 +3596,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -3598,8 +3633,9 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "door",
-      "interaction": "toggle_door",
+      "behaviors": [
+        "door"
+      ],
       "collision": [
         {
           "min": [
@@ -3635,7 +3671,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:spruce_door",
@@ -3647,8 +3687,9 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "door",
-      "interaction": "toggle_door",
+      "behaviors": [
+        "door"
+      ],
       "collision": [
         {
           "min": [
@@ -3684,7 +3725,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:birch_door",
@@ -3696,8 +3741,9 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "door",
-      "interaction": "toggle_door",
+      "behaviors": [
+        "door"
+      ],
       "collision": [
         {
           "min": [
@@ -3733,7 +3779,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:jungle_door",
@@ -3745,8 +3795,9 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "door",
-      "interaction": "toggle_door",
+      "behaviors": [
+        "door"
+      ],
       "collision": [
         {
           "min": [
@@ -3782,7 +3833,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:acacia_door",
@@ -3794,8 +3849,9 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "door",
-      "interaction": "toggle_door",
+      "behaviors": [
+        "door"
+      ],
       "collision": [
         {
           "min": [
@@ -3831,7 +3887,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:redwood_log",
@@ -3844,8 +3904,6 @@
       "tags": [
         "log"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -3892,15 +3950,17 @@
       "flags": [
         "solid",
         "ao_occluder",
-        "transparent"
+        "transparent",
+        "dims_sky"
       ],
       "tags": [
         "leaves",
         "canopy",
         "no_grass_decay"
       ],
-      "behavior": "leaves",
-      "interaction": "none",
+      "behaviors": [
+        "leaves"
+      ],
       "collision": [
         {
           "min": [
@@ -3934,8 +3994,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -3983,8 +4041,9 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "door",
-      "interaction": "toggle_door",
+      "behaviors": [
+        "door"
+      ],
       "collision": [
         {
           "min": [
@@ -4020,7 +4079,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:oak_stairs",
@@ -4031,8 +4094,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4066,8 +4127,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4101,8 +4160,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4136,8 +4193,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4171,8 +4226,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4206,8 +4259,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4241,8 +4292,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4279,8 +4328,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4317,8 +4364,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4359,8 +4404,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4398,8 +4441,7 @@
         "bed",
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "sleep",
+      "behaviors": ["bed"],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4427,8 +4469,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4462,8 +4502,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4497,8 +4535,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4532,8 +4568,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4567,8 +4601,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4602,8 +4634,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4637,8 +4667,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4675,8 +4703,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4713,8 +4739,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4755,8 +4779,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4792,8 +4814,6 @@
         "no_grass_decay",
         "merges_with_self"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -4828,8 +4848,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4851,8 +4869,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4887,8 +4903,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4923,8 +4937,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4959,8 +4971,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -4995,8 +5005,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5031,8 +5039,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5066,8 +5072,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -5114,8 +5118,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5149,8 +5151,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5184,8 +5184,6 @@
         "ao_occluder"
       ],
       "tags": [],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -5235,8 +5233,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5273,8 +5269,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5311,8 +5305,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5349,8 +5341,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5395,8 +5385,9 @@
         "fragile",
         "climbable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5426,8 +5417,9 @@
         "fragile",
         "climbable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5457,8 +5449,9 @@
         "fragile",
         "climbable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5488,8 +5481,9 @@
         "fragile",
         "climbable"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5517,11 +5511,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5558,11 +5556,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5590,11 +5592,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5622,11 +5628,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5654,11 +5664,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5686,11 +5700,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5718,11 +5736,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5750,11 +5772,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5782,11 +5808,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5814,11 +5844,15 @@
       ],
       "tags": [
         "fragile",
-        "roots_in_soil",
         "sapling"
       ],
-      "behavior": "sapling",
-      "interaction": "none",
+      "roots_on": [
+        "soil"
+      ],
+      "behaviors": [
+        "fragile",
+        "sapling"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5883,8 +5917,9 @@
         "replaceable",
         "snow_bedded"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -5972,8 +6007,9 @@
         "replaceable",
         "snow_bedded"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6095,8 +6131,9 @@
         "replaceable",
         "snow_bedded"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6218,8 +6255,9 @@
         "replaceable",
         "snow_bedded"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6249,8 +6287,9 @@
         "fragile",
         "snow_bedded"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6352,8 +6391,9 @@
         "replaceable",
         "snow_bedded"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6453,8 +6493,9 @@
         "replaceable",
         "snow_bedded"
       ],
-      "behavior": "fragile",
-      "interaction": "none",
+      "behaviors": [
+        "fragile"
+      ],
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6486,8 +6527,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "open_chiseling_station",
+      "open_gui": "petramond:chiseling_station",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -6521,8 +6561,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "toggle_trapdoor",
+      "behaviors": ["trapdoor"],
       "collision": [
         {
           "min": [
@@ -6558,7 +6597,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:spruce_trapdoor",
@@ -6570,8 +6613,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "toggle_trapdoor",
+      "behaviors": ["trapdoor"],
       "collision": [
         {
           "min": [
@@ -6607,7 +6649,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:birch_trapdoor",
@@ -6619,8 +6665,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "toggle_trapdoor",
+      "behaviors": ["trapdoor"],
       "collision": [
         {
           "min": [
@@ -6656,7 +6701,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:jungle_trapdoor",
@@ -6668,8 +6717,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "toggle_trapdoor",
+      "behaviors": ["trapdoor"],
       "collision": [
         {
           "min": [
@@ -6705,7 +6753,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:acacia_trapdoor",
@@ -6717,8 +6769,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "toggle_trapdoor",
+      "behaviors": ["trapdoor"],
       "collision": [
         {
           "min": [
@@ -6754,7 +6805,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     },
     {
       "block": "petramond:redwood_trapdoor",
@@ -6766,8 +6821,7 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "toggle_trapdoor",
+      "behaviors": ["trapdoor"],
       "collision": [
         {
           "min": [
@@ -6803,7 +6857,11 @@
           "max": 1,
           "chance": 1
         }
-      ]
+      ],
+      "sounds": {
+        "open": "petramond:door_open",
+        "close": "petramond:door_close"
+      }
     }
   ]
 }

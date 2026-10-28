@@ -15,58 +15,44 @@ pub(super) fn samples() -> Samples {
         event: EventKind::BlockPlacePre, priority: 1, handler_id: 2,
         filter: EventFilter::default(),
     }));
-    s.pin("HostCall::GetBlock", &HostCall::from(calls::GetBlock { pos: [1, -2, 3] }));
     s.pin("HostCall::GetBlocks", &HostCall::from(calls::GetBlocks { positions: vec![[0, 0, 0]] }));
-    s.pin("HostCall::SetBlock", &HostCall::from(calls::SetBlock { pos: [1, 2, 3], block: BlockId(4) }));
     s.pin("HostCall::SetBlocks", &HostCall::from(calls::SetBlocks { blocks: vec![([1, 2, 3], BlockId(5))] }));
-    s.pin("HostCall::ScheduleTick", &HostCall::from(calls::ScheduleTick { pos: [1, 2, 3], delay: 7 }));
-    s.pin("HostCall::IsLoaded", &HostCall::from(calls::IsLoaded { pos: [1, 2, 3] }));
-    s.pin("HostCall::LightAt", &HostCall::from(calls::LightAt { pos: [1, 2, 3] }));
+    s.pin("HostCall::ScheduleTicks", &HostCall::from(calls::ScheduleTicks { ticks: vec![([1, 2, 3], 7)] }));
+    s.pin("HostCall::IsLoaded", &HostCall::from(calls::IsLoaded { positions: vec![[1, 2, 3]] }));
+    s.pin("HostCall::LightAt", &HostCall::from(calls::LightAt { positions: vec![[1, 2, 3]] }));
     s.pin("HostCall::SpawnMob", &HostCall::from(calls::SpawnMob {
         key: "m:k".into(), pos: [1.0, 2.0, 3.0], yaw: 0.5, checked: true,
     }));
-    s.pin("HostCall::MobsInRadius", &HostCall::from(calls::MobsInRadius { pos: [1.0, 2.0, 3.0], radius: 4.0 }));
-    s.pin("HostCall::DamageMob", &HostCall::from(calls::DamageMob {
-        mob_id: 7, amount: 2.0, origin: Some([1.0, 2.0, 3.0]),
-        feedback: Some(crate::events::MobDamageFeedback {
-            components: vec![
-                crate::events::MobDamageFeedbackComponent::DecreaseHealth,
-                crate::events::MobDamageFeedbackComponent::Immunity { ticks: 10 },
-            ],
-        }),
+    s.pin("HostCall::EntitiesInRadius", &HostCall::from(calls::EntitiesInRadius {
+        pos: [1.0, 2.0, 3.0], radius: 4.0, filter: EntityFilter::MobsOf(vec![MobId(2)]), limit: 8,
+    }));
+    s.pin("EntityFilter::*", &vec![EntityFilter::All, EntityFilter::Mobs, EntityFilter::Items]);
+    s.pin("HostCall::Damage", &HostCall::from(calls::Damage {
+        target: EntityRef::Entity(7), amount: 2.0, origin: Some([1.0, 2.0, 3.0]),
         attacker: Some(EntityRef::Player(PlayerId(3))),
     }));
-    s.pin("HostCall::DespawnMob", &HostCall::from(calls::DespawnMob { mob_id: 7 }));
+    s.pin("HostCall::DespawnEntity", &HostCall::from(calls::DespawnEntity { entity: 7 }));
     s.pin("HostCall::SpawnItem", &HostCall::from(calls::SpawnItem {
         item: "m:i".into(), count: 3, pos: [1.0, 2.0, 3.0],
-        data: Vec::new(),
+        data: Vec::new(), vel: Some([0.0, 4.0, 0.0]), owner: Some(EntityRef::Player(PlayerId(1))),
     }));
-    s.pin("HostCall::PlayerState", &HostCall::from(calls::PlayerState));
-    s.pin("HostCall::DamagePlayer", &HostCall::from(calls::DamagePlayer {
-        player: PlayerId(1), amount: 2, origin: Some([1.0, 2.0, 3.0]),
-        attacker: Some(EntityRef::Mob(9)),
+    s.pin("HostCall::EntityImpulses", &HostCall::from(calls::EntityImpulses {
+        impulses: vec![(EntityRef::Entity(9), [1.0, 0.0, -1.0]), (EntityRef::Player(PlayerId(2)), [0.0, 1.0, 0.0])],
     }));
-    s.pin("HostCall::ApplyKnockback", &HostCall::from(calls::ApplyKnockback { impulse: [1.0, 2.0, 3.0] }));
+    s.pin("HostCall::PlayerState", &HostCall::from(calls::PlayerState { player: PlayerId(2) }));
     s.pin("HostCall::GiveItem", &HostCall::from(calls::GiveItem {
+        player: PlayerId(2),
         item: "m:i".into(),
         count: 2,
         data: vec![("m:k".into(), vec![1, 2, 3])],
     }));
-    s.pin("HostCall::SetHealth", &HostCall::from(calls::SetHealth { value: 20 }));
-    s.pin("HostCall::Teleport", &HostCall::from(calls::Teleport { pos: [1.0, 2.0, 3.0] }));
+    s.pin("HostCall::SetHealth", &HostCall::from(calls::SetHealth { player: PlayerId(2), value: 20 }));
+    s.pin("HostCall::Teleport", &HostCall::from(calls::Teleport { player: PlayerId(2), pos: [1.0, 2.0, 3.0] }));
     s.pin("HostCall::EmitSound", &HostCall::from(calls::EmitSound {
         key: "m:s".into(), pos: Some([1.0, 2.0, 3.0]),
     }));
     s.pin("HostCall::WorldKvGet", &HostCall::from(calls::WorldKvGet { key: "m:k".into() }));
-    s.pin("HostCall::WorldKvSet", &HostCall::from(calls::WorldKvSet { key: "m:k".into(), value: vec![1] }));
-    s.pin("HostCall::WorldKvDelete", &HostCall::from(calls::WorldKvDelete { key: "m:k".into() }));
-    s.pin("HostCall::SectionKvGet", &HostCall::from(calls::SectionKvGet { pos: [1, 2, 3], key: "m:k".into() }));
-    s.pin("HostCall::SectionKvSet", &HostCall::from(calls::SectionKvSet {
-        pos: [1, 2, 3], key: "m:k".into(), value: vec![2],
-    }));
-    s.pin("HostCall::SectionKvDelete", &HostCall::from(calls::SectionKvDelete {
-        pos: [1, 2, 3], key: "m:k".into(),
-    }));
+    s.pin("HostCall::WorldKvSet", &HostCall::from(calls::WorldKvSet { key: "m:k".into(), value: Some(vec![1]) }));
     s.pin("HostCall::MobTagGet", &HostCall::from(calls::MobTagGet { mob_id: 7, key: "m:k".into() }));
     s.pin("HostCall::MobTagSet", &HostCall::from(calls::MobTagSet {
         mob_id: 7, key: "m:k".into(), value: MobTagValue::I64(-3),
@@ -82,26 +68,24 @@ pub(super) fn samples() -> Samples {
     }));
     s.pin("HostCall::RegisterGenerator", &HostCall::from(calls::RegisterGenerator { callback_id: 3 }));
     s.pin("HostCall::GuiStateSet", &HostCall::from(calls::GuiStateSet {
-        key: "k".into(), value: GuiValue::I32(1),
+        to: GuiAudience::Player(PlayerId(2)), key: "k".into(), value: GuiValue::I32(1),
     }));
-    s.pin("HostCall::GuiStateGet", &HostCall::from(calls::GuiStateGet { key: "k".into() }));
-    s.pin("HostCall::GuiOpen", &HostCall::from(calls::GuiOpen { kind_key: "m:g".into(), at: Some(ContainerAddress::Block([1, 2, 3])) }));
-    s.pin("HostCall::GuiClose", &HostCall::from(calls::GuiClose));
+    s.pin("GuiAudience::Viewers", &GuiAudience::Viewers(ContainerAddress::Block([1, 2, 3])));
+    s.pin("HostCall::GuiStateGet", &HostCall::from(calls::GuiStateGet { player: PlayerId(2), key: "k".into() }));
+    s.pin("HostCall::GuiOpen", &HostCall::from(calls::GuiOpen { player: PlayerId(2), kind_key: "m:g".into(), at: Some(ContainerAddress::Block([1, 2, 3])) }));
+    s.pin("HostCall::GuiClose", &HostCall::from(calls::GuiClose { player: PlayerId(2) }));
     s.pin("HostCall::ChatSend", &HostCall::from(calls::ChatSend {
         text: "t".into(), targets: Some(vec![PlayerId(1)]),
     }));
-    s.pin("HostCall::SoundPlayAt", &HostCall::from(calls::SoundPlayAt {
-        key: "m:s".into(), pos: [1.0, 2.0, 3.0], volume: 1.0, pitch: 1.0,
+    s.pin("HostCall::SoundPlay", &HostCall::from(calls::SoundPlay {
+        key: "m:s".into(), at: SoundAt::Point([1.0, 2.0, 3.0]), volume: 1.0, pitch: 1.0,
     }));
-    s.pin("HostCall::SoundPlayOnMob", &HostCall::from(calls::SoundPlayOnMob {
-        mob_id: 1, key: "m:s".into(), volume: 1.0, pitch: 1.0,
+    s.pin("HostCall::SoundPlay(entity)", &HostCall::from(calls::SoundPlay {
+        key: "m:s".into(), at: SoundAt::Entity(1), volume: 1.0, pitch: 1.0,
     }));
     s.pin("HostCall::SoundStop", &HostCall::from(calls::SoundStop { handle: 1 }));
     s.pin("HostCall::ShaderSetParam", &HostCall::from(calls::ShaderSetParam {
         key: "m:p".into(), value: [0.0, 0.25, 0.5, 1.0],
-    }));
-    s.pin("HostCall::RegisterHostileSpawner", &HostCall::from(calls::RegisterHostileSpawner {
-        callback_id: 1, priority: 2,
     }));
     s.pin("HostCall::RegisterBlockBehavior", &HostCall::from(calls::RegisterBlockBehavior {
         key: "m:b".into(), callback_id: 1,
@@ -109,9 +93,8 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::RegisterAiNode", &HostCall::from(calls::RegisterAiNode {
         key: "m:n".into(), callback_id: 2,
     }));
-    s.pin("HostCall::ContainerGet", &HostCall::from(calls::ContainerGet { at: ContainerAddress::Block([1, 2, 3]) }));
     s.pin("HostCall::ContainerSet", &HostCall::from(calls::ContainerSet {
-        at: ContainerAddress::Mob(9),
+        at: ContainerAddress::Entity(9),
         slots: vec![(0, Some(ItemStackData { item: "m:i".into(), count: 1, data: Vec::new() })), (1, None)],
     }));
     s.pin("HostCall::ItemInfo", &HostCall::from(calls::ItemInfo {
@@ -120,13 +103,13 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::RecipeResult", &HostCall::from(calls::RecipeResult {
         class: "m:c".into(), item: "m:i".into(),
     }));
-    s.pin("HostCall::EffectApply", &HostCall::from(calls::EffectApply { key: "m:e".into(), ticks: 5 }));
-    s.pin("HostCall::EffectsActive", &HostCall::from(calls::EffectsActive));
-    s.pin("HostCall::SwapBlock", &HostCall::from(calls::SwapBlock {
-        pos: [1, 2, 3], block: BlockId(6),
+    s.pin("HostCall::EffectApply", &HostCall::from(calls::EffectApply { player: PlayerId(2), key: "m:e".into(), ticks: 5 }));
+    s.pin("HostCall::EffectsActive", &HostCall::from(calls::EffectsActive { player: PlayerId(2) }));
+    s.pin("HostCall::SwapBlocks", &HostCall::from(calls::SwapBlocks {
+        swaps: vec![([1, 2, 3], BlockId(6))],
     }));
-    s.pin("HostCall::ContainerGetMany", &HostCall::from(calls::ContainerGetMany {
-        addresses: vec![ContainerAddress::Block([1, 2, 3]), ContainerAddress::Mob(4)],
+    s.pin("HostCall::ContainerGet", &HostCall::from(calls::ContainerGet {
+        addresses: vec![ContainerAddress::Block([1, 2, 3]), ContainerAddress::Entity(4)],
     }));
     s.pin("HostCall::MobEmitterSet", &HostCall::from(calls::MobEmitterSet {
         mob_id: 7, key: "m:e".into(), active: true,
@@ -200,12 +183,16 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::ClientStorageReadPoll", &HostCall::from(calls::ClientStorageReadPoll {
         scope: ClientStorageScope::Pack, ticket: 7,
     }));
-    s.pin("HostCall::ConsumeHeld", &HostCall::from(calls::ConsumeHeld { item: ItemId(3), count: 1 }));
-    s.pin("HostCall::ReplaceHeldOne", &HostCall::from(calls::ReplaceHeldOne { item: ItemId(3), replacement: "m:i".into() }));
-    s.pin("HostCall::MobMount", &HostCall::from(calls::MobMount {
-        mob_id: 7, player_id: PlayerId(1), seat: 0,
+    s.pin("HostCall::ConsumeHeld", &HostCall::from(calls::ConsumeHeld { player: PlayerId(2), item: ItemId(3), count: 1 }));
+    s.pin("HostCall::ReplaceHeldOne", &HostCall::from(calls::ReplaceHeldOne { player: PlayerId(2), item: ItemId(3), replacement: "m:i".into() }));
+    s.pin("HostCall::Attach", &HostCall::from(calls::Attach {
+        player_id: PlayerId(1), to: AttachTo::Seat { entity: 7, seat: 1 }, posture: Posture::Seated,
     }));
-    s.pin("HostCall::MobDismount", &HostCall::from(calls::MobDismount { player_id: PlayerId(1) }));
+    s.pin("HostCall::Attach(at)", &HostCall::from(calls::Attach {
+        player_id: PlayerId(1), to: AttachTo::At { pos: [1.5, 2.0, -3.5], yaw: 0.5 },
+        posture: Posture::Lying,
+    }));
+    s.pin("HostCall::Detach", &HostCall::from(calls::Detach { player_id: PlayerId(1) }));
     s.pin("HostCall::MobRiders", &HostCall::from(calls::MobRiders { mob_id: 7 }));
     s.pin("HostCall::MobDrive", &HostCall::from(calls::MobDrive {
         mob_id: 7, horizontal: Some([1.0, 2.0]), vertical: Some(4.5), yaw: Some(0.5), while_walking: true,
@@ -220,17 +207,15 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::MobAnimSeek", &HostCall::from(calls::MobAnimSeek {
         mob_id: 7, anim: "row".into(), phase: 1.5, rate: 0.75,
     }));
-    s.pin("HostCall::PlayerInput", &HostCall::from(calls::PlayerInput { player_id: PlayerId(1) }));
     s.pin("HostCall::MobAnimState", &HostCall::from(calls::MobAnimState {
         mob_id: 7, anim: "row".into(),
     }));
-    s.pin("HostCall::BiomeAt", &HostCall::from(calls::BiomeAt { pos: [1, -2] }));
-    s.pin("HostCall::SurfaceYAt", &HostCall::from(calls::SurfaceYAt { pos: [1, -2] }));
+    s.pin("HostCall::BiomeAt", &HostCall::from(calls::BiomeAt { columns: vec![[1, -2]] }));
+    s.pin("HostCall::SurfaceYAt", &HostCall::from(calls::SurfaceYAt { columns: vec![[1, -2]] }));
     s.pin("HostCall::Players", &HostCall::from(calls::Players));
     s.pin("HostCall::ClientEnvParams", &HostCall::from(calls::ClientEnvParams {
         keys: vec!["m:k".into()],
     }));
-    s.pin("HostCall::ClientBiomeAt", &HostCall::from(calls::ClientBiomeAt { pos: [1, -2] }));
     s.pin("HostCall::ClientAmbientSet", &HostCall::from(calls::ClientAmbientSet {
         key: "m:rain".into(), intensity: 0.5, wind: [1.0, -2.0],
     }));
@@ -240,16 +225,13 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::ClientMoodSet", &HostCall::from(calls::ClientMoodSet {
         darken: 0.25, desaturate: 0.5,
     }));
-    s.pin("HostCall::ClientBlocksAt", &HostCall::from(calls::ClientBlocksAt {
-        positions: vec![[1, -2, 3]],
-    }));
     s.pin("HostCall::BlocksByTag", &HostCall::from(calls::BlocksByTag { tag: "m:t".into() }));
     s.pin("HostCall::ItemsByTag", &HostCall::from(calls::ItemsByTag { tag: "m:t".into() }));
     s.pin("HostCall::BlockNames", &HostCall::from(calls::BlockNames { blocks: vec![BlockId(1), BlockId(9)] }));
     s.pin("HostCall::ItemNames", &HostCall::from(calls::ItemNames { items: vec![ItemId(1), ItemId(9)] }));
     s.pin("HostCall::ResolveMob", &HostCall::from(calls::ResolveMob { key: "m:k".into() }));
     s.pin("HostCall::MobNames", &HostCall::from(calls::MobNames { mobs: vec![MobId(1), MobId(9)] }));
-    s.pin("HostCall::CollisionShapeAt", &HostCall::from(calls::CollisionShapeAt { pos: [1, 2, 3] }));
+    s.pin("HostCall::CollisionShapeAt", &HostCall::from(calls::CollisionShapeAt { positions: vec![[1, 2, 3]] }));
     s.pin("HostCall::MobTagsGet", &HostCall::from(calls::MobTagsGet { mob_id: 7 }));
     s.pin("HostCall::MobsWithTag", &HostCall::from(calls::MobsWithTag {
         key: "m:k".into(), value: Some(MobTagValue::I64(-3)),
@@ -257,16 +239,10 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::FindBlocks", &HostCall::from(calls::FindBlocks {
         min: [-1, 2, -3], max: [4, 5, 6], blocks: vec![BlockId(1), BlockId(9)],
     }));
-    s.pin("HostCall::MobInfo", &HostCall::from(calls::MobInfo { mob_id: 7 }));
+    s.pin("HostCall::EntityInfo", &HostCall::from(calls::EntityInfo { entities: vec![7, 9] }));
     s.pin("HostCall::MobCanReach", &HostCall::from(calls::MobCanReach { mob_id: 7, cell: [1, -2, 3] }));
     s.pin("HostCall::ResolveShape", &HostCall::from(calls::ResolveShape { key: "m:s".into() }));
-    s.pin("HostCall::PlayerPoseSet", &HostCall::from(calls::PlayerPoseSet {
-        player_id: PlayerId(1), anchor: [1.5, 2.0, -3.5], yaw: 0.5, pose: pose::SITTING,
-    }));
-    s.pin("HostCall::BlockModelGroup", &HostCall::from(calls::BlockModelGroup { pos: [1, 2, 3] }));
-    s.pin("HostCall::ClientCellKvAt", &HostCall::from(calls::ClientCellKvAt {
-        key: "m:k".into(), cells: vec![[1, -2, 3]],
-    }));
+    s.pin("HostCall::CellGroup", &HostCall::from(calls::CellGroup { positions: vec![[1, 2, 3]] }));
     s.pin("HostCall::ItemDataGet", &HostCall::from(calls::ItemDataGet { item: ItemId(3), key: "m:k".into() }));
     s.pin("HostCall::ItemsWithData", &HostCall::from(calls::ItemsWithData { key: "m:k".into() }));
     s.pin("HostCall::BlockDataGet", &HostCall::from(calls::BlockDataGet { block: BlockId(4), key: "m:k".into() }));
@@ -301,11 +277,10 @@ pub(super) fn samples() -> Samples {
         columns: vec![[1, -2]],
     }));
     s.pin("HostCall::SetModelParts", &HostCall::from(calls::SetModelParts {
-        pos: [1, 2, 3], parts: 5, tint: Some([9, 8, 7]),
+        sets: vec![([1, 2, 3], 5, Some([9, 8, 7]))],
     }));
-    s.pin("HostCall::SetBlockDraw", &HostCall::from(calls::SetBlockDraw {
-        pos: [1, 2, 3],
-        prims: vec![
+    s.pin("HostCall::SetBlockDraws", &HostCall::from(calls::SetBlockDraws {
+        sets: vec![([1, 2, 3], vec![
             crate::DrawPrim::Cuboid {
                 min: [0.0, 0.25, 0.0], max: [1.0, 0.5, 1.0],
                 tile: "stone".into(), tint: [9, 8, 7], emissive: true,
@@ -314,41 +289,19 @@ pub(super) fn samples() -> Samples {
                 at: [0.5, 0.5, 0.5], scale: 0.5, yaw: 1.5, pitch: 0.25,
                 item: "m:i".into(), tint: [1, 2, 3],
             },
-        ],
+        ])],
     }));
     s.pin("HostCall::BlockLocalToWorld", &HostCall::from(calls::BlockLocalToWorld {
         pos: [1, 2, 3], points: vec![[0.25, 0.5, 0.75]],
     }));
-    s.pin("HostCall::SetBlockDraws", &HostCall::from(calls::SetBlockDraws {
-        sets: vec![([1, 2, 3], vec![crate::DrawPrim::Cuboid {
-            min: [0.0, 0.25, 0.0], max: [1.0, 0.5, 1.0],
-            tile: "stone".into(), tint: [9, 8, 7], emissive: true,
-        }])],
-    }));
-    s.pin("HostCall::SetModelPartsMany", &HostCall::from(calls::SetModelPartsMany {
-        sets: vec![([1, 2, 3], 5, Some([9, 8, 7]))],
-    }));
-    s.pin("HostCall::SectionKvGetMany", &HostCall::from(calls::SectionKvGetMany {
+    s.pin("HostCall::SectionKvGet", &HostCall::from(calls::SectionKvGet {
         key: "m:k".into(), positions: vec![[1, 2, 3]],
     }));
-    s.pin("HostCall::SectionKvSetMany", &HostCall::from(calls::SectionKvSetMany {
+    s.pin("HostCall::SectionKvSet", &HostCall::from(calls::SectionKvSet {
         key: "m:k".into(), writes: vec![([1, 2, 3], Some(vec![7])), ([4, 5, 6], None)],
     }));
     s.pin("HostCall::GuiViewers", &HostCall::from(calls::GuiViewers));
-    s.pin("HostCall::GuiStateSetFor", &HostCall::from(calls::GuiStateSetFor {
-        player_id: PlayerId(2), key: "k".into(), value: GuiValue::F32(0.5),
-    }));
-    s.pin("HostCall::BlockInfo", &HostCall::from(calls::BlockInfo { block: BlockId(300) }));
     s.pin("HostCall::PlayerHeld", &HostCall::from(calls::PlayerHeld { player: PlayerId(2) }));
-    s.pin(
-        "HostCall::GiveItemTo",
-        &HostCall::from(calls::GiveItemTo {
-            player: PlayerId(2),
-            item: "i".into(),
-            count: 3,
-            data: vec![("k".into(), vec![7])],
-        }),
-    );
     s.pin(
         "HostCall::SetPlayerHeldData",
         &HostCall::from(calls::SetPlayerHeldData {
@@ -387,16 +340,11 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::Raycast", &HostCall::from(calls::Raycast {
         from: [1.0, 2.0, 3.0], dir: [0.0, -1.0, 0.0], max: 8.0, filter: RayFilter::Collidable,
     }));
-    s.pin("HostCall::LaunchItem", &HostCall::from(calls::LaunchItem {
-        item: "m:i".into(), pos: [1.0, 2.0, 3.0], vel: [0.0, 4.0, 0.0],
-        owner: Some(EntityRef::Player(PlayerId(1))), data: vec![],
-    }));
-    s.pin("HostCall::ItemEntity", &HostCall::from(calls::ItemEntity { entity: 9 }));
     s.pin("HostCall::TakeItem", &HostCall::from(calls::TakeItem {
         player: PlayerId(2), item: "m:i".into(), count: 3, data: Some(vec![("m:k".into(), vec![7])]),
     }));
-    s.pin("HostCall::SetPlayerHeldDisplay", &HostCall::from(calls::SetPlayerHeldDisplay {
-        player: PlayerId(3), main: Some("m:i".into()), off: None,
+    s.pin("HostCall::SetHeldDisplay", &HostCall::from(calls::SetHeldDisplay {
+        body: EntityRef::Player(PlayerId(3)), main: Some("m:i".into()), off: None,
     }));
     s.pin("HostCall::PlayerInventory", &HostCall::from(calls::PlayerInventory { player: PlayerId(3) }));
     s.pin("HostCall::MobKinematic", &HostCall::from(calls::MobKinematic {
@@ -405,19 +353,12 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::SoundSet", &HostCall::from(calls::SoundSet { handle: 1, volume: 0.5, pitch: 1.0 }));
 
     s.pin("HostCall::ContainerInsert", &HostCall::from(calls::ContainerInsert { at: ContainerAddress::Block([1, 2, 3]), stack: ItemStackData {item: "m:i".into(), count: 2, data: Vec::new()} }));
-    s.pin("HostCall::ContainerTake", &HostCall::from(calls::ContainerTake { at: ContainerAddress::Mob(5), slot: 4, count: 2 }));
+    s.pin("HostCall::ContainerTake", &HostCall::from(calls::ContainerTake { at: ContainerAddress::Entity(5), slot: 4, count: 2 }));
 
-    s.pin("HostCall::ItemEntitiesInRadius", &HostCall::from(calls::ItemEntitiesInRadius { pos: [1.0, 2.0, 3.0], radius: 4.0, limit: 8 }));
-    s.pin("HostCall::ItemImpulses", &HostCall::from(calls::ItemImpulses { impulses: vec![(9, [1.0, 0.0, -1.0])] }));
     s.pin("HostCall::SteerItem", &HostCall::from(calls::SteerItem { entity: 9, vel: Some([1.0, 0.0, -1.0]) }));
-    s.pin("HostCall::TakeItemEntity", &HostCall::from(calls::TakeItemEntity { entity: 9 }));
-    s.pin("HostCall::SetItemDraw", &HostCall::from(calls::SetItemDraw {
-        entity: 9, frame: crate::DrawFrame::Body,
-        prims: vec![crate::DrawPrim::Cuboid {
-            min: [-0.25, 0.0, -0.25], max: [0.25, 0.5, 0.25], tile: "m:t".into(), tint: [1, 2, 3], emissive: false,
-        }],
+    s.pin("HostCall::SetItemRules", &HostCall::from(calls::SetItemRules {
+        entity: 9, rules: Some(ItemEntityRules { pickup: false, lifetime_ticks: Some(40) }),
     }));
-    s.pin("HostCall::SetItemRules", &HostCall::from(calls::SetItemRules { entity: 9, rules: Some(b"{}".to_vec()) }));
     s.pin("HostCall::SetItemFacing", &HostCall::from(calls::SetItemFacing { entity: 9, facing: Some([0.0, 0.0, -1.0]) }));
     s.pin("HostCall::SectionKvFind", &HostCall::from(calls::SectionKvFind { section: [-1, -2, 3], key: "fixture:marker".into() }));
     s.pin("HostCall::StructureInfo", &HostCall::from(calls::StructureInfo { key: "fixture:room".into() }));
@@ -425,8 +366,7 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::MobDataGet", &HostCall::from(calls::MobDataGet { mob: MobId(4), key: "m:k".into() }));
     s.pin("HostCall::MobsWithData", &HostCall::from(calls::MobsWithData { key: "m:k".into() }));
     s.pin("HostCall::TerrainSpaceAt", &HostCall::from(calls::TerrainSpaceAt { positions: vec![[1, -2, 3]] }));
-    s.pin("HostCall::MemoGet", &HostCall::from(calls::MemoGet { key: b"k".to_vec() }));
-    s.pin("HostCall::MemoGetMany", &HostCall::from(calls::MemoGetMany { keys: vec![b"k".to_vec()] }));
+    s.pin("HostCall::MemoGet", &HostCall::from(calls::MemoGet { keys: vec![b"k".to_vec()] }));
     s.pin("HostCall::MemoPut", &HostCall::from(calls::MemoPut { key: b"k".to_vec(), value: b"v".to_vec() }));
     s.pin("HostCall::MemoClaim", &HostCall::from(calls::MemoClaim { key: b"k".to_vec() }));
 
@@ -442,23 +382,25 @@ pub(super) fn samples() -> Samples {
     s.pin("HostRet::Bool", &HostRet::Bool(true));
     s.pin("HostRet::Block", &HostRet::Block(Some(BlockId(1))));
     s.pin("HostRet::Blocks", &HostRet::Blocks(vec![None, Some(BlockId(2))]));
-    s.pin("HostRet::Light", &HostRet::Light(Some(LightData { combined: 1, sky: 2, block: 3, block_rgb: [3, 2, 1] })));
     s.pin("HostRet::Mobs", &HostRet::Mobs(vec![MobSnapshot {
-        target: Some(EntityRef::Mob(9)),
+        target: Some(EntityRef::Entity(9)),
         index: 1, kind: MobId(2), pos: [1.0, 2.0, 3.0], health: 4.0, id: 5,
         yaw: 0.5, pitch: 0.0, roll: 0.0, vel: [1.0, 0.0, 2.0], on_ground: true, moving: false,
         half_width: 0.4, height: 1.2, half_length: 0.4, entombed: false,
         conditions: vec![ConditionData { condition: ConditionId(0), stage: 1, remaining: 120, elapsed: 3 }],
     }]));
-    s.pin("HostRet::Player", &HostRet::Player(Box::new(PlayerSnapshot {
+    s.pin("HostRet::Player", &HostRet::Player(Some(Box::new(PlayerSnapshot {
         id: Some(PlayerId(1)),
         pos: [1.0, 2.0, 3.0], vel: [0.0, 0.0, 0.0], yaw: 0.5, pitch: 0.25,
         health: 20, on_ground: true, spectator: false, sneak: true, held: Some(ItemId(2)), held_count: 3,
         off_held: None, use_held: false, holds_use: false,
-        pose_anchor: Some([1.5, 2.0, -3.5]),
+        attached: Some(Attachment {
+            to: AttachTo::At { pos: [1.5, 2.0, -3.5], yaw: 0.5 },
+            posture: Posture::Seated,
+        }),
         swing: crate::HandSwing { mining: true, main: Some(crate::SwingKind::Attack), off: None },
         half_width: 0.3, height: 1.8, eye_height: 1.62, entombed: false, conditions: Vec::new(),
-    })));
+    }))));
     s.pin("HostRet::Bytes", &HostRet::Bytes(Some(vec![1])));
     s.pin("HostRet::MobTag", &HostRet::MobTag(MobTagLookup::Value(MobTagValue::Bool(true))));
     s.pin("HostRet::GuiValue", &HostRet::GuiValue(Some(GuiValue::F32(1.0))));
@@ -466,7 +408,7 @@ pub(super) fn samples() -> Samples {
         Some(ItemStackData { item: "m:i".into(), count: 1, data: Vec::new() }), None,
     ])));
     s.pin("HostRet::ItemInfo", &HostRet::ItemInfo(Some(Box::new(ItemInfoData {
-        max_stack: 64, fuel_burn_ticks: 0, tags: vec!["t".into()],
+        max_stack: 64, tags: vec!["t".into()],
         display_name: "N".into(), block: Some(BlockId(2)),
         tool: Some(ToolInfoData {
             kind: "pickaxe".into(),
@@ -479,14 +421,13 @@ pub(super) fn samples() -> Samples {
             eat_ticks: 60,
             effects: vec![FoodEffectData { effect: "m:e".into(), ticks: 100 }],
         }),
-        item_use: Some("bucket_fill".into()),
     }))));
     s.pin("HostRet::ItemStack", &HostRet::ItemStack(Some(ItemStackData {
         item: "m:i".into(), count: 2, data: Vec::new(),
     })));
-    s.pin("HostRet::Effects", &HostRet::Effects(vec![EffectStateData {
+    s.pin("HostRet::Effects", &HostRet::Effects(Some(vec![EffectStateData {
         key: "m:e".into(), remaining: 9,
-    }]));
+    }])));
     s.pin("HostRet::Containers", &HostRet::Containers(vec![Some(vec![None]), None]));
     s.pin("HostRet::RuntimeSide", &HostRet::RuntimeSide(RuntimeSide::Client));
     s.pin("HostRet::ClientSurfaceColumns", &HostRet::ClientSurfaceColumns(vec![
@@ -501,17 +442,15 @@ pub(super) fn samples() -> Samples {
     s.pin("HostRet::Riders", &HostRet::Riders(Some(MobRidersData {
         capacity: 2, riders: vec![MobRiderData { seat: 0, player_id: PlayerId(1) }],
     })));
-    s.pin("HostRet::ModelGroup", &HostRet::ModelGroup(Some(ModelGroupData {
-        base: [1, -2, 3], facing: Facing::East,
-    })));
-    s.pin("HostRet::PlayerInput", &HostRet::PlayerInput(Some(PlayerInputData {
-        forward: 1.0, strafe: -1.0, jump: true, sneak: false, yaw: 0.5, pitch: 0.25,
-    })));
+    s.pin("HostRet::CellGroups", &HostRet::CellGroups(vec![None, Some(CellGroupData {
+        anchor: [1, -2, 3], facing: Some(Facing::East), cells: vec![[1, -2, 3], [2, -2, 3]],
+    })]));
     s.pin("HostRet::MobAnimState", &HostRet::MobAnimState(Some(MobAnimStateData {
         phase: 1.5, rate: 0.75, seek: Some(2.0),
     })));
     s.pin("HostRet::MaybeByte", &HostRet::MaybeByte(Some(4)));
-    s.pin("HostRet::MaybeI32", &HostRet::MaybeI32(Some(-7)));
+    s.pin("HostRet::MaybeI32s", &HostRet::MaybeI32s(vec![Some(-7), None]));
+    s.pin("HostRet::Biomes", &HostRet::Biomes(vec![Some(4), None]));
     s.pin("HostRet::Players", &HostRet::Players(vec![PlayerListEntry {
         id: PlayerId(1),
         state: PlayerSnapshot {
@@ -519,7 +458,7 @@ pub(super) fn samples() -> Samples {
             pos: [1.0, 2.0, 3.0], vel: [0.0, 0.0, 0.0], yaw: 0.5, pitch: 0.25,
             health: 20, on_ground: true, spectator: false, sneak: false, held: None, held_count: 0,
             off_held: Some(ItemId(5)), use_held: true, holds_use: false,
-            pose_anchor: None,
+            attached: None,
             swing: crate::HandSwing::default(),
             half_width: 0.3, height: 1.8, eye_height: 1.62, entombed: false, conditions: Vec::new(),
         },
@@ -529,24 +468,31 @@ pub(super) fn samples() -> Samples {
     s.pin("HostRet::ItemList", &HostRet::ItemList(vec![ItemId(1), ItemId(9)]));
     s.pin("HostRet::Names", &HostRet::Names(vec![None, Some("m:b".into())]));
     s.pin("HostRet::MobKind", &HostRet::MobKind(Some(MobId(1))));
-    s.pin("HostRet::CollisionShape", &HostRet::CollisionShape(Some(CollisionShape::Full)));
+    s.pin("HostRet::CollisionShapes", &HostRet::CollisionShapes(vec![Some(CollisionShape::Full), None]));
     s.pin("HostRet::MobTags", &HostRet::MobTags(Some(vec![
         ("m:k".into(), MobTagValue::Bool(true)),
     ])));
     s.pin("HostRet::SpawnedMob", &HostRet::SpawnedMob(Some(7)));
     s.pin("HostRet::FoundBlocks", &HostRet::FoundBlocks(Some(vec![[1, -2, 3]])));
-    s.pin("HostRet::Mob", &HostRet::Mob(Some(MobSnapshot {
-        target: Some(EntityRef::Mob(9)),
-        index: 1, kind: MobId(2), pos: [1.0, 2.0, 3.0], health: 4.0, id: 5,
-        yaw: 0.5, pitch: 0.0, roll: 0.0, vel: [1.0, 0.0, 2.0], on_ground: true, moving: false,
-        half_width: 0.4, height: 1.2, half_length: 0.4, entombed: false,
-        conditions: vec![ConditionData { condition: ConditionId(0), stage: 1, remaining: 120, elapsed: 3 }],
+    s.pin("HostRet::EntityInfos", &HostRet::EntityInfos(vec![
+        Some(EntityData::Mob(MobSnapshot {
+            target: Some(EntityRef::Entity(9)),
+            index: 1, kind: MobId(2), pos: [1.0, 2.0, 3.0], health: 4.0, id: 5,
+            yaw: 0.5, pitch: 0.0, roll: 0.0, vel: [1.0, 0.0, 2.0], on_ground: true, moving: false,
+            half_width: 0.4, height: 1.2, half_length: 0.4, entombed: false,
+            conditions: vec![ConditionData { condition: ConditionId(0), stage: 1, remaining: 120, elapsed: 3 }],
+        })),
+        Some(EntityData::Item(ItemEntityData {
+            id: 9, stack: ItemStackData { item: "m:i".into(), count: 1, data: vec![("m:k".into(), vec![7])] },
+            owner: Some(EntityRef::Player(PlayerId(0))), pos: [1.0, 2.0, 3.0], vel: [0.0, 0.0, -4.0],
+            motion: ItemMotion::Flight,
+        })),
+        None,
+    ]));
+    s.pin("HostRet::Despawned", &HostRet::Despawned(Some(Despawned {
+        stack: Some(ItemStackData { item: "m:i".into(), count: 2, data: Vec::new() }),
     })));
-    s.pin("HostRet::ItemEntity", &HostRet::ItemEntity(Some(Box::new(ItemEntityData {
-        id: 9, stack: ItemStackData { item: "m:i".into(), count: 1, data: vec![("m:k".into(), vec![7])] },
-        owner: Some(EntityRef::Player(PlayerId(0))), pos: [1.0, 2.0, 3.0], vel: [0.0, 0.0, -4.0],
-        motion: ItemMotion::Flight,
-    }))));
+    s.pin("HostRet::Ids", &HostRet::Ids(vec![3, 4]));
     s.pin("HostRet::BytesMany", &HostRet::BytesMany(vec![Some(vec![1, 2]), None]));
     s.pin("HostRet::ItemDataRows", &HostRet::ItemDataRows(vec![(ItemId(3), "{}".into())]));
     s.pin("HostRet::BlockDataRows", &HostRet::BlockDataRows(vec![(BlockId(4), "{}".into())]));
@@ -558,7 +504,7 @@ pub(super) fn samples() -> Samples {
     s.pin("HostRet::GuiViewers", &HostRet::GuiViewers(vec![GuiViewerData {
         player_id: PlayerId(2), kind: "m:g".into(), anchor: Some(ContainerAddress::Block([1, 2, 3])),
     }]));
-    s.pin("HostRet::BlockInfo", &HostRet::BlockInfo(Some(Box::new(BlockInfoData {
+    s.pin("HostRet::BlockInfos", &HostRet::BlockInfos(vec![None, Some(BlockInfoData {
         material: "stone".into(), hardness: 1.5, harvest_tier: 1,
         preferred_tool: Some("pickaxe".into()), item: Some(ItemId(300)),
         collision: vec![([0.0, 0.0, 0.0], [1.0, 0.5, 1.0])],
@@ -568,15 +514,16 @@ pub(super) fn samples() -> Samples {
             contact_damage: Some(PulseData { amount: 3, interval: 10 }),
             applies: Some(ConditionGrantData { condition: ConditionId(0), stage: 1, ticks: 120 }),
             clears: vec![ConditionId(1)], destroys_items: true,
-        }), medium: Some(BlockId(9)), replaceable: false, interaction: Some(crate::BlockUse::ToggleDoor),
-    }))));
+        }), medium: Some(BlockId(9)), replaceable: false, open_gui: Some("m:g".into()),
+        behaviors: vec!["door".into()], answers_use: true, roots_on: vec!["petramond:soil".into()],
+    })]));
     s.pin("HostRet::HeldStack", &HostRet::HeldStack(Some(ItemStackData {
         item: "m:i".into(), count: 1, data: vec![("m:k".into(), vec![7])],
     })));
     s.pin("HostRet::Raycast", &HostRet::Raycast(Some(RaycastHitData {
         block: [1, 2, 3], face: [0, 1, 0], distance: 2.5,
     })));
-    s.pin("HostRet::ItemEntities", &HostRet::ItemEntities(Vec::new()));
+    s.pin("HostRet::Entities", &HostRet::Entities(Vec::new()));
     s.pin("HostRet::StructureInfo", &HostRet::StructureInfo(Some(Box::new(StructureInfoData {
         bounds: [([-1, 0, -2], [1, 3, 2]); 4],
         connectors: vec![StructureConnectorData { name: "out".into(), kind: "fixture:door".into(), pos: [0, 0, 2], normal: [0, 0, 1] }],
@@ -595,7 +542,7 @@ pub(super) fn samples() -> Samples {
     s.pin("HostRet::TerrainSpaces", &HostRet::TerrainSpaces(vec![TerrainSpace::Air, TerrainSpace::Fluid, TerrainSpace::Solid]));
     s.pin("GuestCall::TickSystem", &GuestCall::TickSystem { id: 1 });
     s.pin("GuestCall::HandleEvent", &GuestCall::HandleEvent {
-        id: 1, payload: EventPayload::PlayerDied,
+        id: 1, payload: EventPayload::PlayerDied { player: PlayerId(2) },
     });
     s.pin("GuestCall::GenFeature", &GuestCall::GenFeature {
         feature_id: 1, section_pos: [1, 2, 3], seed: 4,
@@ -624,17 +571,12 @@ pub(super) fn samples() -> Samples {
         blocks: vec![1], surface_heights: vec![2], biomes: vec![3], sea_level: 4,
     });
     s.pin("GuestCall::GuiClick", &GuestCall::GuiClick {
-        kind_key: "m:g".into(), widget_id: "w".into(), at: Some(ContainerAddress::Mob(7)),
-    });
-    s.pin("GuestCall::HostileSpawnCandidate", &GuestCall::HostileSpawnCandidate {
-        callback_id: 1,
-        candidate: HostileSpawnCandidate {
-            pos: [1.0, 2.0, 3.0], cell: [1, 2, 3], combined_light: 1, sky_light: 2, block_light: 3,
-            nearest_player_dist: 40.0,
-        },
+        player: PlayerId(2),
+        kind_key: "m:g".into(), widget_id: "w".into(), at: Some(ContainerAddress::Entity(7)),
     });
     s.pin("GuestCall::BlockBehavior", &GuestCall::BlockBehavior {
-        callback_id: 1, kind: BlockHookKind::RandomTick, pos: [1, 2, 3],
+        callback_id: 1,
+        hooks: vec![(BlockHookKind::RandomTick, [1, 2, 3]), (BlockHookKind::ScheduledTick, [4, 5, 6])],
     });
     s.pin("GuestCall::AiNode", &GuestCall::AiNode {
         callback_id: 1,
@@ -642,7 +584,7 @@ pub(super) fn samples() -> Samples {
             mob_id: 1, pos: [1.0, 2.0, 3.0], cell: [1, 2, 3], yaw: 0.5,
             tick: 9, player_id: PlayerId(2),
             player_pos: [4.0, 5.0, 6.0], nav_idle: true, in_fluid: Some(BlockId(3)),
-            target: Some(EntityRef::Mob(8)), attacker: Some((EntityRef::Player(PlayerId(2)), 3)),
+            target: Some(EntityRef::Entity(8)), attacker: Some((EntityRef::Player(PlayerId(2)), 3)),
             player_held: Some(ItemId(7)), player_foothold: Some([4, 5, 6]),
             tags: vec![("m:k".into(), MobTagValue::I64(-3))],
         },
@@ -698,11 +640,10 @@ pub(super) fn samples() -> Samples {
     s.pin("GuestRet::GenOutput", &GuestRet::GenOutput(vec![([1, 2, 3], BlockId(4))].into()));
     s.pin("GuestRet::GenBlocks", &GuestRet::GenBlocks(vec![1, 2]));
     s.pin("GuestRet::GenBiomes", &GuestRet::GenBiomes(vec![3]));
-    s.pin("GuestRet::HostileSpawn", &GuestRet::HostileSpawn(Some("m:k".into())));
     s.pin("GuestRet::AiDecision", &GuestRet::AiDecision(Some(AiNodeDecision {
         goal: Some([1, 2, 3]), head_look: Some([0.5, 0.25]), facing: Some(1.0),
         speed_scale: Some(2.0), idle_anim: Some(1), attack: Some([2.0, 3.0]),
-        animation: Some("m".into()), target: Some(EntityRef::Mob(4)),
+        animation: Some("m".into()), target: Some(EntityRef::Entity(4)),
         claims: ChannelClaims::of(&[DecisionChannel::Attack, DecisionChannel::Target]),
         tags: vec![MobTagWrite { key: "m:k".into(), value: Some(MobTagValue::Bool(true)) }],
     })));
@@ -766,7 +707,7 @@ pub(super) fn samples() -> Samples {
     s.pin("GuestRet::Unsupported", &GuestRet::Unsupported);
 
     s.pin("EventPayload::BlockPlacePre", &EventPayload::BlockPlacePre {
-        pos: [1, 2, 3], block: BlockId(1), facing: Facing::North, actor: EntityRef::Mob(3),
+        pos: [1, 2, 3], block: BlockId(1), facing: Facing::North, actor: EntityRef::Entity(3),
     });
     s.pin("EventPayload::BlockBreakPre", &EventPayload::BlockBreakPre {
         pos: [1, 2, 3], block: BlockId(1), harvested: true, actor: EntityRef::Player(PlayerId(2)),
@@ -784,14 +725,15 @@ pub(super) fn samples() -> Samples {
         block: None, face: None, mob: Some(7), target: Some(PlayerId(2)), player: PlayerId(0),
     });
     s.pin("EventPayload::ProjectileHit", &EventPayload::ProjectileHit {
-        entity: 9, item: ItemId(1), target: ProjectileTarget::Mob(7),
+        entity: 9, item: ItemId(1), target: ProjectileTarget::Body(EntityRef::Entity(7)),
         pos: [1.0, 2.0, 3.0], vel: [0.0, 0.0, -4.0], fate: ProjectileFate::Drop,
     });
     s.pin("EventPayload::CellsEditPre", &EventPayload::CellsEditPre {
         min: [1, 2, 3], max: [4, 5, 6], cells: 7, actor: EntityRef::Player(PlayerId(2)),
     });
     s.pin("ProjectileTarget::*", &vec![
-        ProjectileTarget::Mob(7), ProjectileTarget::Player(PlayerId(2)),
+        ProjectileTarget::Body(EntityRef::Entity(7)),
+        ProjectileTarget::Body(EntityRef::Player(PlayerId(2))),
         ProjectileTarget::Block { pos: [1, 2, 3], face: [0, 1, 0] },
     ]);
     s.pin("ProjectileFate::*", &vec![
@@ -802,7 +744,7 @@ pub(super) fn samples() -> Samples {
         ItemMotion::Loose, ItemMotion::Flight, ItemMotion::Stuck { cell: [1, 2, 3] },
     ]);
     s.pin("EventPayload::ItemUsePre", &EventPayload::ItemUsePre {
-        item: ItemId(1), target: Some([1, 2, 3]),
+        player: PlayerId(2), item: ItemId(1), target: Some([1, 2, 3]),
     });
     s.pin("EventPayload::MobDamagePre", &EventPayload::MobDamagePre {
         mob_id: 7, kind: MobId(2), amount: 3.0, source: DamageSource::Fall,
@@ -819,13 +761,15 @@ pub(super) fn samples() -> Samples {
         },
     });
     s.pin("EventPayload::PlayerDamagePre", &EventPayload::PlayerDamagePre {
-        amount: 1, source: DamageSource::PlayerAttack { id: PlayerId(1) }, origin: None,
+        player: PlayerId(2), amount: 1, source: DamageSource::PlayerAttack { id: PlayerId(1) }, origin: None,
     });
     s.pin("EventPayload::BlockPlaced", &EventPayload::BlockPlaced {
         pos: [1, 2, 3], block: BlockId(1),
     });
     s.pin("EventPayload::BlockBroken", &EventPayload::BlockBroken {
         pos: [1, 2, 3], block: BlockId(1), harvested: false, natural: true,
+        group: Some(CellGroupData { anchor: [1, 2, 3], facing: None, cells: vec![[1, 2, 3], [1, 3, 3]] }),
+        data: vec![("m:k".into(), vec![7])],
     });
     s.pin("EventPayload::ItemUsed", &EventPayload::ItemUsed {
         player: PlayerId(2), item: ItemId(2), kind: ItemUseEvent::Eaten,
@@ -838,9 +782,9 @@ pub(super) fn samples() -> Samples {
         id: 7, kind: MobId(1), pos: [1.0, 2.0, 3.0],
     });
     s.pin("EventPayload::PlayerDamaged", &EventPayload::PlayerDamaged {
-        amount: 1, new_health: 19,
+        player: PlayerId(2), amount: 1, new_health: 19,
     });
-    s.pin("EventPayload::PlayerDied", &EventPayload::PlayerDied);
+    s.pin("EventPayload::PlayerDied", &EventPayload::PlayerDied { player: PlayerId(2) });
     s.pin("EventPayload::ContainerOpened", &EventPayload::ContainerOpened {
         kind: ContainerKind::new("petramond:chest"), at: Some(ContainerAddress::Block([1, 2, 3])),
     });
@@ -849,11 +793,11 @@ pub(super) fn samples() -> Samples {
     });
     s.pin("EventPayload::SectionGenerated", &EventPayload::SectionGenerated { pos: [1, 2, 3] });
     s.pin("EventPayload::SectionLoaded", &EventPayload::SectionLoaded { pos: [1, 2, 3] });
-    s.pin("EventPayload::PlayerDismounted", &EventPayload::PlayerDismounted {
-        player_id: PlayerId(0), mount: MountTarget::Mob(7),
+    s.pin("EventPayload::PlayerDetached", &EventPayload::PlayerDetached {
+        player_id: PlayerId(0), from: AttachTo::Seat { entity: 7, seat: 0 },
     });
-    s.pin("EventPayload::PlayerDismounted(anchor)", &EventPayload::PlayerDismounted {
-        player_id: PlayerId(0), mount: MountTarget::Anchor([1.5, 2.0, -3.5]),
+    s.pin("EventPayload::PlayerDetached(at)", &EventPayload::PlayerDetached {
+        player_id: PlayerId(0), from: AttachTo::At { pos: [1.5, 2.0, -3.5], yaw: 0.5 },
     });
     s.pin("EventPayload::MobTagAdded", &EventPayload::MobTagAdded {
         mob_id: 7, kind: MobId(2), key: "m:k".into(), value: MobTagValue::I64(-3),
@@ -899,7 +843,7 @@ pub(super) fn samples() -> Samples {
         EventKind::MobDied, EventKind::MobSpawned, EventKind::PlayerDamaged,
         EventKind::PlayerDied, EventKind::ContainerOpened, EventKind::ContainerClosed,
         EventKind::SectionGenerated, EventKind::SectionLoaded,
-        EventKind::PlayerDismounted, EventKind::MobTagAdded, EventKind::MobTagRemoved,
+        EventKind::PlayerDetached, EventKind::MobTagAdded, EventKind::MobTagRemoved,
         EventKind::ItemPickedUp, EventKind::ItemObtained, EventKind::MobDamaged,
         EventKind::Interacted, EventKind::ModEvent,
             EventKind::UseUnclaimed, EventKind::AttackAttempt, EventKind::ProjectileHit,
@@ -988,16 +932,16 @@ pub(super) fn samples() -> Samples {
     ]);
     s.pin("BlockHookKind::*", &vec![
         BlockHookKind::RandomTick, BlockHookKind::ScheduledTick, BlockHookKind::NeighborUpdate,
+        BlockHookKind::ContainerChanged, BlockHookKind::ViewersChanged,
     ]);
     s.pin("LightAperture::*", &vec![LightAperture::Opaque, LightAperture::Open]);
 
     s.pin("HostCall::ResolveCondition", &HostCall::from(calls::ResolveCondition { key: "m:c".into() }));
     s.pin("HostCall::ConditionNames", &HostCall::from(calls::ConditionNames { conditions: vec![ConditionId(1)] }));
-    s.pin("HostCall::EntityConditionApply", &HostCall::from(calls::EntityConditionApply { entity: EntityRef::Mob(7), condition: ConditionId(0), stage: 1, ticks: 120 }));
+    s.pin("HostCall::EntityConditionApply", &HostCall::from(calls::EntityConditionApply { entity: EntityRef::Entity(7), condition: ConditionId(0), stage: 1, ticks: 120 }));
     s.pin("HostCall::EntityConditionCool", &HostCall::from(calls::EntityConditionCool { entity: EntityRef::Player(PlayerId(1)), condition: ConditionId(0), ticks: 3 }));
     s.pin("HostRet::Condition", &HostRet::Condition(Some(ConditionInfoData { id: ConditionId(0), key: "m:c".into(), stages: vec!["a".into()] })));
-    s.pin("HostCall::BlockInfos", &HostCall::from(calls::BlockInfos { blocks: vec![BlockId(1), BlockId(9)] }));
-    s.pin("HostRet::BlockInfos", &HostRet::BlockInfos(vec![None]));
+    s.pin("HostCall::BlockInfo", &HostCall::from(calls::BlockInfo { blocks: vec![BlockId(1), BlockId(9)] }));
     s.pin("HostCall::SetPlayerAnimatorParams", &HostCall::from(calls::SetPlayerAnimatorParams {
         player: PlayerId(2),
         params: vec![crate::AnimatorParam { rig: "r".into(), param: "p".into(), value: crate::AnimatorValue::Name("n".into()) }],
@@ -1014,29 +958,32 @@ pub(super) fn samples() -> Samples {
     s.pin("HostRet::AnimationClip", &HostRet::AnimationClip(Some(crate::AnimationClipInfo {
         length: 0.5, looping: false, markers: vec![("impact".into(), 0.25)],
     })));
-    let record = crate::BlockRecord {
-        block: "m:b".into(), state: vec![1, 0, 0], refs: vec![(1, "m:c".into())],
+    let record = crate::CellRecord {
+        block: "m:b".into(), state: vec![1, 0, 0], refs: vec![(1, "m:c".into())], fluid: 3,
         data: vec![("m:k".into(), vec![7])],
+        container: Some(vec![None, Some(ItemStackData { item: "m:i".into(), count: 2, data: Vec::new() })]),
     };
     s.pin("HostCall::ContainerTransfer", &HostCall::from(calls::ContainerTransfer {
-        from: ContainerAddress::Block([1, 2, 3]), slot: 2, to: ContainerAddress::Mob(7), count: 5,
+        from: ContainerAddress::Block([1, 2, 3]), slot: 2, to: ContainerAddress::Entity(7), count: 5,
     }));
-    s.pin("HostCall::BlockRecordsAt", &HostCall::from(calls::BlockRecordsAt { positions: vec![[1, 2, 3]] }));
-    s.pin("HostCall::BlockRecordPlans", &HostCall::from(calls::BlockRecordPlans { records: vec![record.clone()] }));
-    s.pin("HostCall::BlockRecordStatuses", &HostCall::from(calls::BlockRecordStatuses { cells: vec![([1, 2, 3], record.clone())] }));
+    s.pin("HostCall::GetCells", &HostCall::from(calls::GetCells { positions: vec![[1, 2, 3]] }));
+    s.pin("HostCall::SetCells", &HostCall::from(calls::SetCells { cells: vec![([1, 2, 3], record.clone())] }));
+    s.pin("HostCall::RecordPlans", &HostCall::from(calls::RecordPlans { records: vec![record.clone()] }));
+    s.pin("HostCall::RecordStatuses", &HostCall::from(calls::RecordStatuses { cells: vec![([1, 2, 3], record.clone())] }));
+    s.pin("HostCall::PlaceFeature", &HostCall::from(calls::PlaceFeature {
+        feature: "m:tree".into(), pos: [1, 2, 3], seed: 9, over: vec![BlockId(4)], keep: vec![BlockId(5)],
+    }));
+    s.pin("HostCall::BoxesClear", &HostCall::from(calls::BoxesClear { boxes: vec![([0.5, 1.0, 0.5], [1.5, 2.0, 1.5])] }));
     s.pin("HostCall::ActorDig", &HostCall::from(calls::ActorDig {
-        actor: EntityRef::Mob(7), pos: [1, 2, 3], tool_slot: Some(4), collect: true,
+        actor: EntityRef::Entity(7), pos: [1, 2, 3], tool_slot: Some(4), collect: true,
     }));
     s.pin("HostCall::ActorPlace", &HostCall::from(calls::ActorPlace {
-        actor: EntityRef::Mob(7), pos: [1, 2, 3], record: record.clone(), pay: true,
+        actor: EntityRef::Entity(7), pos: [1, 2, 3], record: record.clone(), pay: true,
     }));
     s.pin("HostCall::PathProbe", &HostCall::from(calls::PathProbe {
         key: "m:g".into(), from: [1, 2, 3], to: [4, 5, 6], blocked: vec![[2, 2, 3]], max_nodes: 900,
     }));
     s.pin("HostCall::Footholds", &HostCall::from(calls::Footholds { key: "m:g".into(), cells: vec![[1, 2, 3]] }));
-    s.pin("HostCall::MobHeldDisplay", &HostCall::from(calls::MobHeldDisplay {
-        mob_id: 7, main: Some("m:i".into()), off: None,
-    }));
     s.pin("HostCall::SchematicInfo", &HostCall::from(calls::SchematicInfo { asset: [3; 32] }));
     s.pin("HostCall::SchematicCells", &HostCall::from(calls::SchematicCells { asset: [3; 32], section: 2, turns: 1 }));
     s.pin("HostCall::SchematicChoose", &HostCall::from(calls::SchematicChoose { player: PlayerId(2), tag: "m:t".into() }));
@@ -1047,7 +994,7 @@ pub(super) fn samples() -> Samples {
         key: "m:g".into(),
         ghost: Some(crate::SchematicGhostData { asset: [3; 32], origin: [1, 2, 3], turns: 1, viewers: vec![PlayerId(2)], yields_to_positioning: true }),
     }));
-    s.pin("HostRet::BlockRecords", &HostRet::BlockRecords(vec![Some(record.clone()), None]));
+    s.pin("HostRet::Cells", &HostRet::Cells(vec![Some(record.clone()), None]));
     s.pin("HostRet::RecordPlans", &HostRet::RecordPlans(vec![
         crate::RecordPlan::Air,
         crate::RecordPlan::Member { anchor: [0, -1, 0] },
@@ -1079,32 +1026,37 @@ pub(super) fn samples() -> Samples {
         name: "p".into(), operator: true,
     })));
     s.pin("HostCall::ActorPlaceCheck", &HostCall::from(calls::ActorPlaceCheck {
-        actor: EntityRef::Mob(7), from: [1.5, 2.0, 3.5], pos: [1, 2, 3], record: record.clone(), pay: true,
+        actor: EntityRef::Entity(7), from: [1.5, 2.0, 3.5], pos: [1, 2, 3], record: record.clone(), pay: true,
     }));
     s.pin("HostCall::WalkRegion", &HostCall::from(calls::WalkRegion {
         key: "m:g".into(), from: [1, 2, 3], min: [0, 0, 0], max: [4, 5, 6], blocked: vec![[2, 2, 2]], toward: true, max_nodes: 500,
     }));
     s.pin("HostRet::Flood", &HostRet::Flood(crate::Flood::Reached(vec![([1, 2, 3], 4)])));
-    s.pin("HostCall::ActorInteract", &HostCall::from(calls::ActorInteract { actor: EntityRef::Mob(7), pos: [1, 2, 3] }));
+    s.pin("HostCall::ActorInteract", &HostCall::from(calls::ActorInteract { actor: EntityRef::Entity(7), pos: [1, 2, 3] }));
     s.pin("HostCall::ActorAims", &HostCall::from(calls::ActorAims {
-        actor: EntityRef::Mob(7), from: vec![[1.5, 2.0, 3.5]], pos: [1, 2, 3], record: None,
+        actor: EntityRef::Entity(7), from: vec![[1.5, 2.0, 3.5]], pos: [1, 2, 3], record: None,
     }));
-    s.pin("HostCall::SetMobDraw", &HostCall::from(calls::SetMobDraw {
-        mob_id: 7, frame: crate::DrawFrame::World,
+    s.pin("HostCall::SetEntityDraw", &HostCall::from(calls::SetEntityDraw {
+        entity: 7, frame: crate::DrawFrame::World,
         prims: vec![crate::DrawPrim::Sprite {
             at: [0.0, 2.0, 0.0], scale: 0.5, yaw: 1.5, pitch: 0.25, spin: 2.0,
             bob: [0.125, 4.0], faces_viewer: true,
             tile: "m:t".into(), tint: [1, 2, 3], emissive: true,
+        }, crate::DrawPrim::Line {
+            from: crate::LineEnd::Local([0.0, 0.5, 0.0]),
+            to: crate::LineEnd::Entity(EntityRef::Player(PlayerId(1))),
+            tile: "m:t".into(), tint: [4, 5, 6], width: 0.5,
         }],
     }));
+    s.pin("LineEnd::At", &crate::LineEnd::At([1.0, 2.0, 3.0]));
     s.pin("HostRet::Aims", &HostRet::Aims(vec![Ok([1.5, 2.0, 3.5]), Err(crate::ActionRefusal::NotAimed)]));
     s.pin("HostCall::BlockChangesSince", &HostCall::from(calls::BlockChangesSince { since: Some(7) }));
     s.pin("HostRet::BlockChanges", &HostRet::BlockChanges(crate::BlockChanges { next: 9, lost: true, cells: vec![[1, 2, 3]] }));
     s.pin("HostCall::ContainerHold", &HostCall::from(calls::ContainerHold {
-        at: crate::ContainerAddress::Block([1, 2, 3]), actor: EntityRef::Mob(7), open: true,
+        at: crate::ContainerAddress::Block([1, 2, 3]), actor: EntityRef::Entity(7), open: true,
     }));
     s.pin("EventPayload::ActorActed", &EventPayload::ActorActed {
-        actor: EntityRef::Mob(7), pos: [1, 2, 3], action: crate::ActorAction::Place,
+        actor: EntityRef::Entity(7), pos: [1, 2, 3], action: crate::ActorAction::Place,
         refusal: Some(crate::ActionRefusal::MissingItems),
     });
     s.pin("EventPayload::SchematicChosen", &EventPayload::SchematicChosen {
@@ -1115,29 +1067,14 @@ pub(super) fn samples() -> Samples {
     });
     s.pin("HostRet::Unsupported", &HostRet::Unsupported);
     s.pin("HostCall::ActingPlayer", &HostCall::from(calls::ActingPlayer));
-    s.pin("HostCall::PlayerStateOf", &HostCall::from(calls::PlayerStateOf { player: PlayerId(2) }));
-    s.pin("HostCall::ApplyKnockbackTo", &HostCall::from(calls::ApplyKnockbackTo { player: PlayerId(2), impulse: [1.0, 2.0, 3.0] }));
-    s.pin("HostCall::SetHealthOf", &HostCall::from(calls::SetHealthOf { player: PlayerId(2), value: 20 }));
-    s.pin("HostCall::TeleportPlayer", &HostCall::from(calls::TeleportPlayer { player: PlayerId(2), pos: [1.0, 2.0, 3.0] }));
-    s.pin("HostCall::EffectApplyTo", &HostCall::from(calls::EffectApplyTo { player: PlayerId(2), key: "m:e".into(), ticks: 40 }));
-    s.pin("HostCall::EffectsActiveOf", &HostCall::from(calls::EffectsActiveOf { player: PlayerId(2) }));
-    s.pin("HostCall::ConsumeHeldBy", &HostCall::from(calls::ConsumeHeldBy { player: PlayerId(2), item: ItemId(5), count: 3 }));
-    s.pin("HostCall::ReplaceHeldOneBy", &HostCall::from(calls::ReplaceHeldOneBy { player: PlayerId(2), item: ItemId(5), replacement: "m:i".into() }));
-    s.pin("HostCall::GuiStateGetFor", &HostCall::from(calls::GuiStateGetFor { player_id: PlayerId(2), key: "k".into() }));
-    s.pin("HostCall::GuiOpenFor", &HostCall::from(calls::GuiOpenFor {
-        player_id: PlayerId(2), kind_key: "m:g".into(), at: Some(crate::ContainerAddress::Block([1, 2, 3])),
-    }));
-    s.pin("HostCall::GuiCloseFor", &HostCall::from(calls::GuiCloseFor { player_id: PlayerId(2) }));
     s.pin("HostRet::ActingPlayer", &HostRet::ActingPlayer(Some(PlayerId(2))));
-    s.pin("HostRet::PlayerOf", &HostRet::PlayerOf(None));
-    s.pin("HostRet::EffectsOf", &HostRet::EffectsOf(Some(vec![EffectStateData { key: "m:e".into(), remaining: 40 }])));
     s.pin("GuestCall::AiNodeBatch", &GuestCall::AiNodeBatch {
         callback_id: 1,
         ctxs: vec![AiNodeCtx {
             mob_id: 1, pos: [1.0, 2.0, 3.0], cell: [1, 2, 3], yaw: 0.5,
             tick: 9, player_id: PlayerId(2),
             player_pos: [4.0, 5.0, 6.0], nav_idle: true, in_fluid: Some(BlockId(3)),
-            target: Some(EntityRef::Mob(8)), attacker: Some((EntityRef::Player(PlayerId(2)), 3)),
+            target: Some(EntityRef::Entity(8)), attacker: Some((EntityRef::Player(PlayerId(2)), 3)),
             player_held: Some(ItemId(7)), player_foothold: Some([4, 5, 6]),
             tags: vec![("m:k".into(), MobTagValue::I64(-3))],
         }],
@@ -1147,15 +1084,14 @@ pub(super) fn samples() -> Samples {
         Some(AiNodeDecision {
             goal: Some([1, 2, 3]), head_look: Some([0.5, 0.25]), facing: Some(1.0),
             speed_scale: Some(2.0), idle_anim: Some(1), attack: Some([2.0, 3.0]),
-            animation: Some("m".into()), target: Some(EntityRef::Mob(4)),
+            animation: Some("m".into()), target: Some(EntityRef::Entity(4)),
             claims: ChannelClaims::of(&[DecisionChannel::Attack, DecisionChannel::Target]),
             tags: vec![MobTagWrite { key: "m:k".into(), value: Some(MobTagValue::Bool(true)) }],
         }),
         None,
     ]));
-    s.pin("HostCall::LightAtMany", &HostCall::from(calls::LightAtMany { positions: vec![[1, 2, 3]] }));
-    s.pin("HostCall::SupportedAt", &HostCall::from(calls::SupportedAt { positions: vec![[1, 2, 3]] }));
-    s.pin("HostCall::BreakNaturally", &HostCall::from(calls::BreakNaturally { pos: [1, 2, 3] }));
+    s.pin("HostCall::SupportedAt", &HostCall::from(calls::SupportedAt { cells: vec![([1, 2, 3], None), ([4, 5, 6], Some(BlockId(7)))] }));
+    s.pin("HostCall::BreakBlocks", &HostCall::from(calls::BreakBlocks { positions: vec![[1, 2, 3]] }));
     s.pin("HostCall::FluidSurfaceAt", &HostCall::from(calls::FluidSurfaceAt { positions: vec![[1, -2, 3]] }));
     s.pin("HostRet::FluidSurfaces", &HostRet::FluidSurfaces(vec![None, Some((BlockId(9), 64.875))]));
     s.pin("HostCall::MobTagsGetMany", &HostCall::from(calls::MobTagsGetMany { mob_ids: vec![7] }));
@@ -1166,15 +1102,17 @@ pub(super) fn samples() -> Samples {
     s.pin("HostCall::MobAnimMany", &HostCall::from(calls::MobAnimMany { ops: vec![MobAnimOp::Set { mob_id: 7, anim: "a".into(), active: true }] }));
     s.pin("HostCall::MobRidersMany", &HostCall::from(calls::MobRidersMany { mob_ids: vec![7] }));
     s.pin("HostCall::PlayerInputs", &HostCall::from(calls::PlayerInputs { player_ids: vec![PlayerId(2)] }));
-    s.pin("HostCall::EntityConditionsMany", &HostCall::from(calls::EntityConditionsMany { ops: vec![ConditionOp::Cool { entity: EntityRef::Mob(7), condition: ConditionId(1), ticks: 2 }] }));
-    s.pin("HostRet::Lights", &HostRet::Lights(vec![None]));
+    s.pin("HostCall::EntityConditionsMany", &HostCall::from(calls::EntityConditionsMany { ops: vec![ConditionOp::Cool { entity: EntityRef::Entity(7), condition: ConditionId(1), ticks: 2 }] }));
+    s.pin("HostRet::Lights", &HostRet::Lights(vec![None, Some(LightData { combined: 1, sky: 2, block: 3, block_rgb: [3, 2, 1] })]));
     s.pin("HostRet::MobTagsMany", &HostRet::MobTagsMany(vec![None]));
-    s.pin("HostRet::PlayerInputs", &HostRet::PlayerInputs(vec![None]));
+    s.pin("HostRet::PlayerInputs", &HostRet::PlayerInputs(vec![None, Some(PlayerInputData {
+        forward: 1.0, strafe: -1.0, jump: true, sneak: false, yaw: 0.5, pitch: 0.25,
+    })]));
     s.pin("HostRet::RidersMany", &HostRet::RidersMany(vec![None]));
 
     s.pin("HostCall::ClientViewCameraSet", &HostCall::from(calls::ClientViewCameraSet {
         pos: [1.5, 2.0, 3.5], yaw: 0.25, pitch: -0.5, roll: 0.125, fov_y: Some(1.25),
-        anchor: Some(EntityRef::Mob(9)),
+        anchor: Some(EntityRef::Entity(9)),
     }));
     s.pin("HostCall::ClientViewCameraRelease", &HostCall::from(calls::ClientViewCameraRelease));
     s.pin("HostCall::ClientViewChromeSet", &HostCall::from(calls::ClientViewChromeSet {
@@ -1232,7 +1170,7 @@ pub(super) fn samples() -> Samples {
         near: Some(ClientEntitiesNear { center: [1.0, 2.0, 3.0], radius: 16.0, max: 8 }),
     }));
     s.pin("HostRet::ClientEntities", &HostRet::ClientEntities(vec![ClientEntityData {
-        id: EntityRef::Mob(4), mob_kind: Some(MobId(2)), name: Some("n".into()),
+        id: EntityRef::Entity(4), mob_kind: Some(MobId(2)), name: Some("n".into()),
         feet: [1.0, 2.0, 3.0], eye: [1.0, 3.5, 3.0], look: [0.0, 0.0, 1.0],
         body_facing: [0.0, 1.0], velocity: [0.5, 0.0, 0.0], size: [0.6, 1.8],
     }]));

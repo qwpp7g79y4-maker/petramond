@@ -288,12 +288,13 @@ impl ServerWorld {
                 if !w.within_current_keep_radius(sp.chunk_pos()) {
                     return;
                 }
-                let (section, entities, mobs) = match loaded.record {
+                let (section, entities, mobs, ticks) = match loaded.record {
                     SectionRecord::Decoded {
                         section,
                         entities,
                         mobs,
-                    } => (*section, entities, mobs),
+                        ticks,
+                    } => (*section, entities, mobs, ticks),
                     missing => {
                         if let Some(save) = w.side.save.as_mut() {
                             match &missing {
@@ -332,9 +333,9 @@ impl ServerWorld {
                     if !w.side.gen.column_gen.contains_key(&sp.chunk_pos()) {
                         return;
                     }
-                    if !entities.is_empty() || !mobs.is_empty() {
+                    if !entities.is_empty() || !mobs.is_empty() || !ticks.is_empty() {
                         if let Some(save) = w.side.save.as_mut() {
-                            save.note_record_holds_entities(sp);
+                            save.note_record_holds_live(sp);
                         }
                     }
                     w.data.sections.insert(sp, Arc::new(section));
@@ -343,6 +344,7 @@ impl ServerWorld {
                     w.refresh_presented_index(sp);
                     w.side.entities.dropped_items.extend(entities);
                     w.restore_mobs(mobs);
+                    w.restore_scheduled_ticks(sp, &ticks);
                     if w.side.stream_events_enabled {
                         w.side.stream_events.push(StreamEvent::Loaded(sp));
                     }
@@ -356,7 +358,7 @@ impl ServerWorld {
                     w.side
                         .gen
                         .pending_overlays
-                        .insert(sp, (section, entities, mobs));
+                        .insert(sp, (section, entities, mobs, ticks));
                     w.note_stream_nonfinal(sp);
                 }
             },
@@ -524,11 +526,12 @@ impl ServerWorld {
             .filter(|sp| self.data.sections.contains_key(sp))
             .collect();
         for sp in &ready {
-            let (section, entities, mobs) = self.side.gen.pending_overlays.remove(sp).unwrap();
+            let (section, entities, mobs, ticks) =
+                self.side.gen.pending_overlays.remove(sp).unwrap();
             self.settle_stream_nonfinal(*sp);
-            if !entities.is_empty() || !mobs.is_empty() {
+            if !entities.is_empty() || !mobs.is_empty() || !ticks.is_empty() {
                 if let Some(save) = self.side.save.as_mut() {
-                    save.note_record_holds_entities(*sp);
+                    save.note_record_holds_live(*sp);
                 }
             }
             self.data.sections.insert(*sp, Arc::new(section));
@@ -537,6 +540,7 @@ impl ServerWorld {
             self.refresh_presented_index(*sp);
             self.side.entities.dropped_items.extend(entities);
             self.restore_mobs(mobs);
+            self.restore_scheduled_ticks(*sp, &ticks);
         }
         ready
     }

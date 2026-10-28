@@ -24,7 +24,7 @@ impl PanelState for GolemPanel {
 
 fn golem_of(viewer: &GuiViewerData) -> Option<u64> {
     match viewer.anchor {
-        Some(ContainerAddress::Mob(mob)) if viewer.kind == golem::KIND => Some(mob),
+        Some(ContainerAddress::Entity(mob)) if viewer.kind == golem::KIND => Some(mob),
         _ => None,
     }
 }
@@ -36,11 +36,11 @@ pub fn asked(viewers: &[GuiViewerData]) -> Vec<(u64, PlayerId)> {
         .collect()
 }
 
-pub fn used(builder: &Builder, mob: u64) -> Outcome {
+pub fn used(builder: &Builder, player: PlayerId, mob: u64) -> Outcome {
     if mob_info(mob).is_none_or(|info| info.kind != builder.content.golem) {
         return Outcome::Continue;
     }
-    if gui_open(golem::KIND, Some(ContainerAddress::Mob(mob))) {
+    if gui_open(player, golem::KIND, Some(ContainerAddress::Entity(mob))) {
         Outcome::Cancel
     } else {
         Outcome::Continue

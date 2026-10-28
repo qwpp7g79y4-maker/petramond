@@ -3,7 +3,7 @@ use mod_sdk::*;
 
 use crate::liquid::Liquid;
 
-const HARDEN_TICKS: u32 = 200;
+pub(super) const HARDEN_TICKS: u32 = 200;
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub(super) enum Phase {

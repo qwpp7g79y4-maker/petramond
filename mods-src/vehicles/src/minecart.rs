@@ -21,12 +21,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use mod_sdk::*;
 
-use crate::cart::{self, overlaps, Aabb, Body, Cart, ContactGrid, Controls, Step};
+use crate::cart::{self, Aabb, Body, Cart, ContactGrid, Controls, Step};
 use crate::keys;
 use crate::rail::{resolve_placement, Form, Rail, RailMap};
 use crate::track::{dot2, xz, yaw_facing, Path, RAIL_TOP};
-
-type LocalBox = ([f32; 3], [f32; 3]);
 
 const SPEED_TAG: &str = "vehicles:cart_speed";
 const ROLL_ANIM: &str = "roll";
@@ -109,7 +107,6 @@ pub struct Minecarts {
     rows: BTreeMap<(Form, bool), BlockId>,
     rolling: BTreeMap<u64, f32>,
     humming: BTreeMap<u64, (u64, f32)>,
-    collision: BTreeMap<u16, Vec<LocalBox>>,
 }
 
 impl Minecarts {
@@ -163,11 +160,13 @@ impl Minecarts {
         }
     }
 
-    pub fn on_interact_block(&self, block: Option<[i32; 3]>) -> Outcome {
+    pub fn on_interact_block(&self, player: PlayerId, block: Option<[i32; 3]>) -> Outcome {
         let (Some(cell), Some(item)) = (block, self.cart_item) else {
             return Outcome::Continue;
         };
-        let actor = player_state();
+        let Some(actor) = player_state(player) else {
+            return Outcome::Continue;
+        };
         if actor.held != Some(item) {
             return Outcome::Continue;
         }
@@ -189,11 +188,11 @@ impl Minecarts {
             cell[1] as f64 + f64::from(p[1] + RAIL_TOP),
             cell[2] as f64 + f64::from(p[2]),
         ];
-        if !consume_held(item, 1) {
+        if !consume_held(player, item, 1) {
             return Outcome::Continue;
         }
         if spawn_mob_checked(keys::MINECART_MOB, pos, yaw).is_none() {
-            give_item(keys::MINECART_ITEM, 1);
+            give_item(player, keys::MINECART_ITEM, 1, &[]);
             return Outcome::Continue;
         }
         Outcome::Cancel
@@ -203,7 +202,14 @@ impl Minecarts {
         let Some(seat) = mob_riders(mob_id).and_then(|r| r.first_free_seat()) else {
             return false;
         };
-        mob_mount(mob_id, player, seat)
+        attach(
+            player,
+            AttachTo::Seat {
+                entity: mob_id,
+                seat,
+            },
+            Posture::Seated,
+        )
     }
 
     pub fn on_mob_damage(&mut self, mob_id: u64, kind: MobId, origin: Option<[f64; 3]>) {
@@ -243,8 +249,7 @@ impl Minecarts {
             let others = contacts.neighbours(&before, i);
             state.speed = cart::resolve_contacts(start, others.iter().map(|&j| &before[j]));
             let push = rider_push(m.id, state.yaw);
-            learn_collision(&mut self.collision, cells);
-            let blocked = |probe: Aabb| blocked_by(&self.collision, cells, probe);
+            let blocked = |probe: Aabb| boxes_clear(vec![probe]).first() != Some(&true);
             let body = Body {
                 half_width: m.half_width,
                 height: m.height,
@@ -303,7 +308,7 @@ impl Minecarts {
         let volume = cart::roll_volume(speed);
         match self.humming.get(&id).copied() {
             None if volume > 0.0 => {
-                let handle = sound_play_on_mob(id, keys::ROLL_SOUND, volume, 1.0);
+                let handle = sound_play(keys::ROLL_SOUND, SoundAt::Entity(id), volume, 1.0);
                 if handle != 0 {
                     self.humming.insert(id, (handle, volume));
                 }
@@ -336,43 +341,6 @@ impl Minecarts {
             Some(_) => {}
         }
     }
-}
-
-fn learn_collision(collision: &mut BTreeMap<u16, Vec<LocalBox>>, cells: &CellBox) {
-    for block in cells.blocks.iter().flatten() {
-        if block.0 == BlockId::AIR.0 || collision.contains_key(&block.0) {
-            continue;
-        }
-        let boxes = block_info(*block).map_or(Vec::new(), |i| i.collision);
-        collision.insert(block.0, boxes);
-    }
-}
-
-fn blocked_by(collision: &BTreeMap<u16, Vec<LocalBox>>, cells: &CellBox, probe: Aabb) -> bool {
-    let (lo, hi) = probe;
-    let span = |i: usize| (lo[i].floor() as i32)..=((hi[i] - 1e-4).floor() as i32);
-    span(1).any(|y| {
-        span(2).any(|z| {
-            span(0).any(|x| {
-                let cell = [x, y, z];
-                cells
-                    .block(cell)
-                    .and_then(|b| collision.get(&b.0))
-                    .is_some_and(|boxes| {
-                        boxes.iter().any(|(mn, mx)| {
-                            let at = |c: [f32; 3]| {
-                                [
-                                    f64::from(c[0]) + x as f64,
-                                    f64::from(c[1]) + y as f64,
-                                    f64::from(c[2]) + z as f64,
-                                ]
-                            };
-                            overlaps(probe, (at(*mn), at(*mx)))
-                        })
-                    })
-            })
-        })
-    })
 }
 
 fn rider_push(mob_id: u64, cart_yaw: f32) -> f32 {

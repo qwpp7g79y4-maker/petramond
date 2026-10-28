@@ -50,7 +50,6 @@ fn data(block: Block) -> ResolvedCell {
         fluid: 0,
         kv: Default::default(),
         container: None,
-        furnace: None,
     }
 }
 fn plan(cell: ResolvedCell) -> Schematic {

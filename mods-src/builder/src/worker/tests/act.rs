@@ -125,7 +125,7 @@ fn a_dig_in_reach_breaks_the_block_and_waits_on_the_outcome() {
     assert_eq!(
         session
             .world
-            .count(ContainerAddress::Mob(golem), "petramond:dirt"),
+            .count(ContainerAddress::Entity(golem), "petramond:dirt"),
         0,
         "cut overgrowth is not carried off"
     );

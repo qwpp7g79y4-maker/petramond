@@ -24,6 +24,7 @@ pub mod world_marks;
 pub mod worn_overlays;
 
 pub mod lighting;
+pub(crate) mod line;
 pub mod mob_model;
 mod model_break;
 pub mod particles;
@@ -36,7 +37,6 @@ pub mod selection;
 mod selection_highlight;
 pub mod shader_pack;
 pub(crate) mod skinned;
-pub(crate) mod tether;
 pub mod texture_mips;
 pub mod ui;
 pub mod uniforms;
@@ -285,12 +285,27 @@ pub enum ItemEntityPose {
     },
 }
 
-/// Where a tethered item's line starts: a presented body's main hand, or the first-person
-/// viewmodel's.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TetherFrom {
+/// Where one end of a line is: a world point, a presented body's main hand, the first-person
+/// viewmodel's, or an item entity where it is drawn.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum LineAnchor {
+    At(petramond_math::world_pos::WorldPos),
     Body(u32),
     Viewmodel,
+    Item(u64),
+}
+
+pub use line::LineStyle;
+
+/// One `DrawPrim::Line` this frame, lit where it starts.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct LinePresentation {
+    pub from: LineAnchor,
+    pub to: LineAnchor,
+    pub style: LineStyle,
+    pub skylight: u8,
+    pub blocklight: petramond_world::light::BlockLight6,
+    pub lit_at: petramond_math::world_pos::WorldPos,
 }
 
 /// The local player's [`PlayerBodyRender::key`]; remote bodies are keyed by player id.
@@ -298,8 +313,8 @@ pub const LOCAL_BODY_KEY: u32 = u32::MAX;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct ItemEntityInstance {
-    pub tether: Option<TetherFrom>,
-    /// Set when a draw set replaces the item's art: that set's top above `pos`.
+    pub id: u64,
+    /// A draw set stands in for the item's art; the set's top above `pos`.
     pub drawn_top: Option<f32>,
     pub pos: petramond_math::world_pos::WorldPos,
     pub item: ItemType,
@@ -380,7 +395,7 @@ pub struct PlayerRenderInstance {
     pub emitter_tint: [f32; 3],
     pub emitter_self_lit: f32,
     pub pos: petramond_math::world_pos::WorldPos,
-    pub sleeping: bool,
+    pub lying: bool,
     pub hurt: f32,
     pub skylight: u8,
     pub blocklight: petramond_world::light::BlockLight6,

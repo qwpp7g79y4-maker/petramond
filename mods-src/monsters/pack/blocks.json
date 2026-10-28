@@ -12,8 +12,6 @@
         "no_grass_decay",
         "axial"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [
         {
           "min": [
@@ -60,8 +58,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [
@@ -95,8 +91,6 @@
       "tags": [
         "no_grass_decay"
       ],
-      "behavior": "inert",
-      "interaction": "none",
       "collision": [],
       "emission": 0,
       "tiles": [

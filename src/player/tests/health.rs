@@ -57,22 +57,28 @@ fn damage_over_time_neither_checks_nor_grants_the_immunity_window() {
 
 #[test]
 fn status_effects_fire_on_interval_boundaries_and_expire() {
-    use petramond_world::effect::{Effect, EffectBehavior};
-    let EffectBehavior::Regen { interval, .. } = Effect::Regeneration.def().behavior else {
-        panic!("regeneration is an interval-heal behavior");
-    };
+    use petramond_world::effect::Effect;
+    let heal = Effect::Regeneration
+        .def()
+        .heal
+        .expect("regeneration heals on an interval");
+    let interval = heal.interval;
 
     let mut pl = p(WorldPos::new(0.0, 64.0, 0.0));
     pl.apply_effect(Effect::Regeneration, interval * 2);
-    let mut fired = 0;
+    let mut healed = 0;
     for _ in 0..interval {
-        fired += pl.tick_effects().len();
+        healed += pl.tick_effects();
     }
-    assert_eq!(fired, 1, "the first boundary fires exactly once");
+    assert_eq!(healed, heal.amount, "the first boundary fires exactly once");
     for _ in 0..interval {
-        fired += pl.tick_effects().len();
+        healed += pl.tick_effects();
     }
-    assert_eq!(fired, 2, "the expiry tick is itself a boundary");
+    assert_eq!(
+        healed,
+        2 * heal.amount,
+        "the expiry tick is itself a boundary"
+    );
     assert!(pl.effects().is_empty(), "the effect expired");
 
     pl.apply_effect(Effect::Regeneration, 10);

@@ -200,10 +200,11 @@ impl Player {
         self.effects = effects;
     }
 
-    fn effect_scale(&self, scale: fn(petramond_world::effect::EffectBehavior) -> f32) -> f32 {
+    /// The product of every active effect's factor on `attribute`.
+    fn effect_scale(&self, attribute: mod_api::PlayerAttribute) -> f32 {
         self.effects
             .iter()
-            .map(|e| scale(e.effect.def().behavior))
+            .map(|e| e.effect.def().scale(attribute))
             .product()
     }
 
@@ -218,23 +219,11 @@ impl Player {
 
     pub fn refresh_engine_claims(&mut self, gameplay: bool) {
         use mod_api::PlayerAttribute;
-        self.claims.set_attribute(
-            super::ENGINE_CLAIMANT,
-            PlayerAttribute::MoveSpeed,
-            self.effect_scale(petramond_world::effect::EffectBehavior::speed_scale)
-                * self.worn_scale(PlayerAttribute::MoveSpeed),
-        );
-        self.claims.set_attribute(
-            super::ENGINE_CLAIMANT,
-            PlayerAttribute::BreathDrain,
-            self.effect_scale(petramond_world::effect::EffectBehavior::breath_scale)
-                * self.worn_scale(PlayerAttribute::BreathDrain),
-        );
-        for attribute in [PlayerAttribute::AttackCooldown, PlayerAttribute::FlySpeed] {
+        for attribute in PlayerAttribute::ALL {
             self.claims.set_attribute(
                 super::ENGINE_CLAIMANT,
                 attribute,
-                self.worn_scale(attribute),
+                self.effect_scale(attribute) * self.worn_scale(attribute),
             );
         }
         let idle = self.is_spectator() || !gameplay;
@@ -291,24 +280,19 @@ impl Player {
         self.effects.clear();
     }
 
-    pub fn tick_effects(&mut self) -> Vec<petramond_world::effect::EffectBehavior> {
-        let mut fired = Vec::new();
+    /// Ticks every active effect down and returns the health its pulses restore this tick.
+    pub fn tick_effects(&mut self) -> i32 {
+        let mut healed = 0;
         for e in &mut self.effects {
             e.remaining -= 1;
-            let behavior = e.effect.def().behavior;
-            match behavior {
-                petramond_world::effect::EffectBehavior::None
-                | petramond_world::effect::EffectBehavior::Speed { .. }
-                | petramond_world::effect::EffectBehavior::Breath { .. } => {}
-                petramond_world::effect::EffectBehavior::Regen { interval, .. } => {
-                    if e.remaining % interval == 0 {
-                        fired.push(behavior);
-                    }
+            if let Some(heal) = e.effect.def().heal {
+                if e.remaining % heal.interval == 0 {
+                    healed += heal.amount;
                 }
             }
         }
         self.effects.retain(|e| e.remaining > 0);
-        fired
+        healed
     }
 
     pub fn apply_knockback(&mut self, impulse: Vec3) {

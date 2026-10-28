@@ -87,11 +87,11 @@ fn the_creative_screen_pins_its_hotbar() {
 #[test]
 fn kinds_classify_like_the_game_registry() {
     assert!(matches!(
-        classify_kind("petramond:chest"),
-        Ok(KindClass::Engine(k)) if k.key == "petramond:chest"
+        classify_kind("petramond:inventory"),
+        Ok(KindClass::Engine(k)) if k.key == "petramond:inventory"
     ));
-    assert_eq!(classify_kind("wheel:spin"), Ok(KindClass::Mod));
-    assert!(classify_kind("petramond:no_such_screen").is_err());
+    assert_eq!(classify_kind("wheel:spin"), Ok(KindClass::Document));
+    assert_eq!(classify_kind("petramond:chest"), Ok(KindClass::Document));
     assert!(classify_kind("bare").is_err());
     assert!(classify_kind(":x").is_err());
 }
@@ -102,6 +102,7 @@ fn a_namespaced_kind_must_ship_from_its_own_pack() {
     assert!(kind_permitted("doctest:owned", Some("otherpack")).is_err());
     assert!(kind_permitted("doctest:owned", None).is_err());
     assert!(kind_permitted("petramond:furnace", None).is_ok());
+    assert!(kind_permitted("petramond:furnace", Some("anypack")).is_err());
     assert!(kind_permitted("petramond:title", Some("anypack")).is_ok());
 
     let d = doc("doctest:owned", "screen", r#"{ "type": "column" }"#);

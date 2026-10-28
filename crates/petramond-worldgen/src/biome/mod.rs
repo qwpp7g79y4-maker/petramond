@@ -63,8 +63,6 @@ pub struct GroundCover {
 #[derive(Copy, Clone, Debug)]
 pub struct VegetationProfile {
     pub covers: &'static [GroundCover],
-    pub sand_cover: Option<&'static CoverRoll>,
-    pub podzol_cover: Option<&'static CoverRoll>,
     pub grass_cover: Option<&'static CoverRoll>,
     pub cover_cluster: Option<CoverCluster>,
     pub flower_palette: &'static [Block],

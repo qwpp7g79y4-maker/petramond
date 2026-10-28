@@ -3,7 +3,7 @@ use mod_api::{GuiCall, HostRet};
 use crate::events::{DeferredAction, SimCtx};
 use crate::player::PlayerId;
 
-use super::guards::{actor_for, sim_mutate, sim_query};
+use super::guards::sim_query;
 
 fn open_gui(
     ctx: &mut SimCtx<'_>,
@@ -50,27 +50,19 @@ fn state_get(ctx: &mut SimCtx<'_>, player: PlayerId, key: &str) -> Option<mod_ap
 
 pub(super) fn handle_gui_call(mod_id: &str, call: GuiCall) -> HostRet {
     match call {
-        GuiCall::GuiStateSet { key, value } => sim_mutate(|ctx| {
-            let id = actor_for(ctx, "GuiStateSet", "GuiStateSetFor")?;
+        GuiCall::GuiStateSet { to, key, value } => sim_query(move |ctx| {
             let value = crate::modding::convert::gui_value(value);
-            ctx.with_gui_state(id, |map| {
-                petramond_world::gui_state::gui_state_set(map, key, value)
-            });
-            Ok(())
-        }),
-        GuiCall::GuiStateSetFor {
-            player_id,
-            key,
-            value,
-        } => sim_query(move |ctx| {
-            let value = crate::modding::convert::gui_value(value);
-            let id = PlayerId(player_id.0);
-            HostRet::Bool(
-                ctx.with_gui_state(id, |map| {
-                    petramond_world::gui_state::gui_state_set(map, key, value)
-                })
-                .is_some(),
-            )
+            HostRet::Bool(match to {
+                mod_api::GuiAudience::Player(player) => ctx
+                    .with_gui_state(PlayerId(player.0), |map| {
+                        petramond_world::gui_state::gui_state_set(map, key, value)
+                    })
+                    .is_some(),
+                mod_api::GuiAudience::Viewers(at) => {
+                    let anchor = crate::modding::convert::menu_anchor(at);
+                    ctx.players.set_gui_value_at(anchor, &key, &value) > 0
+                }
+            })
         }),
         GuiCall::GuiViewers => sim_query(|ctx| {
             HostRet::GuiViewers(
@@ -90,37 +82,18 @@ pub(super) fn handle_gui_call(mod_id: &str, call: GuiCall) -> HostRet {
                     .collect(),
             )
         }),
-        GuiCall::GuiStateGet { key } => {
-            sim_query(
-                |ctx| match actor_for(ctx, "GuiStateGet", "GuiStateGetFor") {
-                    Ok(id) => HostRet::GuiValue(state_get(ctx, id, &key)),
-                    Err(e) => e,
-                },
-            )
+        GuiCall::GuiStateGet { player, key } => {
+            sim_query(|ctx| HostRet::GuiValue(state_get(ctx, PlayerId(player.0), &key)))
         }
-        GuiCall::GuiStateGetFor { player_id, key } => {
-            sim_query(|ctx| HostRet::GuiValue(state_get(ctx, PlayerId(player_id.0), &key)))
-        }
-        GuiCall::GuiOpen { kind_key, at } => {
-            sim_query(|ctx| match actor_for(ctx, "GuiOpen", "GuiOpenFor") {
-                Ok(id) => HostRet::Bool(open_gui(ctx, mod_id, id, &kind_key, at)),
-                Err(e) => e,
-            })
-        }
-        GuiCall::GuiOpenFor {
-            player_id,
+        GuiCall::GuiOpen {
+            player,
             kind_key,
             at,
-        } => sim_query(|ctx| {
-            HostRet::Bool(open_gui(ctx, mod_id, PlayerId(player_id.0), &kind_key, at))
-        }),
-        GuiCall::GuiClose => sim_mutate(|ctx| {
-            let id = actor_for(ctx, "GuiClose", "GuiCloseFor")?;
-            close_gui(ctx, id);
-            Ok(())
-        }),
-        GuiCall::GuiCloseFor { player_id } => {
-            sim_query(|ctx| HostRet::Bool(close_gui(ctx, PlayerId(player_id.0))))
+        } => {
+            sim_query(|ctx| HostRet::Bool(open_gui(ctx, mod_id, PlayerId(player.0), &kind_key, at)))
+        }
+        GuiCall::GuiClose { player } => {
+            sim_query(|ctx| HostRet::Bool(close_gui(ctx, PlayerId(player.0))))
         }
     }
 }
@@ -140,7 +113,7 @@ mod tests {
     use petramond_math::world_pos::WorldPos;
 
     #[test]
-    fn gauges_reach_the_session_that_is_looking_and_implicit_writes_refuse() {
+    fn gauges_reach_the_session_that_is_looking() {
         let mut world = ServerWorld::new(1, 1);
         let mut host = Player::new(WorldPos::new(0.0, 80.0, 0.0));
         let mut guest = Player::new(WorldPos::new(8.0, 80.0, 8.0));
@@ -200,23 +173,12 @@ mod tests {
             );
             assert!(viewers.iter().all(|v| v.kind == "doctest:machine"));
 
-            assert!(matches!(
-                handle_host_call(
-                    &mut data,
-                    HostCall::from(calls::GuiStateSet {
-                        key: "doctest:level".into(),
-                        value: GuiValue::F32(1.0),
-                    })
-                ),
-                HostRet::Err(_)
-            ));
-
             for (v, level) in viewers.iter().zip([0.25f32, 0.75]) {
                 assert_eq!(
                     handle_host_call(
                         &mut data,
-                        HostCall::from(calls::GuiStateSetFor {
-                            player_id: v.player_id,
+                        HostCall::from(calls::GuiStateSet {
+                            to: mod_api::GuiAudience::Viewers(v.anchor.unwrap()),
                             key: "doctest:level".into(),
                             value: GuiValue::F32(level),
                         })
@@ -227,8 +189,22 @@ mod tests {
             assert_eq!(
                 handle_host_call(
                     &mut data,
-                    HostCall::from(calls::GuiStateGetFor {
-                        player_id: mod_api::PlayerId(1),
+                    HostCall::from(calls::GuiStateSet {
+                        to: mod_api::GuiAudience::Viewers(mod_api::ContainerAddress::Block([
+                            5, 5, 5
+                        ])),
+                        key: "doctest:level".into(),
+                        value: GuiValue::F32(1.0),
+                    })
+                ),
+                HostRet::Bool(false),
+                "nobody views that cell"
+            );
+            assert_eq!(
+                handle_host_call(
+                    &mut data,
+                    HostCall::from(calls::GuiStateGet {
+                        player: mod_api::PlayerId(1),
                         key: "doctest:level".into(),
                     })
                 ),
@@ -237,8 +213,8 @@ mod tests {
             assert_eq!(
                 handle_host_call(
                     &mut data,
-                    HostCall::from(calls::GuiStateSetFor {
-                        player_id: mod_api::PlayerId(99),
+                    HostCall::from(calls::GuiStateSet {
+                        to: mod_api::GuiAudience::Player(mod_api::PlayerId(99)),
                         key: "doctest:level".into(),
                         value: GuiValue::F32(1.0),
                     })

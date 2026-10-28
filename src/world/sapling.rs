@@ -6,18 +6,19 @@
 //! far. Still implements `BlockBehavior` and sits in the registry, so a data row just says
 //! `behavior::SAPLING`.
 //!
-//! A block gets one behavior. `neighbor_update` just calls [`FRAGILE`] (breaks when dug out, like a
-//! flower). `random_tick` does the growth.
+//! Rows list `fragile` beside `sapling`: support loss breaks it like a flower, and `random_tick`
+//! does the growth.
 //!
-//! Each growth stage is its own block row, all look identical. Each random tick has a 50% chance
-//! to advance to `next_stage`. On the final stage, a successful roll grows the tree from
-//! `grows_into` instead, a weighted pick over `features.json` keys. Oak's 20% grand-oak chance is
-//! just row data, validated in `block::load`.
+//! Each growth stage is its own block row, all look identical. Each random tick has the row's
+//! `advance_chance` (default 0.5) to advance to `next_stage`. On the final stage, a successful
+//! roll grows the tree from `grows_into` instead, a weighted pick over `features.json` keys. Oak's
+//! 20% grand-oak chance is just row data, validated in `block::load`.
 //!
 //! Tree needs anchored roots (`is_anchored` gate, no floating trees off cliffs). Every block it
-//! wants to place has to be air, or a log/leaves/fragile plant it can pass through. Logs stay put,
-//! leaves and plants get replaced, so grass tufts don't block root splay. Anything else in the
-//! footprint and the sapling waits to try again later.
+//! wants to place has to be air, or carry a row `grows_over` tag (replaced; default leaves,
+//! fragile plants, snow cover, so grass tufts don't block root splay) or `grows_through` tag
+//! (left standing; default logs). Anything else in the footprint and the sapling waits to try
+//! again later.
 
 use crate::world::ServerWorld;
 use crate::world::WorldData;
@@ -29,11 +30,7 @@ use petramond_world::section::SectionSummary;
 use petramond_worldgen::growth::{ConfiguredFeature, FeatureCtx, VoxelSink};
 use petramond_worldgen::FeatureRng;
 
-use super::fragile::FRAGILE;
-
 const SAPLING_SALT: u64 = 0x0000_5A91_1A6E_0000;
-
-const ADVANCE_CHANCE: f32 = 0.5;
 
 pub struct Sapling;
 
@@ -41,20 +38,16 @@ impl crate::world::engine_behavior::EngineBlockBehavior for Sapling {
     fn random_tick(&self, world: &mut ServerWorld, pos: IVec3) {
         let salt = SAPLING_SALT ^ world.current_tick();
         let mut rng = FeatureRng::positional(world.data.seed, salt, pos.x, pos.y, pos.z);
-        if !rng.chance(ADVANCE_CHANCE) {
+        let sapling = Block::from_id(world.data.chunk_block(pos.x, pos.y, pos.z));
+        if !rng.chance(sapling.advance_chance()) {
             return;
         }
-        let sapling = Block::from_id(world.data.chunk_block(pos.x, pos.y, pos.z));
         match sapling.next_stage() {
             Some(next) => {
                 world.set_block_world(pos.x, pos.y, pos.z, next);
             }
             None => world.grow_sapling(pos, sapling, &mut rng),
         }
-    }
-
-    fn neighbor_update(&self, world: &mut ServerWorld, pos: IVec3) {
-        FRAGILE.neighbor_update(world, pos);
     }
 }
 
@@ -78,42 +71,39 @@ fn pick_growth(
 }
 
 impl ServerWorld {
-    /// Grows sapling at `pos` into tree from `grows_into`.
-    ///
-    /// Anchor check uses live world - oaks don't root over a drop, same as worldgen. Actual growth
-    /// happens in an overlay, live world untouched.
-    ///
-    /// Commit needs every cell to currently be air, log, leaves or fragile plant (sapling's own
-    /// cell excepted - trunk takes that) and chunk loaded. Known-empty-sky sections count as
-    /// loaded.
-    ///
-    /// Trunk barges through logs and leaves. Roots plow through grass and flowers same as worldgen,
-    /// so a tuft never blocks them. Anything else blocks the whole growth.
-    ///
-    /// Logs survive commit, leaves and plants don't. No fit means sapling just sits and tries again
-    /// on a later tick.
     fn grow_sapling(&mut self, pos: IVec3, sapling: Block, rng: &mut FeatureRng) {
         let Some(cf) = pick_growth(sapling.grows_into(), rng) else {
             return;
         };
+        let over = |b: Block| b == sapling || sapling.grows_over(b);
+        let through = |b: Block| sapling.grows_through(b);
+        self.place_feature(cf, pos, rng, &over, &through);
+    }
 
+    /// Grows `cf` at `pos` the way a sapling grows its tree: the anchor check runs against the
+    /// live world, generation runs in an overlay, and the writes commit only if every cell they
+    /// touch is air, a replaceable block, one of `over` or one of `keep`, and loaded (known-empty
+    /// sky sections count as loaded). `over` cells are replaced; `keep` cells are grown through
+    /// and left standing. Ground under an anchor is anything else.
+    pub fn place_feature(
+        &mut self,
+        cf: &ConfiguredFeature,
+        pos: IVec3,
+        rng: &mut FeatureRng,
+        over: &dyn Fn(Block) -> bool,
+        keep: &dyn Fn(Block) -> bool,
+    ) -> bool {
+        let through = |b: Block| b == Block::Air || b.is_replaceable() || over(b) || keep(b);
         let anchored = cf.feature.is_anchored(
             &mut |wx, wz| match self.data.block_if_loaded(wx, pos.y - 1, wz) {
-                Some(b)
-                    if b != Block::Air
-                        && b != Block::Water
-                        && !b.is_leaves()
-                        && !b.is_fragile() =>
-                {
-                    pos.y
-                }
+                Some(b) if !b.is_fluid() && !through(b) => pos.y,
                 _ => i32::MIN,
             },
             pos,
             *rng,
         );
         if !anchored {
-            return;
+            return false;
         }
 
         let writes = {
@@ -121,16 +111,7 @@ impl ServerWorld {
             let mut ctx = FeatureCtx::new(&mut sink);
             cf.feature.generate(
                 &mut ctx,
-                &mut |p: IVec3| match self.data.block_if_loaded(p.x, p.y, p.z) {
-                    None => true,
-                    Some(b) => {
-                        b == Block::Air
-                            || b.is_log()
-                            || b.is_leaves()
-                            || b.is_fragile()
-                            || b.is_snow_cover()
-                    }
-                },
+                &mut |p: IVec3| self.data.block_if_loaded(p.x, p.y, p.z).is_none_or(through),
                 pos,
                 rng,
             );
@@ -138,35 +119,27 @@ impl ServerWorld {
         };
 
         for &cell in writes.keys() {
-            if cell == pos {
-                continue;
-            }
             match self.data.block_if_loaded(cell.x, cell.y, cell.z) {
-                Some(b)
-                    if b == Block::Air
-                        || b.is_log()
-                        || b.is_leaves()
-                        || b.is_fragile()
-                        || b.is_snow_cover() => {}
-                Some(_) => return,
+                Some(b) if through(b) => {}
+                Some(_) => return false,
                 None => match WorldData::split_world(cell.x, cell.y, cell.z) {
                     Some((sp, ..)) if self.data.section_summary(sp) == SectionSummary::Empty => {}
-                    _ => return,
+                    _ => return false,
                 },
             }
         }
 
         for (cell, block) in writes {
-            if cell != pos
-                && self
-                    .data
-                    .block_if_loaded(cell.x, cell.y, cell.z)
-                    .is_some_and(Block::is_log)
+            if self
+                .data
+                .block_if_loaded(cell.x, cell.y, cell.z)
+                .is_some_and(keep)
             {
                 continue;
             }
             self.set_block_world(cell.x, cell.y, cell.z, block);
         }
+        true
     }
 }
 
@@ -202,7 +175,6 @@ impl VoxelSink for GrowSink<'_> {
 mod tests {
     use super::*;
     use petramond_world::chunk::{Chunk, ChunkPos};
-    use petramond_world::crafting::Recipes;
 
     use super::super::store::LoadTarget;
 
@@ -340,10 +312,9 @@ mod tests {
         let mut w = world_with_grove();
         let pos = plant_oak(&mut w);
         w.set_block_world(pos.x, pos.y, pos.z, Block::OakSapling);
-        let recipes = Recipes::default();
         let mut grew = false;
         for _ in 0..1_000_000 {
-            w.game_tick(&recipes);
+            w.game_tick();
             let b = block(&w, pos.x, pos.y, pos.z);
             if b.is_log() {
                 grew = true;

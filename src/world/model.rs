@@ -10,6 +10,14 @@ use petramond_world::block_model::{self, BlockModelKind};
 use super::cell_change::{CellChange, ChangeKind};
 
 impl<S: WorldSide> World<S> {
+    /// Turns the cell at `pos` to face `facing` (a furnace's front, a chest's lid hinge).
+    pub fn insert_entity_facing(&mut self, pos: IVec3, facing: Facing) {
+        if let Some((c, lx, ly, lz)) = self.data.chunk_at_world_mut(pos.x, pos.y, pos.z) {
+            c.insert_entity_facing(lx, ly, lz, facing);
+            self.note_block_entity_change(pos);
+        }
+    }
+
     pub fn place_model_block(&mut self, base: IVec3, block: Block) -> bool {
         self.place_model_block_facing(base, block, block_model::DEFAULT_MODEL_FACING)
     }

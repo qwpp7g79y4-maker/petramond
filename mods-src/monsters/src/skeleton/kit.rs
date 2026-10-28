@@ -8,8 +8,7 @@
 use mod_sdk::*;
 use serde::Deserialize;
 
-use super::aim::Flight;
-use super::keys::{LOADOUTS_DATA, PROJECTILE_DATA, UNARMED_DATA, WIELD_DATA};
+use super::keys::{LOADOUTS_DATA, UNARMED_DATA, WIELD_DATA};
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -216,7 +215,7 @@ pub struct Swing {
 pub struct Bow {
     pub hand: Hand,
     pub ranged: Ranged,
-    pub flight: Flight,
+    pub flight: ItemFlight,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -242,7 +241,7 @@ impl Kit {
     pub fn of(
         held: [Option<String>; 2],
         wield: impl Fn(&str) -> Option<Wield>,
-        flight: impl Fn(&str) -> Option<Flight>,
+        flight: impl Fn(&str) -> Option<ItemFlight>,
         unarmed: Option<&Melee>,
     ) -> Kit {
         let mut kit = Kit {
@@ -394,11 +393,7 @@ impl Kits {
                 log(&format!("skeleton ammo '{ammo}' is not registered"));
                 return None;
             };
-            Some(
-                item_data(id, PROJECTILE_DATA)
-                    .and_then(|raw| parse_row_data::<Flight>(&String::from_utf8_lossy(&raw)).ok())
-                    .unwrap_or_default(),
-            )
+            Some(item_flight(id))
         };
         let loadouts = specs
             .into_iter()

@@ -132,17 +132,6 @@ fn pick_plant(
         return cover.roll.pick(rng);
     }
 
-    if matches!(surf, Block::Sand | Block::RedSand) {
-        return vegetation.sand_cover.and_then(|roll| roll.pick(rng));
-    }
-
-    if surf == Block::Podzol {
-        if !cover_cluster_allows(vegetation.cover_cluster, seed, wx, wz) {
-            return None;
-        }
-        return vegetation.podzol_cover.and_then(|roll| roll.pick(rng));
-    }
-
     if surf != Block::Grass {
         return None;
     }

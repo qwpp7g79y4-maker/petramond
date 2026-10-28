@@ -305,17 +305,15 @@ fn a_slot_may_not_declare_more_filters_than_the_mask_has_bits() {
 }
 
 #[test]
-fn a_registered_station_kind_falls_back_to_the_crafting_table_document() {
-    let kind = crate::gui::intern_kind("doctest:bench_station").unwrap();
+fn a_station_shows_the_screen_its_row_names() {
+    let kind = crate::gui::intern_kind("doctest:not_a_station").unwrap();
     assert!(
         doc_for(kind).is_none(),
-        "an unregistered mod kind has no document"
+        "a kind with no document and no station row has none"
     );
-    petramond_world::crafting::CraftingStation::from_key("doctest:bench_station")
-        .expect("station registers");
-    let doc = doc_for(kind).expect("station kinds are backed by the crafting table document");
-    assert_eq!(doc.doc.kind, "petramond:crafting_table");
-    let doc = doc_for(GuiKind::FurnitureWorkbench).expect("furniture workbench screen loads");
+    let workbench = petramond_world::gui_state::resolve_kind("petramond:furniture_workbench")
+        .expect("the station row interns its kind");
+    let doc = doc_for(workbench).expect("the furniture workbench shows a screen");
     assert_eq!(doc.doc.kind, "petramond:crafting_table");
 }
 
@@ -367,11 +365,11 @@ fn foreign_namespace_documents_are_rejected_per_pack() {
     assert!(kind_permitted(key, Some("doctest")).is_ok());
     assert!(kind_permitted(key, Some("otherpack")).is_err());
     assert!(kind_permitted(key, None).is_err());
-    for engine in [GuiKind::Furnace, GuiKind::Title] {
-        let key = crate::gui::kind_key(engine).unwrap();
-        assert!(kind_permitted(key, None).is_ok());
-        assert!(kind_permitted(key, Some("anypack")).is_ok());
-    }
+    let title = crate::gui::kind_key(GuiKind::Title).unwrap();
+    assert!(kind_permitted(title, None).is_ok());
+    assert!(kind_permitted(title, Some("anypack")).is_ok());
+    assert!(kind_permitted("petramond:furnace", None).is_ok());
+    assert!(kind_permitted("petramond:furnace", Some("anypack")).is_err());
 }
 
 fn test_art_dir(tag: &str) -> petramond_util::test_dirs::TestScratchDir {

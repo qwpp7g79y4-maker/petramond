@@ -3,7 +3,7 @@ use crate::item::DropSpec;
 use crate::tile::Tile;
 
 use super::behavior::BlockBehavior;
-use super::{Aabb, Block, BlockInteraction, BlockShapeKind, BlockTag};
+use super::{Aabb, Block, BlockShapeKind, BlockTag};
 
 #[derive(Copy, Clone)]
 pub(crate) struct BlockDef {
@@ -13,8 +13,9 @@ pub(crate) struct BlockDef {
     pub melts_to: Option<Block>,
     pub fluid: Option<&'static crate::fluid::FluidDef>,
     pub tags: &'static [BlockTag],
-    pub behavior: &'static dyn BlockBehavior,
-    pub interaction: BlockInteraction,
+    pub behaviors: &'static [&'static dyn BlockBehavior],
+    /// The GUI a use-click opens here.
+    pub open_gui: Option<crate::gui_state::GuiKind>,
     pub shape_kind: BlockShapeKind,
     pub collision: &'static [Aabb],
     pub emission: u8,
@@ -27,12 +28,18 @@ pub(crate) struct BlockDef {
     pub side_overlay: Option<SideOverlay>,
     pub covered_side: Option<Tile>,
     pub flow_tile: Option<Tile>,
-    pub material: BlockMaterial,
+    pub material: crate::material::MaterialId,
+    pub sounds: super::sounds::BlockSoundSet,
     pub harvest_tier: u8,
     pub hardness: f32,
     pub drop: DropSpec,
     pub next_stage: Option<Block>,
     pub grows_into: &'static [(&'static str, f32)],
+    /// A sapling's chance per random tick to advance a stage (or, on its last, to grow).
+    pub advance_chance: f32,
+    /// Tags of the blocks a growing tree replaces, and of those it grows through and leaves.
+    pub grows_over: &'static [BlockTag],
+    pub grows_through: &'static [BlockTag],
     pub panel_facing: Option<Facing>,
     pub animated_model: Option<&'static crate::animated_model::AnimatedModelDef>,
     pub facing_rows: Option<&'static [Block; 4]>,
@@ -44,9 +51,9 @@ pub(crate) struct BlockDef {
     pub support: SupportDir,
     pub roots_on: &'static [BlockTag],
     pub roots_face: RootsFace,
-    /// Held by a cell of its own row in its support direction (a kelp
-    /// segment standing on the one below), whatever that cell presents.
-    pub stacks: bool,
+    /// Held by a cell in its support direction that belongs to the same stack (a kelp segment
+    /// standing on the one below), whatever that cell presents.
+    pub stacks: Stacks,
     /// How far, in blocks, a current sways this plant's free vertices; 0 holds it still.
     pub sway: f32,
 }
@@ -283,25 +290,6 @@ where
     )
 }
 
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum BlockMaterial {
-    None,
-    Dirt,
-    Sand,
-    Snow,
-    Stone,
-    Ore,
-    Wood,
-    Wool,
-    Foliage,
-    Plant,
-    Glass,
-    Ice,
-    Other,
-}
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct BlockFlags(u16);
 
@@ -310,6 +298,8 @@ impl BlockFlags {
     pub const CONTAINS_FLUID: BlockFlags = BlockFlags(1 << 12);
     pub const INVISIBLE: BlockFlags = BlockFlags(1 << 11);
     pub const FLOODABLE: BlockFlags = BlockFlags(1 << 13);
+    /// Direct skylight stops here and only spreads on through it, dimming (leaves, water).
+    pub const DIMS_SKY: BlockFlags = BlockFlags(1 << 14);
 
     #[inline]
     pub const fn contains_fluid(self) -> bool {
@@ -391,6 +381,11 @@ impl BlockFlags {
     }
 
     #[inline]
+    pub const fn dims_sky(self) -> bool {
+        self.contains(BlockFlags::DIMS_SKY)
+    }
+
+    #[inline]
     pub const fn has_box_shape(self) -> bool {
         self.contains(BlockFlags::BOX_SHAPE)
     }
@@ -399,4 +394,14 @@ impl BlockFlags {
     const fn contains(self, flag: BlockFlags) -> bool {
         self.0 & flag.0 == flag.0
     }
+}
+
+/// What a row stacks on: `true` in a row is its own block, a tag name every block carrying it (the
+/// wet and dry segments of one dripstone run).
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
+pub enum Stacks {
+    #[default]
+    No,
+    Same,
+    Tagged(super::BlockTag),
 }

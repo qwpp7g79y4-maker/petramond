@@ -1,3 +1,4 @@
+use crate::mob::riding::{MountTarget, PoseAnchor, Posture};
 use crate::player::{BedSpawn, MAX_HEALTH, PITCH_LIMIT};
 use crate::world::ServerWorld;
 use petramond_math::math::{IVec3, Vec3};
@@ -31,29 +32,22 @@ impl ServerGame {
         if !super::daynight::is_night(&self.world) {
             return acted;
         }
+        let anchor = PoseAnchor {
+            pos: group_centre(&cells),
+            yaw: head_yaw(base, &cells),
+        };
         let player_id = self.sessions[s].id.0;
-        if self.world.riding().mount_of(player_id).is_some() {
+        if !self
+            .world
+            .try_attach(player_id, MountTarget::Anchor(anchor), 0, Posture::Lying)
+        {
             return acted;
         }
         let sess = &mut self.sessions[s];
-        sess.player.teleport(group_centre(&cells));
-        sess.player.vel = Vec3::ZERO;
         sess.player.pitch = PITCH_LIMIT;
         sess.sim.sleep = Some(SleepState { base, progress: 0 });
         sess.replication.request_open_sleep = true;
         true
-    }
-
-    pub fn sleep_bed_base(&self, s: usize) -> Option<IVec3> {
-        Some(self.sessions[s].sim.sleep.as_ref()?.base)
-    }
-
-    pub fn sleep_head_yaw(&self, s: usize) -> Option<f32> {
-        let base = self.sleep_bed_base(s)?;
-        let (_, _, cells) = self.world.model_group(base)?;
-        let other = cells.iter().copied().find(|c| *c != base)?;
-        let d = other - base;
-        Some((d.x as f32).atan2(d.z as f32))
     }
 
     pub fn sleep_progress01(&self, s: usize) -> Option<f32> {
@@ -69,21 +63,24 @@ impl ServerGame {
         self.tick_sleep(s, events);
     }
 
+    /// A sleeper lies attached to its bed; losing that attachment (sneak, death, a broken bed, a
+    /// mod's detach) ends the sleep, and waking is the detach.
     fn tick_sleep(&mut self, s: usize, events: &mut TickEvents) {
+        let id = self.sessions[s].id.0;
+        let in_bed = self.world.riding().mount_of(id).is_some();
         let sess = &mut self.sessions[s];
         let Some(state) = sess.sim.sleep.as_mut() else {
             sess.input.wake_requested = false;
             return;
         };
-        if sess.player.health() == 0 {
+        if !in_bed || sess.player.health() == 0 {
             sess.sim.sleep = None;
             events.player(s).sleep_ended = true;
             return;
         }
         if std::mem::take(&mut sess.input.wake_requested) {
-            let base = state.base;
             sess.sim.sleep = None;
-            self.wake_at_bed(s, base);
+            self.world.riding_mut().dismount(id);
             events.player(s).sleep_ended = true;
             return;
         }
@@ -105,20 +102,20 @@ impl ServerGame {
         }
         super::daynight::skip_to_morning(&mut self.world);
         for s in 0..self.sessions.len() {
-            if let Some(state) = self.sessions[s].sim.sleep.take() {
-                self.wake_at_bed(s, state.base);
+            if self.sessions[s].sim.sleep.take().is_some() {
+                let id = self.sessions[s].id.0;
+                self.world.riding_mut().dismount(id);
                 events.player(s).sleep_ended = true;
             }
         }
     }
 
     pub(super) fn interrupt_sleep(&mut self, s: usize, events: &mut TickEvents) {
-        let Some(state) = self.sessions[s].sim.sleep.take() else {
+        if self.sessions[s].sim.sleep.take().is_none() {
             return;
-        };
-        if self.sessions[s].player.health() > 0 {
-            self.wake_at_bed(s, state.base);
         }
+        let id = self.sessions[s].id.0;
+        self.world.riding_mut().dismount(id);
         events.player(s).sleep_ended = true;
     }
 
@@ -159,25 +156,19 @@ impl ServerGame {
         petramond_math::world_pos::WorldPos::block_min(surface) + Vec3::new(0.5, 1.0, 0.5)
     }
 
-    fn wake_at_bed(&mut self, s: usize, base: IVec3) {
-        let cells = self
-            .world
-            .model_group(base)
-            .map(|(_, _base, cells)| cells)
-            .unwrap_or_else(|| vec![base]);
-        let spot = find_wake_spot(&self.world, &cells).unwrap_or(bed_top_cell(base));
-        let player = &mut self.sessions[s].player;
-        player.teleport(cell_centre(spot));
-        player.vel = Vec3::ZERO;
-    }
-
-    pub fn clear_bed_spawn_at(&mut self, pos: IVec3) {
+    /// A bed is going: its spawn points lapse and its sleepers are let go.
+    pub fn release_bed_at(&mut self, pos: IVec3) {
         let Some(base) = self.world.model_group(pos).map(|(_, base, _)| base) else {
             return;
         };
-        for sess in &mut self.sessions {
+        for s in 0..self.sessions.len() {
+            let sess = &mut self.sessions[s];
             if sess.player.bed_spawn.is_some_and(|bs| bs.bed == base) {
                 sess.player.bed_spawn = None;
+            }
+            if sess.sim.sleep.as_ref().is_some_and(|st| st.base == base) {
+                let id = sess.id.0;
+                self.world.riding_mut().dismount(id);
             }
         }
     }
@@ -198,6 +189,14 @@ impl ServerGame {
 
 fn bed_at(world: &ServerWorld, pos: IVec3) -> bool {
     Block::from_id(world.data().chunk_block(pos.x, pos.y, pos.z)).has_tag(BlockTag::BED)
+}
+
+/// The way from the bed's foot to its head: from the base cell toward the group's other cell.
+fn head_yaw(base: IVec3, cells: &[IVec3]) -> f32 {
+    cells.iter().find(|c| **c != base).map_or(0.0, |other| {
+        let d = *other - base;
+        (d.x as f32).atan2(d.z as f32)
+    })
 }
 
 fn bed_top_cell(base: IVec3) -> IVec3 {

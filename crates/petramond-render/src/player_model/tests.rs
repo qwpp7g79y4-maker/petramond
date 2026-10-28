@@ -15,7 +15,7 @@ fn instance() -> PlayerRenderInstance {
         emitter_tint: [1.0; 3],
         emitter_self_lit: 0.0,
         pos: WorldPos::new(4.0, 70.0, -3.0),
-        sleeping: false,
+        lying: false,
         hurt: 0.0,
         skylight: 63,
         blocklight: petramond_world::light::BlockLight6::DARK,

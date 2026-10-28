@@ -7,7 +7,7 @@ use crate::events::PostEvent;
 use crate::mob::MobTagValue;
 use crate::server::game::ServerGame;
 
-const POST_MARKER: &str = "monsters:camp_post";
+const POST_MARKER: &str = "monsters:post";
 
 #[test]
 fn a_camp_post_is_manned_out_of_sight_and_its_guard_fights() {
@@ -106,6 +106,14 @@ fn first_of(server: &ServerGame, kind: crate::mob::Mob) -> Option<u64> {
 #[ignore = "spawned by a_camp_post_is_manned_out_of_sight_and_its_guard_fights with the packs staged"]
 fn a_camp_post_is_manned_out_of_sight_and_its_guard_fights_inner() {
     let mut server = crate::server::session_build::build_server_inline("", 1, 3);
+    // Held at noon: night would fill the open arena with zombies the guard has no part in.
+    let noon = 0.25f32.to_le_bytes().to_vec();
+    server
+        .world
+        .world_kv_set(crate::rules::daynight::TIME_KEY.into(), noon);
+    server
+        .world
+        .world_kv_set(crate::rules::daynight::FROZEN_KEY.into(), vec![1]);
     let [bx, by, bz] = walled_arena(&mut server);
     let post = [bx + 26, by - 1, bz];
     mark_post(&mut server, post, 0);

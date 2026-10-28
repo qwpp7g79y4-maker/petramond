@@ -28,6 +28,28 @@ pub trait PlayerRoster {
     fn index_of(&self, id: PlayerId) -> Option<usize> {
         (0..self.len()).find(|&i| self.id_at(i) == id)
     }
+
+    /// Writes `key` into the GUI state of every session with a GUI open anchored at `anchor`, and
+    /// returns how many that reached.
+    fn set_gui_value_at(
+        &mut self,
+        anchor: crate::menu::MenuAnchor,
+        key: &str,
+        value: &petramond_world::gui_state::GuiValue,
+    ) -> usize {
+        let mut reached = 0;
+        for i in 0..self.len() {
+            if self.open_gui_at(i).and_then(|gui| gui.anchor) == Some(anchor) {
+                petramond_world::gui_state::gui_state_set(
+                    self.gui_state_at(i),
+                    key.to_owned(),
+                    value.clone(),
+                );
+                reached += 1;
+            }
+        }
+        reached
+    }
 }
 
 pub struct SessionPlayerRef<'a> {

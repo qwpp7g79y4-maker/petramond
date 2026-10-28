@@ -58,14 +58,14 @@ impl ServerGame {
     /// Where a struck body stands and which way it turns, the frame a lodged item rides in.
     fn body_frame(&self, target: ImpactTarget) -> Option<(EntityRef, (WorldPos, f32))> {
         match target {
-            ImpactTarget::Mob(id) => self
+            ImpactTarget::Body(EntityRef::Entity(id)) => self
                 .world
                 .mobs()
                 .instances()
                 .iter()
                 .find(|m| m.id() == id && !m.is_dead())
-                .map(|m| (EntityRef::Mob(id), (m.pos, m.yaw))),
-            ImpactTarget::Player(id) => self
+                .map(|m| (EntityRef::Entity(id), (m.pos, m.yaw))),
+            ImpactTarget::Body(EntityRef::Player(id)) => self
                 .sessions
                 .by_id(id)
                 .map(|s| &s.player)
@@ -92,8 +92,7 @@ impl ServerGame {
                 it.deflect(vel);
                 if let Motion::Flight(flight) = &mut it.motion {
                     flight.contact = match impact.target {
-                        ImpactTarget::Mob(id) => Some(EntityRef::Mob(id)),
-                        ImpactTarget::Player(id) => Some(EntityRef::Player(id)),
+                        ImpactTarget::Body(body) => Some(body),
                         ImpactTarget::Block { .. } => None,
                     };
                 }
@@ -107,7 +106,7 @@ impl ServerGame {
                 it.vel = Vec3::ZERO;
                 it.release();
             }
-            (_, ImpactTarget::Mob(_) | ImpactTarget::Player(_)) => match body {
+            (_, ImpactTarget::Body(_)) => match body {
                 Some((body, (at, yaw))) => it.embed(body, at, yaw),
                 None => {
                     it.vel *= BODY_DROP_SPEED;

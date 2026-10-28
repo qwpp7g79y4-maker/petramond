@@ -48,7 +48,7 @@ fn a_remote_player_pushes_the_local_player_per_frame() {
     use petramond::net::protocol::PlayerStateRow;
     use petramond::player::PlayerId;
 
-    fn remote_row(pos: WorldPos, visible: bool, sleeping: bool) -> PlayerStateRow {
+    fn remote_row(pos: WorldPos, visible: bool, lying: bool) -> PlayerStateRow {
         PlayerStateRow {
             conditions: Vec::new(),
             id: PlayerId(1),
@@ -60,8 +60,6 @@ fn a_remote_player_pushes_the_local_player_per_frame() {
             },
             on_ground: true,
             sneaking: false,
-            sleeping,
-            sleep_yaw: None,
             alive: visible,
             visible,
             held_item: None,
@@ -79,7 +77,11 @@ fn a_remote_player_pushes_the_local_player_per_frame() {
             animator: Default::default(),
             hurt_recent: false,
             snap: false,
-            mount: None,
+            mount: lying.then_some(petramond::net::protocol::PlayerMount::Anchor {
+                pos,
+                yaw: 0.0,
+                posture: mod_api::Posture::Lying,
+            }),
         }
     }
 
@@ -111,7 +113,7 @@ fn a_remote_player_pushes_the_local_player_per_frame() {
     assert_eq!(hidden, 0.0, "a hidden (spectator/dead) remote doesn't push");
 
     let asleep = run(&mut game, remote_row(overlap, true, true));
-    assert_eq!(asleep, 0.0, "a sleeping remote doesn't push");
+    assert_eq!(asleep, 0.0, "a lying remote doesn't push");
 }
 
 #[test]
@@ -416,8 +418,6 @@ fn refresh_target_picks_remote_players_competing_with_mobs() {
             },
             on_ground: true,
             sneaking: false,
-            sleeping: false,
-            sleep_yaw: None,
             alive: visible,
             visible,
             held_item: None,

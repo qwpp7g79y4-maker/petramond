@@ -6,13 +6,32 @@ use crate::registry::ContentNames;
 use crate::tile::Tile;
 
 use super::definition::{
-    self, BlockDef, BlockFlags, BlockMaterial, ParticleEmitter, ParticleEmitterAnchor, RootsFace,
-    SupportDir,
+    self, BlockDef, BlockFlags, ParticleEmitter, ParticleEmitterAnchor, RootsFace, SupportDir,
 };
 use super::shape_kind::{
     self, MeshEmitter, RawShape, RowFacts, ShapeKindDef, ShapeKindInterner, ShapeSim,
 };
-use super::{behavior, Aabb, Block, BlockInteraction, BlockTag};
+use super::{behavior, Aabb, Block, BlockTag};
+
+/// `stacks`: `true` (on its own block) or a block tag (on any block carrying it).
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub(super) enum RawStacks {
+    Same(bool),
+    Tagged(String),
+}
+
+impl Default for RawStacks {
+    fn default() -> Self {
+        Self::Same(false)
+    }
+}
+
+impl RawStacks {
+    fn is_default(&self) -> bool {
+        *self == Self::Same(false)
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -29,8 +48,10 @@ pub(super) struct RawBlockDef {
     pub tags: Vec<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub corners: bool,
-    pub behavior: String,
-    pub interaction: RawInteraction,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub behaviors: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub open_gui: Option<String>,
     pub collision: Vec<Aabb>,
     pub emission: u8,
     #[serde(default = "white_light", skip_serializing_if = "is_white_light")]
@@ -50,13 +71,21 @@ pub(super) struct RawBlockDef {
     pub covered_side: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flow_tile: Option<String>,
-    pub material: BlockMaterial,
+    pub material: String,
+    #[serde(default, skip_serializing_if = "super::sounds::RawSoundSet::is_empty")]
+    pub sounds: super::sounds::RawSoundSet,
     pub hardness: f64,
     pub drops: Vec<RawDrop>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_stage: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grows_into: Option<RawGrowsInto>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub advance_chance: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grows_over: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grows_through: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub panel_facing: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -73,8 +102,8 @@ pub(super) struct RawBlockDef {
     pub roots_on: Vec<String>,
     #[serde(default, skip_serializing_if = "RootsFace::is_default")]
     pub roots_face: RootsFace,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub stacks: bool,
+    #[serde(default, skip_serializing_if = "RawStacks::is_default")]
+    pub stacks: RawStacks,
     #[serde(default, skip_serializing_if = "is_zero")]
     pub sway: f32,
 }
@@ -181,46 +210,14 @@ pub(super) enum RawEmitterRef {
     Inline(Box<ParticleEmitter>),
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
-pub(super) enum RawInteraction {
-    Named(String),
-    OpenGui { open_gui: String },
-}
-
-impl RawInteraction {
-    fn resolve(&self) -> Result<BlockInteraction, String> {
-        match self {
-            RawInteraction::Named(name) => Ok(match name.as_str() {
-                "none" => BlockInteraction::None,
-                "open_crafting_table" => {
-                    BlockInteraction::OpenGui(crate::gui_state::GuiKind::CraftingTable)
-                }
-                "open_furnace" => BlockInteraction::OpenGui(crate::gui_state::GuiKind::Furnace),
-                "open_chest" => BlockInteraction::OpenGui(crate::gui_state::GuiKind::Chest),
-                "open_furniture_workbench" => {
-                    BlockInteraction::OpenGui(crate::gui_state::GuiKind::FurnitureWorkbench)
-                }
-                "open_chiseling_station" => {
-                    BlockInteraction::OpenGui(crate::gui_state::GuiKind::ChiselingStation)
-                }
-                "toggle_door" => BlockInteraction::ToggleDoor,
-                "toggle_trapdoor" => BlockInteraction::ToggleTrapdoor,
-                "sleep" => BlockInteraction::Sleep,
-                other => return Err(format!("unknown interaction '{other}'")),
-            }),
-            RawInteraction::OpenGui { open_gui } => {
-                if !crate::registry::is_namespaced(open_gui) {
-                    return Err(format!(
-                        "open_gui '{open_gui}' must be a namespaced 'mod_id:name' GUI kind"
-                    ));
-                }
-                let kind = crate::gui_state::intern_kind(open_gui)
-                    .ok_or_else(|| format!("cannot register gui kind '{open_gui}'"))?;
-                Ok(BlockInteraction::OpenGui(kind))
-            }
-        }
+fn resolve_open_gui(open_gui: &str) -> Result<crate::gui_state::GuiKind, String> {
+    if !crate::registry::is_namespaced(open_gui) {
+        return Err(format!(
+            "open_gui '{open_gui}' must be a namespaced 'mod_id:name' GUI kind"
+        ));
     }
+    crate::gui_state::intern_kind(open_gui)
+        .ok_or_else(|| format!("cannot register gui kind '{open_gui}'"))
 }
 
 #[derive(Copy, Clone, Serialize, Deserialize)]
@@ -234,6 +231,7 @@ pub(super) enum RawFlag {
     Transparent,
     DirectionalView,
     Translucent,
+    DimsSky,
 }
 
 impl RawFlag {
@@ -247,6 +245,7 @@ impl RawFlag {
             RawFlag::Transparent => BlockFlags::TRANSPARENT,
             RawFlag::DirectionalView => BlockFlags::DIRECTIONAL_VIEW,
             RawFlag::Translucent => BlockFlags::TRANSLUCENT,
+            RawFlag::DimsSky => BlockFlags::DIMS_SKY,
         }
     }
 }
@@ -409,7 +408,7 @@ fn validate_stage_chains(defs: &[BlockDef]) -> Result<(), String> {
         };
         for _ in 0..defs.len() {
             let target = &defs[at.id() as usize];
-            if target.behavior.key() != "sapling" {
+            if !target.behaviors.iter().any(|b| b.key() == "sapling") {
                 return Err(format!(
                     "block {}: next_stage target {:?} does not carry the sapling behaviour",
                     name(d),
@@ -569,9 +568,19 @@ fn convert(
     interner: &mut ShapeKindInterner,
     patches: &[crate::registry::RawDataPatch],
 ) -> Result<BlockDef, String> {
-    let behavior = behavior::by_name(&r.behavior)
-        .ok_or_else(|| format!("unknown behavior '{}'", r.behavior))?;
-    let interaction = r.interaction.resolve()?;
+    let mut behaviors: Vec<&'static dyn super::behavior::BlockBehavior> =
+        Vec::with_capacity(r.behaviors.len());
+    for name in &r.behaviors {
+        let b = behavior::by_name(name).ok_or_else(|| format!("unknown behavior '{name}'"))?;
+        if behaviors.iter().any(|known| known.key() == b.key()) {
+            return Err(format!("behavior '{name}' is listed twice"));
+        }
+        behaviors.push(b);
+    }
+    let open_gui = r.open_gui.as_deref().map(resolve_open_gui).transpose()?;
+    let material = crate::material::MaterialId::by_name(&r.material)
+        .ok_or_else(|| format!("unknown material '{}'", r.material))?;
+    let sounds = material.def().sounds.overlaid(r.sounds.resolve()?);
     let tile = |name: &String| -> Result<Tile, String> {
         Tile::from_name(name).ok_or_else(|| format!("unknown tile '{name}'"))
     };
@@ -675,12 +684,17 @@ fn convert(
             })
         })
         .collect::<Result<_, String>>()?;
-    let tags: Vec<BlockTag> = r
+    let mut tags: Vec<BlockTag> = r
         .tags
         .iter()
         .map(|t| BlockTag::resolve(t))
         .collect::<Result<_, String>>()?;
-    let is_sapling = behavior.key() == "sapling";
+    for &tag in material.def().tags {
+        if !tags.contains(&tag) {
+            tags.push(tag);
+        }
+    }
+    let is_sapling = behaviors.iter().any(|b| b.key() == "sapling");
     if is_sapling != tags.contains(&BlockTag::SAPLING) {
         return Err(if is_sapling {
             "a row with the 'sapling' behavior must also list the 'sapling' tag".into()
@@ -719,6 +733,35 @@ fn convert(
                 .collect::<Result<_, String>>()?
         }
     };
+    let declares_growth =
+        r.advance_chance.is_some() || r.grows_over.is_some() || r.grows_through.is_some();
+    if declares_growth && !is_sapling {
+        return Err(
+            "advance_chance/grows_over/grows_through are sapling-row fields (behavior 'sapling')"
+                .into(),
+        );
+    }
+    let advance_chance = r.advance_chance.unwrap_or(0.5);
+    if !(advance_chance > 0.0 && advance_chance <= 1.0) {
+        return Err(format!("advance_chance {advance_chance} must be in (0, 1]"));
+    }
+    let growth_tags = |declared: &Option<Vec<String>>, default: &[BlockTag]| {
+        declared
+            .as_ref()
+            .map(|names| {
+                names
+                    .iter()
+                    .map(|n| BlockTag::resolve(n))
+                    .collect::<Result<Vec<_>, String>>()
+            })
+            .transpose()
+            .map(|tags| tags.unwrap_or_else(|| default.to_vec()))
+    };
+    let grows_over = growth_tags(
+        &r.grows_over,
+        &[BlockTag::LEAVES, BlockTag::FRAGILE, BlockTag::SNOW_COVER],
+    )?;
+    let grows_through = growth_tags(&r.grows_through, &[BlockTag::LOG])?;
     match (is_sapling, next_stage.is_some(), !grows_into.is_empty()) {
         (false, false, false) | (true, true, false) | (true, false, true) => {}
         (false, ..) => {
@@ -747,9 +790,9 @@ fn convert(
                     .into(),
             );
         }
-        if interaction != BlockInteraction::Sleep {
+        if !behaviors.iter().any(|b| b.key() == "bed") {
             return Err(
-                "the 'bed' tag requires interaction 'sleep' — a spawn point is only ever set \
+                "the 'bed' tag requires the 'bed' behavior — a spawn point is only ever set \
                  by a sleep click, so a non-sleepable bed could never anchor one"
                     .into(),
             );
@@ -939,8 +982,8 @@ fn convert(
         melts_to,
         fluid,
         tags: leak(tags),
-        behavior,
-        interaction,
+        behaviors: leak(behaviors),
+        open_gui,
         shape_kind,
         collision: leak(r.collision),
         emission: r.emission,
@@ -953,12 +996,16 @@ fn convert(
         side_overlay,
         covered_side,
         flow_tile,
-        material: r.material,
+        material,
+        sounds,
         harvest_tier,
         hardness: r.hardness as f32,
         drop: DropSpec { drops: leak(drops) },
         next_stage,
         grows_into: leak(grows_into),
+        advance_chance: advance_chance as f32,
+        grows_over: leak(grows_over),
+        grows_through: leak(grows_through),
         panel_facing,
         animated_model,
         facing_rows,
@@ -975,7 +1022,11 @@ fn convert(
                 .collect::<Result<Vec<_>, String>>()?,
         ),
         roots_face: r.roots_face,
-        stacks: r.stacks,
+        stacks: match &r.stacks {
+            RawStacks::Same(false) => super::definition::Stacks::No,
+            RawStacks::Same(true) => super::definition::Stacks::Same,
+            RawStacks::Tagged(tag) => super::definition::Stacks::Tagged(BlockTag::resolve(tag)?),
+        },
         sway: r.sway,
     })
 }
@@ -1117,7 +1168,7 @@ mod tests {
     fn pack_layer_overrides_rows_by_block() {
         let (base, _) =
             crate::assets::read_base_text("blocks.json").expect("assets/blocks.json must ship");
-        let layer = r#"{ "blocks": [ { "block": "petramond:stone", "shape": "cube", "flags": ["solid", "opaque", "ao_occluder"], "tags": ["terrain"], "behavior": "inert", "interaction": "none", "collision": [{"min": [0, 0, 0], "max": [1, 1, 1]}], "emission": 0, "tiles": ["stone", "stone", "stone"], "material": "stone", "data": {"petramond:harvest": {"tier": 1}}, "hardness": 99, "drops": [] } ] }"#;
+        let layer = r#"{ "blocks": [ { "block": "petramond:stone", "shape": "cube", "flags": ["solid", "opaque", "ao_occluder"], "tags": ["terrain"], "collision": [{"min": [0, 0, 0], "max": [1, 1, 1]}], "emission": 0, "tiles": ["stone", "stone", "stone"], "material": "stone", "data": {"petramond:harvest": {"tier": 1}}, "hardness": 99, "drops": [] } ] }"#;
         let base_reg = parse(&base).expect("base table loads");
         let reg = parse_test_layers(&[&base, layer]).expect("layered table loads");
         assert_eq!(
@@ -1161,10 +1212,10 @@ mod tests {
             crate::assets::read_base_text("blocks.json").expect("assets/blocks.json must ship");
         let row = |name: &str, tags: &str, behavior: &str, growth: &str| {
             format!(
-                r#"{{ "blocks": [ {{ "block": "{name}", {growth} "shape": "cross", "flags": ["transparent"], "tags": [{tags}], "behavior": "{behavior}", "interaction": "none", "collision": [], "emission": 0, "tiles": ["oak_sapling", "oak_sapling", "oak_sapling"], "material": "plant", "hardness": 0, "drops": [] }} ] }}"#
+                r#"{{ "blocks": [ {{ "block": "{name}", {growth} "shape": "cross", "flags": ["transparent"], "tags": [{tags}], "behaviors": ["{behavior}"], "collision": [], "emission": 0, "tiles": ["oak_sapling", "oak_sapling", "oak_sapling"], "material": "plant", "hardness": 0, "drops": [] }} ] }}"#
             )
         };
-        let sapling_tags = r#""fragile", "roots_in_soil", "sapling""#;
+        let sapling_tags = r#""fragile", "sapling""#;
 
         let good = row(
             "mymod:sap",
@@ -1252,16 +1303,16 @@ mod tests {
 
     #[test]
     fn loader_rejects_incomplete_or_unknown_rows() {
-        let partial = r#"{ "blocks": [ { "block": "petramond:air", "shape": "cube", "flags": [], "tags": [], "behavior": "inert", "interaction": "none", "collision": [], "emission": 0, "tiles": ["dirt", "dirt", "dirt"], "material": "none", "hardness": -1, "drops": [] } ] }"#;
+        let partial = r#"{ "blocks": [ { "block": "petramond:air", "shape": "cube", "flags": [], "tags": [], "collision": [], "emission": 0, "tiles": ["dirt", "dirt", "dirt"], "material": "none", "hardness": -1, "drops": [] } ] }"#;
         assert!(parse(partial).err().unwrap().contains("missing row"));
         let (base, _) =
             crate::assets::read_base_text("blocks.json").expect("assets/blocks.json must ship");
-        let bad_behavior = r#"{ "blocks": [ { "block": "petramond:air", "shape": "cube", "flags": [], "tags": [], "behavior": "bogus", "interaction": "none", "collision": [], "emission": 0, "tiles": ["dirt", "dirt", "dirt"], "material": "none", "hardness": -1, "drops": [] } ] }"#;
+        let bad_behavior = r#"{ "blocks": [ { "block": "petramond:air", "shape": "cube", "flags": [], "tags": [], "behaviors": ["bogus"], "collision": [], "emission": 0, "tiles": ["dirt", "dirt", "dirt"], "material": "none", "hardness": -1, "drops": [] } ] }"#;
         assert!(parse_test_layers(&[&base, bad_behavior])
             .err()
             .unwrap()
             .contains("unknown behavior"));
-        let bad_tile = bad_behavior.replace("\"bogus\"", "\"inert\"").replace(
+        let bad_tile = bad_behavior.replace("[\"bogus\"]", "[]").replace(
             "\"dirt\", \"dirt\", \"dirt\"",
             "\"dirt\", \"dirt\", \"bogus_tile\"",
         );
@@ -1269,7 +1320,7 @@ mod tests {
             .err()
             .unwrap()
             .contains("unknown tile"));
-        let bad_drop = bad_behavior.replace("\"bogus\"", "\"inert\"").replace(
+        let bad_drop = bad_behavior.replace("[\"bogus\"]", "[]").replace(
             "\"drops\": []",
             "\"drops\": [{\"item\": \"bogus_item\", \"min\": 1, \"max\": 1, \"chance\": 1.0}]",
         );

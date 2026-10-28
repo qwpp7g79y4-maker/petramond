@@ -312,10 +312,10 @@ fn trailing_end(kind: petramond_world::block_model::BlockModelKind, pose: Mat4) 
     Vec3::new(min.x, (min.y + max.y) * 0.5, (min.z + max.z) * 0.5)
 }
 
-/// Where a tethered item's line ties on: the top of the item as drawn, so a floating bobber's
+/// Where a line ending on an item ties on: the top of the item as drawn, so a floating bobber's
 /// line leaves from above the water rather than from its submerged middle; a ground-posed model
 /// ties on at its trailing end.
-pub(crate) fn tether_anchor(inst: &ItemEntityInstance, render_origin: glam::IVec3) -> Vec3 {
+pub(crate) fn tie_on(inst: &ItemEntityInstance, render_origin: glam::IVec3) -> Vec3 {
     if let Some(top) = inst.drawn_top {
         return inst.pos.relative_to(render_origin) + Vec3::Y * top;
     }
@@ -434,7 +434,7 @@ mod tests {
     fn an_aimed_cube_pitches_about_its_centre_and_trails() {
         let pos = WorldPos::new(4.0, 70.0, -3.0);
         let inst = ItemEntityInstance {
-            tether: None,
+            id: 1,
             drawn_top: None,
             pos,
             item: ItemType::Stone,
@@ -493,7 +493,7 @@ mod tests {
         let mut v = Vec::new();
         let mut i = Vec::new();
         let inst = ItemEntityInstance {
-            tether: None,
+            id: 1,
             drawn_top: None,
             pos: WorldPos::ZERO,
             item: ItemType::Stone,

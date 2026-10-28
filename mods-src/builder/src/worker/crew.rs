@@ -151,7 +151,7 @@ pub struct Access {
 
 #[derive(Default)]
 pub struct ScaffoldState {
-    pub(super) block: Option<BlockRecord>,
+    pub(super) block: Option<CellRecord>,
     pub(super) cells: HashSet<[i32; 3]>,
     pub(super) want: u32,
     pub(super) short: bool,
@@ -238,8 +238,8 @@ impl Crew {
         mob_tag_delete(id, HOLD_TAG);
         mob_tag_delete(id, FACE_TAG);
         mob_tag_delete(id, LOOK_TAG);
-        mob_held_display(id, None, None);
-        set_mob_draw(id, DrawFrame::World, Vec::new());
+        set_held_display(EntityRef::Entity(id), None, None);
+        set_entity_draw(id, DrawFrame::World, Vec::new());
         self.presence.mark = None;
         self.pace.busy_at = now;
         self.mob = Some(id);

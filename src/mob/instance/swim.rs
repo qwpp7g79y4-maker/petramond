@@ -92,7 +92,7 @@ fn body_of(who: EntityRef, me: u64, inputs: &TickInputs) -> Option<(WorldPos, f3
             let p = inputs.players.iter().find(|p| p.id == id)?;
             Some((p.pos, crate::player::HALF_W))
         }
-        EntityRef::Mob(id) if id != me => {
+        EntityRef::Entity(id) if id != me => {
             let m = inputs.mobs.live(id)?;
             let size = def(m.kind).size;
             Some((
@@ -100,6 +100,6 @@ fn body_of(who: EntityRef, me: u64, inputs: &TickInputs) -> Option<(WorldPos, f3
                 size.half_width,
             ))
         }
-        EntityRef::Mob(_) => None,
+        EntityRef::Entity(_) => None,
     }
 }

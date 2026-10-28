@@ -230,7 +230,7 @@ fn chest_viewer_transitions_emit_events_only_at_zero_boundaries() {
     game.server_world_mut()
         .set_block_world(3, 64, 3, Block::Chest);
     game.server_world_mut()
-        .insert_chest(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
+        .insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
     let s1 = game
         .sim_mut()
         .add_session_for_test(petramond::player::Player::new(WorldPos::new(
@@ -238,15 +238,25 @@ fn chest_viewer_transitions_emit_events_only_at_zero_boundaries() {
         )));
 
     let mut ev = TickEvents::default();
-    game.sim_mut().open_chest_screen_for(0, pos, &mut ev);
-    assert_eq!(ev.world.chest_changed, vec![(pos, true)], "0→1 opens");
-    game.sim_mut().open_chest_screen_for(s1, pos, &mut ev);
-    assert_eq!(ev.world.chest_changed.len(), 1, "1→2 emits nothing");
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+        &mut ev,
+    );
+    assert_eq!(ev.world.panel_changed, vec![(pos, true)], "0→1 opens");
+    game.sim_mut().open_document_screen_for(
+        s1,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+        &mut ev,
+    );
+    assert_eq!(ev.world.panel_changed.len(), 1, "1→2 emits nothing");
     game.sim_mut().close_open_menu_for(0, &mut ev);
-    assert_eq!(ev.world.chest_changed.len(), 1, "2→1 emits nothing");
+    assert_eq!(ev.world.panel_changed.len(), 1, "2→1 emits nothing");
     game.sim_mut().close_open_menu_for(s1, &mut ev);
     assert_eq!(
-        ev.world.chest_changed,
+        ev.world.panel_changed,
         vec![(pos, true), (pos, false)],
         "1→0 closes, exactly once"
     );
@@ -263,7 +273,7 @@ fn a_remote_sessions_chest_open_reaches_the_local_batch_exactly_once() {
     game.server_world_mut()
         .set_block_world(3, 64, 3, Block::Chest);
     game.server_world_mut()
-        .insert_chest(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
+        .insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
     game.sim_mut().mark_section_sent_for_test(0, pos);
     let s1 = game
         .sim_mut()
@@ -277,7 +287,7 @@ fn a_remote_sessions_chest_open_reaches_the_local_batch_exactly_once() {
     let update = pump_one_tick(&mut game);
     assert!(
         update
-            .open_chests()
+            .held_open()
             .map(Vec::as_slice)
             .unwrap_or(&[])
             .contains(&pos),
@@ -288,9 +298,11 @@ fn a_remote_sessions_chest_open_reaches_the_local_batch_exactly_once() {
         .map(Vec::as_slice)
         .unwrap_or(&[])
         .iter()
-        .filter(|e| matches!(e, WorldEventMsg::ChestOpened { pos: p } if *p == pos))
+        .filter(
+            |e| matches!(e, WorldEventMsg::PanelToggled { anchor, open: true } if *anchor == pos),
+        )
         .collect();
-    assert_eq!(opened.len(), 1, "exactly one ChestOpened event broadcast");
+    assert_eq!(opened.len(), 1, "exactly one PanelToggled open broadcast");
     assert_eq!(
         update
             .self_events()
@@ -313,7 +325,7 @@ fn menu_sync_ships_on_change_only() {
     game.server_world_mut()
         .set_block_world(3, 64, 3, Block::Chest);
     game.server_world_mut()
-        .insert_chest(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
+        .insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
 
     let up1 = pump_one_tick(&mut game);
     let sync = up1
@@ -328,7 +340,12 @@ fn menu_sync_ships_on_change_only() {
     );
 
     let mut ev = TickEvents::default();
-    game.sim_mut().open_chest_screen_for(0, pos, &mut ev);
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+        &mut ev,
+    );
     let up3 = pump_one_tick(&mut game);
     let sync = up3
         .menu_sync()
@@ -358,9 +375,14 @@ fn a_slot_click_forces_the_authoritative_pair_even_as_a_noop() {
     game.server_world_mut()
         .set_block_world(3, 64, 3, Block::Chest);
     game.server_world_mut()
-        .insert_chest(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
+        .insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
     let mut ev = TickEvents::default();
-    game.sim_mut().open_chest_screen_for(0, pos, &mut ev);
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+        &mut ev,
+    );
     pump_one_tick(&mut game);
     let quiet = pump_one_tick(&mut game);
     assert!(
@@ -405,7 +427,8 @@ fn gui_state_ships_in_menu_sync_only_on_arc_change() {
     game.set_mods_for_test(petramond::modding::ModHost::test_unit_guest_host("modtest"));
     let kind =
         petramond_world::gui_state::intern_kind("modtest:panel").expect("mod kind registers");
-    game.sim_mut().open_registered_gui_screen_for(0, kind, None);
+    game.sim_mut()
+        .open_document_screen_for(0, kind, None, &mut Default::default());
 
     let up = pump_one_tick(&mut game);
     let MenuTargetWire::Container { gui_state, .. } =
@@ -464,8 +487,12 @@ fn host_written_mod_gui_state_syncs_to_matching_remote_session() {
     let kind = petramond_world::gui_state::intern_kind("kitchen:oven").expect("mod kind registers");
     let pos = petramond_math::math::IVec3::new(4, 64, 4);
 
-    game.sim_mut()
-        .open_registered_gui_screen_for(remote, kind, Some(pos.into()));
+    game.sim_mut().open_document_screen_for(
+        remote,
+        kind,
+        Some(pos.into()),
+        &mut Default::default(),
+    );
     petramond_world::gui_state::gui_state_set(
         &mut game.session_mut().sim_mut().gui_state,
         "kitchen:cook01".into(),
@@ -494,13 +521,18 @@ fn open_screen_one_shot_maps_back_onto_game_events() {
 
     let mut game = super::common::game_on_empty_chunk();
     let pos = IVec3::new(3, 64, 3);
-    game.session_mut().replication_mut().request_open_gui =
-        Some((petramond_world::gui_state::GuiKind::Chest, Some(pos.into())));
+    game.session_mut().replication_mut().request_open_gui = Some((
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+    ));
 
     let events = game.tick(TICK_DT, &GameInput::default());
     assert_eq!(
         events.open_gui,
-        Some((petramond_world::gui_state::GuiKind::Chest, Some(pos.into()))),
+        Some((
+            petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+            Some(pos.into())
+        )),
         "the one-shot rode SelfEvents.open_screen into GameEvents"
     );
     assert!(

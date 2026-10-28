@@ -8,7 +8,6 @@ pub enum ErrorCode {
     NotInInit,
     NoContext,
     ReadOnly,
-    NoActor,
     Forbidden,
     InvalidArgument,
     LimitExceeded,

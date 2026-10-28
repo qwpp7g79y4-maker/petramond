@@ -73,6 +73,7 @@ impl ServerGame {
             return false;
         }
         let mut pre = PlayerDamagePre {
+            player: self.sessions[s].id,
             amount,
             source,
             origin,

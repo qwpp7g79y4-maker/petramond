@@ -179,7 +179,6 @@ impl AssignFrom for ItemStateRow {
             pos,
             spin,
             flight,
-            tether,
             draw,
         } = src;
         self.id = *id;
@@ -189,7 +188,6 @@ impl AssignFrom for ItemStateRow {
         self.pos = *pos;
         self.spin = *spin;
         self.flight = *flight;
-        self.tether = *tether;
         self.draw.clone_from(draw);
     }
 }
@@ -202,8 +200,6 @@ impl AssignFrom for PlayerStateRow {
             transform,
             on_ground,
             sneaking,
-            sleeping,
-            sleep_yaw,
             alive,
             visible,
             held_item,
@@ -228,8 +224,6 @@ impl AssignFrom for PlayerStateRow {
         self.transform.clone_from(transform);
         self.on_ground = *on_ground;
         self.sneaking = *sneaking;
-        self.sleeping = *sleeping;
-        self.sleep_yaw = *sleep_yaw;
         self.alive = *alive;
         self.visible = *visible;
         self.held_item = *held_item;

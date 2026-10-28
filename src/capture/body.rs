@@ -23,7 +23,7 @@ const COMPRESS_MIN: usize = 1024;
 pub struct CapturedActivity {
     pub loops: Vec<SpatialSoundMsg>,
     pub dig: Option<IVec3>,
-    pub open_chests: Vec<IVec3>,
+    pub held_open: Vec<IVec3>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -175,7 +175,7 @@ pub fn split_batch(t: &TickUpdate) -> (BatchWorld, BatchRows, BatchRest) {
             | TickSection::SleepTally(_)
             | TickSection::SelfState(_)
             | TickSection::Env(_)
-            | TickSection::OpenChests(_)
+            | TickSection::HeldOpen(_)
             | TickSection::Events(_)
             | TickSection::SelfEvents(_) => rest.sections.push(section.clone()),
             TickSection::Creative(_)

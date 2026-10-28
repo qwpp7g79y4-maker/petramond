@@ -176,7 +176,8 @@
         "max": 3,
         "regrow_min": 1200,
         "regrow_max": 6000,
-        "coat": "wool"
+        "coat": "wool",
+        "tool": "shears"
       },
       "damage_feedback": [],
       "sounds": [

@@ -1,46 +1,9 @@
 use mod_api::{HostRet, ItemMotionCall};
 
-use super::entities::item_entity_data;
-use super::guards::{batch_guard, finite3, sim_query, sim_read};
+use super::guards::{finite3, sim_query};
 
 pub(super) fn handle(call: ItemMotionCall) -> HostRet {
     match call {
-        ItemMotionCall::ItemEntitiesInRadius { pos, radius, limit } => {
-            let pos = match super::guards::finite_pos(pos, "ItemEntitiesInRadius.pos") {
-                Ok(pos) => pos,
-                Err(error) => return error,
-            };
-            if !radius.is_finite() || !(0.0..=64.0).contains(&radius) {
-                return HostRet::invalid("ItemEntitiesInRadius: radius must be in 0..=64".into());
-            }
-            if let Some(error) = batch_guard("ItemEntitiesInRadius.limit", limit as usize) {
-                return error;
-            }
-            sim_read(|ctx| {
-                HostRet::ItemEntities(
-                    ctx.world
-                        .nearest_item_entities(pos, radius, limit as usize)
-                        .into_iter()
-                        .map(item_entity_data)
-                        .collect(),
-                )
-            })
-        }
-        ItemMotionCall::ItemImpulses { impulses } => {
-            if let Some(error) = batch_guard("ItemImpulses", impulses.len()) {
-                return error;
-            }
-            let deltas: Result<Vec<_>, _> = impulses
-                .into_iter()
-                .map(|(id, delta)| finite3(delta, "ItemImpulses.delta").map(|delta| (id, delta)))
-                .collect();
-            match deltas {
-                Err(error) => error,
-                Ok(deltas) => {
-                    sim_query(|ctx| HostRet::Bools(ctx.world.impulse_item_entities(&deltas)))
-                }
-            }
-        }
         ItemMotionCall::SteerItem { entity, vel } => {
             let vel = match vel.map(|v| finite3(v, "SteerItem.vel")).transpose() {
                 Ok(vel) => vel,
@@ -61,30 +24,11 @@ pub(super) fn handle(call: ItemMotionCall) -> HostRet {
                 )
             })
         }
-        ItemMotionCall::SetItemDraw {
-            entity,
-            frame,
-            prims,
-        } => {
-            if let Some(err) = super::blocks::check_draw_set("SetItemDraw", &prims) {
-                return err;
-            }
-            sim_query(|ctx| {
-                let Some(item) = ctx.world.dropped_items_mut().get_mut(entity) else {
-                    return HostRet::Bool(false);
-                };
-                item.draw = crate::world::draw::BodyDraw {
-                    prims: prims.into(),
-                    turns: frame == mod_api::DrawFrame::Body,
-                };
-                HostRet::Bool(true)
-            })
-        }
         ItemMotionCall::SetItemRules { entity, rules } => sim_query(|ctx| {
             let Some(item) = ctx.world.dropped_items_mut().get_mut(entity) else {
                 return HostRet::Bool(false);
             };
-            match item.set_rules(rules.as_deref()) {
+            match item.set_rules(rules) {
                 Ok(()) => HostRet::Bool(true),
                 Err(e) => HostRet::invalid(format!("SetItemRules: {e}")),
             }
@@ -106,12 +50,5 @@ pub(super) fn handle(call: ItemMotionCall) -> HostRet {
                 )
             })
         }
-        ItemMotionCall::TakeItemEntity { entity } => sim_query(|ctx| {
-            let stack = ctx.world.dropped_items().get(entity).map(|item| item.stack);
-            if stack.is_some() {
-                ctx.world.dropped_items_mut().remove(entity);
-            }
-            HostRet::ItemStack(stack.map(super::guards::item_stack_data))
-        }),
     }
 }

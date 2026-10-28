@@ -1,15 +1,18 @@
 use super::*;
 use crate::save::format::RecordError;
+use petramond_world::furnace::{Furnace, KV_KEY};
 use petramond_world::light::LightRgb;
 
 const V19: &[u8] = include_bytes!("../fixtures/section_v19.bin");
 const V20: &[u8] = include_bytes!("../fixtures/section_v20.bin");
 const V21: &[u8] = include_bytes!("../fixtures/section_v21.bin");
+const V22: &[u8] = include_bytes!("../fixtures/section_v22.bin");
 const V19_ENTITIES: &[u8] = include_bytes!("../fixtures/section_v19_entities.bin");
 const V20_ENTITIES: &[u8] = include_bytes!("../fixtures/section_v20_entities.bin");
 const V21_ENTITIES: &[u8] = include_bytes!("../fixtures/section_v21_entities.bin");
+const V22_ENTITIES: &[u8] = include_bytes!("../fixtures/section_v22_entities.bin");
 
-const V21_FIRST_FRAME: usize = 1 + 3 + (2 + 3 * 2 + SECTION_VOLUME);
+const V22_FIRST_FRAME: usize = 1 + 3 + (2 + 3 * 2 + SECTION_VOLUME);
 
 fn pos() -> SectionPos {
     SectionPos::new(3, -1, 5)
@@ -30,9 +33,10 @@ fn assert_fixture_content(section: &Section) {
     let fluid = section.fluid_arc().expect("fluid persisted");
     assert_eq!(fluid[300], 0x23);
     assert_eq!(fluid.iter().filter(|&&m| m != 0).count(), 1);
+    let furnace = section.cell_kv().get(&100).and_then(|kv| kv.get(KV_KEY));
     assert_eq!(
-        section.furnaces().get(&100),
-        Some(&Furnace {
+        furnace.and_then(|bytes| Furnace::from_bytes(bytes)),
+        Some(Furnace {
             cook_progress: 431,
             burn_remaining: 1200,
             burn_max: 4800,
@@ -58,7 +62,7 @@ fn assert_fixture_content(section: &Section) {
 
 #[test]
 fn every_fixture_version_decodes_to_the_same_content() {
-    for (version, blob) in [(19, V19), (20, V20), (21, V21)] {
+    for (version, blob) in [(19, V19), (20, V20), (21, V21), (22, V22)] {
         let decoded = decode_identity(blob).unwrap_or_else(|e| panic!("v{version}: {e}"));
         assert_fixture_content(&decoded.section);
         assert!(decoded.entities.is_empty() && decoded.mobs.is_empty());
@@ -73,11 +77,13 @@ fn each_step_produces_the_next_fixture_bytes() {
         &'a [u8],
         fn(&[u8]) -> Result<Vec<u8>, RecordError>,
     );
-    let steps: [FixtureStep<'_>; 4] = [
+    let steps: [FixtureStep<'_>; 6] = [
         (V19, V20, v19::upgrade),
         (V19_ENTITIES, V20_ENTITIES, v19::upgrade),
         (V20, V21, v20::upgrade),
         (V20_ENTITIES, V21_ENTITIES, v20::upgrade),
+        (V21, V22, v21::upgrade),
+        (V21_ENTITIES, V22_ENTITIES, v21::upgrade),
     ];
     for (old, new, step) in steps {
         let (old, new) = (inflated(old), inflated(new));
@@ -87,11 +93,14 @@ fn each_step_produces_the_next_fixture_bytes() {
 }
 
 #[test]
-fn the_encoder_writes_the_v21_layout() {
+fn the_encoder_writes_the_v22_layout() {
     let pal = palette::Palette::identity();
     let fixtures = [
-        ([V19, V20, V21], V21),
-        ([V19_ENTITIES, V20_ENTITIES, V21_ENTITIES], V21_ENTITIES),
+        ([V19, V20, V21, V22], V22),
+        (
+            [V19_ENTITIES, V20_ENTITIES, V21_ENTITIES, V22_ENTITIES],
+            V22_ENTITIES,
+        ),
     ];
     for (blobs, fixture) in fixtures {
         for blob in blobs {
@@ -108,7 +117,7 @@ fn the_encoder_writes_the_v21_layout() {
 
 #[test]
 fn fixture_entities_and_mobs_survive_the_migration() {
-    for blob in [V19_ENTITIES, V20_ENTITIES, V21_ENTITIES] {
+    for blob in [V19_ENTITIES, V20_ENTITIES, V21_ENTITIES, V22_ENTITIES] {
         let decoded = decode_identity(blob).expect("decodes");
         let entities = &decoded.entities;
         assert_eq!(entities.len(), 2);
@@ -129,7 +138,7 @@ fn fixture_entities_and_mobs_survive_the_migration() {
 
 #[test]
 fn an_unknown_flag_bit_is_refused_as_a_newer_payload() {
-    let mut payload = inflated(V21);
+    let mut payload = inflated(V22);
     payload[3] |= 0x80;
     let err = decode_identity(&deflate(&payload)).err().expect("refused");
     assert_eq!(
@@ -144,20 +153,20 @@ fn an_unknown_flag_bit_is_refused_as_a_newer_payload() {
 
 #[test]
 fn a_frame_that_disagrees_with_its_payload_is_corrupt_with_its_offset() {
-    let mut payload = inflated(V21);
-    let len = u32::from_le_bytes(payload[V21_FIRST_FRAME..][..4].try_into().unwrap());
+    let mut payload = inflated(V22);
+    let len = u32::from_le_bytes(payload[V22_FIRST_FRAME..][..4].try_into().unwrap());
     assert_eq!(len as usize, SECTION_VOLUME, "the first frame is the fluid");
-    payload[V21_FIRST_FRAME..][..4].copy_from_slice(&(len - 1).to_le_bytes());
+    payload[V22_FIRST_FRAME..][..4].copy_from_slice(&(len - 1).to_le_bytes());
     assert_eq!(
         decode_identity(&deflate(&payload)).err(),
         Some(RecordError::corrupt(
             SECTION.name,
             "fluid",
-            V21_FIRST_FRAME + 4
+            V22_FIRST_FRAME + 4
         ))
     );
 
-    let mut long = inflated(V21);
+    let mut long = inflated(V22);
     long.push(0);
     assert_eq!(
         decode_identity(&deflate(&long)).err(),
@@ -168,7 +177,7 @@ fn a_frame_that_disagrees_with_its_payload_is_corrupt_with_its_offset() {
         ))
     );
 
-    let short = inflated(V21);
+    let short = inflated(V22);
     assert!(matches!(
         decode_identity(&deflate(&short[..short.len() - 1])),
         Err(RecordError::Corrupt {
@@ -180,7 +189,7 @@ fn a_frame_that_disagrees_with_its_payload_is_corrupt_with_its_offset() {
 
 #[test]
 fn a_truncated_old_record_fails_its_migration_with_the_payload_named() {
-    for blob in [V19, V20] {
+    for blob in [V19, V20, V21] {
         let old = inflated(blob);
         assert!(matches!(
             decode_identity(&deflate(&old[..old.len() - 1])),

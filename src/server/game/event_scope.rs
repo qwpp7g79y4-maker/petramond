@@ -66,7 +66,6 @@ pub(super) fn reach(ev: &WorldEventMsg) -> Reach {
             Reach::Cell(pos)
         }
         WorldEventMsg::PanelToggled { anchor, .. } => Reach::Cell(anchor),
-        WorldEventMsg::ChestOpened { pos } | WorldEventMsg::ChestClosed { pos } => Reach::Cell(pos),
         WorldEventMsg::ItemPickedUp { pos, .. } | WorldEventMsg::MobSound { pos, .. } => {
             Reach::Heard {
                 at: pos,
@@ -83,7 +82,7 @@ pub(super) fn reach(ev: &WorldEventMsg) -> Reach {
         WorldEventMsg::EmitterBurst { pos, .. } => Reach::Seen { at: pos },
         WorldEventMsg::SpatialSound(cmd) => match cmd {
             SpatialSoundMsg::PlayAt { sound_id, .. }
-            | SpatialSoundMsg::PlayOnMob { sound_id, .. }
+            | SpatialSoundMsg::PlayOnEntity { sound_id, .. }
                 if is_looped(sound_id) =>
             {
                 Reach::Loop
@@ -92,7 +91,7 @@ pub(super) fn reach(ev: &WorldEventMsg) -> Reach {
                 at: pos,
                 range: sound_range(sound_id),
             },
-            SpatialSoundMsg::PlayOnMob {
+            SpatialSoundMsg::PlayOnEntity {
                 sound_id, last_pos, ..
             } => Reach::Heard {
                 at: last_pos,
@@ -141,22 +140,22 @@ pub(super) struct LiveLoop {
 
 pub(super) fn live_loops(
     live: &LiveSpatialLoops,
-    mob_pos: impl Fn(u64) -> Option<WorldPos>,
+    entity_pos: impl Fn(u64) -> Option<WorldPos>,
 ) -> Vec<LiveLoop> {
     live.iter()
         .filter_map(|(&handle, &cmd)| {
             let (at, sound_id) = match cmd {
                 SpatialSoundMsg::PlayAt { sound_id, pos, .. } => (pos, sound_id),
-                SpatialSoundMsg::PlayOnMob {
+                SpatialSoundMsg::PlayOnEntity {
                     sound_id,
-                    mob_id,
+                    entity,
                     last_pos,
                     ..
-                } => (mob_pos(mob_id).unwrap_or(last_pos), sound_id),
+                } => (entity_pos(entity).unwrap_or(last_pos), sound_id),
                 SpatialSoundMsg::Set { .. } | SpatialSoundMsg::Stop { .. } => return None,
             };
             let mut replay = cmd;
-            if let SpatialSoundMsg::PlayOnMob { last_pos, .. } = &mut replay {
+            if let SpatialSoundMsg::PlayOnEntity { last_pos, .. } = &mut replay {
                 *last_pos = at;
             }
             Some(LiveLoop {
@@ -274,10 +273,10 @@ mod tests {
         let mut live = LiveSpatialLoops::new();
         live.insert(
             9,
-            SpatialSoundMsg::PlayOnMob {
+            SpatialSoundMsg::PlayOnEntity {
                 handle: 9,
                 sound_id: 0,
-                mob_id: 42,
+                entity: 42,
                 volume: 1.0,
                 pitch: 1.0,
                 last_pos: WorldPos::ZERO,
@@ -291,7 +290,7 @@ mod tests {
         assert_eq!(loop_row.at, now);
         assert!(matches!(
             loop_row.cmd,
-            SpatialSoundMsg::PlayOnMob { last_pos, .. } if last_pos == now
+            SpatialSoundMsg::PlayOnEntity { last_pos, .. } if last_pos == now
         ));
     }
 

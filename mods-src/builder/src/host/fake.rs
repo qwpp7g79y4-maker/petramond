@@ -61,7 +61,6 @@ pub struct State {
     pub lookups: HashMap<SchematicId, SchematicLookup>,
     pub kv: BTreeMap<String, Vec<u8>>,
     pub players: Vec<(PlayerId, [f64; 3])>,
-    pub acting: Option<PlayerId>,
     pub held: HashMap<PlayerId, ItemStackData>,
     pub identities: HashMap<PlayerId, PlayerIdentityData>,
     pub viewers: Vec<GuiViewerData>,
@@ -128,7 +127,7 @@ impl State {
             },
         );
         self.containers
-            .insert(ContainerAddress::Mob(id), vec![None; rows::GOLEM_SLOTS]);
+            .insert(ContainerAddress::Entity(id), vec![None; rows::GOLEM_SLOTS]);
         id
     }
 
@@ -218,7 +217,6 @@ impl Fake {
                 lookups: HashMap::default(),
                 kv: BTreeMap::new(),
                 players: Vec::new(),
-                acting: None,
                 held: HashMap::default(),
                 identities: HashMap::default(),
                 viewers: Vec::new(),
@@ -324,7 +322,7 @@ impl Fake {
         let sections = cells
             .chunks(per.max(1))
             .map(|chunk| {
-                let mut palette: Vec<BlockRecord> = Vec::new();
+                let mut palette: Vec<CellRecord> = Vec::new();
                 let mut out = Vec::new();
                 for (pos, name) in chunk {
                     let record = record(name);
@@ -386,13 +384,8 @@ pub fn stack(item: &str, count: u8) -> ItemStackData {
     }
 }
 
-pub fn record(name: &str) -> BlockRecord {
-    BlockRecord {
-        block: name.into(),
-        state: Vec::new(),
-        refs: Vec::new(),
-        data: Vec::new(),
-    }
+pub fn record(name: &str) -> CellRecord {
+    CellRecord::of(name)
 }
 
 pub struct Installed {
@@ -412,11 +405,14 @@ mod bridge {
             HostCall::Kv(mod_sdk::KvCall::WorldKvGet { key }) => {
                 HostRet::Bytes(state.kv.get(key).cloned())
             }
-            HostCall::Kv(mod_sdk::KvCall::WorldKvSet { key, value }) => {
+            HostCall::Kv(mod_sdk::KvCall::WorldKvSet {
+                key,
+                value: Some(value),
+            }) => {
                 state.kv.insert(key.clone(), value.clone());
-                HostRet::Unit
+                HostRet::Bool(true)
             }
-            HostCall::Kv(mod_sdk::KvCall::WorldKvDelete { key }) => {
+            HostCall::Kv(mod_sdk::KvCall::WorldKvSet { key, value: None }) => {
                 HostRet::Bool(state.kv.remove(key).is_some())
             }
             HostCall::Block(mod_sdk::BlockCall::BlockChangesSince { since }) => {

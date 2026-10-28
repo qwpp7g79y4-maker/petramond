@@ -183,9 +183,9 @@ impl TestGame {
         }
     }
 
-    pub(super) fn sync_open_chests_for_test(&mut self) {
-        let open = self.server.open_chests().into_iter().collect();
-        self.game.fx.set_open_chests(open);
+    pub(super) fn sync_held_open_for_test(&mut self) {
+        let open = self.server.held_open().into_iter().collect();
+        self.game.fx.set_held_open(open);
     }
 
     pub(super) fn sync_held_rotation_for_test(&mut self) {
@@ -233,8 +233,7 @@ impl TestGame {
     }
 
     pub(super) fn server_world_tick(&mut self) {
-        let recipes = self.server.recipes().clone();
-        self.server.world_mut().game_tick(&recipes);
+        self.server.world_mut().game_tick();
     }
 
     pub(super) fn send_to_server(&mut self, msg: ClientToServer) {

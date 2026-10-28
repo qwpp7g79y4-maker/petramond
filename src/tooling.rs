@@ -3,9 +3,8 @@ pub mod stream {
     pub use petramond_math::facing::Facing;
 
     pub fn tick(world: &mut ServerWorld, n: u32) {
-        let recipes = petramond_world::crafting::Recipes::default();
         for _ in 0..n {
-            world.game_tick(&recipes);
+            world.game_tick();
         }
     }
 
@@ -41,7 +40,7 @@ pub mod stream {
         let Some(plan) = world.placement_plan(block, &inputs, &mut |_, _| false) else {
             return false;
         };
-        world.commit_placement(&plan, true)
+        world.commit_placement(&plan)
     }
 
     pub fn set_model_parts(world: &mut ServerWorld, pos: [i32; 3], parts: u32) -> bool {
@@ -145,8 +144,6 @@ pub mod sim {
     use petramond_math::world_pos::WorldPos;
     use petramond_world::chunk::ChunkPos;
 
-    pub use crate::mob::MobCategory;
-
     /// The real game without a window: an unsaved listen server with the installed packs and
     /// one local player that a tool holds in place while the world runs around it.
     pub struct Sim {
@@ -158,7 +155,7 @@ pub mod sim {
     pub struct SimMob {
         pub id: u64,
         pub key: &'static str,
-        pub category: MobCategory,
+        pub category: Option<&'static str>,
         pub pos: [f64; 3],
         pub vel: [f32; 3],
         /// The cell at the middle of its body holds a fluid.
@@ -229,7 +226,7 @@ pub mod sim {
                     SimMob {
                         id: m.id(),
                         key: def.key,
-                        category: def.category,
+                        category: def.category.map(|c| c.def().name),
                         pos: [m.pos.x, m.pos.y, m.pos.z],
                         vel: [v.x, v.y, v.z],
                         in_fluid: world.data().fluid_cell_at(

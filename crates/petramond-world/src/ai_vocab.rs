@@ -7,6 +7,7 @@ pub const ENGINE_AI_NODE_NAMES: &[&str] = &[
     "chase_player",
     "chase_sound",
     "chase_contact",
+    "panic",
     "retaliate",
     "melee_attack",
 ];

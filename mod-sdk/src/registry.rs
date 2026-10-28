@@ -113,6 +113,13 @@ host_fn! {
         => ItemDataGet { item, key: key.into() } => Bytes
 }
 
+/// How `item` flies as an entity: its row's `petramond:projectile`, else the engine default.
+pub fn item_flight(item: ItemId) -> mod_api::ItemFlight {
+    item_data(item, mod_api::PROJECTILE_KEY)
+        .and_then(|raw| crate::parse_row_data(&String::from_utf8_lossy(&raw)).ok())
+        .unwrap_or_default()
+}
+
 host_fn! {
     pub fn items_with_data(key: &str) -> Vec<(ItemId, String)>
         => ItemsWithData { key: key.into() } => ItemDataRows
@@ -128,14 +135,13 @@ host_fn! {
         => BlocksWithData { key: key.into() } => BlockDataRows
 }
 
-host_fn! {
-    pub fn block_info(block: BlockId) -> Option<Box<mod_api::BlockInfoData>>
-        => BlockInfo { block } => BlockInfo
+pub fn block_info(block: BlockId) -> Option<Box<mod_api::BlockInfoData>> {
+    block_infos(vec![block]).pop().flatten().map(Box::new)
 }
 
 host_fn! {
     pub fn block_infos(blocks: Vec<BlockId>) -> Vec<Option<mod_api::BlockInfoData>>
-        => BlockInfos { blocks } => BlockInfos
+        => BlockInfo { blocks } => BlockInfos
 }
 
 pub fn registered_blocks() -> Vec<(BlockId, mod_api::BlockInfoData)> {
@@ -165,8 +171,8 @@ fn dense_prefix<T>(mut query: impl FnMut(Vec<BlockId>) -> Vec<Option<T>>) -> Vec
 }
 
 host_fn! {
-    pub fn block_record_plans(records: Vec<mod_api::BlockRecord>) -> Vec<mod_api::RecordPlan>
-        => BlockRecordPlans { records } => RecordPlans
+    pub fn record_plans(records: Vec<mod_api::CellRecord>) -> Vec<mod_api::RecordPlan>
+        => RecordPlans { records } => RecordPlans
 }
 
 #[cfg(test)]

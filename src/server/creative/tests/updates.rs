@@ -85,12 +85,12 @@ fn schematic_placement_updates_skipped_interior_cells_and_the_rotated_one_block_
                 "copied solids also receive updates"
             );
         }
-        server.world.game_tick(server.catalog.recipes());
+        server.world.game_tick();
         let breaks = server.world.take_natural_breaks();
         for (p, block) in unsupported {
             assert_eq!(server.world.snapshot_cell(p).unwrap().block, Block::Air);
             assert!(
-                breaks.contains(&(p, block)),
+                breaks.iter().any(|(q, b, _)| *q == p && *b == block),
                 "ordinary break effects and drops must be emitted"
             );
         }

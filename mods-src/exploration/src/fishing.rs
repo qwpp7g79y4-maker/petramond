@@ -1,6 +1,6 @@
 //! Fishing. A rod is any item whose row carries `exploration:fishing_rod`
-//! data. Using one casts its bobber on a line (a tethered launch, so the
-//! engine draws the line); the bobber floats where it comes down in water, a
+//! data. Using one casts its bobber on a line (a rope in the bobber's draw set,
+//! from it to the angler's hand); the bobber floats where it comes down in water, a
 //! fish bites after a while, and reeling in during the bite throws a catch
 //! from the rod's loot table to the angler's feet. Reeling any other time, or
 //! letting the line run past the rod's reach, just brings the bobber home.
@@ -32,8 +32,6 @@ const SETTLED_SPEED: f32 = 0.5;
 const DRIFT_KEEP: f32 = 0.55;
 /// The bobber's origin rides this far below the water's surface.
 const FLOAT_DEPTH: f64 = 0.03125;
-/// A loose item's fall, blocks per second squared, the engine's default flight gravity.
-const CATCH_GRAVITY: f32 = 20.0;
 /// Bobbers live this long untouched before the engine clears them (a dropped rod's line).
 const BOBBER_LIFETIME_TICKS: u32 = 6000;
 
@@ -169,24 +167,30 @@ impl Fishing {
     fn cast(&mut self, player: PlayerId, state: &PlayerSnapshot, rod_id: ItemId) {
         let rod = &self.rods[&rod_id];
         let (from, dir) = hand_and_look(state);
-        let rules =
-            format!(r#"{{"pickup":false,"tether":{{}},"lifetime_ticks":{BOBBER_LIFETIME_TICKS}}}"#);
+        let (key, rules) = ItemEntityRules {
+            pickup: false,
+            lifetime_ticks: Some(BOBBER_LIFETIME_TICKS),
+        }
+        .data();
         let vel = dir.map(|d| d * rod.launch_speed);
         let bobber = launch_item(
             &rod.bobber,
             from,
             vel,
             Some(EntityRef::Player(player)),
-            &[("petramond:item_entity", rules.as_bytes())],
+            &[(key, &rules)],
         );
         if bobber == 0 {
             return;
         }
-        if !rod.bobber_look.is_empty() {
-            set_item_draw(bobber, DrawFrame::World, rod.bobber_look.clone());
-        }
+        let mut look = rod.bobber_look.clone();
+        look.push(rope(
+            LineEnd::Entity(EntityRef::Entity(bobber)),
+            LineEnd::Entity(EntityRef::Player(player)),
+        ));
+        set_entity_draw(bobber, DrawFrame::World, look);
         if let Some(display) = &rod.cast_display {
-            set_player_held_display(player, Some(display), None);
+            set_held_display(EntityRef::Player(player), Some(display), None);
         }
         emit_sound(keys::ROD_CAST, Some(from));
         self.casts.insert(
@@ -203,7 +207,7 @@ impl Fishing {
     fn reel(&mut self, player: PlayerId, state: &PlayerSnapshot, cast: Cast) {
         let at = item_entity(cast.bobber).map(|e| e.pos);
         take_item_entity(cast.bobber);
-        set_player_held_display(player, None, None);
+        set_held_display(EntityRef::Player(player), None, None);
         let Some(at) = at else {
             return;
         };
@@ -220,8 +224,11 @@ impl Fishing {
                 .iter()
                 .map(|(k, v)| (k.as_str(), v.as_slice()))
                 .collect();
+            let flight = resolve_item(&stack.item)
+                .map(item_flight)
+                .unwrap_or_default();
             for _ in 0..stack.count {
-                launch_item(&stack.item, at, throw_to(at, target), None, &data);
+                launch_item(&stack.item, at, throw_to(flight, at, target), None, &data);
             }
         }
         emitter_burst(keys::WATER_SPLASH, at, 0.8);
@@ -254,7 +261,7 @@ impl Fishing {
             };
             let (Some(bobber), true) = (bobber, keep) else {
                 take_item_entity(cast.bobber);
-                set_player_held_display(player, None, None);
+                set_held_display(EntityRef::Player(player), None, None);
                 continue;
             };
             let cast = self.step(cast, &bobber);
@@ -376,32 +383,18 @@ fn next_phase(
 /// The eye-side point a cast leaves from (a little right of and below the eye, where the rod's
 /// tip is) and the look direction.
 fn hand_and_look(state: &PlayerSnapshot) -> ([f64; 3], [f32; 3]) {
-    let (cp, sp) = (state.pitch.cos(), state.pitch.sin());
-    let (sy, cy) = (state.yaw.sin(), state.yaw.cos());
-    let forward = [sy * cp, sp, cy * cp];
-    let right = [-cy, 0.0, sy];
-    let eye = [
-        state.pos[0],
-        state.pos[1] + f64::from(state.eye_height),
-        state.pos[2],
-    ];
-    let at = |axis: usize| {
-        eye[axis] + f64::from(forward[axis] * 0.6 + right[axis] * 0.3) - [0.0, 0.2, 0.0][axis]
-    };
-    ([at(0), at(1), at(2)], forward)
+    let aim = Aim::of(state);
+    let [x, y, z] = aim.at(0.3, 0.0, 0.6);
+    ([x, y - 0.2, z], aim.forward)
 }
 
-/// The launch velocity that carries an item from `from` to land at `to`, in a flight time that
-/// grows with the distance.
-fn throw_to(from: [f64; 3], to: [f64; 3]) -> [f32; 3] {
-    let d = [
-        (to[0] - from[0]) as f32,
-        (to[1] - from[1]) as f32,
-        (to[2] - from[2]) as f32,
-    ];
+/// The launch velocity that carries an item flying by `flight` from `from` to `to`, in a flight
+/// time that grows with the distance.
+fn throw_to(flight: ItemFlight, from: [f64; 3], to: [f64; 3]) -> [f32; 3] {
+    let d: [f32; 3] = std::array::from_fn(|i| (to[i] - from[i]) as f32);
     let span = (d[0] * d[0] + d[2] * d[2]).sqrt();
-    let t = (span / 14.0).clamp(0.45, 1.3);
-    [d[0] / t, d[1] / t + 0.5 * CATCH_GRAVITY * t, d[2] / t]
+    let seconds = (span / 14.0).clamp(0.45, 1.3);
+    launch_velocity(flight, d, (seconds / TICK_SECONDS).round() as u32)
 }
 
 fn distance(a: [f64; 3], b: [f64; 3]) -> f64 {

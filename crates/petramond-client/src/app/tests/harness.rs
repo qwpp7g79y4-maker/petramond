@@ -64,7 +64,7 @@ impl TestApp {
         anchor: petramond::menu::MenuAnchor,
     ) {
         self.server
-            .open_registered_gui_screen_for(0, kind, Some(anchor));
+            .open_document_screen_for(0, kind, Some(anchor), &mut Default::default());
         self.server.sessions_mut()[0]
             .replication_mut()
             .request_open_gui = Some((kind, Some(anchor)));

@@ -315,9 +315,11 @@ fn the_ground_is_read_as_what_it_costs_to_get_through() {
     assert_eq!(grid[&CHEST_AT].dig, None, "a supply chest is never dug");
     assert_eq!(grid[&TABLE_AT].dig, None, "nor the table");
 
-    session
-        .world
-        .give(ContainerAddress::Mob(golem), "petramond:stone_pickaxe", 1);
+    session.world.give(
+        ContainerAddress::Entity(golem),
+        "petramond:stone_pickaxe",
+        1,
+    );
     let body = session.body(golem);
     let grid = read(&mut session, &body, true);
     assert_eq!(

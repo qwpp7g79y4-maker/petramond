@@ -84,7 +84,7 @@ fn windup_rechecks_reach_and_cannot_transfer_to_a_new_target() {
         if situation == 1 {
             c.target = None;
         } else if situation == 2 {
-            c.target = Some(EntityRef::Mob(999));
+            c.target = Some(EntityRef::Entity(999));
         }
         assert!(ai.tick(&mut c).attack.is_none());
         assert!(ai.pending.is_none());
@@ -207,16 +207,16 @@ fn a_locked_mob_target_is_struck_and_a_vanished_one_fizzles() {
     let mut c = ctx(&world, &mut rng, pos, 0.0, far_player);
     let mobs = crate::mob::spatial::MobSnapshot::from_mobs([victim]);
     c.mobs = &mobs;
-    c.target = Some(EntityRef::Mob(7));
+    c.target = Some(EntityRef::Entity(7));
     let intent = ai.tick(&mut c).attack.expect("locked mob target in reach");
     assert_eq!(
         intent.target,
-        EntityRef::Mob(7),
+        EntityRef::Entity(7),
         "the intent names the locked mob"
     );
 
     let mut c = ctx(&world, &mut rng, pos, 0.0, far_player);
-    c.target = Some(EntityRef::Mob(7));
+    c.target = Some(EntityRef::Entity(7));
     assert!(
         ai.tick(&mut c).attack.is_none(),
         "a vanished lock fizzles instead of striking the player"

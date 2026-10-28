@@ -19,7 +19,12 @@ mod tests;
 #[cfg(any(test, feature = "test-support"))]
 pub use petramond_world::column_split::split_generated_column;
 
-pub(super) type LoadedOverlay = (Section, Vec<DroppedItem>, Vec<SavedMob>);
+pub(super) type LoadedOverlay = (
+    Section,
+    Vec<DroppedItem>,
+    Vec<SavedMob>,
+    petramond_world::section::CellMap<u64>,
+);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum StreamEvent {

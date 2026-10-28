@@ -91,9 +91,6 @@ host_domain! {
         ClientEnvParams {
             keys: Vec<String>,
         } => legal(CLIENT, Any, Read),
-        ClientBiomeAt {
-            pos: [i32; 2],
-        } => legal(CLIENT, Any, Read),
         ClientAmbientSet {
             key: String,
             intensity: f32,
@@ -107,13 +104,6 @@ host_domain! {
             darken: f32,
             desaturate: f32,
         } => legal(CLIENT, Any, Write),
-        ClientBlocksAt {
-            positions: Vec<[i32; 3]>,
-        } => legal(CLIENT, Any, Read),
-        ClientCellKvAt {
-            key: String,
-            cells: Vec<[i32; 3]>,
-        } => legal(CLIENT, Any, Read),
         ClientViewCameraSet {
             pos: [f64; 3],
             yaw: f32,

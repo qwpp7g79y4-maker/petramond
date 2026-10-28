@@ -24,8 +24,8 @@ fn fluid_row(name: &str, alpha: f32, tiles: &str) -> String {
                 "surface_alpha": {alpha:?}
             }}
         }},
-        "shape": "cube", "flags": ["transparent", "fluid"], "tags": ["replaceable"],
-        "behavior": "fluid", "interaction": "none", "collision": [], "emission": 0,
+        "shape": "cube", "flags": ["transparent", "fluid", "dims_sky"], "tags": ["replaceable"],
+        "behaviors": ["fluid"], "collision": [], "emission": 0,
         "tiles": ["meshfluids_{tiles}_still", "meshfluids_{tiles}_still", "meshfluids_{tiles}_still"],
         "flow_tile": "meshfluids_{tiles}_flow",
         "material": "none", "hardness": -1, "drops": []
@@ -38,7 +38,7 @@ fn holding_row(name: &str, fluid: &str) -> String {
         r#"{{
         "block": "{name}", "contained_fluid": "{fluid}",
         "shape": "cross", "flags": ["transparent"], "tags": ["fragile"],
-        "behavior": "fragile", "interaction": "none", "collision": [], "emission": 0,
+        "behaviors": ["fragile"], "collision": [], "emission": 0,
         "tiles": ["short_grass", "short_grass", "short_grass"],
         "material": "plant", "hardness": 0, "drops": []
     }}"#

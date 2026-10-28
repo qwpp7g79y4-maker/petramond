@@ -89,7 +89,10 @@ pub(super) fn handle_kv_call(mod_id: &str, health: &ModHealth, call: KvCall) -> 
         KvCall::WorldKvGet { key } => {
             sim_read(|ctx| HostRet::Bytes(ctx.world.data().world_kv_get(&key).map(<[u8]>::to_vec)))
         }
-        KvCall::WorldKvSet { key, value } => guarded_write(mod_id, key, value.len(), |key| {
+        KvCall::WorldKvSet {
+            key,
+            value: Some(value),
+        } => guarded_write(mod_id, key, value.len(), |key| {
             sim_query(|ctx| {
                 let usage = namespace_usage(ctx.world.data().world_kv(), &key, value.len());
                 if let Some((namespace, before, after)) = usage {
@@ -99,64 +102,15 @@ pub(super) fn handle_kv_call(mod_id: &str, health: &ModHealth, call: KvCall) -> 
                     }
                 }
                 ctx.world.world_kv_set(key, value);
-                HostRet::Unit
+                HostRet::Bool(true)
             })
         }),
-        KvCall::WorldKvDelete { key } => guarded_write(mod_id, key, 0, |key| {
+        KvCall::WorldKvSet { key, value: None } => guarded_write(mod_id, key, 0, |key| {
             sim_query(|ctx| HostRet::Bool(ctx.world.world_kv_remove(&key)))
         }),
-        KvCall::SectionKvGet { pos, key } => sim_read(|ctx| {
-            let p = IVec3::from(pos);
-            HostRet::Bytes(
-                ctx.world
-                    .data()
-                    .cell_kv_get(p.x, p.y, p.z, &key)
-                    .map(<[u8]>::to_vec),
-            )
-        }),
-        KvCall::SectionKvSet { pos, key, value } => {
-            guarded_write(mod_id, key, value.len(), |key| {
-                sim_query(|ctx| {
-                    let p = IVec3::from(pos);
-                    if ctx.world.data().cell_kv_get(p.x, p.y, p.z, &key).is_none()
-                        && ctx.world.data().cell_kv_count(p.x, p.y, p.z) >= CELL_KV_MAX_KEYS
-                    {
-                        return HostRet::error(
-                            ErrorCode::LimitExceeded,
-                            format!("cell {p:?} already holds {CELL_KV_MAX_KEYS} KV keys"),
-                        );
-                    }
-                    HostRet::Bool(ctx.world.cell_kv_set(p.x, p.y, p.z, key, value))
-                })
-            })
-        }
-        KvCall::SectionKvDelete { pos, key } => guarded_write(mod_id, key, 0, |key| {
-            sim_query(|ctx| {
-                let p = IVec3::from(pos);
-                HostRet::Bool(ctx.world.cell_kv_remove(p.x, p.y, p.z, &key))
-            })
-        }),
-        KvCall::SectionKvGetMany { key, positions } => {
-            if let Some(err) = batch_guard("SectionKvGetMany position", positions.len()) {
-                return err;
-            }
-            sim_read(move |ctx| {
-                HostRet::BytesMany(
-                    positions
-                        .into_iter()
-                        .map(|pos| {
-                            let p = IVec3::from(pos);
-                            ctx.world
-                                .data()
-                                .cell_kv_get(p.x, p.y, p.z, &key)
-                                .map(<[u8]>::to_vec)
-                        })
-                        .collect(),
-                )
-            })
-        }
-        KvCall::SectionKvSetMany { key, writes } => {
-            if let Some(err) = batch_guard("SectionKvSetMany write", writes.len()) {
+        call @ KvCall::SectionKvGet { .. } => sim_read(|ctx| world_read(ctx.world, call)),
+        KvCall::SectionKvSet { key, writes } => {
+            if let Some(err) = batch_guard("SectionKvSet write", writes.len()) {
                 return err;
             }
             let widest = writes
@@ -187,6 +141,38 @@ pub(super) fn handle_kv_call(mod_id: &str, health: &ModHealth, call: KvCall) -> 
                 })
             })
         }
+    }
+}
+
+/// The KV reads both sides answer: the server from its world, a client instance from its
+/// replica (cell KV replicates).
+pub(in crate::modding) fn world_read<S: crate::world::WorldSide>(
+    world: &crate::world::World<S>,
+    call: KvCall,
+) -> HostRet {
+    match call {
+        KvCall::SectionKvGet { key, positions } => {
+            if let Some(err) = batch_guard("SectionKvGet position", positions.len()) {
+                return err;
+            }
+            HostRet::BytesMany(
+                positions
+                    .into_iter()
+                    .map(|pos| {
+                        let p = IVec3::from(pos);
+                        world.block_if_stream_final(p.x, p.y, p.z)?;
+                        world
+                            .data()
+                            .cell_kv_get(p.x, p.y, p.z, &key)
+                            .map(<[u8]>::to_vec)
+                    })
+                    .collect(),
+            )
+        }
+        other => HostRet::error(
+            ErrorCode::WrongSide,
+            format!("{} is not available to a client instance", other.name()),
+        ),
     }
 }
 

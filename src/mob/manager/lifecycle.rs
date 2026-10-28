@@ -25,8 +25,7 @@ impl Mobs {
         skylight: u8,
         blocklight: petramond_world::light::BlockLight6,
     ) -> Option<MobId> {
-        self.spawn_counter = self.spawn_counter.wrapping_add(1);
-        let mut mob = Instance::new(kind, pos, yaw, self.spawn_counter);
+        let mut mob = Instance::new(kind, pos, yaw, self.ids.next());
         mob.skylight = skylight;
         mob.blocklight = blocklight;
         let id = mob.id();
@@ -42,7 +41,7 @@ impl Mobs {
         &mut self,
         world: &ServerWorld,
         player_pos: petramond_math::world_pos::WorldPos,
-        category: crate::mob::MobCategory,
+        category: crate::mob::SpawnCategory,
     ) -> Vec<(u64, Mob, petramond_math::world_pos::WorldPos)> {
         let list = &self.list;
         let chosen = spawn::attempt(world, player_pos, category, &mut self.rng, |kind| {

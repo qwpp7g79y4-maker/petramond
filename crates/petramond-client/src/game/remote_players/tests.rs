@@ -15,8 +15,6 @@ fn row(id: u8, pos: WorldPos) -> PlayerStateRow {
         },
         on_ground: true,
         sneaking: false,
-        sleeping: false,
-        sleep_yaw: None,
         alive: true,
         visible: true,
         held_item: None,

@@ -105,7 +105,7 @@ impl Presentation {
         if self.held == item {
             return;
         }
-        mob_held_display(id, item.clone(), None);
+        set_held_display(EntityRef::Entity(id), item.as_deref(), None);
         self.held = item;
     }
 

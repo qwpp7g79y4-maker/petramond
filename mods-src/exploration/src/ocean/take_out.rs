@@ -45,19 +45,21 @@ impl TakingOut {
 
     /// The server takes the item out; the client claims the same click without writing.
     /// Sneaking with a block in hand places against the block instead.
-    pub fn on_interact(&self, world: SideWorld, pos: [i32; 3]) -> Outcome {
-        let Some(row) = world.block(pos).and_then(|b| self.rows.get(&b)) else {
+    pub fn on_interact(&self, player: PlayerId, pos: [i32; 3]) -> Outcome {
+        let Some(row) = get_block(pos).and_then(|b| self.rows.get(&b)) else {
             return Outcome::Continue;
         };
-        let actor = player_state();
+        let Some(actor) = player_state(player) else {
+            return Outcome::Continue;
+        };
         if actor.sneak && held_item_places_block(actor.held) {
             return Outcome::Continue;
         }
-        if world == SideWorld::Server {
+        if runtime_side() == RuntimeSide::Server {
             if !swap_block(pos, row.into) {
                 return Outcome::Continue;
             }
-            give_item(&row.item, 1);
+            give_item(player, &row.item, 1, &[]);
             if let Some(sound) = &row.sound {
                 emit_sound(sound, Some(block_center(pos)));
             }

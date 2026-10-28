@@ -127,7 +127,7 @@ fn eviction_racing_an_edit_relight_rewrites_the_record_lightless() {
     assert!(world.data.sections[&b].light_dirty);
 
     let snap = world
-        .snapshot_section_for_save(b, Vec::new(), Vec::new(), false)
+        .snapshot_section_for_save(b, Default::default(), false)
         .expect("an unmodified on-disk section with edit-dirtied light must rewrite");
     assert!(
         snap.skylight.is_none() && snap.blocklight.is_none(),
@@ -485,7 +485,7 @@ fn a_save_flush_writes_every_section_a_full_scan_would() {
             .copied()
             .filter(|&sp| {
                 world
-                    .snapshot_section_for_save(sp, Vec::new(), Vec::new(), false)
+                    .snapshot_section_for_save(sp, Default::default(), false)
                     .is_some()
             })
             .collect();

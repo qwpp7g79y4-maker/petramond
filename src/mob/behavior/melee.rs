@@ -106,7 +106,7 @@ impl AiBehavior for MeleeAttackAi {
                 Some(a) => (EntityRef::Player(pid), a.pos, 0.0),
                 None => return BehaviorOutput::default(),
             },
-            Some(EntityRef::Mob(id)) => {
+            Some(EntityRef::Entity(id)) => {
                 if id == ctx.mob_id {
                     return BehaviorOutput::default();
                 }
@@ -114,7 +114,7 @@ impl AiBehavior for MeleeAttackAi {
                     Some(m) => {
                         let size = def(m.kind).size;
                         let centre = m.pos + Vec3::new(0.0, size.height * 0.5, 0.0);
-                        (EntityRef::Mob(id), centre, size.half_width)
+                        (EntityRef::Entity(id), centre, size.half_width)
                     }
                     None => return BehaviorOutput::default(),
                 }

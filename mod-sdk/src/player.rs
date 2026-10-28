@@ -21,17 +21,14 @@ host_fn! {
 }
 
 host_fn! {
-    pub fn player_state() -> Box<PlayerSnapshot> => PlayerState => Player
+    /// `player`'s snapshot; `None` = no such reachable session (on a client instance: anyone but
+    /// the local player, or outside a prediction dispatch).
+    pub fn player_state(player: PlayerId) -> Option<Box<PlayerSnapshot>>
+        => PlayerState { player } => Player
 }
 
-host_fn! {
-    pub fn player_state_of(player: PlayerId) -> Option<Box<PlayerSnapshot>>
-        => PlayerStateOf { player } => PlayerOf
-}
-
-host_fn! {
-    pub fn player_input(player_id: PlayerId) -> Option<PlayerInputData>
-        => PlayerInput { player_id } => PlayerInput
+pub fn player_input(player: PlayerId) -> Option<PlayerInputData> {
+    player_inputs(vec![player]).pop().flatten()
 }
 
 host_fn! {
@@ -75,61 +72,18 @@ host_fn! {
 }
 
 host_fn! {
-    pub fn consume_held(item: mod_api::ItemId, count: u32) -> bool
-        => ConsumeHeld { item, count } => Bool
+    pub fn consume_held(player: PlayerId, item: mod_api::ItemId, count: u32) -> bool
+        => ConsumeHeld { player, item, count } => Bool
 }
 
 host_fn! {
-    pub fn consume_held_by(player: PlayerId, item: mod_api::ItemId, count: u32) -> bool
-        => ConsumeHeldBy { player, item, count } => Bool
+    pub fn replace_held_one(player: PlayerId, item: mod_api::ItemId, replacement: &str) -> bool
+        => ReplaceHeldOne { player, item, replacement: replacement.into() } => Bool
 }
 
 host_fn! {
-    pub fn replace_held_one(item: mod_api::ItemId, replacement: &str) -> bool
-        => ReplaceHeldOne { item, replacement: replacement.into() } => Bool
-}
-
-host_fn! {
-    pub fn replace_held_one_by(player: PlayerId, item: mod_api::ItemId, replacement: &str) -> bool
-        => ReplaceHeldOneBy { player, item, replacement: replacement.into() } => Bool
-}
-
-host_fn! {
-    pub fn damage_player(
-        player: PlayerId,
-        amount: i32,
-        origin: Option<[f64; 3]>,
-        attacker: Option<EntityRef>,
-    )
-        => DamagePlayer { player, amount, origin, attacker }
-}
-
-host_fn! {
-    pub fn apply_knockback(impulse: [f32; 3]) => ApplyKnockback { impulse }
-}
-
-host_fn! {
-    pub fn apply_knockback_to(player: PlayerId, impulse: [f32; 3]) -> bool
-        => ApplyKnockbackTo { player, impulse } => Bool
-}
-
-host_fn! {
-    pub fn give_item(item: &str, count: u8) -> bool
-        => GiveItem { item: item.into(), count, data: Vec::new() } => Bool
-}
-
-host_fn! {
-    pub fn give_item_data(item: &str, count: u8, data: &[(&str, &[u8])]) -> bool
+    pub fn give_item(player: PlayerId, item: &str, count: u8, data: &[(&str, &[u8])]) -> bool
         => GiveItem {
-            item: item.into(),
-            count,
-            data: data.iter().map(|(k, v)| (k.to_string(), v.to_vec())).collect(),
-        } => Bool
-}
-
-host_fn! {
-    pub fn give_item_to(player: PlayerId, item: &str, count: u8, data: &[(&str, &[u8])]) -> bool
-        => GiveItemTo {
             player,
             item: item.into(),
             count,
@@ -166,44 +120,27 @@ host_fn! {
 }
 
 host_fn! {
-    pub fn set_health(value: i32) => SetHealth { value }
+    pub fn set_health(player: PlayerId, value: i32) -> bool
+        => SetHealth { player, value } => Bool
 }
 
 host_fn! {
-    pub fn set_health_of(player: PlayerId, value: i32) -> bool
-        => SetHealthOf { player, value } => Bool
+    pub fn teleport(player: PlayerId, pos: [f64; 3]) -> bool
+        => Teleport { player, pos } => Bool
 }
 
 host_fn! {
-    pub fn teleport(pos: [f64; 3]) => Teleport { pos }
+    pub fn effect_apply(player: PlayerId, key: &str, ticks: u32) -> bool
+        => EffectApply { player, key: key.into(), ticks } => Bool
+}
+
+pub fn effect_remove(player: PlayerId, key: &str) -> bool {
+    effect_apply(player, key, 0)
 }
 
 host_fn! {
-    pub fn teleport_player(player: PlayerId, pos: [f64; 3]) -> bool
-        => TeleportPlayer { player, pos } => Bool
-}
-
-host_fn! {
-    pub fn effect_apply(key: &str, ticks: u32) -> bool
-        => EffectApply { key: key.into(), ticks } => Bool
-}
-
-host_fn! {
-    pub fn effect_apply_to(player: PlayerId, key: &str, ticks: u32) -> bool
-        => EffectApplyTo { player, key: key.into(), ticks } => Bool
-}
-
-pub fn effect_remove(key: &str) -> bool {
-    effect_apply(key, 0)
-}
-
-host_fn! {
-    pub fn effects_active() -> Vec<EffectStateData> => EffectsActive => Effects
-}
-
-host_fn! {
-    pub fn effects_active_of(player: PlayerId) -> Option<Vec<EffectStateData>>
-        => EffectsActiveOf { player } => EffectsOf
+    pub fn effects_active(player: PlayerId) -> Option<Vec<EffectStateData>>
+        => EffectsActive { player } => Effects
 }
 
 host_fn! {
@@ -242,9 +179,9 @@ host_fn! {
 }
 
 host_fn! {
-    pub fn set_player_held_display(player: PlayerId, main: Option<&str>, off: Option<&str>) -> bool
-        => SetPlayerHeldDisplay {
-            player,
+    pub fn set_held_display(body: EntityRef, main: Option<&str>, off: Option<&str>) -> bool
+        => SetHeldDisplay {
+            body,
             main: main.map(str::to_owned),
             off: off.map(str::to_owned),
         } => Bool
@@ -298,4 +235,46 @@ host_fn! {
 host_fn! {
     pub fn player_identity(player: PlayerId) -> Option<mod_api::PlayerIdentityData>
         => PlayerIdentity { player } => Identity
+}
+
+/// A player's view frame: the eye and the unit axes its look runs along.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Aim {
+    pub eye: [f64; 3],
+    pub forward: [f32; 3],
+    /// Level, toward the player's left.
+    pub across: [f32; 3],
+    pub up: [f32; 3],
+}
+
+impl Aim {
+    pub fn of(state: &mod_api::PlayerSnapshot) -> Aim {
+        let (cp, sp) = (state.pitch.cos(), state.pitch.sin());
+        let (sy, cy) = (state.yaw.sin(), state.yaw.cos());
+        let forward = [sy * cp, sp, cy * cp];
+        let across = [cy, 0.0, -sy];
+        let up = [
+            across[1] * forward[2] - across[2] * forward[1],
+            across[2] * forward[0] - across[0] * forward[2],
+            across[0] * forward[1] - across[1] * forward[0],
+        ];
+        Aim {
+            eye: [
+                state.pos[0],
+                state.pos[1] + f64::from(state.eye_height),
+                state.pos[2],
+            ],
+            forward,
+            across,
+            up,
+        }
+    }
+
+    /// The point `right`, `up` and `ahead` blocks off the eye along this frame.
+    pub fn at(&self, right: f32, up: f32, ahead: f32) -> [f64; 3] {
+        std::array::from_fn(|i| {
+            self.eye[i]
+                + f64::from(-self.across[i] * right + self.up[i] * up + self.forward[i] * ahead)
+        })
+    }
 }

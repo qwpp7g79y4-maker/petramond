@@ -71,6 +71,59 @@ pub struct ItemEntityData {
     pub motion: ItemMotion,
 }
 
+/// One entity, whichever body it is.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum EntityData {
+    Mob(MobSnapshot),
+    Item(ItemEntityData),
+}
+
+impl EntityData {
+    pub fn id(&self) -> u64 {
+        match self {
+            EntityData::Mob(m) => m.id,
+            EntityData::Item(i) => i.id,
+        }
+    }
+
+    pub fn pos(&self) -> [f64; 3] {
+        match self {
+            EntityData::Mob(m) => m.pos,
+            EntityData::Item(i) => i.pos,
+        }
+    }
+
+    pub fn mob(self) -> Option<MobSnapshot> {
+        match self {
+            EntityData::Mob(m) => Some(m),
+            EntityData::Item(_) => None,
+        }
+    }
+
+    pub fn item(self) -> Option<ItemEntityData> {
+        match self {
+            EntityData::Item(i) => Some(i),
+            EntityData::Mob(_) => None,
+        }
+    }
+}
+
+/// Which entities a query takes.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum EntityFilter {
+    All,
+    Mobs,
+    /// Mobs of these species only.
+    MobsOf(Vec<MobId>),
+    Items,
+}
+
+/// A despawned entity's remains: the stack an item entity held (a mob leaves none).
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct Despawned {
+    pub stack: Option<ItemStackData>,
+}
+
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ItemMotion {
     Loose,
@@ -81,7 +134,7 @@ pub enum ItemMotion {
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum EntityRef {
     Player(PlayerId),
-    Mob(u64),
+    Entity(u64),
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -97,14 +150,108 @@ pub struct RaycastHitData {
     pub distance: f32,
 }
 
+/// Item row data key of [`ItemFlight`] (with the engine's own presentation fields beside it).
+pub const PROJECTILE_KEY: &str = "petramond:projectile";
+
+/// The gravity an item flies under when its row names none (blocks/s²).
+pub const DEFAULT_ITEM_GRAVITY: f32 = 20.0;
+
+/// How an item entity flies: each tick gravity, then drag, then the move. The engine flies items
+/// by exactly this, so a mod aiming or throwing one can fly it ahead of time.
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
-pub enum MountTarget {
-    Mob(u64),
-    Anchor([f64; 3]),
+#[serde(default)]
+pub struct ItemFlight {
+    pub gravity: f32,
+    /// The share of its speed it loses each second (0..=1).
+    pub drag: f32,
 }
 
-pub mod pose {
-    pub const SITTING: u8 = 1;
+impl Default for ItemFlight {
+    fn default() -> Self {
+        Self {
+            gravity: DEFAULT_ITEM_GRAVITY,
+            drag: 0.0,
+        }
+    }
+}
+
+impl ItemFlight {
+    /// The share of its speed a flight keeps over `dt` seconds.
+    pub fn drag_factor(self, dt: f32) -> f32 {
+        (1.0 - self.drag).max(0.0).powf(dt)
+    }
+
+    /// The velocity after one step of `dt` seconds; the move is that velocity times `dt`.
+    pub fn step(self, vel: [f32; 3], dt: f32) -> [f32; 3] {
+        let k = self.drag_factor(dt);
+        [vel[0] * k, (vel[1] - self.gravity * dt) * k, vel[2] * k]
+    }
+}
+
+/// Stack data key of [`ItemEntityRules`].
+pub const ITEM_ENTITY_KEY: &str = "petramond:item_entity";
+
+/// How a stack behaves while it is an entity, carried as its `petramond:item_entity` data
+/// through flight, lodging, dropping and saves. Give it at launch with [`ItemEntityRules::data`].
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
+#[serde(default, deny_unknown_fields)]
+pub struct ItemEntityRules {
+    /// Whether a player walking into it takes it.
+    pub pickup: bool,
+    /// Ticks until it goes; `None` = a dropped item's usual life.
+    pub lifetime_ticks: Option<u32>,
+}
+
+impl Default for ItemEntityRules {
+    fn default() -> Self {
+        Self {
+            pickup: true,
+            lifetime_ticks: None,
+        }
+    }
+}
+
+impl ItemEntityRules {
+    /// The stack data entry that carries these rules.
+    pub fn data(&self) -> (&'static str, Vec<u8>) {
+        let mut json = format!("{{\"pickup\":{}", self.pickup);
+        if let Some(ticks) = self.lifetime_ticks {
+            json.push_str(&format!(",\"lifetime_ticks\":{ticks}"));
+        }
+        json.push('}');
+        (ITEM_ENTITY_KEY, json.into_bytes())
+    }
+}
+
+/// Where a steerable sound plays.
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
+pub enum SoundAt {
+    Point([f64; 3]),
+    /// A live mob or item entity, followed as it moves.
+    Entity(u64),
+}
+
+/// Where an attached player's body is pinned.
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
+pub enum AttachTo {
+    /// One of an entity's row `seats`, carried with its body.
+    Seat { entity: u64, seat: u8 },
+    /// A fixed world point, the body facing `yaw`. One body per point.
+    At { pos: [f64; 3], yaw: f32 },
+}
+
+/// The shape an attached body takes. `Seated`: feet at the point, legs bent. `Lying`: flat on its
+/// back, centred on the point, head toward the facing.
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum Posture {
+    Seated,
+    Lying,
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
+pub struct Attachment {
+    pub to: AttachTo,
+    pub posture: Posture,
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
@@ -123,12 +270,6 @@ impl MobRidersData {
     pub fn first_free_seat(&self) -> Option<u8> {
         (0..self.capacity).find(|s| !self.riders.iter().any(|r| r.seat == *s))
     }
-}
-
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
-pub struct ModelGroupData {
-    pub base: [i32; 3],
-    pub facing: crate::Facing,
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
@@ -303,7 +444,7 @@ pub struct PlayerSnapshot {
     pub use_held: bool,
     pub holds_use: bool,
     pub held_count: u8,
-    pub pose_anchor: Option<[f64; 3]>,
+    pub attached: Option<Attachment>,
     pub swing: HandSwing,
     pub half_width: f32,
     pub height: f32,
@@ -344,16 +485,6 @@ pub struct GuiViewerData {
     pub player_id: PlayerId,
     pub kind: String,
     pub anchor: Option<ContainerAddress>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct HostileSpawnCandidate {
-    pub pos: [f64; 3],
-    pub cell: [i32; 3],
-    pub combined_light: u8,
-    pub sky_light: u8,
-    pub block_light: u8,
-    pub nearest_player_dist: f32,
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
@@ -408,6 +539,38 @@ pub enum DrawPrim {
         tint: [u8; 3],
         emissive: bool,
     },
+    /// A rope hanging between `from` and `to`, wearing atlas `tile` (once a block along it)
+    /// tinted `tint`, `width` texels thick (at most [`LINE_WIDTH_MAX`]). It is drawn beside what
+    /// the set shows: an item entity whose set holds only lines keeps its art.
+    ///
+    /// [`LINE_WIDTH_MAX`]: crate::LINE_WIDTH_MAX
+    Line {
+        from: LineEnd,
+        to: LineEnd,
+        tile: String,
+        tint: [u8; 3],
+        width: f32,
+    },
+}
+
+/// Where a [`DrawPrim::Line`] ends: a point in the set's own frame, on a body, or at a world
+/// point. A player end ties on at their main hand, an item entity's where it is drawn (its top,
+/// a model's trailing end), a mob's above its middle.
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
+pub enum LineEnd {
+    Local([f32; 3]),
+    Entity(EntityRef),
+    At([f64; 3]),
+}
+
+impl LineEnd {
+    pub fn is_finite(&self) -> bool {
+        match self {
+            LineEnd::Local(p) => p.iter().all(|v| v.is_finite()),
+            LineEnd::At(p) => p.iter().all(|v| v.is_finite()),
+            LineEnd::Entity(_) => true,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -426,7 +589,26 @@ pub enum ParticleTexture {
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ContainerAddress {
     Block([i32; 3]),
-    Mob(u64),
+    Entity(u64),
+}
+
+/// Whose GUI state a write reaches: one player's, or every player with a GUI open anchored there.
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum GuiAudience {
+    Player(PlayerId),
+    Viewers(ContainerAddress),
+}
+
+impl From<PlayerId> for GuiAudience {
+    fn from(player: PlayerId) -> Self {
+        GuiAudience::Player(player)
+    }
+}
+
+impl From<ContainerAddress> for GuiAudience {
+    fn from(at: ContainerAddress) -> Self {
+        GuiAudience::Viewers(at)
+    }
 }
 
 impl From<[i32; 3]> for ContainerAddress {
@@ -441,7 +623,7 @@ pub struct PlayerIdentityData {
     pub operator: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ItemStackData {
     pub item: String,
     pub count: u8,
@@ -451,13 +633,11 @@ pub struct ItemStackData {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ItemInfoData {
     pub max_stack: u8,
-    pub fuel_burn_ticks: u32,
     pub tags: Vec<String>,
     pub display_name: String,
     pub block: Option<BlockId>,
     pub tool: Option<ToolInfoData>,
     pub food: Option<FoodInfoData>,
-    pub item_use: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -482,21 +662,21 @@ pub struct BlockInfoData {
     /// holds for a block that holds one (seagrass in water).
     pub medium: Option<BlockId>,
     pub replaceable: bool,
-    pub interaction: Option<BlockUse>,
+    /// The GUI kind a use-click opens here.
+    pub open_gui: Option<String>,
+    /// The row's behavior keys, in order (`door`, `fragile`, `farming:crop`).
+    pub behaviors: Vec<String>,
+    /// A use-click here is the block's own to answer: it opens `open_gui`, or a behavior answers
+    /// it (a door swings, a bed sleeps).
+    pub answers_use: bool,
+    /// Tag keys of the ground this block can stand on (`petramond:soil`); empty = any ground.
+    pub roots_on: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum DrawFrame {
     Body,
     World,
-}
-
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum BlockUse {
-    OpenGui,
-    ToggleDoor,
-    Sleep,
-    ToggleTrapdoor,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -547,6 +727,10 @@ pub enum BlockHookKind {
     RandomTick,
     ScheduledTick,
     NeighborUpdate,
+    /// The block's container changed (any slot, from any source) since the last tick.
+    ContainerChanged,
+    /// A player opened or closed a GUI anchored at this block since the last tick.
+    ViewersChanged,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

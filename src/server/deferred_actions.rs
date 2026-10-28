@@ -10,8 +10,8 @@ impl ServerGame {
         }
         for action in self.mods.bus_mut().queue_mut().take_actions() {
             match action {
-                DeferredAction::DamagePlayer {
-                    player,
+                DeferredAction::Damage {
+                    target: crate::mob::EntityRef::Player(player),
                     amount,
                     source,
                     origin,
@@ -19,23 +19,21 @@ impl ServerGame {
                     let Some(t) = self.sessions.index_of(player) else {
                         continue;
                     };
-                    if self.damage_player(t, amount, source, origin, events) && source.is_attack() {
+                    let points = amount.round() as i32;
+                    if self.damage_player(t, points, source, origin, events) {
                         if let Some(from) = origin {
                             let scale = self.weapon_knockback(source);
                             self.shove_player(t, from, scale);
                         }
                     }
                 }
-                DeferredAction::DamageMob {
-                    mob_id,
+                DeferredAction::Damage {
+                    target: crate::mob::EntityRef::Entity(mob_id),
                     amount,
                     source,
                     origin,
-                    feedback,
                 } => {
-                    self.damage_mob_through_pipeline(
-                        mob_id, amount, source, origin, feedback, events,
-                    );
+                    self.damage_mob_through_pipeline(mob_id, amount, source, origin, None, events);
                 }
                 DeferredAction::OpenGui {
                     player,

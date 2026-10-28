@@ -53,7 +53,7 @@ fn the_block_behind_goes_in_before_the_one_in_front_of_it() {
     let (mut session, id, golem) = working(AT);
     session
         .world
-        .give(ContainerAddress::Mob(golem), "petramond:stone", 3);
+        .give(ContainerAddress::Entity(golem), "petramond:stone", 3);
     let west = unit(&session, id, [0, 0, 0]);
     let now = session.now();
     assert_eq!(
@@ -70,7 +70,7 @@ fn work_out_of_reach_is_walked_to_a_stance_that_reaches_it() {
     let (mut session, id, golem) = working([-8, 0, -8]);
     session
         .world
-        .give(ContainerAddress::Mob(golem), "petramond:stone", 3);
+        .give(ContainerAddress::Entity(golem), "petramond:stone", 3);
     let step = plan_now(&mut session, id, golem);
     let Step::Walk {
         goal,
@@ -120,7 +120,7 @@ fn work_set_aside_is_waited_for() {
     let (mut session, id, golem) = working(AT);
     session
         .world
-        .give(ContainerAddress::Mob(golem), "petramond:stone", 3);
+        .give(ContainerAddress::Entity(golem), "petramond:stone", 3);
     let job = session.builder.jobs.map.get_mut(&id).unwrap();
     for i in 0..3 {
         job.crew.deferrals.defer(Task::Unit(i), 1000);
@@ -154,7 +154,7 @@ fn with_everything_built_the_golem_winds_down_and_heads_home() {
 
     session
         .world
-        .give(ContainerAddress::Mob(golem), "petramond:dirt", 5);
+        .give(ContainerAddress::Entity(golem), "petramond:dirt", 5);
     assert_eq!(
         plan_now(&mut session, id, golem),
         Step::Walk {
@@ -229,7 +229,7 @@ fn the_world_is_asked_whether_a_block_would_go_in_before_anyone_is_sent() {
     });
     session
         .world
-        .give(ContainerAddress::Mob(golem), "petramond:stone", 3);
+        .give(ContainerAddress::Entity(golem), "petramond:stone", 3);
     let body = session.body(golem);
     at_work(&mut session, id, |ctx, _, job| {
         assert!(viability(ctx, job, &body, middle, body.pos) == Viable::Now);
@@ -262,7 +262,7 @@ fn a_block_with_nothing_beside_it_waits_then_gets_a_prop() {
     let golem = session.golem(id, HOME, [1, 0, 0]);
     session
         .world
-        .give(ContainerAddress::Mob(golem), "petramond:stone", 1);
+        .give(ContainerAddress::Entity(golem), "petramond:stone", 1);
     let floating = unit(&session, id, [0, 2, 0]);
     let body = session.body(golem);
     at_work(&mut session, id, |ctx, _, job| {

@@ -19,13 +19,8 @@ pub enum WorldEvent {
     },
     PanelToggled {
         anchor: IVec3,
+        block: Block,
         open: bool,
-    },
-    ChestOpened {
-        pos: IVec3,
-    },
-    ChestClosed {
-        pos: IVec3,
     },
     ItemPickedUp {
         pos: petramond_math::world_pos::WorldPos,

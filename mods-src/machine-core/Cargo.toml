@@ -4,10 +4,11 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Shared placed-machine plumbing for container-slot mod machines: the generic Machine driver over a MachineSpec, the world-KV anchor registry, session registry caches, and the slot arithmetic. Depended on by the kitchen and forge packs."
+description = "Shared placed-machine plumbing for container-slot mod machines: the generic Machine driver over a MachineSpec (woken by block behavior hooks, resting when idle), session registry caches, and the slot arithmetic. Depended on by the kitchen and forge packs."
 
 [lints]
 workspace = true
 
 [dependencies]
 mod-sdk = { workspace = true }
+serde = { workspace = true }

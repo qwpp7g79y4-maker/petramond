@@ -50,22 +50,10 @@ fn is_snowy_biome(biome: u8) -> bool {
     SNOWY_BIOMES.contains(&biome)
 }
 
+const ICE_MATERIAL: &str = "ice";
+
 fn snow_onset(intensity: f32, cell_gate: f32, tick_gate: f32) -> bool {
     intensity > 0.0 && cell_gate <= intensity && tick_gate <= 0.35
-}
-
-fn snow_support(
-    support: BlockId,
-    leaves: &[BlockId],
-    water: Option<BlockId>,
-    ice: Option<BlockId>,
-    packed_ice: Option<BlockId>,
-    shape: Option<CollisionShape>,
-) -> bool {
-    Some(support) != water
-        && Some(support) != ice
-        && Some(support) != packed_ice
-        && (leaves.contains(&support) || shape == Some(CollisionShape::Full))
 }
 
 #[derive(Default)]
@@ -74,9 +62,8 @@ struct Weather {
     seed: u32,
     advection: Advection,
     snow_layer: Option<BlockId>,
-    ice: Option<BlockId>,
-    packed_ice: Option<BlockId>,
-    water: Option<BlockId>,
+    /// Ground snow never forms on (ice material): it falls through to the water below.
+    frozen: Vec<BlockId>,
     leaves: Vec<BlockId>,
     probe_cursor: u64,
     frame: u64,
@@ -129,10 +116,8 @@ impl Weather {
 
     /// A few probes a tick, scattered near players, not a full sweep.
     /// Snowy biome plus snowfall means bare ground grows a layer, per-probe
-    /// threshold so it's patchy, not a sweeping fill.
-    /// Footing uses the collision-shape query: full cube, no water/leaves
-    /// (canopy is checked by the caller). No shape (chunk not loaded) means no
-    /// footing.
+    /// threshold so it's patchy, not a sweeping fill. Footing = the engine's support rule for
+    /// the snow layer row (`supported_at`), the same one a placed layer answers to.
     fn accumulate_snow(&mut self, params: &FieldParams) {
         let Some(snow_layer) = self.snow_layer else {
             return;
@@ -173,26 +158,17 @@ impl Weather {
             let Some(surface_y) = surface_y_at([x, z]) else {
                 continue;
             };
-            let Some(support) = get_block([x, surface_y, z]) else {
+            let Some(ground) = get_block([x, surface_y, z]) else {
                 continue;
             };
-            let shape = if self.leaves.contains(&support) {
-                None
-            } else {
-                collision_shape_at([x, surface_y, z])
-            };
-            if !snow_support(
-                support,
-                &self.leaves,
-                self.water,
-                self.ice,
-                self.packed_ice,
-                shape,
-            ) {
+            if self.frozen.contains(&ground) {
                 continue;
             }
             let above = [x, surface_y + 1, z];
             if get_block(above) != Some(BlockId::AIR) {
+                continue;
+            }
+            if supported_at(vec![(above, Some(snow_layer))]).first() != Some(&true) {
                 continue;
             }
             set_block(above, snow_layer);
@@ -224,7 +200,7 @@ impl Weather {
 
         let cell = [x.floor() as i32, z.floor() as i32];
         if self.cam_biome.is_none() || self.frame.is_multiple_of(CLIENT_BIOME_INTERVAL) {
-            self.cam_biome = client_biome_at(cell);
+            self.cam_biome = biome_at(cell);
         }
         if self.frame.is_multiple_of(CLIENT_COVER_INTERVAL) {
             self.refresh_cover(frame);
@@ -297,7 +273,7 @@ impl Weather {
             self.roofed = true;
             return;
         }
-        let blocks = client_blocks_at((y0..=h as i32).map(|y| [wx, y, wz]).collect());
+        let blocks = get_blocks((y0..=h as i32).map(|y| [wx, y, wz]).collect());
         for block in blocks {
             match block {
                 None => return,
@@ -322,9 +298,11 @@ impl Mod for Weather {
         self.seed = (rng_u64("field_seed") & 0xFF_FFFF) as u32;
         register_tick_system(Stage::Spawning, AttachSide::After, 10, TICK_WEATHER);
         self.snow_layer = resolve_block_logged(keys::SNOW_LAYER);
-        self.ice = resolve_block_logged(keys::ICE);
-        self.packed_ice = resolve_block_logged(keys::PACKED_ICE);
-        self.water = resolve_block_logged(keys::WATER);
+        self.frozen = registered_blocks()
+            .into_iter()
+            .filter(|(_, info)| info.material == ICE_MATERIAL)
+            .map(|(block, _)| block)
+            .collect();
         world_kv_delete(LEGACY_KV_FIELD);
         self.advection = Advection::new(offset::load());
     }
@@ -341,33 +319,3 @@ impl Mod for Weather {
 }
 
 register_mod!(Weather);
-
-#[cfg(test)]
-mod snow_tests {
-    use super::*;
-
-    #[test]
-    fn snow_rests_on_solid_ground_and_canopy_but_spares_water_and_ice() {
-        let leaves = BlockId(1);
-        let rock = BlockId(2);
-        let water = BlockId(3);
-        let ice = BlockId(4);
-        let packed_ice = BlockId(5);
-        let allowed = |block, shape| {
-            snow_support(
-                block,
-                &[leaves],
-                Some(water),
-                Some(ice),
-                Some(packed_ice),
-                shape,
-            )
-        };
-        assert!(allowed(leaves, None));
-        assert!(allowed(rock, Some(CollisionShape::Full)));
-        assert!(!allowed(rock, Some(CollisionShape::Empty)));
-        assert!(!allowed(water, Some(CollisionShape::Full)));
-        assert!(!allowed(ice, Some(CollisionShape::Full)));
-        assert!(!allowed(packed_ice, Some(CollisionShape::Full)));
-    }
-}

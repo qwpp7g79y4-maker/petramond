@@ -1,7 +1,7 @@
 use crate::block::Block;
 use crate::tile::Tile;
 
-use super::{HeldPose, ItemTag, ItemType, ItemUse, Tool};
+use super::{HeldPose, ItemTag, ItemType, Tool};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub(super) struct ItemDef {
@@ -21,7 +21,8 @@ pub(super) struct ItemDef {
     pub world_tool: Option<&'static str>,
     pub placement_variants: &'static [Block],
     pub model: Option<crate::block_model::BlockModelKind>,
-    pub item_use: Option<ItemUse>,
+    pub scoops: &'static [(Block, ItemType)],
+    pub pours: Option<super::Pour>,
     pub use_ray: super::UseRay,
     pub fuel_burn_ticks: u16,
     pub tool: Option<Tool>,

@@ -59,7 +59,7 @@ pub fn lay(
     job: &mut Job,
     body: &Body,
     cell: [i32; 3],
-    record: BlockRecord,
+    record: CellRecord,
     pay: bool,
     shown: Option<String>,
 ) -> Lay {

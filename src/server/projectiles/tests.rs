@@ -142,7 +142,7 @@ fn a_lodge_on_a_missing_body_drops_clear_instead() {
     server.resolve_item_impacts(
         vec![ItemImpact {
             id,
-            target: ImpactTarget::Mob(99),
+            target: ImpactTarget::Body(crate::mob::EntityRef::Entity(99)),
             point: at,
             vel: Vec3::new(30.0, 0.0, 0.0),
         }],
@@ -167,7 +167,7 @@ fn a_deflection_keeps_the_projectile_and_reverses_its_flight() {
     let at = server.sessions[0].player.pos + Vec3::new(2.0, 1.0, 0.0);
     let incoming = Vec3::new(30.0, -4.0, 5.0);
     let outgoing = incoming * -0.1;
-    let owner = Some(EntityRef::Mob(99));
+    let owner = Some(EntityRef::Entity(99));
     let mut item = DroppedItem::launched(at, ItemStack::new(ItemType::Stone, 1), incoming, owner);
     if let Motion::Flight(flight) = &mut item.motion {
         flight.left_owner = true;
@@ -181,7 +181,7 @@ fn a_deflection_keeps_the_projectile_and_reverses_its_flight() {
     server.resolve_item_impacts(
         vec![ItemImpact {
             id,
-            target: ImpactTarget::Player(server.sessions[0].id()),
+            target: ImpactTarget::Body(crate::mob::EntityRef::Player(server.sessions[0].id())),
             point: at,
             vel: incoming,
         }],
@@ -227,7 +227,7 @@ fn a_lodge_on_a_mob_rides_it_until_it_is_gone() {
     server.resolve_item_impacts(
         vec![ItemImpact {
             id,
-            target: ImpactTarget::Mob(mob),
+            target: ImpactTarget::Body(crate::mob::EntityRef::Entity(mob)),
             point: at,
             vel: Vec3::new(30.0, 0.0, 0.0),
         }],

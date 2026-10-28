@@ -20,9 +20,7 @@
 //! differ only in what the block IS — cold, lit, or pouring — because each of
 //! those has its own emission and its own particle emitter.
 
-use machine_core::{
-    consume_one, write_changed_slots, Caches, Machine, MachineSpec, Presentation, StepCtx,
-};
+use machine_core::{consume_one, Caches, Machine, MachineSpec, Presentation, StepCtx};
 use mod_sdk::*;
 
 use crate::content::Casting;
@@ -92,14 +90,11 @@ pub struct ForgingFurnaceSpec {
 }
 
 impl MachineSpec for ForgingFurnaceSpec {
-    const KIND_KEY: &'static str = keys::FURNACE_GUI;
     const BLOCK_KEY: &'static str = keys::FORGING_FURNACE;
     const VARIANT_KEYS: &'static [&'static str] =
         &[keys::FORGING_FURNACE_LIT, keys::FORGING_FURNACE_POUR];
-    const ANCHORS_KEY: &'static str = "forge:furnaces";
     const STATE_KEY: &'static str = STATE_KEY;
     const AUX_KEYS: &'static [&'static str] = &[fittings::KEY];
-    const PANEL_KEYS: &'static [&'static str] = &[keys::FITTINGS_GUI];
 
     fn init(&mut self) {
         self.casting = Some(Casting::resolve());
@@ -107,57 +102,47 @@ impl MachineSpec for ForgingFurnaceSpec {
         self.storage = storage::Storage::resolve();
     }
 
-    fn forget(&mut self, pos: [i32; 3]) {
-        let state = State::load(&section_kv_get(pos, STATE_KEY).unwrap_or_default());
+    fn removed(&mut self, anchor: [i32; 3], data: &[(String, Vec<u8>)]) {
+        let stored = data.iter().find(|(key, _)| key == STATE_KEY);
+        let state = State::load(stored.map_or(&[][..], |(_, bytes)| bytes));
         if state.units > 0 && !state.metal.is_empty() {
-            spawn_item(&state.metal, state.units, at(pos));
+            spawn_item(&state.metal, state.units, at(anchor));
         }
-        section_kv_delete(pos, STATE_KEY);
-        section_kv_delete(pos, fittings::KEY);
-        section_kv_delete(pos, fittings::INFO_KEY);
     }
 
     fn step(
         &mut self,
         ctx: &StepCtx<'_>,
         caches: &mut Caches,
-        slots: Option<Vec<Option<ItemStackData>>>,
+        slots: &mut Vec<Option<ItemStackData>>,
         stored: &mut Vec<u8>,
         out: &mut Presentation,
     ) {
         let Some(casting) = &self.casting else {
             return;
         };
-        let mut slots = slots.unwrap_or_default();
         slots.resize(SLOTS, None);
         let mut state = State::load(stored);
         let before = state.clone();
-        let before_slots = slots.clone();
         let bits = fittings::record(&ctx.aux[0]);
         if let Some(stoker) = self.fittings.active(bits, 3) {
             state.feed_ticks = state.feed_ticks.saturating_add(1);
             if state.feed_ticks >= stoker.feed_every {
                 state.feed_ticks = 0;
-                self.storage.feed(
-                    ctx.pos,
-                    &mut slots,
-                    &state,
-                    casting,
-                    caches,
-                    stoker.feed_keep,
-                );
+                self.storage
+                    .feed(ctx.pos, slots, &state, casting, caches, stoker.feed_keep);
             }
         }
         let mould = slots[SLOT_MOULD].as_ref().map(|s| s.item.clone());
 
         state.fire.tick();
-        if state.fire.lit() {
-            state.idle_ticks = 0;
+        state.idle_ticks = if state.fire.lit() {
+            0
         } else {
-            state.idle_ticks = state.idle_ticks.saturating_add(1);
-        }
+            (state.idle_ticks + 1).min(state::HARDEN_TICKS)
+        };
 
-        if self.melt(&mut state, &mut slots, casting, caches) {
+        if self.melt(&mut state, slots, casting, caches) {
             emit_sound(SOUND_FIRE, Some(at(ctx.pos)));
         }
         if let Some(auto) = self.fittings.active(bits, 1) {
@@ -186,7 +171,6 @@ impl MachineSpec for ForgingFurnaceSpec {
             emit_sound(SOUND_LAND, Some(at(ctx.pos)));
         }
 
-        write_changed_slots(ctx.pos, &before_slots, &slots);
         if state != before {
             *stored = state.to_bytes();
         }
@@ -198,9 +182,7 @@ impl MachineSpec for ForgingFurnaceSpec {
         } else {
             ctx.block
         };
-        if ctx.current != want_row {
-            swap_block(ctx.pos, want_row);
-        }
+        out.row(ctx.pos, want_row);
         out.parts(ctx.pos, self.parts_mask(&state), None);
         let set_ticks = self
             .fittings

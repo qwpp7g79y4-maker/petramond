@@ -90,7 +90,6 @@ impl Schematic {
             let right = &mut cells[b].1;
             std::mem::swap(&mut left.kv, &mut right.kv);
             std::mem::swap(&mut left.container, &mut right.container);
-            std::mem::swap(&mut left.furnace, &mut right.furnace);
             cells[a].1 = left;
         }
         Ok(cells)
@@ -151,7 +150,6 @@ impl Schematic {
                 Err(_) => super::CellData {
                     kv: Default::default(),
                     container: None,
-                    furnace: None,
                     fluid: 0,
                     ..data.clone()
                 },

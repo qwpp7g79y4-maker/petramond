@@ -11,7 +11,7 @@ pub(super) fn find(
     let biome = Biome::from_id(world.data().column_biome(x, z)?);
     let mut candidates = Vec::new();
     for y in lo..=hi {
-        let ground = if rule.ground.is_empty() {
+        let ground = if rule.ground.is_none() {
             Some(Block::Air)
         } else {
             world.block_if_stream_final(x, y - 1, z)

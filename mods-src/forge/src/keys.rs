@@ -5,6 +5,8 @@ mod_sdk::pack_keys! {
     pub FORGING_FURNACE_ITEM: Item = "forge:forging_furnace";
     pub FORGING_FURNACE_RECIPE: Recipe = "forge:forging_furnace";
     pub ANVIL: Block = "forge:anvil";
+    pub ANVIL_BEHAVIOR: Behavior = "forge:anvil";
+    pub FURNACE_BEHAVIOR: Behavior = "forge:forging_furnace";
     pub ANVIL_RECIPE: Recipe = "forge:anvil";
     pub POTTERY_TABLE_RECIPE: Recipe = "forge:pottery_table";
     pub CAST_PLATE_CLASS: RecipeClass = "forge:cast_plate";

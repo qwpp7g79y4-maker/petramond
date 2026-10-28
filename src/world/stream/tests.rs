@@ -24,18 +24,13 @@ fn overlaid_saved_section_keeps_its_block_entities_live() {
     world.note_section_loaded(sp);
     let mut saved = Section::new(0, 4, 0);
     saved.set_block(0, 0, 0, petramond_world::block::Block::Chest);
-    saved.insert_container(
-        0,
-        0,
-        0,
-        petramond_world::container::Container::with_len(crate::world::chest::CHEST_SLOTS),
-    );
+    saved.insert_container(0, 0, 0, petramond_world::container::Container::with_len(27));
     saved.insert_entity_facing(0, 0, 0, petramond_math::facing::Facing::default());
     world
         .side
         .gen
         .pending_overlays
-        .insert(sp, (saved, Vec::new(), Vec::new()));
+        .insert(sp, (saved, Vec::new(), Vec::new(), Default::default()));
     world.apply_pending_overlays();
 
     let mut out = Vec::new();
@@ -774,5 +769,83 @@ fn sky_cavern_walks_under_an_overhang_and_stops_at_closed_walls() {
     assert!(
         world.side.gen.pending_sections.contains(&below),
         "the unloaded floor under the open cavern is requested"
+    );
+}
+
+#[test]
+fn pending_block_ticks_reload_with_their_time_left_and_leave_the_record_once_run() {
+    use std::time::Instant;
+
+    let dir = petramond_util::test_dirs::TestScratchDir::new("scheduled-ticks");
+    let pool = Arc::new(crate::worker::JobPool::new(
+        crate::worker::JobPool::default_threads(),
+    ));
+    let deadline = Instant::now() + petramond_util::test_time::TEST_HARD_DEADLINE;
+    let pos = IVec3::new(4, 250, 4);
+    let stone = |w: &ServerWorld| w.data.chunk_block(pos.x, pos.y, pos.z) == Block::Stone.id();
+    let open = |at_tick: u64, ready: &dyn Fn(&ServerWorld) -> bool| {
+        let opened = crate::save::open_at(dir.to_path_buf()).expect("open save");
+        let mut world = ServerWorld::with_pool(0x51EED, 2, pool.clone());
+        world.attach_save(opened.save, opened.saved);
+        world.restore_tick(at_tick);
+        world.update_load(0, 8, 0);
+        while !ready(&world) {
+            assert!(Instant::now() < deadline, "the world streamed in");
+            world.poll();
+        }
+        world
+    };
+    let pending = |world: &ServerWorld| -> Vec<(IVec3, u64)> {
+        world
+            .data
+            .sim
+            .scheduled
+            .iter()
+            .filter(|(p, _)| *p == pos)
+            .collect()
+    };
+    // A due tick waits while its neighbours stream in, so run until it has actually fired.
+    let run_out = |world: &mut ServerWorld| {
+        while !pending(world).is_empty() {
+            assert!(Instant::now() < deadline, "the scheduled tick ran");
+            world.poll();
+            world.game_tick();
+        }
+    };
+
+    let mut world = open(0, &|w| w.data.chunk_loaded(0, 0));
+    assert!(world.set_block_world(pos.x, pos.y, pos.z, Block::Stone));
+    world.schedule_tick(pos, 5);
+    world.flush_modified_chunks();
+    run_out(&mut world);
+    world.flush_modified_chunks();
+    drop(world);
+
+    let mut world = open(1_000, &stone);
+    assert!(
+        pending(&world).is_empty(),
+        "a tick that ran after its record was written does not come back"
+    );
+    world.schedule_tick(pos, 40);
+    for _ in 0..10 {
+        world.game_tick();
+    }
+    world.flush_modified_chunks();
+    drop(world);
+
+    let mut world = open(2_000, &stone);
+    assert_eq!(
+        pending(&world),
+        vec![(pos, 2_030)],
+        "the tick comes back with the 30 ticks it had left, on the new clock"
+    );
+    run_out(&mut world);
+    world.flush_modified_chunks();
+    drop(world);
+
+    let world = open(3_000, &stone);
+    assert!(
+        pending(&world).is_empty(),
+        "nor does one that ran after its record was read back"
     );
 }

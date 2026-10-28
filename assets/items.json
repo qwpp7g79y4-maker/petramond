@@ -1700,12 +1700,10 @@
       },
       "model": "petramond:bucket",
       "tags": [],
-      "use": {
-        "bucket_fill": {
-          "becomes": {
-            "petramond:water": "petramond:water_bucket",
-            "petramond:lava": "petramond:lava_bucket"
-          }
+      "data": {
+        "petramond:scoops": {
+          "petramond:water": "petramond:water_bucket",
+          "petramond:lava": "petramond:lava_bucket"
         }
       }
     },
@@ -1721,10 +1719,10 @@
       },
       "model": "petramond:water_bucket",
       "tags": [],
-      "use": {
-        "bucket_pour": {
-          "becomes": "petramond:wooden_bucket",
-          "fluid": "petramond:water"
+      "data": {
+        "petramond:pours": {
+          "fluid": "petramond:water",
+          "becomes": "petramond:wooden_bucket"
         }
       }
     },
@@ -1740,10 +1738,10 @@
       },
       "model": "petramond:lava_bucket",
       "tags": [],
-      "use": {
-        "bucket_pour": {
-          "becomes": "petramond:wooden_bucket",
-          "fluid": "petramond:lava"
+      "data": {
+        "petramond:pours": {
+          "fluid": "petramond:lava",
+          "becomes": "petramond:wooden_bucket"
         }
       }
     },
@@ -1759,7 +1757,6 @@
       },
       "sprite": "shears",
       "tags": [],
-      "use": "shear",
       "data": {
         "petramond:tool": {
           "kind": "shears",

@@ -230,7 +230,11 @@ impl PackIndex {
                     self.insert(PackKeyKind::Data, key);
                 }
             }
-            ("behavior", Value::Str(hook)) => self.insert(PackKeyKind::Behavior, hook),
+            ("behaviors", Value::Arr(hooks)) => {
+                for hook in hooks.iter().filter_map(Value::as_str) {
+                    self.insert(PackKeyKind::Behavior, hook);
+                }
+            }
             ("node", Value::Str(node)) => self.insert(PackKeyKind::AiNode, node),
             (_, Value::Arr(_) | Value::Obj(_)) => self.walk_catalog(v),
             _ => {}
@@ -273,7 +277,7 @@ mod tests {
         let index = PackIndex::from_documents(&[
             (
                 "blocks.json",
-                r#"{"blocks":[{"block":"a:stone","tags":["a:hard","raw_ore"],"behavior":"a:grow",
+                r#"{"blocks":[{"block":"a:stone","tags":["a:hard","raw_ore"],"behaviors":["a:grow"],
                     "data":{"a:heat":1},"drops":[{"item":"a:pebble"}]}]}"#,
             ),
             (

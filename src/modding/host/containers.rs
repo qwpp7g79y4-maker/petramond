@@ -10,11 +10,8 @@ mod access;
 
 pub(super) fn handle_container_call(mod_id: &str, call: ContainerCall) -> HostRet {
     match call {
-        ContainerCall::ContainerGet { at } => {
-            sim_query(|ctx| HostRet::ContainerSlots(read_slots(ctx, at)))
-        }
-        ContainerCall::ContainerGetMany { addresses } => {
-            if let Some(err) = batch_guard("ContainerGetMany address", addresses.len()) {
+        ContainerCall::ContainerGet { addresses } => {
+            if let Some(err) = batch_guard("ContainerGet address", addresses.len()) {
                 return err;
             }
             sim_query(|ctx| {
@@ -41,7 +38,7 @@ pub(super) fn handle_container_call(mod_id: &str, call: ContainerCall) -> HostRe
             })
         }
         ContainerCall::ContainerHold { at, actor, open } => sim_query(|ctx| {
-            let mod_api::EntityRef::Mob(mob_id) = actor else {
+            let mod_api::EntityRef::Entity(mob_id) = actor else {
                 return HostRet::Bool(false);
             };
             let Some(access::Target::Block(pos)) = access::resolve_read(ctx, at) else {
@@ -151,7 +148,7 @@ pub(super) fn handle_container_call(mod_id: &str, call: ContainerCall) -> HostRe
                             return HostRet::Bool(false);
                         }
                     }
-                    access::Target::Mob(_) => {
+                    access::Target::Entity(_) => {
                         if access::slots(ctx, target).is_none_or(|c| c.slots.len() < len) {
                             return HostRet::Bool(false);
                         }

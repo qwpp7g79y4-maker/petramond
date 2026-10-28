@@ -353,13 +353,13 @@ impl Mobs {
                 pending_noises.push(Noise {
                     pos: mob.pos,
                     kind: NoiseKind::Step,
-                    source: EntityRef::Mob(mob.id()),
+                    source: EntityRef::Entity(mob.id()),
                 });
             }
             if let Some(intent) = mob.take_attack() {
                 let target_pos = match intent.target {
                     EntityRef::Player(pid) => anchors.iter().find(|a| a.id == pid).map(|a| a.pos),
-                    EntityRef::Mob(id) => ai_mobs.live(id).map(|m| m.pos),
+                    EntityRef::Entity(id) => ai_mobs.live(id).map(|m| m.pos),
                 };
                 if let Some(target_pos) = target_pos {
                     let mut away = target_pos - mob.pos;

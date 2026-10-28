@@ -3,7 +3,7 @@ use crate::tile::Tile;
 
 use super::{
     data, definition, DroppedReaction, FoodDef, HeldPose, ItemRenderKind, ItemTag, ItemType,
-    ItemUse, Projectile, Tool, UseRay,
+    Projectile, Tool, UseRay,
 };
 
 impl ItemType {
@@ -83,9 +83,15 @@ impl ItemType {
             .map(|i| data[i].1)
     }
 
+    /// The fluids this item takes up (`petramond:scoops`), each with the item it becomes.
     #[inline]
-    pub fn item_use(self) -> Option<ItemUse> {
-        self.def().item_use
+    pub fn scoops(self) -> &'static [(crate::block::Block, ItemType)] {
+        self.def().scoops
+    }
+
+    #[inline]
+    pub fn pours(self) -> Option<super::Pour> {
+        self.def().pours
     }
 
     #[inline]

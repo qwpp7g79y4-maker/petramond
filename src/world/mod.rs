@@ -8,7 +8,6 @@ pub mod animated_block;
 mod block_deltas;
 mod cell_change;
 pub(crate) mod cells;
-pub mod chest;
 mod cloth;
 mod column_heightmaps;
 pub mod construction;

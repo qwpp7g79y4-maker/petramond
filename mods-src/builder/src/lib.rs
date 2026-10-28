@@ -94,7 +94,7 @@ impl Mod for BuilderMod {
             (
                 ON_ACTOR_ACTED,
                 EventPayload::ActorActed {
-                    actor: EntityRef::Mob(mob),
+                    actor: EntityRef::Entity(mob),
                     pos,
                     action,
                     refusal,
@@ -114,22 +114,35 @@ impl Mod for BuilderMod {
             {
                 unlock_recipe(*player, keys::COPPER_BLOCK_RECIPE);
             }
-            (ON_INTERACT, EventPayload::InteractAttempt { mob: Some(mob), .. }) => {
-                return golem::used(state, *mob);
+            (
+                ON_INTERACT,
+                EventPayload::InteractAttempt {
+                    mob: Some(mob),
+                    player,
+                    ..
+                },
+            ) => {
+                return golem::used(state, *player, *mob);
             }
-            (ON_ITEM_USE, EventPayload::ItemUsePre { item, .. })
+            (ON_ITEM_USE, EventPayload::ItemUsePre { player, item, .. })
                 if *item == state.content.blueprint =>
             {
-                return table::use_blueprint(state);
+                return table::use_blueprint(state, *player);
             }
             _ => {}
         }
         Outcome::Continue
     }
 
-    fn gui_click(&mut self, kind_key: &str, widget_id: &str, at: Option<ContainerAddress>) {
+    fn gui_click(
+        &mut self,
+        player: PlayerId,
+        kind_key: &str,
+        widget_id: &str,
+        at: Option<ContainerAddress>,
+    ) {
         if let Some(state) = self.state.as_mut() {
-            table::click(state, kind_key, widget_id, at);
+            table::click(state, player, kind_key, widget_id, at);
         }
     }
 

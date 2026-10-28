@@ -5,7 +5,6 @@ use crate::block::Block;
 use crate::block_state::BlockStates;
 use crate::chunk::{section_idx, SECTION_SIZE, SECTION_VOLUME, SKY_FULL};
 use crate::container::Container;
-use crate::furnace::Furnace;
 use crate::light::LightRgb;
 
 pub use cube::BlockCube;
@@ -111,18 +110,16 @@ pub struct Section {
 
 #[derive(Clone, Default, PartialEq)]
 struct BlockEntities {
-    furnaces: CellMap<Furnace>,
     containers: CellMap<Container>,
 }
 
 impl BlockEntities {
     fn is_empty(&self) -> bool {
-        self.furnaces.is_empty() && self.containers.is_empty()
+        self.containers.is_empty()
     }
 
     fn memory_bytes(&self) -> u64 {
         std::mem::size_of::<Self>() as u64
-            + (self.furnaces.len() * (2 + std::mem::size_of::<Furnace>() + 1)) as u64
             + (self.containers.len() * (2 + std::mem::size_of::<Container>() + 1)) as u64
     }
 }

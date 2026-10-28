@@ -1,0 +1,19 @@
+{
+  "stations": [
+    {
+      "station": "petramond:inventory"
+    },
+    {
+      "station": "petramond:crafting_table",
+      "includes": ["petramond:inventory"]
+    },
+    {
+      "station": "petramond:furniture_workbench",
+      "screen": "petramond:crafting_table"
+    },
+    {
+      "station": "petramond:chiseling_station",
+      "screen": "petramond:crafting_table"
+    }
+  ]
+}

@@ -3,6 +3,8 @@ mod_sdk::pack_keys! {
     pub OVEN_LIT_BLOCK: Block = "kitchen:oven_lit";
     pub MILLER_BLOCK: Block = "kitchen:miller";
     pub MILLER_FULL_BLOCK: Block = "kitchen:miller_full";
+    pub OVEN_BEHAVIOR: Behavior = "kitchen:oven";
+    pub MILLER_BEHAVIOR: Behavior = "kitchen:miller";
 
     pub RABBIT_STEW: Item = "kitchen:rabbit_stew";
     pub WOODEN_BOWL: Item = "kitchen:wooden_bowl";

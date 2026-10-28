@@ -23,7 +23,6 @@ mod tests {
     use petramond_world::block::Block;
     use petramond_world::block_state::{StairHalf, StairState};
     use petramond_world::chunk::{Chunk, ChunkPos};
-    use petramond_world::crafting::Recipes;
     use petramond_world::torch::TorchPlacement;
 
     fn world() -> ServerWorld {
@@ -33,9 +32,8 @@ mod tests {
     }
 
     fn run_ticks(w: &mut ServerWorld, n: u32) {
-        let r = Recipes::default();
         for _ in 0..n {
-            w.game_tick(&r);
+            w.game_tick();
         }
     }
 
@@ -206,7 +204,9 @@ mod tests {
             "a wall torch falls with its wall"
         );
         let breaks = w.take_natural_breaks();
-        assert!(breaks.iter().any(|&(p, b)| p == torch && b == Block::Torch));
+        assert!(breaks
+            .iter()
+            .any(|&(p, b, _)| p == torch && b == Block::Torch));
     }
 
     #[test]
@@ -230,7 +230,7 @@ mod tests {
         assert!(
             breaks
                 .iter()
-                .any(|&(p, b)| p == ladder && b == Block::LadderEast),
+                .any(|&(p, b, _)| p == ladder && b == Block::LadderEast),
             "the broken ladder was recorded for its drop + particle burst",
         );
     }
@@ -297,7 +297,7 @@ mod tests {
         .unwrap();
         let row = |name: &str, support: &str| {
             format!(
-                r#"{{ "block": "hangtest:{name}", "shape": "cross", "flags": ["transparent"], "tags": ["fragile"], "behavior": "fragile", "interaction": "none", "collision": [], "emission": 0{support}, "tiles": ["poppy", "poppy", "poppy"], "material": "plant", "hardness": 0, "drops": [] }}"#
+                r#"{{ "block": "hangtest:{name}", "shape": "cross", "flags": ["transparent"], "tags": ["fragile"], "behaviors": ["fragile"], "collision": [], "emission": 0{support}, "tiles": ["poppy", "poppy", "poppy"], "material": "plant", "hardness": 0, "drops": [] }}"#
             )
         };
         let above = r#", "support": "above""#;

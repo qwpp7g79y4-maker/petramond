@@ -12,17 +12,19 @@ pub struct SurfaceSystem;
 impl SurfaceSystem {
     #[inline]
     pub fn skin_block(&self, c: &SurfaceCtx, rule: &SurfaceRule) -> Block {
-        finish(c, rule.resolve(c).unwrap_or(Block::Stone))
+        finish(c, rule.block(c))
     }
 }
 
+/// A ground cover below sea level is its bare block, as a submerged cover turns in play.
 #[inline]
 fn finish(c: &SurfaceCtx, block: Block) -> Block {
-    if c.y < SEA_LEVEL && block == Block::Grass {
-        Block::Dirt
-    } else {
-        block
+    if c.y < SEA_LEVEL {
+        if let Some(bare) = petramond_world::block::cover_bare(block) {
+            return bare;
+        }
     }
+    block
 }
 
 /// [`SurfaceSystem::skin_block`] down one column: only depth conditions vary
@@ -46,11 +48,9 @@ impl<'r> ColumnSkin<'r> {
     #[inline]
     pub(crate) fn block(&mut self, c: &SurfaceCtx) -> Block {
         let raw = if self.band.is_none_or(|band| c.depth_from_top > band) {
-            *self
-                .below
-                .get_or_insert_with(|| self.rule.resolve(c).unwrap_or(Block::Stone))
+            *self.below.get_or_insert_with(|| self.rule.block(c))
         } else {
-            self.rule.resolve(c).unwrap_or(Block::Stone)
+            self.rule.block(c)
         };
         finish(c, raw)
     }

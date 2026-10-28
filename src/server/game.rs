@@ -47,7 +47,7 @@ pub struct SharedTickRows {
     clock: u64,
     recipients: Vec<entity_rows::RecipientEntities>,
     sleep_tally: SleepTally,
-    open_chests: Vec<IVec3>,
+    held_open: Vec<IVec3>,
     pub env: Option<Vec<(String, [f32; 4])>>,
     feeds: replication::WindowFeeds,
 }
@@ -67,7 +67,7 @@ pub struct ServerGame {
     pub(in crate::server) chat: ChatService,
     pub(in crate::server) clock: FrameClock,
     pub(in crate::server) broadcast: Broadcast,
-    pub(in crate::server) hostile_spawn_cache: crate::mob::HostileSpawnCache,
+    pub(in crate::server) scan_spawn_cache: crate::mob::ScanCache,
     pub(in crate::server) seeds: DropSeeds,
     pub(in crate::server) exposure_scratch: crate::exposure::ExposureScratch,
 }
@@ -101,7 +101,7 @@ impl ServerGame {
             chat: ChatService::default(),
             clock: FrameClock::new(remote_from_boot),
             broadcast: Broadcast::default(),
-            hostile_spawn_cache: Default::default(),
+            scan_spawn_cache: Default::default(),
             seeds: DropSeeds::default(),
             exposure_scratch: Default::default(),
         }
@@ -171,16 +171,16 @@ impl ServerGame {
         self.mods.replace_host(host);
     }
 
-    pub fn open_chests(&self) -> Vec<IVec3> {
-        self.containers.open_chests()
+    pub fn held_open(&self) -> Vec<IVec3> {
+        self.containers.held_open()
     }
 
-    pub fn chest_viewers(&self, pos: IVec3) -> u8 {
+    pub fn container_viewers(&self, pos: IVec3) -> u8 {
         self.containers.viewers(pos)
     }
 
     #[cfg(any(test, feature = "test-support"))]
-    pub fn set_chest_viewed_for_test(
+    pub fn set_container_viewed_for_test(
         &mut self,
         pos: IVec3,
         viewed: bool,

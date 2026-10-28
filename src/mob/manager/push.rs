@@ -146,8 +146,8 @@ impl Mobs {
             if def(self.list[j].kind).collision != super::super::MobCollision::Solid {
                 pushes[j] -= push_a;
             }
-            contacts[i].push(EntityRef::Mob(ids[j]));
-            contacts[j].push(EntityRef::Mob(ids[i]));
+            contacts[i].push(EntityRef::Entity(ids[j]));
+            contacts[j].push(EntityRef::Entity(ids[i]));
         }
 
         for (i, body) in bodies.iter().copied().enumerate() {

@@ -135,7 +135,7 @@ impl EventPayload {
                 cell: *block,
                 ..none
             },
-            P::ItemUsePre { item, target } => Facts {
+            P::ItemUsePre { item, target, .. } => Facts {
                 item: Some(*item),
                 cell: *target,
                 ..none
@@ -189,12 +189,12 @@ impl EventPayload {
             },
             P::PlayerDamagePre { .. }
             | P::PlayerDamaged { .. }
-            | P::PlayerDied
+            | P::PlayerDied { .. }
             | P::ContainerOpened { .. }
             | P::ContainerClosed { .. }
             | P::SectionGenerated { .. }
             | P::SectionLoaded { .. }
-            | P::PlayerDismounted { .. } => none,
+            | P::PlayerDetached { .. } => none,
         }
     }
 }
@@ -313,6 +313,7 @@ mod tests {
         assert!(!f.matches(&placed(4, [0, 0, 0])));
         let items = EventFilter::items([ItemId(7)]);
         let used = |item| EventPayload::ItemUsePre {
+            player: PlayerId(0),
             item: ItemId(item),
             target: None,
         };

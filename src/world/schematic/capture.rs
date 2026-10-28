@@ -122,7 +122,6 @@ impl Capture {
             fluid: data.fluid,
             kv: public.data,
             container: None,
-            furnace: None,
         })
     }
 
@@ -186,7 +185,6 @@ impl SnapshotSection {
             fluid: 0,
             kv: Default::default(),
             container: None,
-            furnace: None,
         };
         match self {
             Self::Uniform(b) => data.block = *b,
@@ -201,7 +199,6 @@ impl SnapshotSection {
                     .cloned()
                     .unwrap_or_default();
                 data.container = s.container_at(x, y, z).cloned();
-                data.furnace = s.furnace_at(x, y, z).copied();
             }
         }
         data

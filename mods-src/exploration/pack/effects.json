@@ -4,10 +4,8 @@
       "effect": "exploration:water_breathing",
       "display": "Water Breathing",
       "icon": "textures/water_breathing.png",
-      "behavior": {
-        "breath": {
-          "scale": 0
-        }
+      "attributes": {
+        "breath_drain": 0
       }
     }
   ]

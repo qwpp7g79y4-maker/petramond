@@ -23,7 +23,7 @@ const BODY: &[(&str, BodyInput)] = &[
     ("landing", |i| i.locomotion.landing),
     ("swim", |i| i.locomotion.swim.weight),
     ("seated", |i| flag(i.seated)),
-    ("sleeping", |i| flag(i.sleeping)),
+    ("lying", |i| flag(i.lying)),
     ("pitch", |i| i.head_pitch.to_degrees()),
     ("hurt", |i| i.hurt),
 ];

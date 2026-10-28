@@ -381,7 +381,7 @@ impl ServerGame {
             pre.drops
         };
         if event.block.has_tag(petramond_world::block::BlockTag::BED) {
-            self.clear_bed_spawn_at(event.pos);
+            self.release_bed_at(event.pos);
         }
         let (sky, blk) = break_light(self.world.data(), event.pos, breaker.normal);
         // A COMPOSED cell (a slab stack) drops each of its parts as its own
@@ -394,6 +394,7 @@ impl ServerGame {
             .data()
             .cell_parts(event.pos)
             .map(|parts| self.part_drop_stacks(event.pos, &parts));
+        let removal = self.world.data().removal(event.pos);
         let container_pos = self.world.container_anchor(event.pos);
         self.world.stock_loot(container_pos);
         let carry_variant = self.carry_variant_at(container_pos, event.block, 0);
@@ -441,6 +442,7 @@ impl ServerGame {
             harvested: event.harvested,
             natural: false,
             player: breaker.actor.player(),
+            removal,
         });
         self.push_noise_from(breaker.actor, event.pos, crate::mob::NoiseKind::BlockBroken);
         true
@@ -470,7 +472,7 @@ impl ServerGame {
     }
 
     pub fn process_natural_breaks(&mut self, events: &mut TickEvents) {
-        for (pos, block) in self.world.take_natural_breaks() {
+        for (pos, block, removal) in self.world.take_natural_breaks() {
             if block.has_tag(petramond_world::block::BlockTag::BED) {
                 self.validate_bed_spawn();
             }
@@ -499,6 +501,7 @@ impl ServerGame {
                 harvested,
                 natural: true,
                 player: None,
+                removal,
             });
         }
     }

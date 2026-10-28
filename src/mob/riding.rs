@@ -1,10 +1,11 @@
 //! Player riding: the ATTACHMENT registry.
 //!
 //! The engine owns the mechanism — which player is attached to which mob seat
-//! (validated against `mobs.json` row `seats`) or pinned at which static pose
-//! anchor — while attachment POLICY (who may sit where, who controls the
-//! mount, where furniture seats exist) stays with mods through the
-//! `MobMount`/`PlayerPoseSet`/`MobDismount` HostCalls. The registry lives on
+//! (validated against `mobs.json` row `seats`) or pinned at which world point,
+//! in which posture — while attachment POLICY (who may sit or lie where, who
+//! controls the mount, where furniture seats are, when a bed takes a sleeper)
+//! stays with its owner: mods through the `Attach`/`Detach` HostCalls, native
+//! beds through the same registry. The registry lives on
 //! `World` so those calls can reach it through `SimCtx`; the per-tick
 //! consequences (slaving each rider's player to its seat, sneak-dismount,
 //! pruning dead/vanished mounts) run in the server's riding pass
@@ -25,23 +26,51 @@ use petramond_math::math::{Tilt, Vec3};
 const DISMOUNT_CLEARANCE: f32 = 0.45;
 const DISMOUNT_RISE: i32 = 1;
 
+pub use mod_api::Posture;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct PoseAnchor {
     pub pos: petramond_math::world_pos::WorldPos,
     pub yaw: f32,
-    pub pose: u8,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MountTarget {
-    Mob(u64),
+    Entity(u64),
     Anchor(PoseAnchor),
+}
+
+impl MountTarget {
+    /// One body per place: the same entity, or the same point whatever the facing.
+    fn same_place(&self, other: &MountTarget) -> bool {
+        match (self, other) {
+            (MountTarget::Entity(a), MountTarget::Entity(b)) => a == b,
+            (MountTarget::Anchor(a), MountTarget::Anchor(b)) => a.pos == b.pos,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Mount {
     pub target: MountTarget,
     pub seat: u8,
+    pub posture: Posture,
+}
+
+impl Mount {
+    pub fn attach_to(&self) -> mod_api::AttachTo {
+        match self.target {
+            MountTarget::Entity(entity) => mod_api::AttachTo::Seat {
+                entity,
+                seat: self.seat,
+            },
+            MountTarget::Anchor(a) => mod_api::AttachTo::At {
+                pos: a.pos.to_array(),
+                yaw: a.yaw,
+            },
+        }
+    }
 }
 
 /// Rotate a mount-local seat offset (`x` right, `y` up, `z` facing) into world
@@ -193,7 +222,7 @@ impl Riding {
     pub fn riders_of(&self, target: MountTarget) -> Vec<(u8, u8)> {
         self.mounts
             .iter()
-            .filter(|(_, m)| m.target == target)
+            .filter(|(_, m)| m.target.same_place(&target))
             .map(|(&player, m)| (m.seat, player))
             .collect()
     }
@@ -201,14 +230,21 @@ impl Riding {
     pub fn seat_taken(&self, target: MountTarget, seat: u8) -> bool {
         self.mounts
             .values()
-            .any(|m| m.target == target && m.seat == seat)
+            .any(|m| m.target.same_place(&target) && m.seat == seat)
     }
 
-    pub fn mount(&mut self, player: u8, target: MountTarget, seat: u8) -> bool {
+    pub fn mount(&mut self, player: u8, target: MountTarget, seat: u8, posture: Posture) -> bool {
         if self.mounts.contains_key(&player) || self.seat_taken(target, seat) {
             return false;
         }
-        self.mounts.insert(player, Mount { target, seat });
+        self.mounts.insert(
+            player,
+            Mount {
+                target,
+                seat,
+                posture,
+            },
+        );
         true
     }
 
@@ -279,43 +315,36 @@ mod tests {
     #[test]
     fn one_seat_one_rider_one_mount_per_player() {
         let mut r = Riding::default();
-        let boat = MountTarget::Mob(77);
-        let chair = MountTarget::Anchor(PoseAnchor {
-            pos: WorldPos::new(1.5, 2.0, 3.5),
-            yaw: 0.0,
-            pose: 1,
-        });
-        assert!(r.mount(1, boat, 0));
-        assert!(!r.mount(2, boat, 0), "occupied seat refuses a second rider");
-        assert!(r.mount(2, boat, 1));
-        assert!(!r.mount(1, MountTarget::Mob(88), 0), "already mounted");
+        let boat = MountTarget::Entity(77);
+        let at = WorldPos::new(1.5, 2.0, 3.5);
+        let chair = MountTarget::Anchor(PoseAnchor { pos: at, yaw: 0.0 });
+        let seated = Posture::Seated;
+        assert!(r.mount(1, boat, 0, seated));
+        assert!(
+            !r.mount(2, boat, 0, seated),
+            "occupied seat refuses a second rider"
+        );
+        assert!(r.mount(2, boat, 1, seated));
+        assert!(
+            !r.mount(1, MountTarget::Entity(88), 0, seated),
+            "already mounted"
+        );
         assert_eq!(r.riders_of(boat), vec![(0, 1), (1, 2)]);
-        assert_eq!(
-            r.dismount(1),
-            Some(Mount {
-                target: boat,
-                seat: 0
-            })
-        );
+        let first = Mount {
+            target: boat,
+            seat: 0,
+            posture: seated,
+        };
+        assert_eq!(r.dismount(1), Some(first));
         assert_eq!(r.dismount(1), None);
-        assert!(r.mount(1, chair, 0));
-        assert_eq!(
-            r.mount_of(1),
-            Some(Mount {
-                target: chair,
-                seat: 0
-            })
+        assert!(r.mount(1, chair, 0, Posture::Lying));
+        let turned = MountTarget::Anchor(PoseAnchor { pos: at, yaw: 1.0 });
+        assert!(
+            !r.mount(3, turned, 0, seated),
+            "a point holds one body whatever the facing"
         );
-        assert_eq!(
-            r.drain_dismounted().collect::<Vec<_>>(),
-            vec![(
-                1,
-                Mount {
-                    target: boat,
-                    seat: 0
-                }
-            )]
-        );
+        assert_eq!(r.riders_of(turned), vec![(0, 1)]);
+        assert_eq!(r.drain_dismounted().collect::<Vec<_>>(), vec![(1, first)]);
     }
 
     #[test]

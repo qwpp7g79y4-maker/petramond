@@ -12,7 +12,7 @@ use crate::worker::Step;
 fn a_golem_rises_out_of_the_ground_and_takes_its_plans_from_the_table() {
     let (mut session, id, golem) = working(HOME);
     session.builder.projects.update(id, |p| p.summon(HOME));
-    session.world.put(ContainerAddress::Mob(golem), 0, None);
+    session.world.put(ContainerAddress::Entity(golem), 0, None);
     let body = session.body(golem);
     at_work(&mut session, id, |_, projects, job| {
         job.crew.step = Step::Emerge { t: 0 };
@@ -39,7 +39,9 @@ fn a_golem_rises_out_of_the_ground_and_takes_its_plans_from_the_table() {
         Some(Phase::Working)
     );
     assert_eq!(
-        session.world.count(ContainerAddress::Mob(golem), BLUEPRINT),
+        session
+            .world
+            .count(ContainerAddress::Entity(golem), BLUEPRINT),
         1
     );
     assert_eq!(
@@ -75,7 +77,9 @@ fn a_golem_called_off_hands_its_plans_back_before_it_sinks() {
         Some(id)
     );
     assert_eq!(
-        session.world.count(ContainerAddress::Mob(golem), BLUEPRINT),
+        session
+            .world
+            .count(ContainerAddress::Entity(golem), BLUEPRINT),
         0
     );
 
@@ -112,7 +116,9 @@ fn plans_the_table_has_no_room_for_are_left_on_the_ground() {
         .deeds()
         .contains(&Deed::Dropped(BLUEPRINT.into(), 1)));
     assert_eq!(
-        session.world.count(ContainerAddress::Mob(golem), BLUEPRINT),
+        session
+            .world
+            .count(ContainerAddress::Entity(golem), BLUEPRINT),
         0
     );
 }

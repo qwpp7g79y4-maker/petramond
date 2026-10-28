@@ -13,7 +13,6 @@ mod stack;
 mod tags;
 #[cfg(test)]
 mod tests;
-mod tether;
 mod tool;
 mod uses;
 pub mod variant;
@@ -29,13 +28,14 @@ pub use render::{HeldPose, ItemRenderKind, SpriteHeldPose, DEFAULT_SPRITE_AXIS_D
 pub use set::ItemSet;
 pub use stack::ItemStack;
 pub use tags::ItemTag;
-pub use tether::{TetherStyle, ITEM_ENTITY_DATA_KEY};
+/// The stack data key carrying an item entity's rules (`pickup`, `lifetime_ticks`).
+pub const ITEM_ENTITY_DATA_KEY: &str = mod_api::ITEM_ENTITY_KEY;
 #[allow(unused_imports)]
 pub use tool::FIST_DAMAGE;
 pub use tool::{
     attack_damage, default_damage, default_speed, Tool, ToolKind, DEFAULT_KNOCKBACK, TOOL_DATA_KEY,
 };
-pub use uses::{ItemUse, UseRay};
+pub use uses::{Pour, UseRay};
 pub use variant::VariantId;
 pub use wear::Wear;
 

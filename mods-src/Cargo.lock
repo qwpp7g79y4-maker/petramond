@@ -118,6 +118,7 @@ name = "machine-core"
 version = "0.1.0"
 dependencies = [
  "mod-sdk",
+ "serde",
 ]
 
 [[package]]

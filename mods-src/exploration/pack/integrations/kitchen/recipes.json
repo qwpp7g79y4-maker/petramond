@@ -2,6 +2,13 @@
   "recipes": [
     {
       "type": "processing",
+      "recipe": "exploration:dry_kelp",
+      "class": "kitchen:cooking",
+      "ingredient": "exploration:kelp",
+      "result": "exploration:dried_kelp"
+    },
+    {
+      "type": "processing",
       "recipe": "exploration:oven_sardine",
       "class": "kitchen:cooking",
       "ingredient": "exploration:raw_sardine",

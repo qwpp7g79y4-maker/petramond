@@ -34,22 +34,15 @@ impl Ripening {
     }
 
     pub fn on_hook(&self, kind: BlockHookKind, pos: [i32; 3]) {
-        match kind {
-            BlockHookKind::NeighborUpdate => {
-                if !supported_at(vec![pos]).first().copied().unwrap_or(true) {
-                    break_naturally(pos);
-                }
-            }
-            BlockHookKind::RandomTick => {
-                let block = get_blocks(vec![pos]).first().copied().flatten();
-                let Some(&(into, per_mille)) = block.and_then(|b| self.rows.get(&b)) else {
-                    return;
-                };
-                if rng_u64(keys::RIPENS) % 1000 < per_mille {
-                    swap_block(pos, into);
-                }
-            }
-            BlockHookKind::ScheduledTick => {}
+        if kind != BlockHookKind::RandomTick {
+            return;
+        }
+        let block = get_blocks(vec![pos]).first().copied().flatten();
+        let Some(&(into, per_mille)) = block.and_then(|b| self.rows.get(&b)) else {
+            return;
+        };
+        if rng_u64(keys::RIPENS) % 1000 < per_mille {
+            swap_block(pos, into);
         }
     }
 }

@@ -16,18 +16,8 @@ pub const MAX_LEN: i32 = 18;
 const HEADROOM: i32 = 2;
 
 pub fn on_hook(ocean: &Ocean, kind: BlockHookKind, pos: [i32; 3]) {
-    match kind {
-        BlockHookKind::NeighborUpdate => {
-            if !supported_at(vec![pos]).first().copied().unwrap_or(true) {
-                break_naturally(pos);
-            }
-        }
-        BlockHookKind::RandomTick => {
-            if rng_u64("exploration:kelp") % 1000 < GROW_PER_MILLE {
-                grow(ocean, pos);
-            }
-        }
-        BlockHookKind::ScheduledTick => {}
+    if kind == BlockHookKind::RandomTick && rng_u64("exploration:kelp") % 1000 < GROW_PER_MILLE {
+        grow(ocean, pos);
     }
 }
 

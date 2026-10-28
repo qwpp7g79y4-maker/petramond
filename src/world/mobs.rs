@@ -90,24 +90,27 @@ impl ServerWorld {
         &mut self.side.entities.riding
     }
 
-    pub fn try_mount_player(&mut self, player: u8, mob_id: u64, seat: u8) -> bool {
-        let Some(mob) = self.side.entities.mobs.live(mob_id) else {
-            return false;
-        };
-        if seat as usize >= crate::mob::def(mob.kind).seats.len() {
-            return false;
+    /// Attaches `player` to `target` (seat `seat` of an entity; a point's seat is 0), refusing a
+    /// seat its mob's row does not have.
+    pub fn try_attach(
+        &mut self,
+        player: u8,
+        target: crate::mob::riding::MountTarget,
+        seat: u8,
+        posture: crate::mob::riding::Posture,
+    ) -> bool {
+        if let crate::mob::riding::MountTarget::Entity(mob_id) = target {
+            let Some(mob) = self.side.entities.mobs.live(mob_id) else {
+                return false;
+            };
+            if seat as usize >= crate::mob::def(mob.kind).seats.len() {
+                return false;
+            }
         }
         self.side
             .entities
             .riding
-            .mount(player, crate::mob::riding::MountTarget::Mob(mob_id), seat)
-    }
-
-    pub fn try_mount_anchor(&mut self, player: u8, anchor: crate::mob::riding::PoseAnchor) -> bool {
-        self.side
-            .entities
-            .riding
-            .mount(player, crate::mob::riding::MountTarget::Anchor(anchor), 0)
+            .mount(player, target, seat, posture)
     }
 
     pub fn tick_mobs(
@@ -136,7 +139,7 @@ impl ServerWorld {
     pub fn spawn_mobs_tick(
         &mut self,
         player_pos: petramond_math::world_pos::WorldPos,
-        category: crate::mob::MobCategory,
+        category: crate::mob::SpawnCategory,
     ) -> Vec<(u64, crate::mob::Mob, petramond_math::world_pos::WorldPos)> {
         let mut mobs = std::mem::take(&mut self.side.entities.mobs);
         let spawned = mobs.spawn_tick(self, player_pos, category);

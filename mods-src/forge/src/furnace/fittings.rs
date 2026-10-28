@@ -71,7 +71,7 @@ impl Fittings {
             .find(|r| r.index == index && bits & (1 << index) != 0)
     }
 
-    pub fn buy(&self, anchor: [i32; 3], index: usize) {
+    pub fn buy(&self, player: PlayerId, anchor: [i32; 3], index: usize) {
         let Some(row) = self.rows.iter().find(|r| r.index == index) else {
             return;
         };
@@ -79,9 +79,6 @@ impl Fittings {
         if bits & (1 << row.index) != 0 {
             return;
         }
-        let Some(player) = player_state().id else {
-            return;
-        };
         let Some(inventory) = player_inventory(player) else {
             return;
         };
@@ -173,7 +170,7 @@ impl Fittings {
                     (page.on, GuiValue::I32(i32::from(!bought && affordable))),
                     (page.bought, GuiValue::I32(i32::from(bought))),
                 ] {
-                    gui_state_set_for(player, key, value);
+                    gui_state_set(player, key, value);
                 }
             }
         }

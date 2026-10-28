@@ -17,7 +17,7 @@ fn stage() -> petramond_util::test_dirs::TestScratchDir {
         &format!(
             r#"{{"blocks": [{{
                 "block": "{WEED}", "shape": "cross", "flags": ["transparent"], "tags": ["fragile"],
-                "behavior": "fragile", "interaction": "none", "collision": [], "emission": 0,
+                "behaviors": ["fragile"], "collision": [], "emission": 0,
                 "tiles": ["short_grass", "short_grass", "short_grass"],
                 "material": "plant", "hardness": 0, "drops": [], "sway": {LEAN:?}
             }}]}}"#

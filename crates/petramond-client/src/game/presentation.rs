@@ -4,7 +4,7 @@ use petramond::mob::Mob;
 use petramond::world::PlacedEmitter;
 use petramond_math::math::Tilt;
 use petramond_render::camera::ViewVolume;
-use petramond_render::{AnimLayer, ArenaRange, GaitFade, MobArena, TetherFrom};
+use petramond_render::{AnimLayer, ArenaRange, GaitFade, LineAnchor, MobArena};
 use petramond_world::block::Block;
 
 use super::remote_players;
@@ -114,6 +114,7 @@ pub struct GamePresentationScratch {
     particle_emitters: Vec<PlacedEmitter>,
     animated_rows: Vec<petramond::world::animated_block::AnimatedBlock>,
     block_draws: Vec<petramond::world::draw::BlockDrawInstance>,
+    lines: Vec<petramond_render::LinePresentation>,
     cloths: Vec<petramond_render::views::ClothPresentation>,
     cloth_points: Vec<petramond_render::views::ClothPoint>,
     cloth_texels: Vec<Option<[f32; 3]>>,
@@ -189,6 +190,7 @@ impl GamePresentationScratch {
                 emitter_trails: &self.emitter_trails.points,
                 block_entities: &self.block_entities,
                 block_draws: &self.block_draws,
+                lines: &self.lines,
                 cloths: &self.cloths,
                 cloth_points: &self.cloth_points,
                 cloth_texels: &self.cloth_texels,
@@ -208,30 +210,13 @@ impl GamePresentationScratch {
     fn collect_item_entities(&mut self, game: &Game) {
         self.item_entities.clear();
         let world = &game.replica.world;
-        let me = game.replica.entities.self_id();
-        let tether = |wire: petramond::net::protocol::TetherWire| match wire {
-            petramond::net::protocol::TetherWire::Player(id) if id == me => {
-                Some(if game.presents_local_body() {
-                    TetherFrom::Body(petramond_render::LOCAL_BODY_KEY)
-                } else {
-                    TetherFrom::Viewmodel
-                })
-            }
-            petramond::net::protocol::TetherWire::Player(id) => {
-                Some(TetherFrom::Body(u32::from(id.0)))
-            }
-            petramond::net::protocol::TetherWire::Mob(_) => None,
-        };
         self.item_entities
             .extend(game.replica.entities.items().iter().map(|entry| {
                 let c = entry.curr.pos.block();
                 let (skylight, blocklight) = world.data().dynamic_light_at_world(c.x, c.y, c.z);
                 DroppedItemPresentation {
-                    tether: entry.curr.tether.and_then(tether),
-                    drawn_top: entry
-                        .draw
-                        .as_ref()
-                        .map(|set| set.bounds.map_or(0.0, |(_, hi)| hi[1])),
+                    id: entry.curr.id,
+                    drawn_top: entry.draw.as_ref().and_then(|set| set.body_top()),
                     prev_pos: entry.prev.pos,
                     pos: entry.curr.pos,
                     item: petramond_world::item::ItemType(entry.curr.item_id),
@@ -444,6 +429,10 @@ impl GamePresentationScratch {
         game.replica
             .world
             .collect_block_draws(view, &mut self.block_draws);
+        self.lines.clear();
+        for inst in &self.block_draws {
+            push_lines(game, &inst.set, &inst.frame, 1.0, &mut self.lines);
+        }
     }
 
     fn collect_mob_draws(&mut self, game: &Game, tick_alpha: f32, view: &ViewVolume) {
@@ -455,6 +444,13 @@ impl GamePresentationScratch {
             }
             let (pos, yaw) = entry.interpolated_pose(tick_alpha);
             let turn = if entry.curr.draw.turns { yaw } else { 0.0 };
+            push_lines(
+                game,
+                set,
+                &body_frame(pos, turn),
+                tick_alpha,
+                &mut self.lines,
+            );
             self.block_draws
                 .extend(placed_body_draw(world, set, pos, turn, view));
         }
@@ -476,6 +472,16 @@ impl GamePresentationScratch {
                     petramond_math::math::lerp_angle(entry.prev.spin, entry.curr.spin, tick_alpha)
                 }
             };
+            push_lines(
+                game,
+                set,
+                &body_frame(pos, turn),
+                tick_alpha,
+                &mut self.lines,
+            );
+            if !set.draws_body() {
+                continue;
+            }
             self.block_draws
                 .extend(placed_body_draw(world, set, pos, turn, view));
         }
@@ -631,7 +637,6 @@ impl GamePresentationScratch {
             let speed = Vec3::new(vel.x, 0.0, vel.z).length();
             let walking = rp.pose.walk_weight >= MIN_FOOTSTEP_WALK_WEIGHT
                 && !rp.curr.sneaking
-                && !rp.curr.sleeping
                 && rp.curr.mount.is_none();
             self.footsteps.push(FootstepSource {
                 id: 1 + id.0 as u64,
@@ -670,7 +675,7 @@ impl GamePresentationScratch {
                 continue;
             }
             let (mut pos, yaw, pitch) = remote_players::interpolate(&p.prev, &p.curr, tick_alpha);
-            let sleeping = p.curr.sleeping;
+            let lying = p.curr.mount.is_some_and(|m| m.lying());
             let mut body_yaw = p.pose.body_yaw;
             let mut head_yaw = yaw - body_yaw;
             // A mounted body GLUES to the interpolated mount: position at the
@@ -692,8 +697,8 @@ impl GamePresentationScratch {
                 head_yaw = petramond_math::math::wrap_angle(yaw - body_yaw)
                     .clamp(-SEATED_HEAD_YAW_LIMIT, SEATED_HEAD_YAW_LIMIT);
             }
-            if sleeping {
-                pos -= Vec3::new(body_yaw.sin(), 0.0, body_yaw.cos()) * 0.925;
+            if lying {
+                pos -= lying_feet_offset(body_yaw);
             }
             let c = (pos + Vec3::new(0.0, 0.9, 0.0)).block();
             let (skylight, blocklight) = world.data().dynamic_light_at_world(c.x, c.y, c.z);
@@ -714,7 +719,7 @@ impl GamePresentationScratch {
                     walk_weight: p.pose.walk_weight,
                     sneak_weight: p.pose.sneak_weight,
                     locomotion: p.pose.locomotion,
-                    sleeping,
+                    lying,
                     seated: p.curr.mount.is_some_and(mount_renders_seated),
                     seat_tilt,
                     hurt: p.hurt_flash01(),
@@ -882,12 +887,13 @@ fn push_entity_shadow(
 }
 
 fn mount_renders_seated(mount: petramond::net::protocol::PlayerMount) -> bool {
-    match mount {
-        petramond::net::protocol::PlayerMount::Mob { .. } => true,
-        petramond::net::protocol::PlayerMount::Anchor { pose, .. } => {
-            pose == mod_api::pose::SITTING
-        }
-    }
+    mount.posture() == mod_api::Posture::Seated
+}
+
+/// A lying body is centred on its point: its feet anchor sits half the model's length (~1.85)
+/// back from it, away from the head.
+fn lying_feet_offset(head_yaw: f32) -> Vec3 {
+    Vec3::new(head_yaw.sin(), 0.0, head_yaw.cos()) * 0.925
 }
 
 fn local_body_yaw(game: &Game) -> f32 {
@@ -909,13 +915,9 @@ fn collect_player(
     let (skylight, blocklight) = game.held_item_light();
     let mut pos =
         game.local.player.pos + Vec3::new(0.0, game.local.camera_rig.step_y_offset(), 0.0);
-    let sleeping = game.replica.self_view.sleeping.is_some();
-    if sleeping {
-        // The sleeper stands at the bed-group CENTRE; the lying model's feet
-        // anchor shifts back toward the foot end so the head lands on the pillow
-        // (bed length 2, model ~1.85 → feet ~0.925 behind centre).
-        let head_yaw = game.local.third_person.pose.body_yaw;
-        pos -= Vec3::new(head_yaw.sin(), 0.0, head_yaw.cos()) * 0.925;
+    let lying = game.replica.entities.own_mount().is_some_and(|m| m.lying());
+    if lying {
+        pos -= lying_feet_offset(game.local.third_person.pose.body_yaw);
     }
     // Seated: the body sits SQUARE in the seat and leans with it — its yaw
     // is the mount's facing, never the look-follow (which would spin the
@@ -949,7 +951,7 @@ fn collect_player(
             walk_weight: game.local.third_person.pose.walk_weight,
             sneak_weight: game.local.third_person.pose.sneak_weight,
             locomotion: game.local.third_person.pose.locomotion,
-            sleeping,
+            lying,
             hurt: 0.0,
         },
         bones: frame.push_bones(game.fx.local_bones()),
@@ -1013,6 +1015,101 @@ fn break_overlay_at(
     }
 }
 
+/// A body's own frame: its draw set's space about `pos`, turned `turn` about +Y.
+fn body_frame(
+    pos: petramond_math::world_pos::WorldPos,
+    turn: f32,
+) -> petramond::world::draw::BlockLocalFrame {
+    let anchor = pos.block();
+    petramond::world::draw::BlockLocalFrame {
+        anchor,
+        transform: petramond_math::math::Mat4::from_translation(pos.relative_to(anchor))
+            * petramond_math::math::Mat4::from_rotation_y(turn),
+    }
+}
+
+/// Where one end of a line is this frame; `None` when it ends on a body not presented.
+fn line_anchor(
+    game: &Game,
+    end: mod_api::LineEnd,
+    frame: &petramond::world::draw::BlockLocalFrame,
+    tick_alpha: f32,
+) -> Option<LineAnchor> {
+    Some(match end {
+        mod_api::LineEnd::Local(p) => LineAnchor::At(frame.to_world(Vec3::from(p))),
+        mod_api::LineEnd::At([x, y, z]) => {
+            LineAnchor::At(petramond_math::world_pos::WorldPos::new(x, y, z))
+        }
+        mod_api::LineEnd::Entity(mod_api::EntityRef::Player(id)) => {
+            if id.0 == game.replica.entities.self_id().0 {
+                if game.presents_local_body() {
+                    LineAnchor::Body(petramond_render::LOCAL_BODY_KEY)
+                } else {
+                    LineAnchor::Viewmodel
+                }
+            } else {
+                LineAnchor::Body(u32::from(id.0))
+            }
+        }
+        mod_api::LineEnd::Entity(mod_api::EntityRef::Entity(id)) => {
+            if let Some(mob) = game.replica.entities.mobs().get(id) {
+                let (pos, _) = mob.interpolated_pose(tick_alpha);
+                let size = petramond::mob::def(Mob(mob.curr.kind_id)).size;
+                LineAnchor::At(pos + Vec3::Y * (size.height * 0.6))
+            } else {
+                game.replica.entities.items().get(id)?;
+                LineAnchor::Item(id)
+            }
+        }
+    })
+}
+
+/// Every `Line` in `set`, its ends placed through `frame`.
+fn push_lines(
+    game: &Game,
+    set: &petramond::world::draw::BlockDraw,
+    frame: &petramond::world::draw::BlockLocalFrame,
+    tick_alpha: f32,
+    out: &mut Vec<petramond_render::LinePresentation>,
+) {
+    for line in set.lines() {
+        let petramond::world::draw::BlockDrawPrim::Line {
+            from,
+            to,
+            tile,
+            tint,
+            width,
+        } = *line
+        else {
+            continue;
+        };
+        let (Some(from), Some(to)) = (
+            line_anchor(game, from, frame, tick_alpha),
+            line_anchor(game, to, frame, tick_alpha),
+        ) else {
+            continue;
+        };
+        let lit_at = match from {
+            LineAnchor::At(at) => at,
+            _ => frame.to_world(Vec3::ZERO),
+        };
+        let c = lit_at.block();
+        let (skylight, blocklight) = game
+            .replica
+            .world
+            .data()
+            .dynamic_light_at_world(c.x, c.y, c.z);
+        out.push(petramond_render::LinePresentation {
+            from,
+            to,
+            style: petramond_render::LineStyle { tile, tint, width },
+            skylight,
+            blocklight,
+            lit_at,
+        });
+    }
+}
+
 /// A body's draw set about `pos`, turned `turn` about +Y, lit at its middle; `None` off screen.
 fn placed_body_draw(
     world: &petramond::world::ReplicaWorld,
@@ -1022,12 +1119,8 @@ fn placed_body_draw(
     view: &ViewVolume,
 ) -> Option<petramond::world::draw::BlockDrawInstance> {
     let (lo, hi) = set.bounds?;
-    let anchor = pos.block();
-    let frame = petramond::world::draw::BlockLocalFrame {
-        anchor,
-        transform: petramond_math::math::Mat4::from_translation(pos.relative_to(anchor))
-            * petramond_math::math::Mat4::from_rotation_y(turn),
-    };
+    let frame = body_frame(pos, turn);
+    let anchor = frame.anchor;
     let (mn, mx) = petramond::world::draw::world_bounds(&frame, lo, hi);
     if !view.aabb_visible(mn, mx) {
         return None;

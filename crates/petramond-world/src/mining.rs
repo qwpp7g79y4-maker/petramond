@@ -185,11 +185,11 @@ mod tests {
     use crate::mathh::IVec3;
 
     fn pick(tier: u8) -> Option<Tool> {
-        Some(Tool::new(ToolKind::Pickaxe, tier))
+        Some(Tool::new(ToolKind::by_name("pickaxe").unwrap(), tier))
     }
 
     fn axe(tier: u8) -> Option<Tool> {
-        Some(Tool::new(ToolKind::Axe, tier))
+        Some(Tool::new(ToolKind::by_name("axe").unwrap(), tier))
     }
 
     fn hit_at(pos: IVec3) -> IVec3 {

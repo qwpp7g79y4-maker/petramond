@@ -39,7 +39,7 @@ pub(crate) struct RawPulse {
 impl RawPulse {
     pub(crate) fn resolve(self) -> Result<Pulse, String> {
         if self.amount <= 0 || self.interval == 0 || self.interval > 72_000 {
-            return Err("damage amount must be positive and interval 1..=72000 ticks".into());
+            return Err("amount must be positive and interval 1..=72000 ticks".into());
         }
         Ok(Pulse {
             amount: self.amount,

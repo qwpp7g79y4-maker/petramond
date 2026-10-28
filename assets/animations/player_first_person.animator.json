@@ -16,7 +16,7 @@
     "stride": 0,
     "stride_weight": 0,
     "hurt": 0,
-    "sleeping": 0,
+    "lying": 0,
     "impact": 0,
     "target": 0,
     "main.held": 0,
@@ -92,7 +92,7 @@
     {"name": "sway", "mode": "additive", "bones": {"right_mount": {"position": ["spring(clamp(-yaw_rate * 0.004 - strafe * 0.12, -1.6, 1.6), 0.08)", "spring(clamp(-pitch_rate * 0.003, -1.2, 1.2) + clamp(-vertical * 0.07, -0.7, 1.4) * (1 - grounded), 0.1)", "spring(clamp(-forward * 0.05, -0.6, 0.6), 0.15)"]}, "left_mount": {"position": ["spring(clamp(-yaw_rate * 0.004 - strafe * 0.12, -1.6, 1.6), 0.08)", "spring(clamp(-pitch_rate * 0.003, -1.2, 1.2) + clamp(-vertical * 0.07, -0.7, 1.4) * (1 - grounded), 0.1)", "spring(clamp(-forward * 0.05, -0.6, 0.6), 0.15)"]}, "camera": {"rotation": ["0", "0", "spring(clamp(-strafe * 0.3, -1.3, 1.3), 0.14)"]}}}
   ],
   "rules": [
-    {"id": "main_equip", "on": "main.equip", "when": "!sleeping", "slot": "equip", "play": "petramond:fp_equip", "fade_in": 0, "fade_out": 0.06},
+    {"id": "main_equip", "on": "main.equip", "when": "!lying", "slot": "equip", "play": "petramond:fp_equip", "fade_in": 0, "fade_out": 0.06},
     {"id": "main_mine_tool", "on": "main.mine", "slot": "main", "priority": 2, "play": "petramond:fp_mine_start_{main.tool}", "then": [{"clip": "petramond:fp_mine_{main.tool}", "while": "main.mining", "exit": "finish"}], "blend": "inertial", "fade_in": 0.05, "fade_out": 0.12},
     {"id": "main_mine_hand", "on": "main.mine", "slot": "main", "priority": 2, "play": "petramond:fp_mine_start_hand", "then": [{"clip": "petramond:fp_mine_hand", "while": "main.mining", "exit": "finish"}], "blend": "inertial", "fade_in": 0.05, "fade_out": 0.12},
     {"id": "main_swing_sword", "on": "main.swing", "when": "!main.mining && main.tool == \"sword\"", "slot": "main", "priority": 2, "play": ["petramond:fp_slash_a", "petramond:fp_slash_b"], "reset": 0.9, "blend": "inertial", "fade_in": 0.06, "fade_out": 0.12},

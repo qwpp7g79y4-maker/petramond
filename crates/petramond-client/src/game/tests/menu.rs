@@ -100,10 +100,11 @@ fn widget_clicks_latch_then_dispatch_to_the_owning_mod_on_the_tick() {
         "modtest:stale".into(),
         GuiValue::I32(9),
     );
-    game.sim_mut().open_registered_gui_screen_for(
+    game.sim_mut().open_document_screen_for(
         0,
         kind,
         Some(petramond_math::math::IVec3::new(1, 2, 3).into()),
+        &mut Default::default(),
     );
     assert!(
         game.session().gui_state().get("modtest:stale").is_none(),
@@ -166,7 +167,7 @@ fn chest_lids_follow_the_viewer_count_not_the_local_menu() {
     game.server_world_mut()
         .set_block_world(8, 64, 8, Block::Chest);
     game.server_world_mut()
-        .insert_chest(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
+        .insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
     let replica = &mut game.game.replica.world;
     replica.insert_chunk_for_test(
         petramond_world::chunk::ChunkPos::new(0, 0),
@@ -176,19 +177,30 @@ fn chest_lids_follow_the_viewer_count_not_the_local_menu() {
     replica.insert_entity_facing(pos, petramond_world::block_model::DEFAULT_MODEL_FACING);
 
     let mut ev = petramond::events::tick::TickEvents::default();
-    game.sim_mut().open_chest_screen_for(0, pos, &mut ev);
-    assert_eq!(game.sim().chest_viewers(pos), 1);
-    game.sim_mut().open_chest_screen_for(0, pos, &mut ev);
-    assert_eq!(game.sim().chest_viewers(pos), 1);
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+        &mut ev,
+    );
+    assert_eq!(game.sim().container_viewers(pos), 1);
+    game.sim_mut().open_document_screen_for(
+        0,
+        petramond_world::gui_state::intern_kind("petramond:chest").unwrap(),
+        Some(pos.into()),
+        &mut ev,
+    );
+    assert_eq!(game.sim().container_viewers(pos), 1);
 
-    game.sim_mut().set_chest_viewed_for_test(pos, true, &mut ev);
+    game.sim_mut()
+        .set_container_viewed_for_test(pos, true, &mut ev);
     game.sim_mut().close_open_menu_for(0, &mut ev);
     assert_eq!(
-        game.sim().chest_viewers(pos),
+        game.sim().container_viewers(pos),
         1,
         "one viewer remains after the local player closes"
     );
-    game.sync_open_chests_for_test();
+    game.sync_held_open_for_test();
     for _ in 0..30 {
         game.game
             .fx
@@ -200,8 +212,8 @@ fn chest_lids_follow_the_viewer_count_not_the_local_menu() {
     );
 
     game.sim_mut()
-        .set_chest_viewed_for_test(pos, false, &mut ev);
-    game.sync_open_chests_for_test();
+        .set_container_viewed_for_test(pos, false, &mut ev);
+    game.sync_held_open_for_test();
     for _ in 0..60 {
         game.game
             .fx

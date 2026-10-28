@@ -82,7 +82,7 @@ pub mod event_types {
         ContainerClosed,
         SectionGenerated,
         SectionLoaded,
-        PlayerDismounted,
+        PlayerDetached,
         MobTagAdded,
         MobTagRemoved,
         ItemPickedUp,
@@ -104,7 +104,14 @@ pub mod event_types {
 type TickFn<S> = Box<dyn FnMut(&mut S)>;
 type EventFn<S> = Box<dyn FnMut(&mut S, &mut EventPayload) -> Outcome>;
 type AiNodeFn<S> = Box<dyn FnMut(&mut S, &AiNodeCtx) -> Option<AiNodeDecision>>;
-type BlockHookFn<S> = Box<dyn FnMut(&mut S, BlockHookKind, [i32; 3])>;
+type BlockHookBatch = [(BlockHookKind, [i32; 3])];
+type EachHookFn<S> = Box<dyn FnMut(&mut S, BlockHookKind, [i32; 3])>;
+type BatchHookFn<S> = Box<dyn FnMut(&mut S, &BlockHookBatch)>;
+
+enum BlockHookFn<S> {
+    Each(EachHookFn<S>),
+    Batch(BatchHookFn<S>),
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Lane {
@@ -208,13 +215,22 @@ impl<S> Handlers<S> {
         key: &str,
         f: impl FnMut(&mut S, BlockHookKind, [i32; 3]) + 'static,
     ) {
+        self.push_block_hook(key, BlockHookFn::Each(Box::new(f)));
+    }
+
+    /// [`block_hook`](Self::block_hook) taking the tick's hooks for `key` together.
+    pub fn block_hooks(&mut self, key: &str, f: impl FnMut(&mut S, &BlockHookBatch) + 'static) {
+        self.push_block_hook(key, BlockHookFn::Batch(Box::new(f)));
+    }
+
+    fn push_block_hook(&mut self, key: &str, f: BlockHookFn<S>) {
         assert!(
             self.block_hooks.iter().all(|(k, _)| k != key),
             "block behavior '{key}' registered twice"
         );
         let id = typed_id(self.block_hooks.len());
         crate::register_block_behavior(key, id);
-        self.block_hooks.push((key.to_owned(), Box::new(f)));
+        self.block_hooks.push((key.to_owned(), f));
     }
 
     fn warn_unhandled(&mut self, lane: Lane, id: u32, what: &str) {
@@ -277,18 +293,22 @@ impl<S> Handlers<S> {
         })
     }
 
-    fn dispatch_block_hook(
+    fn dispatch_block_hooks(
         &mut self,
         state: &mut S,
         id: u32,
-        kind: BlockHookKind,
-        pos: [i32; 3],
+        hooks: &[(BlockHookKind, [i32; 3])],
     ) -> bool {
         let Some(index) = typed_index(id) else {
             return false;
         };
         match self.block_hooks.get_mut(index) {
-            Some((_, f)) => f(state, kind, pos),
+            Some((_, BlockHookFn::Each(f))) => {
+                for &(kind, pos) in hooks {
+                    f(state, kind, pos);
+                }
+            }
+            Some((_, BlockHookFn::Batch(f))) => f(state, hooks),
             None => self.warn_unhandled(Lane::BlockHook, id, "no typed block behavior"),
         }
         true
@@ -347,13 +367,17 @@ impl<T: TypedMod> Mod for Typed<T> {
         }
     }
 
-    fn block_hook(&mut self, callback_id: u32, kind: BlockHookKind, pos: [i32; 3]) {
+    fn block_hooks(&mut self, callback_id: u32, hooks: &[(BlockHookKind, [i32; 3])]) {
         if !self
             .handlers
-            .dispatch_block_hook(&mut self.state, callback_id, kind, pos)
+            .dispatch_block_hooks(&mut self.state, callback_id, hooks)
         {
-            self.state.block_hook(callback_id, kind, pos);
+            self.state.block_hooks(callback_id, hooks);
         }
+    }
+
+    fn block_hook(&mut self, callback_id: u32, kind: BlockHookKind, pos: [i32; 3]) {
+        self.block_hooks(callback_id, &[(kind, pos)]);
     }
 
     fn gen_feature(&mut self, feature_id: u32, ctx: &crate::GenCtx) -> crate::GenOutput {
@@ -381,16 +405,14 @@ impl<T: TypedMod> Mod for Typed<T> {
         self.state.gen_stage(callback_id, stage, ctx)
     }
 
-    fn gui_click(&mut self, kind_key: &str, widget_id: &str, at: Option<crate::ContainerAddress>) {
-        self.state.gui_click(kind_key, widget_id, at);
-    }
-
-    fn hostile_spawn_candidate(
+    fn gui_click(
         &mut self,
-        callback_id: u32,
-        candidate: &crate::HostileSpawnCandidate,
-    ) -> Option<String> {
-        self.state.hostile_spawn_candidate(callback_id, candidate)
+        player: crate::PlayerId,
+        kind_key: &str,
+        widget_id: &str,
+        at: Option<crate::ContainerAddress>,
+    ) {
+        self.state.gui_click(player, kind_key, widget_id, at);
     }
 
     fn client_frame(&mut self, frame: &crate::ClientFrameData) {

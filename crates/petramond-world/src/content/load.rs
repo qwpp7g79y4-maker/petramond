@@ -93,6 +93,7 @@ static BLOCKS: FieldStage = FieldStage {
         stage::ANIMATED_MODELS,
         stage::SHAPES,
         stage::MODELS,
+        stage::MATERIALS,
     ],
     build: build_blocks,
 };
@@ -105,13 +106,16 @@ static BLOCK_VIEWS: FieldStage = FieldStage {
 
 static ITEMS: FieldStage = FieldStage {
     name: stage::ITEMS,
-    needs: &[stage::BLOCKS],
+    needs: &[stage::BLOCKS, stage::TOOL_KINDS],
     build: build_items,
 };
 
 static WORLD_STAGES: &[&dyn Stage] = &[
     &TILES,
     &crate::sound_registry::CATALOG,
+    &crate::material::TOOL_KINDS,
+    &crate::material::MATERIALS,
+    &crate::crafting::station::STATIONS,
     &crate::effect::CATALOG,
     &crate::biome::CATALOG,
     &crate::particle_emitters::TABLES,

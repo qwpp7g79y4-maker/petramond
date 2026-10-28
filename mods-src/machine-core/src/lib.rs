@@ -1,30 +1,24 @@
-//! Shared machine plumbing for container-slot mod machines: the generic
-//! placed-machine driver ([`Machine`] over a [`MachineSpec`]), the persisted
-//! anchor registry every machine kind keeps in world KV, and the
-//! session-stable registry caches (item info, per-class recipe results)
-//! machine steps read every tick.
+//! Shared machine plumbing for container-slot mod machines: the generic placed-machine driver
+//! ([`Machine`] over a [`MachineSpec`]) and the session-stable registry caches (item info,
+//! per-class recipe results) machine steps read.
 //!
-//! A machine KIND is a [`MachineSpec`] impl — its block/variant/kind/anchor/
-//! state keys plus one `step`. Everything else (init, placement tracking, the
-//! viewer set, and the whole batched tick preamble) is this crate's and is
-//! never re-implemented per pack. The kitchen's oven and miller and the
-//! forge's forging furnace are all specs over the same driver, and every
-//! fuelled one keeps its fire in a [`Burner`].
+//! A machine KIND is a [`MachineSpec`] impl: its block/variant/state keys plus one `step`. Its
+//! rows list the kind's block behavior, and the engine wakes a machine through it: its container
+//! changing, a player opening or closing its GUI, a block update, or the scheduled tick the driver
+//! asks for after every step that changed something. A step that changes nothing leaves the
+//! machine at rest until one of those wakes it, so an idle machine costs nothing. The kitchen's
+//! oven and miller and the forge's forging furnace and anvil are all specs over this driver, and
+//! every fuelled one keeps its fire in a [`Burner`].
 //!
-//! # Cost shape (the thing this crate exists to own)
+//! # Cost shape
 //!
-//! A tick costs a FIXED number of host crossings per machine kind, not one per
-//! placed machine: the anchors are probed by section, then read, stepped, and
-//! written back through the batched calls (`get_blocks`,
-//! `container_get_many`, `section_kv_get_many` / `_set_many`,
-//! `set_model_parts_many`, `set_block_draws`). Every one of those is PAGED at
-//! the host's batch cap, so a world with more machines than the cap keeps
-//! working instead of erroring the call — which disables the mod.
-//!
-//! Sections are the unit because loading is: every anchor in a section reads
-//! the same way, so ONE probe per section decides whether its machines are
-//! worth reading at all. A world with ten thousand placed machines and two
-//! loaded rooms pays for the two rooms.
+//! The engine hands the driver all of one kind's hooks for a tick in one call, and the driver
+//! answers them with a fixed number of host crossings, not one per machine: anchors resolve,
+//! read, step and write back through the batched calls (`cell_groups`, `get_blocks`,
+//! `container_get_many`, `section_kv_get_many` / `_set_many`, `set_model_parts_many`,
+//! `set_block_draws`, `schedule_ticks`). Every one of those is PAGED at the host's batch cap, so
+//! more busy machines than the cap keep working instead of erroring the call, which disables the
+//! mod.
 
 use std::collections::{HashMap, HashSet};
 
@@ -33,56 +27,33 @@ use mod_sdk::*;
 mod burner;
 pub use burner::Burner;
 
-const ANCHOR_BYTES: usize = 12;
-
-const ANCHORS_PER_SHARD: usize = 4096;
-
-const _: () = assert!(ANCHORS_PER_SHARD * ANCHOR_BYTES <= KV_MAX_VALUE_BYTES);
-
 pub trait MachineSpec: Default {
-    const KIND_KEY: &'static str;
     const BLOCK_KEY: &'static str;
     const VARIANT_KEYS: &'static [&'static str];
-    const ANCHORS_KEY: &'static str;
     const STATE_KEY: &'static str;
-    const PANEL_KEYS: &'static [&'static str] = &[];
     const AUX_KEYS: &'static [&'static str] = &[];
 
     fn init(&mut self) {}
 
-    /// One machine's game tick. `slots` is `None` while no container exists
-    /// at the anchor (never opened, never written); `state` is this cell's
-    /// [`STATE_KEY`](Self::STATE_KEY) blob, written back by the driver only if
-    /// the step changed it (empty = nothing stored).
+    /// One machine's step. `slots` is the anchor's container (empty while none exists); the
+    /// driver writes back the slots the step changed. `state` is this cell's
+    /// [`STATE_KEY`](Self::STATE_KEY) blob, written back only if the step changed it (empty =
+    /// nothing stored).
     ///
-    /// Presentation goes into `out` rather than out through a host call, so
-    /// the whole kind submits in one crossing. Container writes and block
-    /// flips still cross per machine — they are rare and change-gated.
+    /// Presentation goes into `out` rather than out through a host call, so the whole kind
+    /// submits in one crossing.
     fn step(
         &mut self,
         ctx: &StepCtx<'_>,
         caches: &mut Caches,
-        slots: Option<Vec<Option<ItemStackData>>>,
+        slots: &mut Vec<Option<ItemStackData>>,
         state: &mut Vec<u8>,
         out: &mut Presentation,
     );
 
-    /// This anchor is no longer one of ours: the machine was broken, or the
-    /// cell was replaced. Drop whatever the kind persists there.
-    ///
-    /// THE ENGINE DOES NOT CLEAR A MOD'S CELL KV WHEN A BLOCK IS BROKEN, and
-    /// it should not have to — the key is the mod's vocabulary. But a machine
-    /// that only ever WRITES its blob leaves it behind, and the next machine
-    /// placed on that cell decodes it and comes up holding metal it never
-    /// melted, or mid-pour. That is not a leak, it is a machine that lies.
-    ///
-    /// The signal is the anchor PRUNE rather than a `BlockBroken` handler on
-    /// purpose: by the time that event fires the footprint is already air, so
-    /// a mod cannot resolve the multi-cell anchor from the cell that was hit —
-    /// and the registry here already knows every anchor by construction.
-    /// It is also self-healing: a machine broken while its section was
-    /// unloaded is pruned (and forgotten) the next time it reads.
-    fn forget(&mut self, _pos: [i32; 3]) {}
+    /// The machine at `anchor` was broken or replaced. `data` is the cell data it held, read
+    /// before the engine cleared it.
+    fn removed(&mut self, _anchor: [i32; 3], _data: &[(String, Vec<u8>)]) {}
 }
 
 pub struct StepCtx<'a> {
@@ -100,9 +71,7 @@ impl StepCtx<'_> {
     }
 
     pub fn publish(&self, key: &str, value: GuiValue) {
-        for &player in self.viewers {
-            gui_state_set_for(player, key, value.clone());
-        }
+        gui_state_set(ContainerAddress::Block(self.pos), key, value);
     }
 
     pub fn variant(&self, i: usize) -> Option<BlockId> {
@@ -117,7 +86,6 @@ impl StepCtx<'_> {
 pub struct Machine<S: MachineSpec> {
     block: Option<BlockId>,
     variants: Vec<Option<BlockId>>,
-    anchors: AnchorRegistry,
     spec: S,
 }
 
@@ -126,7 +94,6 @@ impl<S: MachineSpec> Default for Machine<S> {
         Machine {
             block: None,
             variants: Vec::new(),
-            anchors: AnchorRegistry::new(S::ANCHORS_KEY),
             spec: S::default(),
         }
     }
@@ -142,19 +109,16 @@ impl<S: MachineSpec> Machine<S> {
             .iter()
             .map(|key| resolve_block_logged(key))
             .collect();
-        self.anchors.load();
         self.spec.init();
         true
     }
 
-    pub fn on_placed(&mut self, pos: [i32; 3], block: BlockId) {
-        if Some(block) == self.block || self.variants.contains(&Some(block)) {
-            self.anchors.record(pos);
-        }
+    fn owns(&self, block: BlockId) -> bool {
+        Some(block) == self.block || self.variants.contains(&Some(block))
     }
 
     pub fn is_present(&self, pos: [i32; 3]) -> bool {
-        get_block(pos).is_some_and(|b| Some(b) == self.block || self.variants.contains(&Some(b)))
+        get_block(pos).is_some_and(|b| self.owns(b))
     }
 
     pub fn spec(&self) -> &S {
@@ -165,33 +129,52 @@ impl<S: MachineSpec> Machine<S> {
         &mut self.spec
     }
 
-    pub fn on_container_opened(&mut self, kind: &ContainerKind, at: Option<ContainerAddress>) {
-        if !kind.is(S::KIND_KEY) && !S::PANEL_KEYS.iter().any(|k| kind.is(k)) {
-            return;
-        }
-        if let Some(ContainerAddress::Block(anchor)) = at {
-            self.anchors.record(anchor);
+    /// Steps the machine at `anchor` next tick: something it works on changed outside its
+    /// container (a GUI button, a fitting bought).
+    pub fn wake(&self, anchor: [i32; 3]) {
+        schedule_tick(anchor, 1);
+    }
+
+    /// Hands a `BlockBroken` of one of this kind's blocks to [`MachineSpec::removed`].
+    pub fn on_broken(
+        &mut self,
+        pos: [i32; 3],
+        block: BlockId,
+        group: Option<&CellGroupData>,
+        data: &[(String, Vec<u8>)],
+    ) {
+        if self.owns(block) {
+            self.spec.removed(group.map_or(pos, |g| g.anchor), data);
         }
     }
 
-    pub fn tick(&mut self, caches: &mut Caches) {
-        let Machine {
-            block,
-            variants,
-            anchors,
-            spec,
-        } = self;
-        let Some(block) = *block else {
+    /// Steps every machine one of `hooks` names, once each, then asks a tick for each one whose
+    /// step changed something.
+    pub fn on_hooks(&mut self, caches: &mut Caches, hooks: &[(BlockHookKind, [i32; 3])]) {
+        let Some(block) = self.block else {
             return;
         };
-        if anchors.is_empty() {
+        let cells: Vec<[i32; 3]> = hooks
+            .iter()
+            .filter(|(kind, _)| *kind != BlockHookKind::RandomTick)
+            .map(|(_, pos)| *pos)
+            .collect();
+        if cells.is_empty() {
             return;
         }
-        let Pruned { live, gone } =
-            anchors.prune_live(|b| b == block || variants.contains(&Some(b)));
-        for pos in gone {
-            spec.forget(pos);
-        }
+        let groups = paged(cells.clone(), cell_groups);
+        let mut seen = HashSet::new();
+        let anchors: Vec<[i32; 3]> = cells
+            .iter()
+            .zip(groups)
+            .map(|(pos, group)| group.map_or(*pos, |g| g.anchor))
+            .filter(|anchor| seen.insert(*anchor))
+            .collect();
+        let live: Vec<([i32; 3], BlockId)> = anchors
+            .iter()
+            .zip(paged(anchors.clone(), get_blocks))
+            .filter_map(|(pos, b)| b.filter(|b| self.owns(*b)).map(|b| (*pos, b)))
+            .collect();
         if live.is_empty() {
             return;
         }
@@ -206,8 +189,10 @@ impl<S: MachineSpec> Machine<S> {
             .iter()
             .map(|key| paged(positions.clone(), |page| section_kv_get_many(key, page)))
             .collect();
-        let watchers = Watchers::of_kinds(S::KIND_KEY, S::PANEL_KEYS);
+        let viewers = viewers_by_anchor();
         let mut out = Presentation::default();
+        let mut swaps = Vec::new();
+        let mut busy = Vec::new();
         for (i, (((pos, current), slots), state)) in
             live.into_iter().zip(containers).zip(states).enumerate()
         {
@@ -215,29 +200,67 @@ impl<S: MachineSpec> Machine<S> {
                 .iter()
                 .map(|values| values[i].clone().unwrap_or_default())
                 .collect();
+            let mut slots = slots.unwrap_or_default();
+            let before_slots = slots.clone();
             let mut state = state.unwrap_or_default();
             let before_state = state.clone();
             let ctx = StepCtx {
                 pos,
                 current,
                 block,
-                variants,
-                viewers: watchers.at(pos),
+                variants: &self.variants,
+                viewers: viewers.get(&pos).map_or(&[], Vec::as_slice),
                 aux: &aux,
             };
-            spec.step(&ctx, caches, slots, &mut state, &mut out);
+            let rows = out.rows.len();
+            self.spec
+                .step(&ctx, caches, &mut slots, &mut state, &mut out);
+            let mut changed = false;
+            for (at, want) in out.rows.drain(rows..) {
+                if want != current {
+                    swaps.push((at, want));
+                    changed = true;
+                }
+            }
+            let writes = changed_slots(&before_slots, &slots);
+            if !writes.is_empty() {
+                container_set(pos.into(), writes);
+                changed = true;
+            }
             if state != before_state {
                 out.state.push((pos, (!state.is_empty()).then_some(state)));
+                changed = true;
+            }
+            if changed {
+                busy.push((pos, 1));
             }
         }
         out.flush(S::STATE_KEY);
+        for (pos, row) in swaps {
+            swap_block(pos, row);
+        }
+        paged(busy, |page| {
+            schedule_ticks(page);
+            Vec::<()>::new()
+        });
     }
+}
+
+fn viewers_by_anchor() -> HashMap<[i32; 3], Vec<PlayerId>> {
+    let mut by_anchor: HashMap<[i32; 3], Vec<PlayerId>> = HashMap::new();
+    for viewer in gui_viewers() {
+        if let Some(ContainerAddress::Block(anchor)) = viewer.anchor {
+            by_anchor.entry(anchor).or_default().push(viewer.player_id);
+        }
+    }
+    by_anchor
 }
 
 #[derive(Default)]
 pub struct Presentation {
     draws: Vec<([i32; 3], Vec<DrawPrim>)>,
     parts: Vec<([i32; 3], u32, Option<[u8; 3]>)>,
+    rows: Vec<([i32; 3], BlockId)>,
     state: Vec<([i32; 3], Option<Vec<u8>>)>,
 }
 
@@ -250,10 +273,16 @@ impl Presentation {
         self.draws.push((pos, prims));
     }
 
+    /// The row the machine at `pos` should stand as (lit, full); swapped in when it differs.
+    pub fn row(&mut self, pos: [i32; 3], block: BlockId) {
+        self.rows.push((pos, block));
+    }
+
     fn flush(self, state_key: &str) {
         let Presentation {
             draws,
             parts,
+            rows: _,
             state,
         } = self;
         paged(state, |page| section_kv_set_many(state_key, page));
@@ -262,204 +291,30 @@ impl Presentation {
     }
 }
 
-struct Watchers {
-    by_anchor: HashMap<[i32; 3], Vec<PlayerId>>,
-}
-
-impl Watchers {
-    fn of_kinds(kind_key: &str, panels: &[&str]) -> Watchers {
-        let mut by_anchor: HashMap<[i32; 3], Vec<PlayerId>> = HashMap::new();
-        for viewer in gui_viewers() {
-            let (true, Some(ContainerAddress::Block(anchor))) = (
-                viewer.kind == kind_key || panels.contains(&viewer.kind.as_str()),
-                viewer.anchor,
-            ) else {
-                continue;
-            };
-            by_anchor.entry(anchor).or_default().push(viewer.player_id);
-        }
-        Watchers { by_anchor }
-    }
-
-    fn at(&self, anchor: [i32; 3]) -> &[PlayerId] {
-        self.by_anchor.get(&anchor).map_or(&[], Vec::as_slice)
-    }
-}
-
-pub struct Pruned {
-    pub live: Vec<([i32; 3], BlockId)>,
-    pub gone: Vec<[i32; 3]>,
-}
-
-/// The placed-anchor list for one machine kind, persisted in world KV as
-/// [`ANCHOR_BYTES`]-wide LE cell records in placement order (the deterministic tick order),
-/// SHARDED so the list is not bounded by one KV value's cap.
-///
-/// Two things here are scalability, not bookkeeping:
-///
-/// - **Shards.** Shard 0 keeps the plain key (old worlds load unchanged);
-///   shard `n` is `<key>/<n>`. A placement rewrites only the LAST shard, so
-///   building the thousandth machine costs the same write as the first.
-/// - **Section probing.** Every anchor in a 16³ section reads the same way
-///   (loaded or not), so [`prune_live`](Self::prune_live) asks ONE cell per
-///   section first and skips whole sections whose machines are unloaded. A
-///   world with ten thousand placed machines and two loaded rooms then costs
-///   one read per section plus the two rooms, instead of ten thousand.
-pub struct AnchorRegistry {
-    kv_key: &'static str,
-    anchors: Vec<[i32; 3]>,
-    seen: HashSet<[i32; 3]>,
-}
-
-fn section_of(pos: [i32; 3]) -> [i32; 3] {
-    [pos[0] >> 4, pos[1] >> 4, pos[2] >> 4]
-}
-
-impl AnchorRegistry {
-    pub fn new(kv_key: &'static str) -> Self {
-        AnchorRegistry {
-            kv_key,
-            anchors: Vec::new(),
-            seen: HashSet::new(),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.anchors.is_empty()
-    }
-
-    pub fn anchors(&self) -> &[[i32; 3]] {
-        &self.anchors
-    }
-
-    fn shard_key(&self, i: usize) -> String {
-        if i == 0 {
-            self.kv_key.to_owned()
-        } else {
-            format!("{}/{i}", self.kv_key)
-        }
-    }
-
-    pub fn load(&mut self) {
-        self.anchors.clear();
-        self.seen.clear();
-        for i in 0.. {
-            let Some(bytes) = world_kv_get(&self.shard_key(i)) else {
-                break;
-            };
-            let mut r = ByteReader::new(&bytes);
-            while let Some(pos) = r.i32x3() {
-                if self.seen.insert(pos) {
-                    self.anchors.push(pos);
-                }
-            }
-        }
-    }
-
-    fn encode_shard(&self, i: usize) -> Vec<u8> {
-        let from = i * ANCHORS_PER_SHARD;
-        let to = (from + ANCHORS_PER_SHARD).min(self.anchors.len());
-        let mut w = ByteWriter::with_capacity(to.saturating_sub(from) * ANCHOR_BYTES);
-        for pos in &self.anchors[from..to.max(from)] {
-            w.i32x3(*pos);
-        }
-        w.finish()
-    }
-
-    fn shard_count(&self) -> usize {
-        self.anchors.len().div_ceil(ANCHORS_PER_SHARD).max(1)
-    }
-
-    fn store(&self) {
-        let shards = self.shard_count();
-        for i in 0..shards {
-            world_kv_set(&self.shard_key(i), self.encode_shard(i));
-        }
-        let mut i = shards;
-        while world_kv_delete(&self.shard_key(i)) {
-            i += 1;
-        }
-    }
-
-    pub fn record(&mut self, pos: [i32; 3]) {
-        if !self.seen.insert(pos) {
-            return;
-        }
-        self.anchors.push(pos);
-        let last = self.shard_count() - 1;
-        world_kv_set(&self.shard_key(last), self.encode_shard(last));
-    }
-
-    /// Prune stale anchors and return the live `(anchor, current block)` pairs
-    /// plus the anchors just DROPPED.
-    ///
-    /// `None` reads (unloaded / streaming) are neither pruned nor live — their
-    /// state is frozen on disk; only a real foreign-block read prunes (the
-    /// host guarantees half-streamed sections read `None`, never their
-    /// pre-overlay base). That is also what makes the section probe EXACT:
-    /// a section reading `None` at one cell reads `None` at all of them, so
-    /// skipping its anchors wholesale reaches the same answer as reading them.
-    ///
-    /// The dropped list is returned rather than swallowed because a prune is
-    /// the only moment a machine kind learns one of its machines is GONE, and
-    /// per-cell state it wrote there outlives the block otherwise.
-    pub fn prune_live(&mut self, is_ours: impl Fn(BlockId) -> bool) -> Pruned {
-        let mut probes: Vec<[i32; 3]> = Vec::new();
-        let mut probe_of: HashMap<[i32; 3], usize> = HashMap::new();
-        for pos in &self.anchors {
-            let sp = section_of(*pos);
-            if let std::collections::hash_map::Entry::Vacant(e) = probe_of.entry(sp) {
-                e.insert(probes.len());
-                probes.push(*pos);
-            }
-        }
-        let loaded: Vec<bool> = paged(probes, get_blocks)
-            .into_iter()
-            .map(|b| b.is_some())
-            .collect();
-
-        let candidates: Vec<[i32; 3]> = self
-            .anchors
-            .iter()
-            .copied()
-            .filter(|pos| probe_of.get(&section_of(*pos)).is_some_and(|&i| loaded[i]))
-            .collect();
-        let blocks = paged(candidates.clone(), get_blocks);
-
-        let mut live = Vec::new();
-        let mut gone = Vec::new();
-        for (pos, block) in candidates.into_iter().zip(blocks) {
-            match block {
-                None => continue,
-                Some(b) if is_ours(b) => live.push((pos, b)),
-                Some(_) => gone.push(pos),
-            }
-        }
-        if !gone.is_empty() {
-            let dropped: HashSet<[i32; 3]> = gone.iter().copied().collect();
-            self.anchors.retain(|p| !dropped.contains(p));
-            self.seen.retain(|p| !dropped.contains(p));
-            self.store();
-        }
-        Pruned { live, gone }
-    }
+/// An item row's `petramond:fuel`: how long one burns.
+#[derive(serde::Deserialize)]
+struct Fuel {
+    burn_ticks: u32,
 }
 
 #[derive(Default)]
 pub struct Caches {
-    fuel_ticks: HashMap<String, u32>,
+    fuel_ticks: Option<HashMap<String, u32>>,
     max_stack: HashMap<String, u8>,
     recipes: HashMap<(String, String), Option<ItemStackData>>,
 }
 
 impl Caches {
     pub fn fuel_ticks_for(&mut self, item: &str) -> u32 {
-        if let Some(&t) = self.fuel_ticks.get(item) {
-            return t;
-        }
-        let t = item_info(item).map(|i| i.fuel_burn_ticks).unwrap_or(0);
-        self.fuel_ticks.insert(item.to_owned(), t);
-        t
+        let fuel = self.fuel_ticks.get_or_insert_with(|| {
+            let rows = items_with_data_as::<Fuel>("petramond:fuel");
+            let names = item_names(rows.iter().map(|(id, _)| *id).collect());
+            rows.into_iter()
+                .zip(names)
+                .filter_map(|((_, fuel), name)| Some((name?, fuel.burn_ticks)))
+                .collect()
+        });
+        fuel.get(item).copied().unwrap_or(0)
     }
 
     pub fn max_stack_for(&mut self, item: &str) -> u8 {
@@ -516,17 +371,6 @@ pub fn consume_one(slot: &mut Option<ItemStackData>) {
     }
 }
 
-pub fn write_changed_slots(
-    pos: [i32; 3],
-    before: &[Option<ItemStackData>],
-    after: &[Option<ItemStackData>],
-) {
-    let writes = changed_slots(before, after);
-    if !writes.is_empty() {
-        container_set(pos.into(), writes);
-    }
-}
-
 pub fn changed_slots(
     before: &[Option<ItemStackData>],
     after: &[Option<ItemStackData>],
@@ -555,31 +399,6 @@ mod tests {
     }
 
     #[test]
-    fn the_anchor_list_shards_and_shard_zero_keeps_the_plain_key() {
-        let mut reg = AnchorRegistry::new("m:anchors");
-        assert_eq!(reg.shard_key(0), "m:anchors");
-        assert_eq!(reg.shard_key(2), "m:anchors/2");
-        assert_eq!(reg.shard_count(), 1, "an empty list is still one record");
-
-        reg.anchors = (0..ANCHORS_PER_SHARD as i32 + 3)
-            .map(|i| [i, 0, 0])
-            .collect();
-        assert_eq!(reg.shard_count(), 2);
-        assert_eq!(reg.encode_shard(0).len(), ANCHORS_PER_SHARD * ANCHOR_BYTES);
-        assert_eq!(reg.encode_shard(1).len(), 3 * ANCHOR_BYTES);
-        assert!(reg.encode_shard(0).len() <= KV_MAX_VALUE_BYTES);
-
-        let mut bytes = reg.encode_shard(0);
-        bytes.extend(reg.encode_shard(1));
-        let mut r = ByteReader::new(&bytes);
-        let mut back = Vec::new();
-        while let Some(p) = r.i32x3() {
-            back.push(p);
-        }
-        assert_eq!(back, reg.anchors);
-    }
-
-    #[test]
     fn slot_writeback_diffs_and_tolerates_a_length_change() {
         let before = vec![Some(stack("a", 1)), None, Some(stack("c", 2))];
         let after = vec![Some(stack("a", 1)), Some(stack("b", 1))];
@@ -605,6 +424,120 @@ mod tests {
                 .map(|(i, _)| *i)
                 .collect::<Vec<_>>(),
             vec![3]
+        );
+    }
+
+    const MACHINE: BlockId = BlockId(7);
+    const ANCHOR: [i32; 3] = [0, 64, 0];
+    const FOOTPRINT: [i32; 3] = [1, 64, 0];
+
+    /// Counts its state byte down to zero, one per step.
+    #[derive(Default)]
+    struct Countdown {
+        steps: usize,
+    }
+
+    impl MachineSpec for Countdown {
+        const BLOCK_KEY: &'static str = "test:machine";
+        const VARIANT_KEYS: &'static [&'static str] = &[];
+        const STATE_KEY: &'static str = "test:left";
+
+        fn step(
+            &mut self,
+            _ctx: &StepCtx<'_>,
+            _caches: &mut Caches,
+            _slots: &mut Vec<Option<ItemStackData>>,
+            state: &mut Vec<u8>,
+            _out: &mut Presentation,
+        ) {
+            self.steps += 1;
+            if let Some(left) = state.first_mut().filter(|left| **left > 0) {
+                *left -= 1;
+            }
+        }
+    }
+
+    fn host() -> testing::MockHost {
+        let host = testing::MockHost::new();
+        host.set_block(ANCHOR, MACHINE);
+        host.set_block(FOOTPRINT, MACHINE);
+        host.set_cell_kv(ANCHOR, Countdown::STATE_KEY, &[2]);
+        host.on(|call| match call {
+            HostCall::Block(BlockCall::CellGroup { positions }) => Some(HostRet::CellGroups(
+                positions
+                    .iter()
+                    .map(|_| {
+                        Some(CellGroupData {
+                            anchor: ANCHOR,
+                            facing: None,
+                            cells: vec![ANCHOR, FOOTPRINT],
+                        })
+                    })
+                    .collect(),
+            )),
+            HostCall::Gui(GuiCall::GuiViewers) => Some(HostRet::GuiViewers(Vec::new())),
+            HostCall::Block(
+                BlockCall::ScheduleTicks { .. }
+                | BlockCall::SetModelParts { .. }
+                | BlockCall::SetBlockDraws { .. },
+            ) => Some(HostRet::Unit),
+            _ => None,
+        });
+        host
+    }
+
+    fn scheduled(host: &testing::MockHost) -> Vec<([i32; 3], u64)> {
+        host.calls()
+            .into_iter()
+            .filter_map(|call| match call {
+                HostCall::Block(BlockCall::ScheduleTicks { ticks }) => Some(ticks),
+                _ => None,
+            })
+            .flatten()
+            .collect()
+    }
+
+    #[test]
+    fn a_machine_steps_once_a_tick_and_rests_once_a_step_changes_nothing() {
+        let host = host();
+        let _guard = host.install();
+        let mut machine = Machine::<Countdown> {
+            block: Some(MACHINE),
+            ..Machine::default()
+        };
+        let mut caches = Caches::default();
+
+        machine.on_hooks(
+            &mut caches,
+            &[
+                (BlockHookKind::ContainerChanged, ANCHOR),
+                (BlockHookKind::NeighborUpdate, FOOTPRINT),
+                (BlockHookKind::RandomTick, ANCHOR),
+            ],
+        );
+        assert_eq!(machine.spec.steps, 1, "every hook names the same machine");
+        assert_eq!(
+            scheduled(&host),
+            vec![(ANCHOR, 1)],
+            "it changed, so it asks again"
+        );
+
+        for left in [0u8, 0] {
+            machine.on_hooks(&mut caches, &[(BlockHookKind::ScheduledTick, ANCHOR)]);
+            assert_eq!(host.cell_kv(ANCHOR, Countdown::STATE_KEY), Some(vec![left]));
+        }
+        assert_eq!(machine.spec.steps, 3);
+        assert_eq!(
+            scheduled(&host),
+            vec![(ANCHOR, 1), (ANCHOR, 1)],
+            "the step that changed nothing asked for no tick"
+        );
+
+        host.set_block(ANCHOR, BlockId(1));
+        machine.on_hooks(&mut caches, &[(BlockHookKind::ScheduledTick, ANCHOR)]);
+        assert_eq!(
+            machine.spec.steps, 3,
+            "a cell that is no longer the machine never steps"
         );
     }
 }

@@ -2,11 +2,15 @@ use mod_sdk::*;
 
 use crate::keys::WELL_FED;
 
-pub fn on_player_damage(amount: &mut i32) {
+pub fn on_player_damage(player: PlayerId, amount: &mut i32) {
     if *amount <= 1 {
         return;
     }
-    if effects_active().iter().any(|e| e.key == WELL_FED) {
+    if effects_active(player)
+        .unwrap_or_default()
+        .iter()
+        .any(|e| e.key == WELL_FED)
+    {
         *amount -= 1;
     }
 }

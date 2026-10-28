@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex};
 
-use super::super::aim::Flight;
 use super::super::kit::{Bow, Melee, Ranged, Swing};
 use super::*;
 
@@ -56,23 +55,34 @@ fn the_brain_lock_drives_mob_hits_mobile_archery_and_cornered_melee() {
         match call {
             HostCall::Block(BlockCall::Raycast { .. }) => HostRet::Raycast(None),
             HostCall::Core(CoreCall::RngU64 { .. }) => HostRet::U64(7),
-            HostCall::Entity(EntityCall::MobInfo { mob_id }) => {
-                HostRet::Mob(state.foe.clone().filter(|m| m.id == *mob_id))
-            }
-            HostCall::Entity(EntityCall::MobsInRadius { .. }) => {
-                HostRet::Mobs(state.foe.clone().into_iter().collect())
+            HostCall::Entity(EntityCall::EntityInfo { entities }) => HostRet::EntityInfos(
+                entities
+                    .iter()
+                    .map(|id| {
+                        state
+                            .foe
+                            .clone()
+                            .filter(|m| m.id == *id)
+                            .map(EntityData::Mob)
+                    })
+                    .collect(),
+            ),
+            HostCall::Entity(EntityCall::EntitiesInRadius { .. }) => {
+                HostRet::Entities(state.foe.clone().into_iter().map(EntityData::Mob).collect())
             }
             HostCall::Entity(EntityCall::MobWalkProbe { offsets, .. }) => {
                 HostRet::Bools(vec![state.safe; offsets.len()])
             }
             HostCall::Entity(EntityCall::MobAnimSet { .. }) => HostRet::Bool(true),
             HostCall::Entity(EntityCall::MobAnimState { .. }) => HostRet::MobAnimState(None),
-            HostCall::Entity(EntityCall::LaunchItem { .. }) => {
+            HostCall::Entity(EntityCall::SpawnItem { vel: Some(_), .. }) => {
                 state.shots += 1;
-                HostRet::U64(42)
+                HostRet::Ids(vec![42])
             }
-            HostCall::Entity(EntityCall::DamageMob {
-                mob_id, attacker, ..
+            HostCall::Entity(EntityCall::Damage {
+                target: EntityRef::Entity(mob_id),
+                attacker,
+                ..
             }) => {
                 state.hits.push((*mob_id, *attacker));
                 HostRet::Unit
@@ -106,15 +116,15 @@ fn the_brain_lock_drives_mob_hits_mobile_archery_and_cornered_melee() {
     // No lock means no strike, even with a live body beside us.
     turn(100, &me, &kit).run(&mut body, &[], &mut shoves);
     assert_eq!(body.fight.act, Act::Idle);
-    me.target = Some(EntityRef::Mob(9));
+    me.target = Some(EntityRef::Entity(9));
     turn(101, &me, &kit).run(&mut body, &[], &mut shoves);
     assert!(matches!(body.fight.act, Act::Swing { .. }));
     turn(103, &me, &kit).run(&mut body, &[], &mut shoves);
-    assert_eq!(host.lock().unwrap().hits, [(9, Some(EntityRef::Mob(1)))]);
+    assert_eq!(host.lock().unwrap().hits, [(9, Some(EntityRef::Entity(1)))]);
 
     kit.bow = Some(Bow {
         hand: Hand::Off,
-        flight: Flight::default(),
+        flight: ItemFlight::default(),
         ranged: Ranged {
             ammo: "x:arrow".into(),
             pull: vec![],

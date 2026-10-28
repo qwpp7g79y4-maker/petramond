@@ -3,8 +3,10 @@ use crate::legality::prelude::*;
 
 host_domain! {
     ContainerCall {
+        /// Each address's slots; `None` = no container there or unloaded.
+        /// → [`HostRet::Containers`](crate::HostRet::Containers).
         ContainerGet {
-            at: ContainerAddress,
+            addresses: Vec<ContainerAddress>,
         } => legal(SERVER, Sim, Read),
         ContainerSet {
             at: ContainerAddress,
@@ -14,9 +16,6 @@ host_domain! {
             class: String,
             item: String,
         } => legal(SERVER, Any, Read),
-        ContainerGetMany {
-            addresses: Vec<ContainerAddress>,
-        } => legal(SERVER, Sim, Read),
         ContainerInsert {
             at: ContainerAddress,
             stack: ItemStackData,

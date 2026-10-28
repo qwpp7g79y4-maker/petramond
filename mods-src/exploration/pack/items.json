@@ -441,7 +441,9 @@
         "roll": 0
       },
       "sprite": "exploration:kelp_tip",
-      "tags": [],
+      "tags": [
+        "kitchen:cookable"
+      ],
       "block": "exploration:kelp"
     },
     {

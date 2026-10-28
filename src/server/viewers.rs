@@ -8,35 +8,35 @@ use crate::world::ServerWorld;
 
 #[derive(Default)]
 pub struct ContainerViewers {
-    chests: HashMap<IVec3, u8>,
+    viewers: HashMap<IVec3, u8>,
     holds: HashMap<IVec3, Vec<u64>>,
 }
 
 impl ContainerViewers {
     pub fn add_viewer(&mut self, pos: IVec3, events: &mut TickEvents) {
-        let count = self.chests.entry(pos).or_insert(0);
+        let count = self.viewers.entry(pos).or_insert(0);
         *count = count.saturating_add(1);
         if *count == 1 {
-            events.world.chest_changed.push((pos, true));
+            events.world.panel_changed.push((pos, true));
         }
     }
 
     pub fn drop_viewer(&mut self, pos: IVec3, events: &mut TickEvents) {
-        if let Some(count) = self.chests.get_mut(&pos) {
+        if let Some(count) = self.viewers.get_mut(&pos) {
             *count = count.saturating_sub(1);
             if *count == 0 {
-                self.chests.remove(&pos);
-                events.world.chest_changed.push((pos, false));
+                self.viewers.remove(&pos);
+                events.world.panel_changed.push((pos, false));
             }
         }
     }
 
     pub fn viewers(&self, pos: IVec3) -> u8 {
-        self.chests.get(&pos).copied().unwrap_or(0)
+        self.viewers.get(&pos).copied().unwrap_or(0)
     }
 
-    pub fn open_chests(&self) -> Vec<IVec3> {
-        let mut open: Vec<IVec3> = self.chests.keys().copied().collect();
+    pub fn held_open(&self) -> Vec<IVec3> {
+        let mut open: Vec<IVec3> = self.viewers.keys().copied().collect();
         open.sort_unstable_by_key(|p| (p.x, p.y, p.z));
         open
     }
@@ -55,17 +55,7 @@ impl ContainerViewers {
             .is_some_and(|ids| ids.contains(&mob_id));
         if open && !held && world.mobs().contains(mob_id) {
             self.holds.entry(pos).or_default().push(mob_id);
-            let chest = world
-                .block_if_stream_final(pos.x, pos.y, pos.z)
-                .is_some_and(|b| {
-                    b.interaction()
-                        == petramond_world::block::BlockInteraction::OpenGui(
-                            petramond_world::gui_state::GuiKind::Chest,
-                        )
-                });
-            if chest {
-                self.add_viewer(pos, events);
-            }
+            self.add_viewer(pos, events);
         } else if !open && held {
             self.release(pos, mob_id);
             self.drop_viewer(pos, events);
@@ -111,10 +101,10 @@ mod tests {
         viewers.add_viewer(pos, &mut events);
         assert_eq!(viewers.viewers(pos), 2);
         viewers.drop_viewer(pos, &mut events);
-        assert_eq!(viewers.open_chests(), vec![pos]);
+        assert_eq!(viewers.held_open(), vec![pos]);
         viewers.drop_viewer(pos, &mut events);
         viewers.drop_viewer(pos, &mut events);
         assert_eq!(viewers.viewers(pos), 0);
-        assert_eq!(events.world.chest_changed, vec![(pos, true), (pos, false)]);
+        assert_eq!(events.world.panel_changed, vec![(pos, true), (pos, false)]);
     }
 }

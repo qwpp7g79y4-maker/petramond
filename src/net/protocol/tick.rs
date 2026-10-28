@@ -68,7 +68,7 @@ tick_sections! {
     SelfState(SelfState) => self_state;
     MenuSync(MenuSyncMsg) => menu_sync;
     Env(Vec<(String, [f32; 4])>) => env;
-    OpenChests(Vec<IVec3>) => open_chests;
+    HeldOpen(Vec<IVec3>) => held_open;
     Events(Vec<WorldEventMsg>) => events;
     SelfEvents(SelfEvents) => self_events;
 }

@@ -16,12 +16,7 @@
       "jump_speed": 7.2,
       "turn_rate": 6.0,
       "walk_anim_rate": 1.25,
-      "category": "passive",
       "cap": 64,
-      "spawn": {
-        "biomes": [],
-        "ground": []
-      },
       "spawn_group": {
         "min": 1,
         "max": 1

@@ -1,6 +1,5 @@
 use crate::events::PostEvent;
-use crate::net::protocol::{GuiValueWire, ItemSlotWire, MenuSyncMsg, MenuTargetWire};
-use petramond_math::math::IVec3;
+use crate::net::protocol::{ItemSlotWire, MenuSyncMsg, MenuTargetWire};
 use petramond_world::crafting::CraftingStation;
 use petramond_world::gui_state::MenuSlot;
 use petramond_world::gui_state::PointerButton;
@@ -217,7 +216,6 @@ impl ServerGame {
         anchor: Option<MenuAnchor>,
         events: &mut TickEvents,
     ) -> bool {
-        let pos = anchor.and_then(MenuAnchor::block);
         if let Some(station) = CraftingStation::of_kind(kind) {
             self.open_crafting_for(s, station);
             return true;
@@ -231,19 +229,11 @@ impl ServerGame {
                     .open_document_gui(&mut self.world, kind, None);
                 self.emit_container_opened(s);
             }
-            GuiKind::Furnace => {
-                let Some(pos) = pos else { return false };
-                self.open_furnace_screen_for(s, pos);
-            }
-            GuiKind::Chest => {
-                let Some(pos) = pos else { return false };
-                self.open_chest_screen_for(s, pos, events);
-            }
             kind if kind.is_registered() => {
                 if anchor.is_some_and(|anchor| !anchor.present(&self.world)) {
                     return false;
                 }
-                self.open_registered_gui_screen_for(s, kind, anchor)
+                self.open_document_screen_for(s, kind, anchor, events)
             }
             _ => return false,
         }
@@ -265,15 +255,15 @@ impl ServerGame {
         let Some(kind_key) = petramond_world::gui_state::kind_key(kind) else {
             return;
         };
-        let actor = Some(self.sessions[s].id);
+        let player = self.sessions[s].id;
         let Self {
             world,
             sessions,
             mods,
             ..
         } = self;
-        mods.dispatch(world, sessions, actor, events, |host, ctx| {
-            host.dispatch_gui_click(ctx, kind_key, widget_id, anchor)
+        mods.dispatch(world, sessions, Some(player), events, |host, ctx| {
+            host.dispatch_gui_click(ctx, player, kind_key, widget_id, anchor)
         });
     }
 
@@ -283,44 +273,24 @@ impl ServerGame {
         self.emit_container_opened(s);
     }
 
-    pub fn open_furnace_screen_for(&mut self, s: usize, pos: IVec3) {
-        let sess = &mut self.sessions[s];
-        sess.sim.menu.open_furnace_screen(&mut self.world, pos);
-        self.emit_container_opened(s);
-    }
-
-    pub fn open_chest_screen_for(&mut self, s: usize, pos: IVec3, events: &mut TickEvents) {
-        let same = matches!(
-            self.sessions[s].sim.menu.target(),
-            ContainerTarget::Gui { kind: petramond_world::gui_state::GuiKind::Chest, anchor: Some(MenuAnchor::Block(p)) } if p == pos
-        );
-        if !same {
-            self.release_chest_viewer(s, events);
-        }
-        let sess = &mut self.sessions[s];
-        sess.sim.menu.open_chest_screen(&mut self.world, pos);
-        if !same {
-            self.containers.add_viewer(pos, events);
-        }
-        self.emit_container_opened(s);
-    }
-
-    fn release_chest_viewer(&mut self, s: usize, events: &mut TickEvents) {
-        if let ContainerTarget::Gui {
-            kind: petramond_world::gui_state::GuiKind::Chest,
-            anchor: Some(MenuAnchor::Block(pos)),
-        } = self.sessions[s].sim.menu.target()
-        {
-            self.containers.drop_viewer(pos, events);
-        }
-    }
-
-    pub fn open_registered_gui_screen_for(
+    /// Opens a document GUI. A block anchor is canonicalized to its container anchor, gets its
+    /// container from the document's slots and its loot stocked, and counts the session as one
+    /// of its viewers (the first holds an animated lid open).
+    pub fn open_document_screen_for(
         &mut self,
         s: usize,
         kind: petramond_world::gui_state::GuiKind,
         anchor: Option<MenuAnchor>,
+        events: &mut TickEvents,
     ) {
+        let anchor = anchor.map(|anchor| match anchor {
+            MenuAnchor::Block(p) => MenuAnchor::Block(self.world.container_anchor(p)),
+            mob @ MenuAnchor::Entity(_) => mob,
+        });
+        let same = self.sessions[s].sim.menu.target() == ContainerTarget::Gui { kind, anchor };
+        if !same {
+            self.release_viewer(s, events);
+        }
         if !self.any_registered_gui_open() {
             self.clear_all_gui_states();
         }
@@ -329,7 +299,18 @@ impl ServerGame {
         sess.sim
             .menu
             .open_document_gui(&mut self.world, kind, anchor);
+        if let (false, Some(MenuAnchor::Block(pos))) = (same, anchor) {
+            self.containers.add_viewer(pos, events);
+            self.world.note_viewers_changed(pos);
+        }
         self.emit_container_opened(s);
+    }
+
+    fn release_viewer(&mut self, s: usize, events: &mut TickEvents) {
+        if let Some(MenuAnchor::Block(pos)) = self.sessions[s].sim.menu.target().anchor() {
+            self.containers.drop_viewer(pos, events);
+            self.world.note_viewers_changed(pos);
+        }
     }
 
     pub(super) fn close_menus_on_absent_anchors(&mut self, events: &mut TickEvents) {
@@ -355,11 +336,9 @@ impl ServerGame {
                 anchor,
             });
         }
-        self.release_chest_viewer(s, events);
+        self.release_viewer(s, events);
         self.close_cursor_stack_for(s);
         self.close_crafting_for(s);
-        self.sessions[s].sim.menu.close_furnace();
-        self.sessions[s].sim.menu.close_chest();
         self.close_registered_gui_for(s);
         if self.sessions[s].sim.menu.target().kind()
             == Some(petramond_world::gui_state::GuiKind::Creative)
@@ -417,6 +396,15 @@ impl ServerGame {
         })
     }
 
+    /// Hands the GUI values the world wrote this tick to every session viewing their anchor.
+    pub(super) fn publish_world_gui_values(&mut self) {
+        use crate::events::PlayerRoster;
+        for (anchor, key, value) in self.world.take_gui_values() {
+            self.sessions
+                .set_gui_value_at(MenuAnchor::Block(anchor), &key, &value);
+        }
+    }
+
     fn clear_all_gui_states(&mut self) {
         for sess in &mut self.sessions {
             petramond_world::gui_state::gui_state_clear(&mut sess.sim.gui_state);
@@ -432,33 +420,18 @@ impl ServerGame {
                 kind if CraftingStation::of_kind(kind).is_some() => MenuTargetWire::Crafting {
                     output: slot_wire(sess.sim.menu.craft_output()),
                 },
-                kind => {
-                    let gauges = sess.sim.menu.open_gauges(&self.world);
-                    MenuTargetWire::Container {
-                        kind_key: petramond_world::gui_state::kind_key(kind)
-                            .unwrap_or_default()
-                            .to_string(),
-                        anchor,
-                        slots: sess
-                            .sim
-                            .menu
-                            .open_container_view(&self.world)
-                            .map(|v| v.slots.iter().map(|s| slot_wire(*s)).collect()),
-                        gui_state: (!gauges.is_empty()).then(|| {
-                            gauges
-                                .into_iter()
-                                .map(|(k, v)| {
-                                    (
-                                        k,
-                                        GuiValueWire::from_value(
-                                            &petramond_world::gui_state::GuiValue::F32(v),
-                                        ),
-                                    )
-                                })
-                                .collect()
-                        }),
-                    }
-                }
+                kind => MenuTargetWire::Container {
+                    kind_key: petramond_world::gui_state::kind_key(kind)
+                        .unwrap_or_default()
+                        .to_string(),
+                    anchor,
+                    slots: sess
+                        .sim
+                        .menu
+                        .open_container_view(&self.world)
+                        .map(|v| v.slots.iter().map(|s| slot_wire(*s)).collect()),
+                    gui_state: None,
+                },
             },
         };
         MenuSyncMsg { target }
@@ -500,7 +473,7 @@ mod tests {
             0,
             PendingMenuAction::OpenGui {
                 kind,
-                anchor: Some(MenuAnchor::Mob(mob)),
+                anchor: Some(MenuAnchor::Entity(mob)),
             },
         );
         server.tick_menu(0, events);
@@ -535,7 +508,7 @@ mod tests {
         open_on_mob(&mut server, mob, &mut events);
         assert_eq!(
             server.sessions[0].sim.menu.target().anchor(),
-            Some(MenuAnchor::Mob(mob))
+            Some(MenuAnchor::Entity(mob))
         );
 
         click(&mut server, MenuSlot::Inventory(inv_slot), &mut events);

@@ -16,7 +16,6 @@ impl<S: WorldSide> World<S> {
     pub(in crate::world) fn refresh_block_entity_index(&mut self, pos: SectionPos) {
         let has = self.data.sections.get(&pos).is_some_and(|s| {
             !s.containers().is_empty()
-                || !s.furnaces().is_empty()
                 || s.cell_states().keys().any(|&idx| {
                     let (lx, ly, lz) = petramond_world::chunk::section_local(idx as usize);
                     indexes_block_entity(s.block(lx, ly, lz))

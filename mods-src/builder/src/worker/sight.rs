@@ -11,7 +11,7 @@ pub enum Work {
     Touch,
     Click {
         pos: [i32; 3],
-        record: Option<BlockRecord>,
+        record: Option<CellRecord>,
     },
 }
 

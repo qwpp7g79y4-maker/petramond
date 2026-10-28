@@ -52,16 +52,18 @@ impl ServerGame {
             ..
         } = self;
         world.step_cells(edit, CELLS_PER_TICK, &mut |world, hooks: CellHooks<'_>| {
-            let removed = hooks
-                .removed
-                .iter()
-                .map(|&(pos, block)| PostEvent::BlockBroken {
-                    pos,
-                    block,
-                    harvested: false,
-                    natural: false,
-                    player,
-                });
+            let removed =
+                hooks
+                    .removed
+                    .iter()
+                    .map(|(pos, block, removal)| PostEvent::BlockBroken {
+                        pos: *pos,
+                        block: *block,
+                        harvested: false,
+                        natural: false,
+                        player,
+                        removal: removal.clone(),
+                    });
             let placed = hooks
                 .placed
                 .iter()

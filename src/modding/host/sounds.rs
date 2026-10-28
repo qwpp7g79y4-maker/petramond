@@ -72,71 +72,53 @@ pub(super) fn handle_sound_call(mod_id: &str, call: SoundCall) -> HostRet {
             });
             HostRet::Bool(true)
         }),
-        SoundCall::SoundPlayAt {
+        SoundCall::SoundPlay {
             key,
-            pos,
+            at,
             volume,
             pitch,
         } => sim_query(|ctx| {
             let Some(sound) = petramond_world::sound_registry::by_name(&key) else {
-                log::warn!("[mod {mod_id}] SoundPlayAt: unknown sound '{key}'");
-                return HostRet::U64(0);
-            };
-            if !spatial_sound_params_ok(pos, volume, pitch) {
-                log::warn!("[mod {mod_id}] SoundPlayAt: rejected non-finite or negative parameter");
-                return HostRet::U64(0);
-            }
-            let handle = ctx.feed.alloc_spatial_sound_handle();
-            ctx.feed
-                .world
-                .spatial_sounds
-                .push(crate::events::tick::SpatialSoundCommand::PlayAt {
-                    handle,
-                    sound,
-                    pos: petramond_math::world_pos::WorldPos::from_array(pos),
-                    volume,
-                    pitch,
-                });
-            HostRet::U64(handle)
-        }),
-        SoundCall::SoundPlayOnMob {
-            mob_id,
-            key,
-            volume,
-            pitch,
-        } => sim_query(|ctx| {
-            let Some(sound) = petramond_world::sound_registry::by_name(&key) else {
-                log::warn!("[mod {mod_id}] SoundPlayOnMob: unknown sound '{key}'");
+                log::warn!("[mod {mod_id}] SoundPlay: unknown sound '{key}'");
                 return HostRet::U64(0);
             };
             if !spatial_sound_scalar_params_ok(volume, pitch) {
-                log::warn!(
-                    "[mod {mod_id}] SoundPlayOnMob: rejected non-finite or negative parameter"
-                );
+                log::warn!("[mod {mod_id}] SoundPlay: rejected non-finite or negative parameter");
                 return HostRet::U64(0);
             }
-            let Some(last_pos) = ctx
-                .world
-                .mobs()
-                .instances()
-                .iter()
-                .find(|m| m.id() == mob_id && !m.is_dead())
-                .map(|m| m.pos)
-            else {
-                log::warn!("[mod {mod_id}] SoundPlayOnMob: no live mob with stable id {mob_id}");
-                return HostRet::U64(0);
+            let handle;
+            let cmd = match at {
+                mod_api::SoundAt::Point(pos) => {
+                    if !pos.iter().all(|v| v.is_finite()) {
+                        log::warn!("[mod {mod_id}] SoundPlay: non-finite point");
+                        return HostRet::U64(0);
+                    }
+                    handle = ctx.feed.alloc_spatial_sound_handle();
+                    crate::events::tick::SpatialSoundCommand::PlayAt {
+                        handle,
+                        sound,
+                        pos: petramond_math::world_pos::WorldPos::from_array(pos),
+                        volume,
+                        pitch,
+                    }
+                }
+                mod_api::SoundAt::Entity(entity) => {
+                    let Some(last_pos) = ctx.world.entity_pos(entity) else {
+                        log::warn!("[mod {mod_id}] SoundPlay: no live entity {entity}");
+                        return HostRet::U64(0);
+                    };
+                    handle = ctx.feed.alloc_spatial_sound_handle();
+                    crate::events::tick::SpatialSoundCommand::PlayOnEntity {
+                        handle,
+                        sound,
+                        entity,
+                        volume,
+                        pitch,
+                        last_pos,
+                    }
+                }
             };
-            let handle = ctx.feed.alloc_spatial_sound_handle();
-            ctx.feed.world.spatial_sounds.push(
-                crate::events::tick::SpatialSoundCommand::PlayOnMob {
-                    handle,
-                    sound,
-                    mob_id,
-                    volume,
-                    pitch,
-                    last_pos,
-                },
-            );
+            ctx.feed.world.spatial_sounds.push(cmd);
             HostRet::U64(handle)
         }),
         SoundCall::SoundSet {
@@ -169,10 +151,6 @@ pub(super) fn handle_sound_call(mod_id: &str, call: SoundCall) -> HostRet {
             }
         }),
     }
-}
-
-fn spatial_sound_params_ok(pos: [f64; 3], volume: f32, pitch: f32) -> bool {
-    pos.iter().all(|c| c.is_finite()) && spatial_sound_scalar_params_ok(volume, pitch)
 }
 
 fn spatial_sound_scalar_params_ok(volume: f32, pitch: f32) -> bool {
@@ -215,27 +193,27 @@ mod tests {
             scope::enter(&mut ctx, || {
                 handles.0 = match handle_host_call(
                     &mut data,
-                    HostCall::from(calls::SoundPlayAt {
+                    HostCall::from(calls::SoundPlay {
                         key: "petramond:item_pickup".into(),
-                        pos: [1.0, 81.0, 1.0],
+                        at: mod_api::SoundAt::Point([1.0, 81.0, 1.0]),
                         volume: 0.5,
                         pitch: 1.25,
                     }),
                 ) {
                     HostRet::U64(handle) => handle,
-                    other => panic!("SoundPlayAt returned {other:?}"),
+                    other => panic!("SoundPlay at a point returned {other:?}"),
                 };
                 handles.1 = match handle_host_call(
                     &mut data,
-                    HostCall::from(calls::SoundPlayOnMob {
-                        mob_id,
+                    HostCall::from(calls::SoundPlay {
                         key: "petramond:item_pickup".into(),
+                        at: mod_api::SoundAt::Entity(mob_id),
                         volume: 0.75,
                         pitch: 0.9,
                     }),
                 ) {
                     HostRet::U64(handle) => handle,
-                    other => panic!("SoundPlayOnMob returned {other:?}"),
+                    other => panic!("SoundPlay on a mob returned {other:?}"),
                 };
                 assert_eq!(
                     handle_host_call(
@@ -247,9 +225,9 @@ mod tests {
                 assert_eq!(
                     handle_host_call(
                         &mut data,
-                        HostCall::from(calls::SoundPlayAt {
+                        HostCall::from(calls::SoundPlay {
                             key: "no_such:sound".into(),
-                            pos: [0.0, 0.0, 0.0],
+                            at: mod_api::SoundAt::Point([0.0, 0.0, 0.0]),
                             volume: 1.0,
                             pitch: 1.0,
                         }),
@@ -284,17 +262,17 @@ mod tests {
             }
         );
         match first.2[1] {
-            crate::events::tick::SpatialSoundCommand::PlayOnMob {
+            crate::events::tick::SpatialSoundCommand::PlayOnEntity {
                 handle,
                 sound: queued_sound,
-                mob_id,
+                entity,
                 volume,
                 pitch,
                 last_pos,
             } => {
                 assert_eq!(handle, first.1);
                 assert_eq!(queued_sound, sound);
-                assert_ne!(mob_id, 0);
+                assert_ne!(entity, 0);
                 assert_eq!(volume, 0.75);
                 assert_eq!(pitch, 0.9);
                 assert_eq!(last_pos, WorldPos::new(2.0, 80.0, 3.0));

@@ -2,13 +2,47 @@ use serde::{Deserialize, Serialize};
 
 use super::*;
 
+/// One cell, whole and by name: what [`BlockCall::GetCells`] reads and
+/// [`BlockCall::SetCells`] writes, and what a blueprint or a carried block keeps.
+///
+/// `state` is the block's cell state with the bytes that name other blocks zeroed; `refs` names
+/// those blocks by state offset, so a record survives a session (block ids do not). `fluid` is a
+/// fluid block's level. `data` is the cell's data map (cell KV), including a held fluid.
+///
+/// [`BlockCall::GetCells`]: crate::BlockCall::GetCells
+/// [`BlockCall::SetCells`]: crate::BlockCall::SetCells
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct BlockRecord {
+pub struct CellRecord {
     pub block: String,
     #[serde(with = "serde_bytes")]
     pub state: Vec<u8>,
     pub refs: Vec<(u8, String)>,
+    pub fluid: u8,
     pub data: Vec<(String, Vec<u8>)>,
+    pub container: Option<Vec<Option<ItemStackData>>>,
+}
+
+impl CellRecord {
+    /// A block alone: default state, no data, no container.
+    pub fn of(block: impl Into<String>) -> Self {
+        Self {
+            block: block.into(),
+            state: Vec::new(),
+            refs: Vec::new(),
+            fluid: 0,
+            data: Vec::new(),
+            container: None,
+        }
+    }
+}
+
+/// The cells that belong together with a cell: a model block's footprint or a compound's members
+/// (a door's two halves), the cell they are anchored at, and their facing when they turn.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CellGroupData {
+    pub anchor: [i32; 3],
+    pub facing: Option<crate::Facing>,
+    pub cells: Vec<[i32; 3]>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -132,7 +166,7 @@ pub enum SchematicLookup {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct SchematicCellsData {
     pub cells: Vec<([i32; 3], u16)>,
-    pub palette: Vec<BlockRecord>,
+    pub palette: Vec<CellRecord>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

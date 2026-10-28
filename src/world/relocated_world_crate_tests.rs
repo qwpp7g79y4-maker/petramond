@@ -14,7 +14,7 @@ mod registry_palette {
         .unwrap();
         std::fs::write(
             pack.join("blocks.json"),
-            r#"{ "blocks": [ { "block": "testmod:glowrock", "shape": "cube", "flags": ["solid", "opaque", "ao_occluder"], "tags": [], "behavior": "inert", "interaction": "none", "collision": [{"min": [0, 0, 0], "max": [1, 1, 1]}], "emission": 28, "tiles": ["stone", "stone", "stone"], "material": "stone", "data": {"petramond:harvest": {"tier": 1}}, "hardness": 2, "drops": [{"item": "testmod:glowrock", "min": 1, "max": 1, "chance": 1.0}] } ] }"#,
+            r#"{ "blocks": [ { "block": "testmod:glowrock", "shape": "cube", "flags": ["solid", "opaque", "ao_occluder"], "tags": [], "collision": [{"min": [0, 0, 0], "max": [1, 1, 1]}], "emission": 28, "tiles": ["stone", "stone", "stone"], "material": "stone", "data": {"petramond:harvest": {"tier": 1}}, "hardness": 2, "drops": [{"item": "testmod:glowrock", "min": 1, "max": 1, "chance": 1.0}] } ] }"#,
         )
         .unwrap();
         std::fs::write(
@@ -71,7 +71,7 @@ mod registry_palette {
         );
 
         assert!(glow.is_solid() && glow.is_opaque());
-        assert_eq!(glow.behavior().key(), "inert");
+        assert!(glow.behaviors().is_empty());
         assert_eq!(glow.light_emission(), 28);
         assert_eq!(glow.hardness(), 2.0);
         assert_eq!(glow.drop_spec().drops.len(), 1);
@@ -148,7 +148,7 @@ mod world_ladder {
             Block::Ladder.wall_panel_row(Facing::East),
             petramond_world::block::ShapeState::NONE,
         );
-        assert!(w.commit_placement(&plan, true));
+        assert!(w.commit_placement(&plan));
         assert_eq!(
             Block::from_id(w.data.chunk_block(p.x, p.y, p.z)),
             Block::LadderEast

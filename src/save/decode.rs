@@ -164,6 +164,7 @@ fn decode_record(
                     section: Box::new(decoded.section),
                     entities: decoded.entities,
                     mobs: decoded.mobs,
+                    ticks: decoded.ticks,
                 };
                 return (record, decoded.kept);
             }

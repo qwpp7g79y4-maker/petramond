@@ -49,7 +49,7 @@ pub fn fetch(
             if let Some(moved) = container_transfer(
                 ContainerAddress::Block(*container),
                 slot as u32,
-                ContainerAddress::Mob(body.id),
+                ContainerAddress::Entity(body.id),
                 count,
             ) {
                 *want -= u32::from(moved.count);
@@ -61,7 +61,7 @@ pub fn fetch(
         if container_transfer(
             ContainerAddress::Block(container),
             slot,
-            ContainerAddress::Mob(body.id),
+            ContainerAddress::Entity(body.id),
             1,
         )
         .is_some()
@@ -167,7 +167,7 @@ pub fn rummage(
         } else {
             self::deposit(ctx, projects, job, body);
             let emptied = Body {
-                slots: container_get(ContainerAddress::Mob(body.id)).unwrap_or_default(),
+                slots: container_get(ContainerAddress::Entity(body.id)).unwrap_or_default(),
                 ..*body
             };
             fetch(ctx, projects, job, &emptied, container)
@@ -241,7 +241,7 @@ pub fn deposit(ctx: &mut Ctx, projects: &mut Projects, job: &mut Job, body: &Bod
                 break;
             }
             if let Some(moved) = container_transfer(
-                ContainerAddress::Mob(body.id),
+                ContainerAddress::Entity(body.id),
                 slot as u32,
                 ContainerAddress::Block(*container),
                 left,

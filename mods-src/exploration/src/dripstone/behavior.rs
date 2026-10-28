@@ -17,14 +17,18 @@ pub fn on_hook(d: &Dripstone, kind: BlockHookKind, pos: [i32; 3]) {
     }
     match kind {
         BlockHookKind::NeighborUpdate => {
-            if !held(d, pos, block) {
+            if !supported_at(vec![(pos, None)])
+                .first()
+                .copied()
+                .unwrap_or(true)
+            {
                 come_down(d, pos, block);
             } else {
                 wetness(d, pos, block);
             }
         }
         BlockHookKind::RandomTick => grow(d, pos, block),
-        BlockHookKind::ScheduledTick => {}
+        _ => {}
     }
 }
 
@@ -53,19 +57,6 @@ fn wetness(d: &Dripstone, pos: [i32; 3], block: BlockId) -> Option<bool> {
         swap_block(pos, want);
     }
     Some(wet)
-}
-
-fn held(d: &Dripstone, pos: [i32; 3], block: BlockId) -> bool {
-    let Some(run) = d.run_of(block) else {
-        return true;
-    };
-    let s = [pos[0], pos[1] + run.root_step(), pos[2]];
-    match get_block(s) {
-        // Another segment of the same run — wet or dry, it is one run.
-        Some(b) if d.run_of(b) == Some(run) => true,
-        Some(_) => matches!(collision_shape_at(s), Some(CollisionShape::Full)),
-        None => true,
-    }
 }
 
 /// THIS SEGMENT leaves the world — one cell, never a run.
@@ -247,6 +238,26 @@ mod tests {
             self.blocks.get(&pos).copied().map(BlockId)
         }
 
+        /// The engine's fragile rule as the rows declare it: a hanging segment holds from above,
+        /// a standing one from below, each by its own run or a full block.
+        fn held_by_the_engine_rule(&self, pos: [i32; 3]) -> bool {
+            let Some(id) = self.blocks.get(&pos).copied() else {
+                return true;
+            };
+            let hanging = id == STALACTITE.0 || id == STALACTITE_WET.0;
+            if !hanging && id != STALAGMITE.0 {
+                return true;
+            }
+            let s = [pos[0], pos[1] + if hanging { 1 } else { -1 }, pos[2]];
+            match self.blocks.get(&s).copied() {
+                None => self.seen(s).is_none(),
+                Some(b) if hanging => {
+                    b == STALACTITE.0 || b == STALACTITE_WET.0 || b == ROCK.0 || b == DRIPSTONE.0
+                }
+                Some(b) => b == STALAGMITE.0 || b == ROCK.0 || b == DRIPSTONE.0,
+            }
+        }
+
         fn load_box(&mut self, min: [i32; 3], max: [i32; 3]) {
             self.loaded = Some((min, max));
         }
@@ -307,34 +318,76 @@ mod tests {
         HOST.with(|slot| {
             slot.borrow_mut().get_or_insert_with(|| {
                 mod_sdk::testing::install_host(|call| match call {
-                    HostCall::Block(mod_sdk::BlockCall::GetBlock { pos }) => {
-                        HostRet::Block(with(|f| f.seen(*pos)))
+                    HostCall::Block(mod_sdk::BlockCall::GetBlocks { positions }) => {
+                        HostRet::Blocks(with(|f| positions.iter().map(|p| f.seen(*p)).collect()))
                     }
-                    HostCall::Block(mod_sdk::BlockCall::SetBlock { pos, block }) => {
-                        with(|f| f.write(*pos, *block));
-                        HostRet::Bool(true)
-                    }
-                    HostCall::Block(mod_sdk::BlockCall::CollisionShapeAt { pos }) => {
-                        HostRet::CollisionShape(with(|f| {
-                            f.blocks.get(pos).map(|id| {
-                                if *id == ROCK.0 || *id == DRIPSTONE.0 {
-                                    CollisionShape::Full
-                                } else {
-                                    CollisionShape::Empty
-                                }
-                            })
+                    HostCall::Block(mod_sdk::BlockCall::SetBlocks { blocks }) => {
+                        HostRet::Bools(with(|f| {
+                            blocks
+                                .iter()
+                                .map(|(pos, block)| {
+                                    f.write(*pos, *block);
+                                    true
+                                })
+                                .collect()
                         }))
                     }
-                    HostCall::Block(mod_sdk::BlockCall::SwapBlock { pos, block }) => {
-                        with(|f| f.blocks.insert(*pos, block.0));
-                        HostRet::Bool(true)
+                    HostCall::Block(mod_sdk::BlockCall::SupportedAt { cells }) => {
+                        HostRet::Bools(with(|f| {
+                            cells
+                                .iter()
+                                .map(|&(pos, _)| f.held_by_the_engine_rule(pos))
+                                .collect()
+                        }))
                     }
-                    HostCall::Kv(mod_sdk::KvCall::SectionKvGet { pos, key }) => {
-                        HostRet::Bytes(with(|f| f.kv.get(&(*pos, key.clone())).cloned()))
+                    HostCall::Block(mod_sdk::BlockCall::CollisionShapeAt { positions }) => {
+                        HostRet::CollisionShapes(with(|f| {
+                            positions
+                                .iter()
+                                .map(|pos| {
+                                    f.blocks.get(pos).map(|id| {
+                                        if *id == ROCK.0 || *id == DRIPSTONE.0 {
+                                            CollisionShape::Full
+                                        } else {
+                                            CollisionShape::Empty
+                                        }
+                                    })
+                                })
+                                .collect()
+                        }))
                     }
-                    HostCall::Kv(mod_sdk::KvCall::SectionKvSet { pos, key, value }) => {
-                        with(|f| f.kv.insert((*pos, key.clone()), value.clone()));
-                        HostRet::Bool(true)
+                    HostCall::Block(mod_sdk::BlockCall::SwapBlocks { swaps }) => {
+                        HostRet::Bools(with(|f| {
+                            swaps
+                                .iter()
+                                .map(|(pos, block)| {
+                                    f.blocks.insert(*pos, block.0);
+                                    true
+                                })
+                                .collect()
+                        }))
+                    }
+                    HostCall::Kv(mod_sdk::KvCall::SectionKvGet { key, positions }) => {
+                        HostRet::BytesMany(with(|f| {
+                            positions
+                                .iter()
+                                .map(|pos| f.kv.get(&(*pos, key.clone())).cloned())
+                                .collect()
+                        }))
+                    }
+                    HostCall::Kv(mod_sdk::KvCall::SectionKvSet { key, writes }) => {
+                        HostRet::Bools(with(|f| {
+                            writes
+                                .iter()
+                                .map(|(pos, value)| match value {
+                                    Some(value) => {
+                                        f.kv.insert((*pos, key.clone()), value.clone());
+                                        true
+                                    }
+                                    None => f.kv.remove(&(*pos, key.clone())).is_some(),
+                                })
+                                .collect()
+                        }))
                     }
                     HostCall::Core(mod_sdk::CoreCall::RngU64 { .. }) => HostRet::U64(with(|f| {
                         if f.rolls.is_empty() {
@@ -343,13 +396,12 @@ mod tests {
                             f.rolls.remove(0)
                         }
                     })),
-                    HostCall::Entity(mod_sdk::EntityCall::LaunchItem { pos, .. }) => {
-                        with(|f| f.launched.push(cell(*pos)));
-                        HostRet::U64(1)
-                    }
-                    HostCall::Entity(mod_sdk::EntityCall::SpawnItem { pos, .. }) => {
-                        with(|f| f.dropped.push(cell(*pos)));
-                        HostRet::Bool(true)
+                    HostCall::Entity(mod_sdk::EntityCall::SpawnItem { pos, vel, .. }) => {
+                        with(|f| match vel {
+                            Some(_) => f.launched.push(cell(*pos)),
+                            None => f.dropped.push(cell(*pos)),
+                        });
+                        HostRet::Ids(vec![1])
                     }
                     other => panic!("the fake world does not model {other:?}"),
                 })
